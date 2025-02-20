@@ -5,6 +5,6 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "env": {
-    "GHL_BASE_URL": "https://api.gohighlevel.com/v1"
+    "GHL_BASE_URL": "https://rest.gohighlevel.com/v1"
   }
 } 
