@@ -1,0 +1,21 @@
+<svg width="200" height="200" viewBox="0 0 240 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(5, 5)">
+    <!-- "Next" -->
+    <path d="M10 15V65H18V15H10Z" fill="#1e1b4b"/>
+    <path d="M25 15H33L55 45V15H63V65H55L33 35V65H25V15Z" fill="#1e1b4b"/>
+    <path d="M70 15H78V40C78 45 78 51 87 51C96 51 96 45 96 40V15H104V40C104 55 95 60 87 60C79 60 70 55 70 40V15Z" fill="#1e1b4b"/>
+    <path d="M115 15H123V35H143V15H151V65H143V43H123V65H115V15Z" fill="#1e1b4b"/>
+    
+    <!-- "Prop" -->
+    <path d="M160 15H183C190 15 195 20 195 30C195 40 190 45 183 45H168V65H160V15ZM168 37H180C184 37 187 35 187 30C187 25 184 23 180 23H168V37Z" fill="#7c3aed"/>
+    <path d="M200 15H208V35H228V15H236V65H228V43H208V65H200V15Z" fill="#7c3aed"/>
+    <path d="M243 15H266C273 15 278 20 278 30C278 40 273 45 266 45H251V65H243V15ZM251 37H263C267 37 270 35 270 30C270 25 267 23 263 23H251V37Z" fill="#7c3aed"/>
+    
+    <!-- ".ai" dot -->
+    <circle cx="290" cy="40" r="5" fill="#7c3aed"/>
+    
+    <!-- ".ai" letters -->
+    <path d="M305 30H313L325 65H317L315 60H303L301 65H293L305 30ZM305 52H313L309 40L305 52Z" fill="#7c3aed"/>
+    <path d="M330 40H338V45C340 41 343 39 347 39V47H345C340 47 338 49 338 54V65H330V40Z" fill="#7c3aed"/>
+  </g>
+</svg> 

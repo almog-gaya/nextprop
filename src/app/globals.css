@@ -1,24 +1,147 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
 
 @theme {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: var(--font-mono);
+  --tw-color-primary: #7c3aed;
+  --tw-color-secondary: #8b5cf6;
+  --tw-color-accent: #a78bfa;
+  --tw-color-error: #ef4444;
+  --tw-color-warning: #f59e0b;
+  --tw-color-success: #10b981;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 248, 250, 252;
+  --background-end-rgb: 255, 255, 255;
+  
+  /* NextProp brand colors */
+  --nextprop-primary: #7c3aed;
+  --nextprop-secondary: #8b5cf6;
+  --nextprop-accent: #a78bfa;
+  --nextprop-dark: #1e1b4b;
+  --nextprop-light: #f5f7fa;
+  --nextprop-gray: #6b7280;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1e1b4b;
+    --foreground: #f5f7fa;
   }
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer utilities {
+  .sidebar-icon {
+    @apply relative flex items-center justify-center h-12 w-12 mt-2 mb-2 mx-auto 
+      bg-gray-100 hover:bg-blue-600 hover:text-white
+      text-blue-600 rounded-xl transition-all duration-300 ease-linear;
+  }
+
+  .sidebar-tooltip {
+    @apply absolute w-auto p-2 m-2 min-w-max left-14 rounded-md shadow-md
+      text-white bg-gray-900 
+      text-xs font-bold 
+      transition-all duration-100 scale-0 origin-left;
+  }
+
+  .sidebar-icon:hover .sidebar-tooltip {
+    @apply scale-100;
+  }
+
+  .main-content {
+    @apply flex-1 p-6 bg-white shadow-lg rounded-lg m-4;
+  }
+
+  .dashboard-card {
+    @apply bg-white rounded-lg shadow-md p-6 mb-6 border-t-4 border-[#7c3aed];
+  }
+
+  .dashboard-card-title {
+    @apply text-xl font-semibold text-[#1e1b4b] mb-4;
+  }
+
+  .stat-card {
+    @apply bg-white border rounded-lg p-5 flex flex-col shadow-sm hover:shadow-md transition-shadow duration-300;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold text-[#7c3aed];
+  }
+
+  .stat-label {
+    @apply text-sm font-medium text-gray-500;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-[#7c3aed] text-white rounded-md hover:bg-[#6d28d9] transition-colors hover:shadow-md;
+  }
+  
+  /* NextProp branded elements */
+  .nextprop-gradient {
+    @apply bg-gradient-to-r from-[#7c3aed] via-[#8b5cf6] to-[#a78bfa];
+  }
+  
+  .nextprop-border {
+    @apply border-[#7c3aed];
+  }
+  
+  .nextprop-text {
+    @apply text-[#7c3aed];
+  }
+
+  .nextprop-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#a78bfa] via-[#8b5cf6] to-[#7c3aed];
+  }
+  
+  /* Updated loader with NextProp branding */
+  .loader {
+    @apply inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-[#7c3aed] motion-reduce:animate-[spin_1.5s_linear_infinite];
+  }
+
+  /* NextProp card styles */
+  .nextprop-card {
+    @apply bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border-b-4 border-b-[#7c3aed];
+  }
+
+  /* NextProp button styles */
+  .nextprop-button {
+    @apply inline-flex items-center justify-center px-5 py-3 bg-[#7c3aed] text-white text-sm font-medium rounded-md shadow hover:bg-[#6d28d9] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed];
+  }
+
+  /* NextProp text input styles */
+  .nextprop-input {
+    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-[#7c3aed] focus:ring focus:ring-[#7c3aed];
+  }
+}
+
+/* Table styling enhancements */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+tr:hover td {
+  background-color: #f8fafc;
 }
