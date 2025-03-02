@@ -10,7 +10,8 @@ import {
   PhoneIcon, 
   ChartBarIcon,
   CurrencyDollarIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  HomeModernIcon
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 
@@ -55,6 +56,11 @@ export default function Sidebar() {
       icon: <PhoneIcon className="w-5 h-5" />, 
       text: 'Ringless Voicemails', 
       href: '/calls' 
+    },
+    { 
+      icon: <HomeModernIcon className="w-5 h-5" />, 
+      text: 'Properties', 
+      href: '/properties' 
     },
     { 
       icon: <ChartBarIcon className="w-5 h-5" />, 

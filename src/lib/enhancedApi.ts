@@ -1,8 +1,8 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import router from 'next/router';
+import axios from 'axios';
 
-// GoHighLevel API base URL
-const GHL_BASE_URL = 'https://rest.gohighlevel.com/v1';
+// Default values for API access
+const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_GHL_API_KEY || '';
+const DEFAULT_LOCATION_ID = process.env.NEXT_PUBLIC_GHL_LOCATION_ID || '';
 
 // Rate limiting configuration
 const rateLimitConfig = {
@@ -23,9 +23,7 @@ const requestTracker = {
 const cache: Record<string, { data: any; timestamp: number; expiresAt: number }> = {};
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes cache lifetime
 
-/**
- * Create an API client with the user's GHL API key
- */
+// Create API client with better error handling
 const createGhlApiClient = (apiKey: string) => {
   const client = axios.create({
     baseURL: 'https://services.leadconnectorhq.com',
@@ -34,7 +32,7 @@ const createGhlApiClient = (apiKey: string) => {
       Version: '2021-07-28',
     },
   });
-  
+
   // Add request interceptor for rate limiting
   client.interceptors.request.use(async (config) => {
     // Check if we're currently rate limited
@@ -67,7 +65,7 @@ const createGhlApiClient = (apiKey: string) => {
     requestTracker.requests.push(now);
     return config;
   });
-  
+
   // Add response interceptor for error handling
   client.interceptors.response.use(
     response => response,
@@ -112,13 +110,34 @@ const createGhlApiClient = (apiKey: string) => {
       return Promise.reject(error);
     }
   );
-  
+
   return client;
 };
 
-/**
- * Get data with caching to reduce API calls
- */
+// Helper function for API validation
+function validateApiKey(apiKey: string): boolean {
+  // Basic validation - ensure key exists and has reasonable length
+  if (!apiKey || apiKey.length < 20) {
+    return false;
+  }
+  
+  // Check for JWT format (three parts separated by dots)
+  // Many JWT tokens may include other characters, so this is a more permissive check
+  const jwtPattern = /^[\w-]+\.[\w-]+\.[\w-]+$/;
+  
+  // Check for traditional API key format
+  const apiKeyPattern = /^[a-zA-Z0-9_-]{20,}$/;
+  
+  // For debugging - remove in production
+  console.log('API Key validation:', apiKey.substring(0, 10) + '...', 
+    'JWT format:', jwtPattern.test(apiKey), 
+    'API key format:', apiKeyPattern.test(apiKey));
+  
+  // Return true if it matches either pattern
+  return jwtPattern.test(apiKey) || apiKeyPattern.test(apiKey);
+}
+
+// Enhanced API data fetching with caching
 async function getCachedData(endpoint: string, params: any = {}, apiKey: string, forceRefresh = false) {
   // Generate cache key based on endpoint and parameters
   const cacheKey = `${endpoint}:${JSON.stringify(params)}:${apiKey}`;
@@ -156,150 +175,7 @@ async function getCachedData(endpoint: string, params: any = {}, apiKey: string,
   }
 }
 
-/**
- * Get contacts from GoHighLevel
- */
-export const getContacts = async (apiKey: string, locationId?: string, params = {}) => {
-  if (!validateApiKey(apiKey)) {
-    throw new Error('Invalid API key format');
-  }
-  
-  try {
-    const fullParams = locationId ? { ...params, locationId } : params;
-    router.push('/auth/login');
-
-    return await getCachedData('/contacts', fullParams, apiKey);
-
-  } catch (error) {
-    console.error('Failed to fetch contacts:', error);
-    throw error;
-  }
-};
-
-/**
- * Get opportunities from GoHighLevel
- */
-export const getOpportunities = async (apiKey: string, pipelineId: string, locationId?: string, params = {}) => {
-  try {
-    const fullParams = locationId ? { ...params, locationId } : params;
-    return await getCachedData(`/pipelines/${pipelineId}/opportunities`, fullParams, apiKey);
-  } catch (error) {
-    console.error('Failed to fetch opportunities:', error);
-    throw error;
-  }
-};
-
-/**
- * Get pipelines from GoHighLevel
- */
-export const getPipelines = async (apiKey: string, locationId?: string, params = {}) => {
-  if (!validateApiKey(apiKey)) {
-    throw new Error('Invalid API key format');
-  }
-  
-  try {
-    const fullParams = locationId ? { ...params, locationId } : params;
-    return await getCachedData('/pipelines', fullParams, apiKey);
-  } catch (error) {
-    console.error('Failed to fetch pipelines:', error);
-    throw error;
-  }
-};
-
-/**
- * Get calls from GoHighLevel
- */
-export const getCalls = async (apiKey: string, locationId?: string, params = {}) => {
-  try {
-    const fullParams = locationId ? { ...params, locationId } : params;
-    return await getCachedData('/calls', fullParams, apiKey);
-  } catch (error) {
-    console.error('Failed to fetch calls:', error);
-    throw error;
-  }
-};
-
-/**
- * General-purpose API request with error handling
- */
-export const fetchWithErrorHandling = async <T>(
-  apiFunction: (...args: any[]) => Promise<T>,
-  ...args: any[]
-): Promise<{ data?: T; error?: string }> => {
-  try {
-    const data = await apiFunction(...args);
-    return { data };
-  } catch (error: any) {
-    const errorMessage = error.response?.status === 429
-      ? 'Rate limit exceeded. Please try again later.'
-      : error.response?.data?.message || error.message || 'An error occurred';
-    
-    return { error: errorMessage };
-  }
-};
-
-// Get a single contact by ID
-export async function getContact(contactId: string) {
-  if (!contactId) {
-    throw new Error('Contact ID is required');
-  }
-  const response = await axios.get(`${GHL_BASE_URL}/contacts/${contactId}`);
-  return response.data;
-}
-
-// Create a new contact
-export async function createContact(contactData: any) {
-  const response = await axios.post(`${GHL_BASE_URL}/contacts/`, contactData);
-  return response.data;
-}
-
-// Update an existing contact
-export async function updateContact(contactId: string, contactData: any) {
-  if (!contactId) {
-    throw new Error('Contact ID is required');
-  }
-  const response = await axios.put(`${GHL_BASE_URL}/contacts/${contactId}`, contactData);
-  return response.data;
-}
-
-// Create a new opportunity
-export async function createOpportunity(pipelineId: string, opportunityData: any) {
-  if (!pipelineId) {
-    throw new Error('Pipeline ID is required');
-  }
-  const response = await axios.post(`${GHL_BASE_URL}/pipelines/${pipelineId}/opportunities`, opportunityData);
-  return response.data;
-}
-
-// Update an existing opportunity
-export async function updateOpportunity(pipelineId: string, opportunityId: string, opportunityData: any) {
-  if (!pipelineId || !opportunityId) {
-    throw new Error('Pipeline ID and Opportunity ID are required');
-  }
-  const response = await axios.put(`${GHL_BASE_URL}/pipelines/${pipelineId}/opportunities/${opportunityId}`, opportunityData);
-  return response.data;
-}
-
-// Log a new call
-export async function logCall(callData: any) {
-  const response = await axios.post(`${GHL_BASE_URL}/calls/`, callData);
-  return response.data;
-}
-
-// Update the validation function to check API key format
-function validateApiKey(apiKey: string): boolean {
-  // Basic validation - ensure key exists and has reasonable length
-  if (!apiKey || apiKey.length < 20) {
-    return false;
-  }
-  
-  // Check for expected format (this is a simplified check)
-  const validFormat = /^[a-zA-Z0-9_-]{20,}$/.test(apiKey);
-  
-  return validFormat;
-}
-
-// Modify the existing getContacts function - DON'T redeclare it
+// Fetch contacts from API
 async function getContacts(params: any = {}, apiKey = DEFAULT_API_KEY, locationId = DEFAULT_LOCATION_ID) {
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
@@ -319,7 +195,28 @@ async function getContacts(params: any = {}, apiKey = DEFAULT_API_KEY, locationI
   }
 }
 
-// Modify the existing getPipelines function - DON'T redeclare it
+// Fetch opportunities from API
+async function getOpportunities(pipelineId: string, params: any = {}, apiKey = DEFAULT_API_KEY, locationId = DEFAULT_LOCATION_ID) {
+  if (!validateApiKey(apiKey)) {
+    throw new Error('Invalid API key format');
+  }
+  
+  try {
+    const fullParams = {
+      locationId,
+      pipelineId,
+      ...params,
+    };
+    
+    const data = await getCachedData(`/pipelines/${pipelineId}/opportunities`, fullParams, apiKey);
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch opportunities:', error);
+    throw error;
+  }
+}
+
+// Fetch pipelines from API
 async function getPipelines(params: any = {}, apiKey = DEFAULT_API_KEY, locationId = DEFAULT_LOCATION_ID) {
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
@@ -339,11 +236,58 @@ async function getPipelines(params: any = {}, apiKey = DEFAULT_API_KEY, location
   }
 }
 
-// Similarly update other API functions that use direct API calls
+// Fetch calls from API
+async function getCalls(params: any = {}, apiKey = DEFAULT_API_KEY, locationId = DEFAULT_LOCATION_ID) {
+  if (!validateApiKey(apiKey)) {
+    throw new Error('Invalid API key format');
+  }
+  
+  try {
+    const fullParams = {
+      locationId,
+      ...params,
+    };
+    
+    const data = await getCachedData('/calls', fullParams, apiKey);
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch calls:', error);
+    throw error;
+  }
+}
 
-// ... rest of the code ...
+// Generic error handler for API requests
+async function fetchWithErrorHandling<T>(fetcher: () => Promise<T>) {
+  try {
+    return await fetcher();
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        const status = error.response.status;
+        let message = 'An error occurred while fetching data.';
 
-// Make sure we're exporting all the functions we need
+        if (status === 401) {
+          message = 'Authentication failed. Please check your API key.';
+        } else if (status === 403) {
+          message = 'You do not have permission to access this resource.';
+        } else if (status === 404) {
+          message = 'The requested resource was not found.';
+        } else if (status === 429) {
+          message = 'Too many requests, please try again later.';
+        } else if (status >= 500) {
+          message = 'A server error occurred. Please try again later.';
+        }
+
+        console.error('API Error:', message);
+        return { error: message, status };
+      }
+    }
+
+    console.error('Unknown error:', error);
+    return { error: 'An unexpected error occurred.', status: 500 };
+  }
+}
+
 export {
   createGhlApiClient,
   getContacts,

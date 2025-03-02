@@ -1,14 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getContacts, fetchWithErrorHandling } from '@/lib/api';
+import { getContacts, fetchWithErrorHandling } from '@/lib/enhancedApi';
 
 export async function GET() {
-  try {
-    const data = await fetchWithErrorHandling(getContacts);
-    return NextResponse.json(data);
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: true, message: error.message || 'An error occurred' },
-      { status: 500 }
-    );
-  }
+  const data = await fetchWithErrorHandling(getContacts);
+  return NextResponse.json(data);
 } 

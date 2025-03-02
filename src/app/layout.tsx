@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -9,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "nextprop ai - Property Intelligence Dashboard",
-  description: "AI-powered insights for your real estate business",
+  title: "NextProp AI",
+  description: "Real Estate CRM",
 };
 
 export default function RootLayout({
@@ -21,9 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} ${inter.variable}`}>
-        <div className="min-h-screen bg-gray-50">
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="min-h-screen bg-gray-50">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NextProp - Real Estate Lead Generation Dashboard
+
+NextProp is a comprehensive real estate lead generation platform that integrates with the Zillow API to fetch property listings and generate qualified leads for real estate agents and brokers.
+
+## Features
+
+- **AI-Powered Property Search**: Use natural language to describe properties you're looking for
+- **City-based Search**: Find properties in specific cities
+- **Lead Generation**: Add property contacts as leads with one click
+- **Dashboard Analytics**: Track leads, conversions, and revenue
+- **Contact Management**: View and manage all your real estate leads
+
+## Zillow API Integration
+
+The platform integrates with the Zillow Working API to fetch property data using two main methods:
+
+1. **City-Based Search**: Find properties in specific cities like Miami, New York, etc.
+2. **AI-Powered Search**: Use natural language to describe exactly what you're looking for, such as "Houses for sale built after 2001 within price 500000, minimum lotsize 5000 sqft, 3 beds, 3 baths, in Miami Florida"
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
+- Node.js 16+
+- Next.js 13+
+- RapidAPI Key for Zillow Working API
+
+### Setup
+
+1. Clone the repository
+2. Create a `.env.local` file with your API keys:
+```
+RAPIDAPI_KEY=your_rapidapi_key_here
+ZILLOW_RAPIDAPI_HOST=zillow-working-api.p.rapidapi.com
+```
+3. Install dependencies:
+```
+npm install
+```
+4. Run the development server:
+```
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Usage
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Property Search
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Navigate to the Properties page
+2. Choose between "Search by City" or "Natural Language Search"
+3. For city search, enter the city name
+4. For AI search, describe the property you're looking for in detail
+5. Click "Search" or "Search with AI" to find properties
+6. Click "Add to Leads" to add a property contact to your leads database
 
-## Learn More
+### Lead Management
 
-To learn more about Next.js, take a look at the following resources:
+1. Navigate to the Leads page to see all collected leads
+2. Filter and sort leads based on status, date, etc.
+3. View detailed information about each lead
+4. Update lead status as you progress through your sales pipeline
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API Endpoints
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The platform includes several API endpoints:
 
-## Deploy on Vercel
+- `/api/properties`: Fetch properties by city, limit, and other parameters
+- `/api/properties/ai-search`: Search properties using natural language via Zillow AI
+- `/api/properties/address`: Find a specific property by address
+- `/api/contacts/add-lead`: Add a new lead to the database
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Dashboard Widgets
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The dashboard includes several widgets:
+
+- **KPI Cards**: Display key metrics (contacts, revenue, calls, leads)
+- **Real Estate Widget**: Shows property stats and quick search
+- **Lead Summary**: Visualizes lead sources and conversion rates
+- **Contact List**: Shows recent contacts
+- **Revenue Chart**: Tracks revenue over time
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

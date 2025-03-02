@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOpportunities, fetchWithErrorHandling } from '@/lib/api';
+import { getOpportunities, fetchWithErrorHandling } from '@/lib/enhancedApi';
 
 export async function GET(
   request: NextRequest,
   props: { params: Promise<{ id: string }> }
 ) {
-  const { id: pipelineId } = await props.params;
+  const { id } = await props.params;
   
-  if (!pipelineId) {
+  if (!id) {
     return NextResponse.json(
       { error: true, message: 'Pipeline ID is required' },
       { status: 400 }
@@ -15,7 +15,7 @@ export async function GET(
   }
   
   try {
-    const data = await fetchWithErrorHandling(() => getOpportunities(pipelineId));
+    const data = await fetchWithErrorHandling(() => getOpportunities(id));
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(
