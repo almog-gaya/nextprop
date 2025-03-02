@@ -4,6 +4,33 @@ import axios from 'axios';
 const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_GHL_API_KEY || '';
 const DEFAULT_LOCATION_ID = process.env.NEXT_PUBLIC_GHL_LOCATION_ID || '';
 
+// Function to get the current user's API key
+function getCurrentApiKey() {
+  if (typeof window !== 'undefined') {
+    try {
+      // Try to get from localStorage first
+      const storedUser = localStorage.getItem('nextprop_user');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        if (user.apiKey && validateApiKey(user.apiKey)) {
+          return user.apiKey;
+        }
+      }
+      
+      // If not in localStorage, try to get from nextprop_token
+      const token = localStorage.getItem('nextprop_token');
+      if (token && validateApiKey(token)) {
+        return token;
+      }
+    } catch (error) {
+      console.error('Error getting API key from session:', error);
+    }
+  }
+  
+  // Fall back to default API key
+  return DEFAULT_API_KEY;
+}
+
 // Rate limiting configuration
 const rateLimitConfig = {
   maxRequests: 20, // Maximum requests per window
@@ -176,7 +203,7 @@ async function getCachedData(endpoint: string, params: any = {}, apiKey: string,
 }
 
 // Fetch contacts from API
-async function getContacts(params: any = {}, apiKey = DEFAULT_API_KEY, locationId = DEFAULT_LOCATION_ID) {
+async function getContacts(params: any = {}, apiKey = getCurrentApiKey(), locationId = DEFAULT_LOCATION_ID) {
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
   }
@@ -196,7 +223,7 @@ async function getContacts(params: any = {}, apiKey = DEFAULT_API_KEY, locationI
 }
 
 // Fetch opportunities from API
-async function getOpportunities(pipelineId: string, params: any = {}, apiKey = DEFAULT_API_KEY, locationId = DEFAULT_LOCATION_ID) {
+async function getOpportunities(pipelineId: string, params: any = {}, apiKey = getCurrentApiKey(), locationId = DEFAULT_LOCATION_ID) {
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
   }
@@ -217,7 +244,7 @@ async function getOpportunities(pipelineId: string, params: any = {}, apiKey = D
 }
 
 // Fetch pipelines from API
-async function getPipelines(params: any = {}, apiKey = DEFAULT_API_KEY, locationId = DEFAULT_LOCATION_ID) {
+async function getPipelines(params: any = {}, apiKey = getCurrentApiKey(), locationId = DEFAULT_LOCATION_ID) {
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
   }
@@ -237,7 +264,7 @@ async function getPipelines(params: any = {}, apiKey = DEFAULT_API_KEY, location
 }
 
 // Fetch calls from API
-async function getCalls(params: any = {}, apiKey = DEFAULT_API_KEY, locationId = DEFAULT_LOCATION_ID) {
+async function getCalls(params: any = {}, apiKey = getCurrentApiKey(), locationId = DEFAULT_LOCATION_ID) {
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
   }
