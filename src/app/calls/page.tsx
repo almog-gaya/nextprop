@@ -71,6 +71,21 @@ export default function CallsPage() {
     <DashboardLayout title="Ringless Voicemails">
       {renderError()}
       
+      <div className="flex justify-end mb-4 space-x-4">
+        <a 
+          href="/calls/bulk" 
+          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          Bulk Upload Contacts
+        </a>
+        <a 
+          href="/webhooks" 
+          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          View Webhook Responses
+        </a>
+      </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Call Form */}
         <div className="lg:col-span-1">

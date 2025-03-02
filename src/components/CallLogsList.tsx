@@ -16,6 +16,7 @@ export interface CallLog {
   status: 'completed' | 'failed' | 'pending';
   duration?: number; // in seconds
   callSid?: string; // unique ID from the call service
+  message?: string; // response message from the API
 }
 
 interface CallLogsListProps {
@@ -91,81 +92,85 @@ export default function CallLogsList({ calls, isLoading = false }: CallLogsListP
   }
 
   return (
-    <div className="nextprop-card">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-[#1e1b4b]">Recent Voicemails</h3>
-        <div className="text-[#7c3aed] bg-purple-50 p-3 rounded-full">
-          <PhoneIcon className="w-5 h-5" />
+    <div className="space-y-4">
+      {isLoading ? (
+        <div className="flex items-center justify-center p-8">
+          <svg className="animate-spin h-8 w-8 text-[#7c3aed]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span className="ml-2 text-gray-700">Loading recent voicemails...</span>
         </div>
-      </div>
-      
-      <div className="overflow-hidden bg-white shadow ring-1 ring-black ring-opacity-5 rounded-lg">
-        <table className="min-w-full divide-y divide-gray-300">
-          <thead>
-            <tr>
-              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Recipient</th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Time</th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
-              <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Duration</th>
-              <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                <span className="sr-only">Details</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {calls.map((call) => (
-              <React.Fragment key={call.id}>
-                <tr className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                    {call.recipient.name}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+      ) : calls.length === 0 ? (
+        <div className="text-center p-8 text-gray-500">
+          <PhoneIcon className="h-12 w-12 mx-auto text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No voicemails</h3>
+          <p className="mt-1 text-sm text-gray-500">Get started by sending your first voicemail.</p>
+        </div>
+      ) : (
+        calls.map((call) => (
+          <div key={call.id} className="bg-white shadow rounded-lg overflow-hidden">
+            <div 
+              className="p-4 flex items-center justify-between cursor-pointer"
+              onClick={() => toggleExpandCall(call.id)}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0">
+                  <PhoneIcon className="h-6 w-6 text-[#7c3aed]" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{call.recipient.name}</p>
+                  <p className="text-xs text-gray-500">{call.recipient.phone}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">
                     {formatDistanceToNow(new Date(call.timestamp), { addSuffix: true })}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm">
-                    <div className="flex items-center">
-                      {getStatusIcon(call.status)}
-                      <span className="ml-1.5 capitalize">{call.status}</span>
+                  </p>
+                  <div className="flex items-center mt-1">
+                    {getStatusIcon(call.status)}
+                    <span className="ml-1 text-xs capitalize text-gray-500">{call.status}</span>
+                  </div>
+                </div>
+                <svg 
+                  className={`h-5 w-5 text-gray-400 transform transition-transform ${expandedCallId === call.id ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            
+            {expandedCallId === call.id && (
+              <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div className="col-span-2">
+                    <span className="font-medium text-gray-500">Recipient</span>
+                    <p className="mt-1">{call.recipient.address}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-500">Call ID</span>
+                    <p className="mt-1 font-mono text-xs">{call.callSid || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-500">Duration</span>
+                    <p className="mt-1">{formatDuration(call.duration)}</p>
+                  </div>
+                  {call.message && (
+                    <div className="col-span-2 mt-2">
+                      <span className="font-medium text-gray-500">Message</span>
+                      <p className="mt-1 text-sm text-gray-700">{call.message}</p>
                     </div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {formatDuration(call.duration)}
-                  </td>
-                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <button
-                      onClick={() => toggleExpandCall(call.id)}
-                      className="text-[#7c3aed] hover:text-[#6d28d9]"
-                    >
-                      {expandedCallId === call.id ? 'Hide' : 'Details'}
-                    </button>
-                  </td>
-                </tr>
-                {expandedCallId === call.id && (
-                  <tr className="bg-gray-50">
-                    <td colSpan={5} className="px-6 py-4 text-sm">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="font-medium text-gray-700">Recipient Details</p>
-                          <p className="mt-1 text-gray-600">Name: {call.recipient.name}</p>
-                          <p className="text-gray-600">Company: {call.recipient.company}</p>
-                          <p className="text-gray-600">Phone: {call.recipient.phone}</p>
-                          <p className="text-gray-600">Address: {call.recipient.address}</p>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-700">Voicemail Details</p>
-                          <p className="mt-1 text-gray-600">ID: {call.callSid || 'N/A'}</p>
-                          <p className="text-gray-600">Sent Time: {new Date(call.timestamp).toLocaleString()}</p>
-                          <p className="text-gray-600">Status: {call.status}</p>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))
+      )}
     </div>
   );
 } 

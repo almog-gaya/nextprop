@@ -3,16 +3,21 @@ import { CallData } from '@/components/AutomatedCallForm';
 import { CallLog } from '@/components/CallLogsList';
 import { v4 as uuidv4 } from 'uuid';
 
-const WEBHOOK_URL = 'https://hook.us1.make.com/583um32gf4oqi41n0jxc6k29re7x9d33';
-
 // In-memory storage for call logs - in a real app, this would be a database
 const callLogs: CallLog[] = [];
 
 /**
- * Make an automated call using the Make.com webhook
+ * Make an automated call using the VoiceDrop API via our server-side API route
+ * 
+ * This function sends a request to our internal API route which then:
+ * 1. Makes a request to the VoiceDrop API
+ * 2. Includes a webhook URL to receive status updates
+ * 3. View webhook responses at /webhooks
  */
 export async function makeAutomatedCall(callData: CallData): Promise<CallLog> {
   try {
+    console.log('Making automated call using VoiceDrop API');
+    
     // Create a new call log entry with pending status
     const callId = uuidv4();
     const newCallLog: CallLog = {
@@ -20,9 +25,9 @@ export async function makeAutomatedCall(callData: CallData): Promise<CallLog> {
       timestamp: new Date().toISOString(),
       recipient: {
         name: callData.first_name,
-        company: 'Not Specified', // Default value since we removed company_name
+        company: 'Not Specified', 
         phone: callData.phone,
-        address: callData.full_address
+        address: callData.street_name
       },
       status: 'pending'
     };
@@ -30,30 +35,45 @@ export async function makeAutomatedCall(callData: CallData): Promise<CallLog> {
     // Add to call logs
     callLogs.unshift(newCallLog);
     
-    // Make the webhook call
-    const response = await axios.post(WEBHOOK_URL, {
-      first_name: callData.first_name,
-      // We're still sending company_name to the webhook, but with a default value
-      company_name: 'Not Specified',
-      phone: callData.phone,
-      full_address: callData.full_address
-    });
+    // Use the user-provided script
+    const message = callData.script;
     
-    // Update call log based on response
-    const updatedCallLog: CallLog = {
-      ...newCallLog,
-      status: response.status === 200 ? 'completed' : 'failed',
-      callSid: response.data?.callSid || undefined,
-      duration: response.data?.duration || undefined
+    // Request payload for our server-side API
+    const payload = {
+      message,
+      phone: callData.phone,
+      first_name: callData.first_name,
+      street_name: callData.street_name
     };
     
-    // Update the call log in our "database"
-    const index = callLogs.findIndex(log => log.id === callId);
-    if (index !== -1) {
-      callLogs[index] = updatedCallLog;
-    }
+    console.log('Sending request to server-side API:', payload);
     
-    return updatedCallLog;
+    // Send request to our server-side API route which will handle the VoiceDrop call
+    const response = await axios.post('/api/voicemail', payload);
+    
+    console.log('Server API response:', response.data);
+    
+    // Check for success response
+    if (response.data.status === 'success') {
+      // Update call log with completed status
+      const updatedCallLog: CallLog = {
+        ...newCallLog,
+        status: 'completed',
+        callSid: `VD-${callId}`, // Create a placeholder ID since VoiceDrop doesn't return an ID in the immediate response
+        message: `${response.data.message} View updates at /webhooks`
+      };
+      
+      // Update the call log in our "database"
+      const index = callLogs.findIndex(log => log.id === callId);
+      if (index !== -1) {
+        callLogs[index] = updatedCallLog;
+      }
+      
+      return updatedCallLog;
+    } else {
+      // Handle non-success response
+      throw new Error(response.data.message || 'Failed to send voicemail');
+    }
   } catch (error) {
     console.error('Error making automated call:', error);
     
@@ -65,9 +85,10 @@ export async function makeAutomatedCall(callData: CallData): Promise<CallLog> {
         name: callData.first_name,
         company: 'Not Specified',
         phone: callData.phone,
-        address: callData.full_address
+        address: callData.street_name
       },
-      status: 'failed'
+      status: 'failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
     };
     
     // Add to call logs
@@ -109,11 +130,11 @@ if (process.env.NODE_ENV === 'development') {
         name: 'John Smith',
         company: 'Acme Real Estate',
         phone: '+11234567890',
-        address: '123 Main St, San Francisco, CA 94105'
+        address: 'Main Street'
       },
       status: 'completed' as const,
       duration: 125, // 2:05
-      callSid: 'CA123456789012345678901234567890'
+      callSid: 'VD123456789012345678901234567890'
     },
     {
       id: uuidv4(),
@@ -122,11 +143,11 @@ if (process.env.NODE_ENV === 'development') {
         name: 'Sarah Johnson',
         company: 'Sunshine Properties',
         phone: '+10987654321',
-        address: '456 Oak Ave, Los Angeles, CA 90001'
+        address: 'Oak Avenue'
       },
       status: 'completed' as const,
       duration: 90, // 1:30
-      callSid: 'CA098765432109876543210987654321'
+      callSid: 'VD098765432109876543210987654321'
     },
     {
       id: uuidv4(),
@@ -135,7 +156,7 @@ if (process.env.NODE_ENV === 'development') {
         name: 'Michael Brown',
         company: 'Brown Investments',
         phone: '+15551234567',
-        address: '789 Pine Blvd, New York, NY 10001'
+        address: 'Pine Boulevard'
       },
       status: 'failed' as const
     }

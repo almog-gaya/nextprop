@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import classNames from 'classnames';
@@ -11,7 +11,10 @@ import {
   ChartBarIcon,
   CurrencyDollarIcon,
   Cog6ToothIcon,
-  HomeModernIcon
+  HomeModernIcon,
+  ChatBubbleLeftRightIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 
@@ -20,6 +23,15 @@ interface SidebarLinkProps {
   text: string;
   href: string;
   active: boolean;
+}
+
+interface SidebarDropdownProps {
+  icon: React.ReactNode;
+  text: string;
+  active: boolean;
+  open: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }
 
 const SidebarLink = ({ icon, text, href, active }: SidebarLinkProps) => {
@@ -38,8 +50,37 @@ const SidebarLink = ({ icon, text, href, active }: SidebarLinkProps) => {
   );
 };
 
+const SidebarDropdown = ({ icon, text, active, open, onClick, children }: SidebarDropdownProps) => {
+  const dropdownClass = classNames('flex items-center w-full px-4 py-3 my-1 rounded-lg mx-2 transition-all duration-200 cursor-pointer', {
+    'text-white font-medium': active,
+    'text-gray-300 hover:bg-gray-800 hover:text-white': !active
+  });
+
+  return (
+    <div>
+      <div className={dropdownClass} onClick={onClick}>
+        <div className="w-5 h-5 mr-3">{icon}</div>
+        <span className="text-sm">{text}</span>
+        <div className="ml-auto">
+          {open ? (
+            <ChevronUpIcon className="w-4 h-4" />
+          ) : (
+            <ChevronDownIcon className="w-4 h-4" />
+          )}
+        </div>
+      </div>
+      {open && (
+        <div className="pl-8 pr-2 py-1">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
+  const [pipelinesOpen, setPipelinesOpen] = useState(pathname.startsWith('/pipelines'));
   
   const links = [
     { 
@@ -53,6 +94,11 @@ export default function Sidebar() {
       href: '/contacts' 
     },
     { 
+      icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, 
+      text: 'Messaging', 
+      href: '/messaging' 
+    },
+    { 
       icon: <PhoneIcon className="w-5 h-5" />, 
       text: 'Ringless Voicemails', 
       href: '/calls' 
@@ -63,15 +109,21 @@ export default function Sidebar() {
       href: '/properties' 
     },
     { 
-      icon: <ChartBarIcon className="w-5 h-5" />, 
-      text: 'Pipelines', 
-      href: '/pipelines' 
-    },
-    { 
       icon: <CurrencyDollarIcon className="w-5 h-5" />, 
       text: 'Opportunities', 
       href: '/opportunities' 
     },
+  ];
+
+  const pipelineLinks = [
+    {
+      text: 'All Pipelines',
+      href: '/pipelines'
+    },
+    {
+      text: 'Distressed Homeowners',
+      href: '/pipelines/distressed-homeowners'
+    }
   ];
 
   return (
@@ -99,6 +151,24 @@ export default function Sidebar() {
             active={pathname === link.href}
           />
         ))}
+        
+        <SidebarDropdown
+          icon={<ChartBarIcon className="w-5 h-5" />}
+          text="Pipelines"
+          active={pathname.startsWith('/pipelines')}
+          open={pipelinesOpen}
+          onClick={() => setPipelinesOpen(!pipelinesOpen)}
+        >
+          {pipelineLinks.map((link) => (
+            <SidebarLink
+              key={link.href}
+              icon={<div className="w-1 h-1 rounded-full bg-gray-400" />}
+              text={link.text}
+              href={link.href}
+              active={pathname === link.href}
+            />
+          ))}
+        </SidebarDropdown>
       </div>
       
       <div className="mt-auto mb-6 px-6">

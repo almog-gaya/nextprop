@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { PhoneIcon } from '@heroicons/react/24/outline';
+import React from 'react';
 
 interface AutomatedCallFormProps {
   onCallSubmit: (callData: CallData) => void;
@@ -11,20 +12,35 @@ interface AutomatedCallFormProps {
 export interface CallData {
   first_name: string;
   phone: string;
-  full_address: string;
+  street_name: string;
+  script: string;
 }
 
 export default function AutomatedCallForm({ onCallSubmit, isLoading = false }: AutomatedCallFormProps) {
   const [formData, setFormData] = useState<CallData>({
     first_name: '',
     phone: '',
-    full_address: ''
+    street_name: '',
+    script: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  // Generate default script when first_name or street_name changes
+  const updateDefaultScript = (first_name: string, street_name: string) => {
+    if (first_name && street_name && !formData.script) {
+      const defaultScript = `Hello ${first_name}, I noticed your property on ${street_name} and wanted to connect with you about it. Please call me back when you get a chance. Thank you!`;
+      setFormData(prev => ({ ...prev, script: defaultScript }));
+    }
+  };
+
+  // Update script when name or street changes (only if script was empty)
+  React.useEffect(() => {
+    updateDefaultScript(formData.first_name, formData.street_name);
+  }, [formData.first_name, formData.street_name]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,19 +92,36 @@ export default function AutomatedCallForm({ onCallSubmit, isLoading = false }: A
           </div>
 
           <div>
-            <label htmlFor="full_address" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Address
+            <label htmlFor="street_name" className="block text-sm font-medium text-gray-700 mb-1">
+              Street Name
+            </label>
+            <input
+              type="text"
+              id="street_name"
+              name="street_name"
+              required
+              value={formData.street_name}
+              onChange={handleChange}
+              placeholder="Main Street"
+              className="nextprop-input py-2 px-3 w-full rounded-md"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="script" className="block text-sm font-medium text-gray-700 mb-1">
+              Voicemail Script
             </label>
             <textarea
-              id="full_address"
-              name="full_address"
+              id="script"
+              name="script"
               required
-              value={formData.full_address}
+              value={formData.script}
               onChange={handleChange}
-              placeholder="123 Main St, Anytown, CA 12345"
+              placeholder="Enter your personalized voicemail script here"
               className="nextprop-input py-2 px-3 w-full rounded-md"
-              rows={2}
+              rows={4}
             />
+            <p className="text-xs text-gray-500 mt-1">Personalize your message using the recipient's name and property details</p>
           </div>
 
           <button
