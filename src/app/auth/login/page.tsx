@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { LoginCredentials } from '@/types/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { flushAllAuthData, setAllAuthData } from '@/lib/authUtils';
 
-export default function Login() {
+function LoginForm() {
   const { authState, login } = useAuth();
   const { error: contextError, isLoading } = authState;
   const router = useRouter();
@@ -260,5 +260,13 @@ export default function Login() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading login page...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 } 

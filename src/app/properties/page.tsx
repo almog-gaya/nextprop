@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import PropertyListing from '@/components/PropertyListing';
 
-export default function PropertiesPage() {
+function PropertiesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const apiType = searchParams.get('api') as 'propgpt' | 'reapi' | 'realtor' | 'zillow' || 'propgpt';
@@ -141,5 +141,13 @@ export default function PropertiesPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function PropertiesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading properties...</div>}>
+      <PropertiesPageContent />
+    </Suspense>
   );
 } 
