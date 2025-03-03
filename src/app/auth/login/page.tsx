@@ -19,6 +19,7 @@ function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'email' | 'apiKey' | 'general' | null>(null);
+  const [showAdminOptions, setShowAdminOptions] = useState(false);
   
   useEffect(() => {
     setIsSubmitting(false);
@@ -122,17 +123,21 @@ function LoginForm() {
     setLocalError('All authentication data has been cleared.');
     setErrorType('general');
   };
+
+  const toggleAdminOptions = () => {
+    setShowAdminOptions(!showAdminOptions);
+  };
   
   const buttonText = isSubmitting ? 'Signing in...' : 'Sign in';
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-lg shadow-md border-t-4 border-[#7c3aed]">
         <div>
-          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">Sign in to NextProp.ai</h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <h2 className="text-center text-3xl font-bold text-[#1e1b4b]">Sign in to NextProp.ai</h2>
+          <p className="mt-3 text-center text-sm text-gray-600">
             Or{' '}
-            <Link href="/auth/signup" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+            <Link href="/auth/signup" className="font-medium text-[#7c3aed] hover:text-[#6d28d9] transition-colors">
               create a new account
             </Link>
           </p>
@@ -153,24 +158,32 @@ function LoginForm() {
           </div>
         )}
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
           <input type="hidden" name="remember" value="true" />
           <div className="rounded-md space-y-4">
             <div>
               <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errorType === 'email' ? 'border-red-300 ring-1 ring-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-colors`}
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                  </svg>
+                </div>
+                <input
+                  id="email-address"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
+                    errorType === 'email' ? 'border-red-300 ring-1 ring-red-500' : 'border-gray-300'
+                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm`}
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
               {errorType === 'email' && (
                 <p className="mt-1 text-xs text-red-600" id="email-error">
                   {localError}
@@ -179,18 +192,25 @@ function LoginForm() {
             </div>
             <div>
               <label htmlFor="api-key" className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-              <input
-                id="api-key"
-                name="apiKey"
-                type="text"
-                required
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errorType === 'apiKey' ? 'border-red-300 ring-1 ring-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-colors`}
-                placeholder="Enter your GoHighLevel API Key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v-1l1-1 1-1-1.243-.243A6 6 0 1118 8zm-6-4a1 1 0 10-2 0v1a1 1 0 102 0V4zm1 5a1 1 0 10-2 0v1a1 1 0 102 0V9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <input
+                  id="api-key"
+                  name="apiKey"
+                  type="text"
+                  required
+                  className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
+                    errorType === 'apiKey' ? 'border-red-300 ring-1 ring-red-500' : 'border-gray-300'
+                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-[#7c3aed] focus:border-[#7c3aed] sm:text-sm`}
+                  placeholder="Enter your GoHighLevel API Key"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+              </div>
               {errorType === 'apiKey' && (
                 <p className="mt-1 text-xs text-red-600" id="api-key-error">
                   {localError}
@@ -205,7 +225,7 @@ function LoginForm() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                className="h-4 w-4 text-[#7c3aed] focus:ring-[#7c3aed] border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                 Remember me
@@ -213,7 +233,7 @@ function LoginForm() {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+              <a href="#" className="font-medium text-[#7c3aed] hover:text-[#6d28d9] transition-colors">
                 Forgot your API key?
               </a>
             </div>
@@ -223,13 +243,11 @@ function LoginForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isSubmitting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors`}
+              className="nextprop-button w-full flex justify-center"
             >
               {isSubmitting && (
-                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                  <svg className="h-5 w-5 text-indigo-300 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <span className="mr-2">
+                  <svg className="loader h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -239,23 +257,42 @@ function LoginForm() {
             </button>
           </div>
           
-          <div className="mt-2 text-center text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
-            <p>
-              For demo purposes, use:
-              <br />
-              <span className="font-mono font-medium">demo@nextprop.ai</span> with 
-              <span className="font-mono font-medium"> demo-ghl-api-key-123</span>
-            </p>
+          <div className="mt-4 text-center text-xs text-gray-500 bg-gray-50 p-4 rounded-md border border-gray-200">
+            <p className="font-medium text-gray-600 mb-2">Demo Credentials</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white p-2 rounded border border-gray-200">
+                <span className="font-mono text-[#7c3aed] text-xs">demo@nextprop.ai</span>
+              </div>
+              <div className="bg-white p-2 rounded border border-gray-200">
+                <span className="font-mono text-[#7c3aed] text-xs">demo-ghl-api-key-123</span>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-4 flex justify-center">
+          {/* Admin tools as a dropdown in corner */}
+          <div className="relative">
             <button
               type="button"
-              onClick={handleFlushAuth}
-              className="text-sm text-red-600 hover:text-red-800 transition-colors"
+              onClick={toggleAdminOptions}
+              className="absolute bottom-0 right-0 text-xs text-gray-400 hover:text-gray-600 flex items-center"
+              aria-label="Admin options"
             >
-              Flush All Auth Data (For Testing)
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
             </button>
+            
+            {showAdminOptions && (
+              <div className="absolute bottom-6 right-0 bg-white p-2 rounded shadow-md border border-gray-200 z-10 w-40">
+                <button
+                  type="button"
+                  onClick={handleFlushAuth}
+                  className="w-full text-left text-xs text-gray-600 hover:bg-gray-100 p-1 rounded"
+                >
+                  Flush All Auth Data
+                </button>
+              </div>
+            )}
           </div>
         </form>
       </div>

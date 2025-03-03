@@ -53,10 +53,9 @@ const CACHE_TTL = 15 * 60 * 1000; // 15 minutes cache lifetime
 // Create API client with better error handling
 const createGhlApiClient = (apiKey: string) => {
   const client = axios.create({
-    baseURL: 'https://services.leadconnectorhq.com',
+    baseURL: 'https://rest.gohighlevel.com/v1',
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      Version: '2021-07-28',
     },
   });
 
@@ -230,12 +229,10 @@ async function getOpportunities(pipelineId: string, params: any = {}, apiKey = g
   
   try {
     const fullParams = {
-      locationId,
-      pipelineId,
       ...params,
     };
     
-    const data = await getCachedData(`/pipelines/${pipelineId}/opportunities`, fullParams, apiKey);
+    const data = await getCachedData(`/pipelines/${pipelineId}/opportunities/`, fullParams, apiKey);
     return data;
   } catch (error) {
     console.error('Failed to fetch opportunities:', error);
@@ -251,11 +248,10 @@ async function getPipelines(params: any = {}, apiKey = getCurrentApiKey(), locat
   
   try {
     const fullParams = {
-      locationId,
       ...params,
     };
     
-    const data = await getCachedData('/pipelines', fullParams, apiKey);
+    const data = await getCachedData('/pipelines/', fullParams, apiKey);
     return data;
   } catch (error) {
     console.error('Failed to fetch pipelines:', error);

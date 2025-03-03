@@ -96,7 +96,7 @@ export default function Sidebar() {
     { 
       icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, 
       text: 'Messaging', 
-      href: '/messaging' 
+      href: '/messaging-embed' 
     },
     { 
       icon: <PhoneIcon className="w-5 h-5" />, 
