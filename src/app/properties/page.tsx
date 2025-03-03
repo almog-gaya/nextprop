@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, UserIcon, PhoneIcon, EnvelopeIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import DashboardLayout from '@/components/DashboardLayout';
 import Image from 'next/image';
 
@@ -24,6 +24,11 @@ interface Property {
   property_type?: string;
   days_on_zillow?: string;
   image_url?: string;
+  contact?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
 }
 
 export default function PropertiesPage() {
@@ -31,13 +36,14 @@ export default function PropertiesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [addedLeads, setAddedLeads] = useState<string[]>([]);
 
-  // Example search suggestions
+  // Example search suggestions with more specific format
   const searchSuggestions = [
-    "Luxury waterfront houses in Miami Beach under $3M with pool and at least 3 beds",
-    "Condos in Brickell Miami with ocean view under $3M",
-    "Single family homes in Coral Gables Miami built after 2010 with at least 4 beds",
-    "Modern apartments in Downtown Miami under $3M with gym access"
+    "Houses for sale built after 2001 within price 500000, minimum lotsize 5000 sqft, 3 beds, 3 baths, in Miami Florida",
+    "Condos for sale under $1.5M with ocean view, 2+ beds, 2+ baths in Brickell Miami FL",
+    "Single family homes in Coral Gables FL under $2.5M, built after 2010, minimum 4 beds, 3 baths, with pool",
+    "Modern apartments in Downtown Miami under $800K with gym access, 2+ beds, built after 2015"
   ];
 
   const handleSearch = async (query = searchQuery) => {
@@ -67,7 +73,7 @@ export default function PropertiesPage() {
       
       const data = await response.json();
       
-      // Ensure we have image_url for all properties and format prices correctly
+      // Ensure we have image_url and contact information for all properties
       const processedProperties = data.map((property: any) => ({
         ...property,
         // If image_url is missing, use a default Miami property image
@@ -75,7 +81,9 @@ export default function PropertiesPage() {
         // Make sure price is properly formatted
         price: property.price && typeof property.price === 'string' 
           ? property.price.startsWith('$') ? property.price : `$${property.price}`
-          : typeof property.price === 'number' ? `$${property.price.toLocaleString()}` : '$TBD'
+          : typeof property.price === 'number' ? `$${property.price.toLocaleString()}` : '$TBD',
+        // Ensure contact information exists
+        contact: property.contact || generateRandomContact()
       }));
       
       setProperties(processedProperties);
@@ -84,6 +92,68 @@ export default function PropertiesPage() {
       setError('Failed to load properties. Please try again later.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Generate random contact for demo purposes
+  const generateRandomContact = () => {
+    const firstNames = ['John', 'Sarah', 'Michael', 'Emma', 'David', 'Maria', 'Robert', 'Jessica'];
+    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia'];
+    const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'realestate.com'];
+    
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const domain = domains[Math.floor(Math.random() * domains.length)];
+    
+    return {
+      name: `${firstName} ${lastName}`,
+      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${domain}`,
+      phone: `(305) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`
+    };
+  };
+
+  // Handle adding property to leads/contacts
+  const handleAddToLeads = async (property: Property) => {
+    try {
+      // Don't add the same lead twice
+      if (addedLeads.includes(property.property_id)) {
+        alert(`${property.contact?.name || 'Contact'} is already in your leads!`);
+        return;
+      }
+      
+      if (!property.contact) {
+        alert('No contact information available for this property.');
+        return;
+      }
+      
+      const response = await fetch('/api/contacts/add-lead', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: property.contact.name,
+          email: property.contact.email,
+          phone: property.contact.phone,
+          address: `${property.address.line}, ${property.address.city}, ${property.address.state_code} ${property.address.postal_code}`,
+          notes: `Interested in: ${property.address.line} - ${property.price}`,
+          source: 'Real Estate Listing',
+          type: 'Property Inquiry'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add lead');
+      }
+
+      // Track added leads to prevent duplicates
+      setAddedLeads(prev => [...prev, property.property_id]);
+      
+      // Show success feedback
+      alert(`Successfully added ${property.contact.name} to contacts!`);
+    } catch (err) {
+      console.error('Error adding lead:', err);
+      alert('Failed to add contact. Please try again.');
     }
   };
 
@@ -115,7 +185,7 @@ export default function PropertiesPage() {
               <input
                 type="text"
                 className="block w-full pl-10 pr-3 py-4 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#7c3aed] focus:border-transparent text-lg"
-                placeholder="Describe your ideal property... (e.g., Miami beach house under $3M with pool)"
+                placeholder="Houses for sale built after 2001 within price 500000, minimum 3 beds in Miami FL"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -201,6 +271,14 @@ export default function PropertiesPage() {
                         <div className="absolute top-0 right-0 nextprop-gradient text-white px-3 py-1 m-2 rounded-full text-sm font-medium">
                           {property.price}
                         </div>
+                        {property.days_on_zillow && (
+                          <div className="absolute top-0 left-0 bg-white bg-opacity-90 m-2 rounded-full px-2 py-1 text-xs font-medium text-gray-800 flex items-center">
+                            <CalendarIcon className="h-3 w-3 mr-1" />
+                            {parseInt(property.days_on_zillow) === 0 ? 'New Today' : 
+                             parseInt(property.days_on_zillow) === 1 ? '1 day on market' : 
+                             `${property.days_on_zillow} days on market`}
+                          </div>
+                        )}
                       </div>
                       <div className="p-5">
                         <h3 className="text-lg font-semibold text-[#1e1b4b] mb-1 truncate">
@@ -222,9 +300,40 @@ export default function PropertiesPage() {
                             )}
                           </div>
                           <div className="text-xs text-[#7c3aed]">
-                            {property.days_on_zillow && `${property.days_on_zillow} days on market`}
+                            {property.property_type}
                           </div>
                         </div>
+                        
+                        {/* Contact Agent Section */}
+                        {property.contact && (
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <h4 className="font-medium text-[#1e1b4b] mb-2">Contact Agent</h4>
+                            <div className="flex items-center mb-1">
+                              <UserIcon className="h-4 w-4 text-gray-500 mr-2" />
+                              <span className="text-sm">{property.contact.name}</span>
+                            </div>
+                            <div className="flex items-center mb-1">
+                              <EnvelopeIcon className="h-4 w-4 text-gray-500 mr-2" />
+                              <span className="text-sm">{property.contact.email}</span>
+                            </div>
+                            <div className="flex items-center mb-3">
+                              <PhoneIcon className="h-4 w-4 text-gray-500 mr-2" />
+                              <span className="text-sm">{property.contact.phone}</span>
+                            </div>
+                            
+                            <button
+                              onClick={() => handleAddToLeads(property)}
+                              disabled={addedLeads.includes(property.property_id)}
+                              className={`w-full mt-2 py-2 px-4 rounded-md font-medium text-white ${
+                                addedLeads.includes(property.property_id) 
+                                  ? 'bg-green-600 cursor-default' 
+                                  : 'nextprop-gradient hover:opacity-90'
+                              }`}
+                            >
+                              {addedLeads.includes(property.property_id) ? 'Added to Contacts' : 'Add to Contacts'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
