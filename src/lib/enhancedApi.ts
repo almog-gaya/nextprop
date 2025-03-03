@@ -1,11 +1,13 @@
 import axios from 'axios';
 
+const API_BASE_URL = 'https://rest.gohighlevel.com/v1';
+
 // Default values for API access
 const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_GHL_API_KEY || '';
 const DEFAULT_LOCATION_ID = process.env.NEXT_PUBLIC_GHL_LOCATION_ID || '';
 
 // Function to get the current user's API key
-function getCurrentApiKey() {
+export function getCurrentApiKey() {
   if (typeof window !== 'undefined') {
     try {
       // Try to get from localStorage first
@@ -202,7 +204,7 @@ async function getCachedData(endpoint: string, params: any = {}, apiKey: string,
 }
 
 // Fetch contacts from API
-async function getContacts(params: any = {}, apiKey = getCurrentApiKey(), locationId = DEFAULT_LOCATION_ID) {
+async function getContacts(params: any = {}, apiKey = getCurrentApiKey(), locationId = DEFAULT_LOCATION_ID, forceRefresh = false) {
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
   }
@@ -213,7 +215,7 @@ async function getContacts(params: any = {}, apiKey = getCurrentApiKey(), locati
       ...params,
     };
     
-    const data = await getCachedData('/contacts', fullParams, apiKey);
+    const data = await getCachedData('/contacts', fullParams, apiKey, forceRefresh);
     return data;
   } catch (error) {
     console.error('Failed to fetch contacts:', error);
@@ -309,6 +311,83 @@ async function fetchWithErrorHandling<T>(fetcher: () => Promise<T>) {
     console.error('Unknown error:', error);
     return { error: 'An unexpected error occurred.', status: 500 };
   }
+}
+
+export async function updateContact(contactId: string, data: any) {
+  const apiKey = await getCurrentApiKey();
+  if (!apiKey) {
+    throw new Error('API key not found');
+  }
+
+  // Clean up the data for GHL API
+  const updateData = {
+    contactName: data.contactName,
+    firstName: data.firstName,
+    lastName: data.lastName
+  };
+
+  console.log('Sending update to GHL:', updateData);
+
+  // Clear all contact-related cache before the update
+  Object.keys(cache).forEach(key => {
+    if (key.includes('/contacts')) {
+      delete cache[key];
+    }
+  });
+
+  // Update the contact
+  const updateResponse = await axios.put(
+    `${API_BASE_URL}/contacts/${contactId}`,
+    updateData,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    }
+  );
+
+  // Small delay to ensure GHL has processed the update
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Then fetch the updated contact
+  const getResponse = await axios.get(
+    `${API_BASE_URL}/contacts/${contactId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    }
+  );
+
+  const updatedContact = getResponse.data;
+  
+  // Update the cache with the new data
+  const cacheKey = `/contacts/${contactId}`;
+  cache[cacheKey] = {
+    data: updatedContact,
+    timestamp: Date.now(),
+    expiresAt: Date.now() + CACHE_TTL
+  };
+
+  return updatedContact;
+}
+
+export async function deleteContact(contactId: string) {
+  const apiKey = await getCurrentApiKey();
+  if (!apiKey) {
+    throw new Error('API key not found');
+  }
+
+  const response = await axios.delete(
+    `${API_BASE_URL}/contacts/${contactId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    }
+  );
+
+  return response.data;
 }
 
 export {

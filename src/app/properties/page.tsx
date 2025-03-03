@@ -121,9 +121,13 @@ export default function PropertiesPage() {
         return;
       }
       
-      if (!property.contact) {
-        alert('No contact information available for this property.');
-        return;
+      // Generate a contact name if none exists
+      let contactName = property.contact?.name;
+      if (!contactName) {
+        // Try to create a name from the address
+        const streetName = property.address.line.split(' ')[1]; // Get street name without number
+        const cityName = property.address.city;
+        contactName = `${streetName} ${cityName} Owner`;
       }
       
       const response = await fetch('/api/contacts/add-lead', {
@@ -132,9 +136,9 @@ export default function PropertiesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: property.contact.name,
-          email: property.contact.email,
-          phone: property.contact.phone,
+          name: contactName,
+          email: property.contact?.email || `contact@${property.property_id}.example.com`,
+          phone: property.contact?.phone || '',
           address: `${property.address.line}, ${property.address.city}, ${property.address.state_code} ${property.address.postal_code}`,
           notes: `Interested in: ${property.address.line} - ${property.price}`,
           source: 'Real Estate Listing',
@@ -151,7 +155,7 @@ export default function PropertiesPage() {
       setAddedLeads(prev => [...prev, property.property_id]);
       
       // Show success feedback
-      alert(`Successfully added ${property.contact.name} to contacts!`);
+      alert(`Successfully added ${contactName} to contacts!`);
     } catch (err) {
       console.error('Error adding lead:', err);
       alert('Failed to add contact. Please try again.');

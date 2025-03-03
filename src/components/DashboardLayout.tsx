@@ -3,6 +3,7 @@
 import React, { ReactNode } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { Toaster } from 'react-hot-toast';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -25,6 +26,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
           {children}
         </main>
       </div>
+      <Toaster position="top-right" />
     </div>
   );
 } 
