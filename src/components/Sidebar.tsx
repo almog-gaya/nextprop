@@ -179,9 +179,9 @@ export default function Sidebar() {
         /> */}
         <SidebarLink
           icon={<EnvelopeIcon className="w-5 h-5" />}
-          text="Emails"
+          text="Email Campaigns"
           href="/emails"
-          active={pathname === '/emails'}
+          active={pathname === '/emails' || pathname.startsWith('/emails/')}
         />
       </div>
       

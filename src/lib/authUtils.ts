@@ -3,6 +3,7 @@
  */
 
 import Cookies from 'js-cookie';
+import { NextRequest } from 'next/server';
 
 /**
  * Flushes all authentication data from the system
@@ -58,4 +59,33 @@ export function setAllAuthData(userData: any, token: string) {
     return true;
   }
   return false;
+}
+
+/**
+ * Gets the authentication token from a NextRequest
+ * Checks both possible cookie names for compatibility
+ */
+export function getAuthToken(request: NextRequest): string | null {
+  // Try to get the token from both possible cookie names
+  const authToken = request.cookies.get('auth_token')?.value;
+  const nextpropToken = request.cookies.get('nextprop_token')?.value;
+  
+  // Return the first valid token found
+  if (authToken && authToken.length >= 20) {
+    return authToken;
+  }
+  
+  if (nextpropToken && nextpropToken.length >= 20) {
+    return nextpropToken;
+  }
+  
+  return null;
+}
+
+/**
+ * Temporary fallback to get the demo user email when token decoding fails
+ * This is for development/demo purposes only and should be replaced with proper token decoding
+ */
+export function getTemporaryDemoEmail(): string {
+  return 'demo@example.com';
 } 

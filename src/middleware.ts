@@ -12,12 +12,13 @@ export function middleware(request: NextRequest) {
     '/auth/login',
     '/auth/signup',
     '/api/health', // if you have a health check endpoint
+    '/api/auth',   // auth-related API endpoints
   ];
   
   // Check if the path is public
   const isPublicPath = publicPaths.some(publicPath => 
     path === publicPath || 
-    path.startsWith('/api/') || // Make API routes accessible
+    path.startsWith(publicPath + '/') ||
     path.startsWith('/_next/') ||
     path.includes('favicon.ico')
   );
@@ -34,11 +35,21 @@ export function middleware(request: NextRequest) {
   // Check if either token is valid
   const hasValidToken = isValidToken(authToken) || isValidToken(nextpropToken);
   
-  console.log('Middleware checking path:', path, 'token exists:', hasValidToken);
-  
   // If it's a protected path and there's no valid token, redirect to login
   if (!isPublicPath && !hasValidToken) {
-    console.log('Redirecting to login...');
+    
+    // If it's an API route, return a 401 Unauthorized response instead of redirecting
+    if (path.startsWith('/api/')) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Authentication required' }),
+        { 
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    // For regular routes, redirect to login
     const url = new URL('/auth/login', request.url);
     url.searchParams.set('from', path);
     url.searchParams.set('message', 'Please sign in to access this page');
