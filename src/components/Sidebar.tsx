@@ -14,7 +14,8 @@ import {
   HomeModernIcon,
   ChatBubbleLeftRightIcon,
   ChevronDownIcon,
-  ChevronUpIcon
+  ChevronUpIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 
@@ -169,6 +170,19 @@ export default function Sidebar() {
             />
           ))}
         </SidebarDropdown>
+{/* 
+        <SidebarLink
+          icon={<PhoneIcon className="w-5 h-5" />}
+          text="Calls"
+          href="/calls"
+          active={pathname === '/calls'}
+        /> */}
+        <SidebarLink
+          icon={<EnvelopeIcon className="w-5 h-5" />}
+          text="Emails"
+          href="/emails"
+          active={pathname === '/emails'}
+        />
       </div>
       
       <div className="mt-auto mb-6 px-6">
