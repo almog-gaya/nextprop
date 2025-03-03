@@ -14,8 +14,8 @@ export function getCurrentApiKey() {
       const storedUser = localStorage.getItem('nextprop_user');
       if (storedUser) {
         const user = JSON.parse(storedUser);
-        if (user.apiKey && validateApiKey(user.apiKey)) {
-          return user.apiKey;
+        if (user.ghlApiKey && validateApiKey(user.ghlApiKey)) {
+          return user.ghlApiKey;
         }
       }
       
@@ -109,7 +109,7 @@ const createGhlApiClient = (apiKey: string) => {
               if (storedUser) {
                 const user = JSON.parse(storedUser);
                 // Only clear if this is definitely an auth issue
-                if (user.apiKey) {
+                if (user.ghlApiKey) {
                   console.log('Clearing invalid credentials');
                   // We'll redirect to login in the UI layer
                 }
@@ -244,7 +244,11 @@ async function getOpportunities(pipelineId: string, params: any = {}, apiKey = g
 
 // Fetch pipelines from API
 async function getPipelines(params: any = {}, apiKey = getCurrentApiKey(), locationId = DEFAULT_LOCATION_ID) {
+  console.log('getPipelines called with apiKey:', apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : 'none');
+  console.log('locationId:', locationId || 'none');
+  
   if (!validateApiKey(apiKey)) {
+    console.error('API key validation failed in getPipelines');
     throw new Error('Invalid API key format');
   }
   
@@ -253,7 +257,9 @@ async function getPipelines(params: any = {}, apiKey = getCurrentApiKey(), locat
       ...params,
     };
     
+    console.log('Fetching pipeline data from API...');
     const data = await getCachedData('/pipelines/', fullParams, apiKey);
+    console.log('Pipeline data fetched successfully:', data ? 'Data received' : 'No data');
     return data;
   } catch (error) {
     console.error('Failed to fetch pipelines:', error);
@@ -286,6 +292,18 @@ async function fetchWithErrorHandling<T>(fetcher: () => Promise<T>) {
   try {
     return await fetcher();
   } catch (error) {
+    console.error('Error in fetchWithErrorHandling:', error);
+    
+    // Check if it's an API key validation error
+    if (error instanceof Error && error.message.includes('Invalid API key')) {
+      console.error('API key validation error:', error.message);
+      return { 
+        error: 'The GoHighLevel API key is invalid or missing. Please update your API key in settings.', 
+        status: 401,
+        details: error.message
+      };
+    }
+    
     if (axios.isAxiosError(error)) {
       if (error.response) {
         const status = error.response.status;
@@ -303,13 +321,14 @@ async function fetchWithErrorHandling<T>(fetcher: () => Promise<T>) {
           message = 'A server error occurred. Please try again later.';
         }
 
-        console.error('API Error:', message);
-        return { error: message, status };
+        console.error('API Error:', message, error.response.data);
+        return { error: message, status, details: error.response.data };
       }
     }
 
     console.error('Unknown error:', error);
-    return { error: 'An unexpected error occurred.', status: 500 };
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    return { error: errorMessage, status: 500 };
   }
 }
 

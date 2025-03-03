@@ -138,7 +138,10 @@ export default function DashboardPage() {
       setApiConfigured(true);
 
       try {
+        console.log('Fetching pipeline data...');
         const response = await fetch('/api/pipelines');
+        console.log('Pipeline API response status:', response.status);
+        
         if (!response.ok) {
           console.error('Failed to fetch pipelines:', response.statusText);
           // Handle 404 errors (API not configured)
@@ -147,13 +150,21 @@ export default function DashboardPage() {
             setError('API endpoint not found. Please configure your API integration.');
             console.error('API endpoint not found:', response.statusText);
           } else {
-            setError(`Error fetching pipeline data: ${response.statusText}`);
+            // For other errors, try to get more details from the response
+            try {
+              const errorData = await response.json();
+              setError(`Error fetching pipeline data: ${errorData.error || response.statusText}`);
+              console.error('Detailed error:', errorData);
+            } catch (parseError) {
+              setError(`Error fetching pipeline data: ${response.statusText}`);
+            }
           }
           setIsLoading(false);
           return;
         }
 
         const pipelineData: GHLPipelineResponse = await response.json();
+        console.log('Received pipeline data:', pipelineData?.pipelines?.length || 0, 'pipelines');
 
         if (pipelineData && pipelineData.pipelines && pipelineData.pipelines.length > 0) {
           const mappedPipelines: PipelineData[] = await Promise.all(
