@@ -36,7 +36,7 @@ export default function ContactsPage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="loader">Loading...</div>
+            <div className="loader"></div>
           </div>
         ) : error ? (
           <div className="bg-red-50 p-4 rounded-md text-red-800">

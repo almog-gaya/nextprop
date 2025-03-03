@@ -138,7 +138,8 @@ export default function PropertiesPage() {
           address: `${property.address.line}, ${property.address.city}, ${property.address.state_code} ${property.address.postal_code}`,
           notes: `Interested in: ${property.address.line} - ${property.price}`,
           source: 'Real Estate Listing',
-          type: 'Property Inquiry'
+          type: 'Property Inquiry',
+          propertyDetails: property // Include the full property details
         }),
       });
 
