@@ -1,85 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send, Search, Phone, Video, MoreVertical, ArrowLeft } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 
-// Sample data for the UI
-const SAMPLE_CONVERSATIONS = [
-  {
-    id: '1',
-    name: 'John Smith',
-    lastMessage: "I'm interested in selling my property",
-    timestamp: '10:45 AM',
-    unread: true,
-    avatar: 'JS'
-  },
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    lastMessage: 'Is this property still available?',
-    timestamp: 'Yesterday',
-    unread: false,
-    avatar: 'SJ'
-  },
-  {
-    id: '3',
-    name: 'Michael Williams',
-    lastMessage: 'Thanks for the information',
-    timestamp: 'Monday',
-    unread: false,
-    avatar: 'MW'
-  },
-  {
-    id: '4',
-    name: 'Jessica Brown',
-    lastMessage: 'When can we schedule a viewing?',
-    timestamp: 'Sep 12',
-    unread: false,
-    avatar: 'JB'
-  },
-  {
-    id: '5',
-    name: 'David Miller',
-    lastMessage: "I'll consider your offer",
-    timestamp: 'Sep 10',
-    unread: false,
-    avatar: 'DM'
-  }
-];
-
-const SAMPLE_MESSAGES = [
-  {
-    id: '1',
-    senderId: 'client',
-    text: "Hello, I'm interested in selling my property. Do you provide services in the Madison area?",
-    timestamp: '10:30 AM',
-  },
-  {
-    id: '2',
-    senderId: 'user',
-    text: "Hi John! Yes, we do serve the Madison area. I'd be happy to help you sell your property. Can you tell me a bit more about it?",
-    timestamp: '10:35 AM',
-  },
-  {
-    id: '3',
-    senderId: 'client',
-    text: "It's a 3-bedroom house on Oak Street. I'm looking to sell quickly as I'm relocating for work.",
-    timestamp: '10:40 AM',
-  },
-  {
-    id: '4',
-    senderId: 'user',
-    text: 'I understand the urgency. We can definitely help with a quick sale. Would you be available for a call tomorrow to discuss details?',
-    timestamp: '10:42 AM',
-  },
-  {
-    id: '5',
-    senderId: 'client',
-    text: "I'm interested in selling my property",
-    timestamp: '10:45 AM',
-  }
-];
 
 function Avatar({ initials }: { initials: string }) {
   return (
@@ -102,14 +26,13 @@ function ConversationList({ conversations, activeId, onSelect }: any) {
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
         </div>
       </div>
-      
+
       <div className="overflow-y-auto flex-grow">
         {conversations.map((conversation: any) => (
           <div
             key={conversation.id}
-            className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
-              activeId === conversation.id ? 'bg-gray-100' : ''
-            }`}
+            className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${activeId === conversation.id ? 'bg-gray-100' : ''
+              }`}
             onClick={() => onSelect(conversation.id)}
           >
             <div className="flex items-start gap-3">
@@ -190,11 +113,10 @@ function MessageThread({ messages, onSend }: any) {
             className={`flex ${message.senderId === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] px-4 py-2 rounded-lg ${
-                message.senderId === 'user'
+              className={`max-w-[80%] px-4 py-2 rounded-lg ${message.senderId === 'user'
                   ? 'bg-blue-600 text-white rounded-tr-none'
                   : 'bg-gray-100 text-gray-800 rounded-tl-none'
-              }`}
+                }`}
             >
               <p>{message.text}</p>
               <p className={`text-xs mt-1 ${message.senderId === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
@@ -227,34 +149,151 @@ function MessageThread({ messages, onSend }: any) {
   );
 }
 
+ 
+interface Conversation {
+  id: string;
+  contactId: string;
+  locationId: string;
+  lastMessageBody: string;
+  lastMessageType: string;
+  type: string;
+  unreadCount: number;
+  fullName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+}
+
+ 
+interface Message {
+  id: string;
+  body: string;
+  direction: string;
+  dateAdded: string;
+  messageType: string;
+}
+
 export default function MessagingEmbedPage() {
   const [activeConversationId, setActiveConversationId] = useState('1');
-  const [messages, setMessages] = useState(SAMPLE_MESSAGES);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
-  const handleSendMessage = (text: string) => {
-    const newMessage = {
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const response = await fetch('/api/conversations?status=unread&sort=desc&sortBy=last_message_date&locationId=N3z6NPutyGGVRyOxjSDy');
+        const data = await response.json();
+        console.log('API Response:', data);  
+        if (Array.isArray(data?.conversations)) {
+          setConversations(data.conversations);
+        } else {
+          console.error('Invalid conversations data format:', data);
+          setConversations([]);  
+        }
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+        setConversations([]);  
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConversations();
+  }, []);
+
+  
+  const formattedConversations = conversations.map(conv => ({
+    id: conv.id,
+    name: conv.fullName,
+    lastMessage: conv.lastMessageBody,
+    timestamp: 'Recent',
+    unread: conv.unreadCount > 0,
+    avatar: conv.fullName?.split(' ').map(n => n?.[0] || '').join('').toUpperCase() || 'U'
+  }));
+
+  // fetching messages
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!activeConversationId) return;
+
+      setLoadingMessages(true);
+      try {
+        const response = await fetch(`/api/conversations/${activeConversationId}/messages`);
+        const data = await response.json();
+
+        if (Array.isArray(data?.messages)) {
+          const formattedMessages = data.messages.map((msg: Message) => ({
+            id: msg.id,
+            senderId: msg.direction === 'inbound' ? 'client' : 'user',
+            text: msg.body,
+            timestamp: new Date(msg.dateAdded).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+          }));
+          setMessages(formattedMessages);
+        }
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+        setMessages([]);
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+
+    fetchMessages();
+  }, [activeConversationId]);
+
+  // Update handleSendMessage
+  const handleSendMessage = async (text: string) => {
+    const tempMessage = {
       id: `temp-${Date.now()}`,
       senderId: 'user',
       text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
-    setMessages([...messages, newMessage]);
+    setMessages(prev => [...prev, tempMessage]);
+
+    try {
+      const body = { "type": "SMS", "contactId": "abc123def456", "appointmentId": "appt123", "attachments": ["https://storage.com/file1.pdf", "https://storage.com/file2.jpg"], "emailFrom": "sender@company.com", "emailCc": ["cc1@company.com", "cc2@company.com"], "emailBcc": ["bcc1@company.com", "bcc2@company.com"], "html": "<p>Hello World</p>", "message": text, "subject": "Important Update", "replyMessageId": "msg123", "templateId": "template123", "threadId": "thread123", "scheduledTimestamp": 1669287863, "conversationProviderId": "provider123", "emailTo": "recipient@company.com", "emailReplyMode": "reply", "fromNumber": "+1499499299", "toNumber": "+1439499299" }
+      await fetch(`/api/conversations/messages`, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    }
   };
 
   return (
     <DashboardLayout title="Messaging >>>">
       <div className="h-[calc(100vh-200px)] grid grid-cols-1 md:grid-cols-3 bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="hidden md:block">
-          <ConversationList
-            conversations={SAMPLE_CONVERSATIONS}
-            activeId={activeConversationId}
-            onSelect={setActiveConversationId}
-          />
+          {loading ? (
+            <div className="p-4 text-center">Loading conversations...</div>
+          ) : (
+            <ConversationList
+              conversations={formattedConversations}
+              activeId={activeConversationId}
+              onSelect={setActiveConversationId}
+            />
+          )}
         </div>
         <div className="md:col-span-2">
-          <MessageThread messages={messages} onSend={handleSendMessage} />
+          {loadingMessages ? (
+            <div className="h-full flex items-center justify-center">
+              <div>Loading messages...</div>
+            </div>
+          ) : (
+            <MessageThread
+              messages={messages}
+              onSend={handleSendMessage}
+            />
+          )}
         </div>
       </div>
     </DashboardLayout>
   );
-} 
+}
