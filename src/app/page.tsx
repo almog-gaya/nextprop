@@ -22,6 +22,7 @@ import {
   MagnifyingGlassIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';  // Change from 'next/router' to 'next/navigation'
 
 // Pipeline types
 interface Opportunity {
@@ -119,6 +120,8 @@ const customStyles = `
 `;
 
 export default function DashboardPage() {
+  const router = useRouter();
+  // Group all useState hooks together at the top
   const [pipelines, setPipelines] = useState<PipelineData[]>([]);
   const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -129,9 +132,39 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apiConfigured, setApiConfigured] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  // Fetch pipelines and opportunities
+  // Auth check effect
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/ghl/data');
+        const data = await response.json();
+        
+        if (!data.authenticated) {
+          router.push('/auth/login');
+          return;
+        }
+
+        setAuthChecked(true);
+        
+        if (data.locationData) {
+          console.log('Location data:', data.locationData);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setAuthChecked(true);
+        setError('Failed to verify authentication status');
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
+
+  // Fetch pipeline data effect
+  useEffect(() => {
+    if (!authChecked) return; // Only fetch data after auth check
+
     const fetchPipelineData = async () => {
       setIsLoading(true);
       setError(null);
@@ -217,7 +250,7 @@ export default function DashboardPage() {
                 console.error(`Error fetching opportunities for pipeline ${pipeline.id}:`, error);
                 return {
                   id: pipeline.id,
-                  name: pipeline.name, 
+                  name: pipeline.name ,
                   stages: pipeline.stages.map(stage => ({
                     id: stage.id,
                     name: stage.name,
@@ -248,7 +281,7 @@ export default function DashboardPage() {
     };
 
     fetchPipelineData();
-  }, []);
+  }, [authChecked]);
 
   // Extract all opportunities when selected pipeline changes
   useEffect(() => {
@@ -468,7 +501,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-gray-600">Loading pipeline data...</p>
+            <p className="text-gray-600">Loading dashboard...</p>
           </div>
         </div>
       </DashboardLayout>

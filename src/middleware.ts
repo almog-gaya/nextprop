@@ -4,15 +4,17 @@ import { NextRequest, NextResponse } from 'next/server';
 const publicRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password'];
 
 export function middleware(request: NextRequest) {
-  // Get the path being requested
   const path = request.nextUrl.pathname;
   
   // Define paths that don't require authentication
   const publicPaths = [
     '/auth/login',
     '/auth/signup',
-    '/api/health', // if you have a health check endpoint
-    '/api/auth',   // auth-related API endpoints
+    '/api/health',
+    '/api/auth/ghl/callback',
+    '/api/auth',
+    '/oauth/callback',  // Add the OAuth callback route
+    '/oauth/chooselocation'  // Add the location selection route
   ];
   
   // Check if the path is public
@@ -23,22 +25,16 @@ export function middleware(request: NextRequest) {
     path.includes('favicon.ico')
   );
   
-  // Get the token from the cookies - check both possible cookie names
-  const authToken = request.cookies.get('auth_token')?.value;
-  const nextpropToken = request.cookies.get('nextprop_token')?.value;
+  // Get the tokens from cookies
+  const ghlToken = request.cookies.get('ghl_access_token')?.value;
   
-  // Validate the token(s) - at minimum check that they're 20+ characters
-  const isValidToken = (token: string | undefined): boolean => {
-    return !!token && token.length >= 20;
-  };
-  
-  // Check if either token is valid
-  const hasValidToken = isValidToken(authToken) || isValidToken(nextpropToken);
+  // Allow OAuth flow to proceed without redirects
+  if (path.startsWith('/oauth/')) {
+    return NextResponse.next();
+  }
   
   // If it's a protected path and there's no valid token, redirect to login
-  if (!isPublicPath && !hasValidToken) {
-    
-    // If it's an API route, return a 401 Unauthorized response instead of redirecting
+  if (!isPublicPath && !ghlToken) {
     if (path.startsWith('/api/')) {
       return new NextResponse(
         JSON.stringify({ error: 'Authentication required' }),
@@ -52,15 +48,12 @@ export function middleware(request: NextRequest) {
     // For regular routes, redirect to login
     const url = new URL('/auth/login', request.url);
     url.searchParams.set('from', path);
-    url.searchParams.set('message', 'Please sign in to access this page');
     return NextResponse.redirect(url);
   }
   
-  // Otherwise, continue
   return NextResponse.next();
 }
 
-// Configure which routes the middleware should run on
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
-}; 
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
+};

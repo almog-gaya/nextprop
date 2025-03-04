@@ -1,25 +1,45 @@
 import { NextResponse } from 'next/server';
 import { getContacts, fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
+  // const cookieStore = await cookies();
+  // const token = cookieStore.get('ghl_access_token');
+  // const locationId = cookieStore.get('ghl_location_id');
+
+  // if (!token || !locationId) {
+  //   return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  // }
+
   try {
     const { searchParams } = new URL(request.url);
     const forceRefresh = searchParams.get('forceRefresh') === 'true';
     
     console.log('Fetching contacts with forceRefresh:', forceRefresh);
-    const response = await fetchWithErrorHandling(() => getContacts({}, undefined, undefined, forceRefresh));
     
-    if (response.error) {
-      return NextResponse.json(
-        { error: response.error },
-        { status: response.status || 500 }
-      );
+    const headers =   {
+      'Accept': 'application/json',
+      'Authorization': `Bearer 123`,
+      'Version': '2021-07-28'
+    }
+    console.log(`headers>>: `, headers);
+    const mockURL = "https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/?locationId=ve9EPM428h8vShlRW1KT";
+    const prodURL = "https://services.leadconnectorhq.com/contacts/?locationId=${locationId.value}";
+    // Direct fetch to GHL API
+    const response = await fetch(mockURL, {
+      headers
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return NextResponse.json({ error: error.message }, { status: response.status });
     }
 
+    const data = await response.json();
+    
     // Process contacts to ensure proper name handling
     const processedData = {
-      ...response,
-      contacts: (response.contacts || []).map((contact: any) => {
+      contacts: (data.contacts || []).map((contact: any) => {
         let name = contact.contactName || null;
         if (!name && contact.firstName && contact.lastName) {
           name = `${contact.firstName} ${contact.lastName}`.trim();
@@ -44,4 +64,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-} 
+}

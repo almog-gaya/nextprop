@@ -5,8 +5,10 @@ import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
 import { Contact } from '@/types';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 export default function ContactsPage() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,12 +18,56 @@ export default function ContactsPage() {
     name: '',
     email: '',
     phone: ''
-  });
-
+  }); 
+  
+  // Add a helper function to get the token
+  const getAuthToken = () => {
+    const cookies = document.cookie.split(';');
+    const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('ghl_access_token='));
+    if (tokenCookie) {
+      return tokenCookie.trim().split('=')[1];
+    }
+    console.warn('No access token found in cookies');
+    return null;
+  };
+  
+  // Update useEffect to handle token absence
+  useEffect(() => {
+    const validateAndFetch = async () => {
+      try {
+        // const response = await axios.get('/api/auth/validate');
+        // const token = response.data.token;
+        // console.log('Token:', token);
+        // if (!token) {
+        //   router.push('/auth/login?error=invalid_token');
+        //   return;
+        // }
+        fetchContacts();
+      } catch (error) {
+        console.error('Token validation failed:', error);
+        router.push('/auth/login?error=validation_failed');
+      }
+    };
+    validateAndFetch();
+  }, [router]);
+  
   const fetchContacts = async (forceRefresh = false) => {
     try {
-      setIsLoading(true);
-      const response = await axios.get(`/api/contacts${forceRefresh ? '?forceRefresh=true' : ''}`);
+      // setIsLoading(true);
+      // const token = getAuthToken();
+      
+      // if (!token) {
+      //   throw new Error('Authentication token not found');
+      // }
+  
+      // const header = {
+      //   'Authorization': `Bearer ${token}`
+      // };
+  
+      // console.log('Auth header:', header);
+      const response = await axios.get(`/api/contacts${forceRefresh ? '?forceRefresh=true' : ''}`, {
+        // headers: header
+      });
       
       console.log('Raw contacts response:', JSON.stringify(response.data, null, 2));
       
@@ -69,10 +115,6 @@ export default function ContactsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchContacts();
-  }, []);
-
   const handleEdit = async (contact: Contact) => {
     try {
       const updatedName = window.prompt('Enter new name:', contact.name || '');
@@ -84,11 +126,18 @@ export default function ContactsPage() {
       const lastName = nameParts.slice(1).join(' ') || undefined;
       
       // Make the API call first
-      const response = await axios.put(`/api/contacts/${contact.id}`, {
-        name: updatedName,
-        firstName,
-        lastName
-      });
+      const response = await axios.put(`/api/contacts/${contact.id}`, 
+        {
+          name: updatedName,
+          firstName,
+          lastName
+        }, 
+        {
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()}`
+          }
+        }
+      );
 
       if (response.data) {
         // Update with the server response data
@@ -127,7 +176,11 @@ export default function ContactsPage() {
       );
 
       // Make the API call
-      const response = await axios.delete(`/api/contacts/${contact.id}`);
+      const response = await axios.delete(`/api/contacts/${contact.id}`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`
+        }
+      });
       
       if (response.data.success) {
         toast.success('Contact deleted successfully');
@@ -184,12 +237,19 @@ export default function ContactsPage() {
         phone: phone || undefined
       });
       
-      const response = await axios.post('/api/contacts/add-lead', {
-        firstName,
-        lastName,
-        email: newContact.email?.trim() || undefined,
-        phone: phone || undefined
-      });
+      const response = await axios.post('/api/contacts/add-lead', 
+        {
+          firstName,
+          lastName,
+          email: newContact.email?.trim() || undefined,
+          phone: phone || undefined
+        }, 
+        {
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()}`
+          }
+        }
+      );
 
       console.log('Add contact response:', response.data);
 
@@ -355,4 +415,4 @@ export default function ContactsPage() {
       </div>
     </DashboardLayout>
   );
-} 
+}
