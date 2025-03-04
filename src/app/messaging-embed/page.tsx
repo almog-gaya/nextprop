@@ -242,7 +242,7 @@ export default function MessagingEmbedPage() {
   };
 
   return (
-    <DashboardLayout title="Messaging">
+    <DashboardLayout title="Messaging >>>">
       <div className="h-[calc(100vh-200px)] grid grid-cols-1 md:grid-cols-3 bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="hidden md:block">
           <ConversationList
