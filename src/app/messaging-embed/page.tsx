@@ -435,6 +435,8 @@ export default function MessagingEmbedPage() {
   // fetching conversations
   useEffect(() => {
     const fetchConversations = async () => {
+      // Only set loading for conversations during initial load or after sending a message
+      // Do not set loading when changing conversations
       setLoading(true);
       try {
         log('Fetching conversations...');
@@ -537,7 +539,7 @@ export default function MessagingEmbedPage() {
     };
 
     fetchConversations();
-  }, [activeConversationId, messageSent]);
+  }, [messageSent]); // Removed activeConversationId dependency
 
   
   // fetching messages
@@ -759,8 +761,9 @@ export default function MessagingEmbedPage() {
   const markConversationAsRead = async (conversationId: string) => {
     log('Marking conversation as read:', conversationId);
     try {
+      // Make API call without affecting the main loading state
       const response = await fetch(`/api/conversations/${conversationId}/read`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         }
@@ -770,7 +773,7 @@ export default function MessagingEmbedPage() {
       log('Mark as read response:', data);
 
       if (data.success) {
-        // Update the conversation's unread status in the state
+        // Update the conversation's unread status in the state without triggering loading
         setConversations(prevConversations => 
           prevConversations.map(conv => 
             conv.id === conversationId 
@@ -795,7 +798,7 @@ export default function MessagingEmbedPage() {
     // Clear messages and show loading state
     setMessages([]);
     setMessagesPage(null);
-    setLoadingMessages(true);
+    setLoadingMessages(true); // Only set loading state for messages, not conversations
     
     // After UI is updated to show loading, fetch messages
     fetchMessages(id);
@@ -805,7 +808,7 @@ export default function MessagingEmbedPage() {
     if (conversation && conversation.unread) {
       markConversationAsRead(id);
       
-      // Update conversation state to reflect read status
+      // Update conversation state to reflect read status WITHOUT triggering loading
       setConversations(prevConversations => {
         return prevConversations.map(conv => 
           conv.id === id
@@ -966,7 +969,7 @@ export default function MessagingEmbedPage() {
   };
 
   return (
-    <DashboardLayout title="Messaging >>>">
+    <DashboardLayout title="Messaging">
       <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="md:col-span-4 border-r border-gray-200 overflow-y-auto">
           {loading ? (
