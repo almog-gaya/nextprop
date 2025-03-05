@@ -100,13 +100,25 @@ export const SCOPES = [
  clientId: 67c7e02f74be2556d96030df-m7vh9hwi
  sec: f4255b9f-27ea-4a16-8012-91ccacf9196a
  */
+
+// Check if running in production (either via NODE_ENV or Netlify-specific env vars)
+const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY === 'true';
+
 export const GHL_AUTH_CONFIG = {
   clientId: process.env.NEXT_PUBLIC_GHL_CLIENT_ID || '67bc8f8b36855ce268c6dff2-m7jaua8i',
   clientSecret: process.env.GHL_CLIENT_SECRET || '8f6711c5-9eb3-46b2-a0ae-dafb056cab22',
-  redirectUri: process.env.NEXT_PUBLIC_GHL_REDIRECT_URI || 'http://localhost:3000/api/auth/callback',
+  redirectUri: isProduction
+    ? 'https://nextpropai.netlify.app/api/auth/callback'
+    : 'http://localhost:3000/api/auth/callback',
   baseUrl: 'https://marketplace.gohighlevel.com',
   tokenUrl: 'https://services.leadconnectorhq.com/oauth/token'
 };
+
+// Debug environment
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('NETLIFY:', process.env.NETLIFY);
+console.log('Is Production:', isProduction);
+console.log('Redirect URI being used:', GHL_AUTH_CONFIG.redirectUri);
 
 export function getAuthUrl() {
   const params = new URLSearchParams({
@@ -116,7 +128,9 @@ export function getAuthUrl() {
     scope: SCOPES
   });
 
-  return `${GHL_AUTH_CONFIG.baseUrl}/oauth/chooselocation?${params.toString()}`;
+  const url = `${GHL_AUTH_CONFIG.baseUrl}/oauth/chooselocation?${params.toString()}`;
+  console.log('Generated auth URL:', url);
+  return url;
 }
 
 export function checkAuthStatus() {
