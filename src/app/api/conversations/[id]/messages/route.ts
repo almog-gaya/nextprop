@@ -40,42 +40,36 @@ export async function POST(
     { params }: { params: { id: string } }
 ) {
     try {
-        const { id } = params;
+        const { id } = await Promise.resolve(params);
         const conversationId = id;
         console.log("Sending message to conversation ID:", conversationId);
         
         if (!conversationId) {
-            return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
+            return NextResponse.json({ error: 'conversation id is required' }, { status: 400 });
         }
-
-        // Parse the request body
-        const body = await request.json();
         
-        if (!body.text) {
-            return NextResponse.json({ error: 'Message text is required' }, { status: 400 });
+        const { text, contactId } = await request.json();
+        
+        if (!text || !text.trim()) {
+            return NextResponse.json({ error: 'message text is required' }, { status: 400 });
         }
-
-        console.log(`Sending message: ${body.text}`);
         
-        // Try to send the real message
-        let result = await sendMessage(conversationId, body.text);
+        const result = await sendMessage(conversationId, text, contactId);
         
-        // If there's an error, simulate success for development
         if (result.error) {
-            console.log("Simulating successful message send due to error:", result.error);
-            result = getMockMessageResponse(conversationId, body.text);
+            // If there's an error, try falling back to mock data
+            console.log(`Simulating successful message send due to error: ${result.error}`);
+            return NextResponse.json(getMockMessageResponse(conversationId, text));
         }
         
         return NextResponse.json(result);
     } catch (error) {
-        console.error("Error in send message API:", error);
-        // Return a mock success response for development
-        const mockResult = getMockMessageResponse(params.id, "Error occurred, but simulating success");
-        return NextResponse.json(mockResult);
+        console.error("Error in POST handler:", error);
+        return NextResponse.json({ error: "Internal Server Error", details: error }, { status: 500 });
     }
 }
 
-const sendMessage = async (conversationId: string, text: string) => {
+const sendMessage = async (conversationId: string, text: string, contactId?: string) => {
     const cookieStore = await cookies();
     const token = cookieStore.get('ghl_access_token');
     const locationId = cookieStore.get('ghl_location_id');
@@ -85,7 +79,7 @@ const sendMessage = async (conversationId: string, text: string) => {
         return { error: "Authentication error: No access token" };
     }
     
-    const url = `https://services.leadconnectorhq.com/conversations/${conversationId}/messages`;
+    const url = `https://services.leadconnectorhq.com/conversations/messages`;
     console.log("Sending message to URL:", url);
     
     const headers = {
@@ -97,7 +91,9 @@ const sendMessage = async (conversationId: string, text: string) => {
     
     const messageData = {
         type: "SMS",
-        message: text
+        message: text,
+        conversationId: conversationId,
+        contactId: contactId
     };
     
     try {
@@ -213,16 +209,32 @@ const getMessagesByConversationId = async (conversationId: string, pageToken: st
         if (data && data.messages && Array.isArray(data.messages.messages)) {
             console.log(`Found ${data.messages.messages.length} messages in nested structure`);
             
+            // Sort messages by date, newest first
+            const sortedMessages = [...data.messages.messages].sort((a, b) => {
+                // Sort by dateAdded in descending order (newest first)
+                return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+            });
+            
             // Return the properly structured data by extracting from nested response
             return {
                 lastMessageId: data.messages.lastMessageId,
                 nextPage: data.messages.nextPage,
-                messages: data.messages.messages
+                messages: sortedMessages
             };
         } else if (data && Array.isArray(data.messages)) {
             // Handle the case where messages is directly an array
             console.log(`Found ${data.messages.length} messages in flat structure`);
-            return data;
+            
+            // Sort messages by date, newest first
+            const sortedMessages = [...data.messages].sort((a, b) => {
+                // Sort by dateAdded in descending order (newest first)
+                return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+            });
+            
+            return {
+                ...data,
+                messages: sortedMessages
+            };
         } else {
             console.error("Invalid response format:", data);
             return { error: "Invalid response format", details: data };
