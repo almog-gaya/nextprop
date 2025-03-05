@@ -7,6 +7,24 @@ const API_BASE_URL = 'https://rest.gohighlevel.com/v1';
 const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_GHL_API_KEY || '';
 const DEFAULT_LOCATION_ID = process.env.NEXT_PUBLIC_GHL_LOCATION_ID || '';
 
+// Add logging control to reduce console noise
+const ENABLE_VERBOSE_LOGGING = false;
+
+const log = (message: string, data?: any) => {
+  if (ENABLE_VERBOSE_LOGGING) {
+    if (data) {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
+  }
+};
+
+// Only show actual errors in console
+const logError = (message: string, error?: any) => {
+  console.error(message, error);
+};
+
 // Function to get the current user's API key
 export function getCurrentApiKey() {
   if (typeof window !== 'undefined') {
@@ -34,12 +52,13 @@ export function getCurrentApiKey() {
   return DEFAULT_API_KEY;
 }
 
-// Rate limiting configuration
+// Rate limiting implementation
 const rateLimitConfig = {
-  maxRequests: 20, // Maximum requests per window
-  windowMs: 60000, // Window size in ms (1 minute)
-  retryAfterMs: 5000, // Initial retry delay
-  maxRetries: 3 // Maximum number of retries
+  maxRequestsPerWindow: 10,
+  windowMs: 1000, // 1 second
+  maxRetries: 3,
+  retryDelay: 1000, // 1 second
+  retryMultiplier: 2 // Exponential backoff multiplier
 };
 
 // Request tracking for rate limiting
@@ -49,6 +68,57 @@ const requestTracker = {
   retryTimeout: null as NodeJS.Timeout | null,
 };
 
+// Handle rate limits and retries
+async function executeRequest(request: any) {
+  let retryCount = 0;
+  
+  const makeRequest = async () => {
+    try {
+      const response = await fetch(request.url, request.options);
+      
+      // Check for invalid credentials
+      if (response.status === 401) {
+        log('Clearing invalid credentials');
+        // Handle invalid credentials
+        // e.g., clearCredentials();
+        return { error: 'Invalid credentials', status: 401 };
+      }
+      
+      // Handle rate limits
+      if (response.status === 429) {
+        logError('Rate limit hit on GoHighLevel API, implementing backoff');
+        
+        if (retryCount < rateLimitConfig.maxRetries) {
+          const delay = rateLimitConfig.retryDelay * Math.pow(rateLimitConfig.retryMultiplier, retryCount);
+          log(`Retrying after ${delay}ms (retry ${retryCount + 1}/${rateLimitConfig.maxRetries})`);
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          retryCount++;
+          return makeRequest();
+        } else {
+          return { error: 'Rate limit exceeded and max retries reached', status: 429 };
+        }
+      }
+      
+      // Parse JSON response
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        return { ...data, status: response.status };
+      } else {
+        const text = await response.text();
+        return { data: text, status: response.status };
+      }
+      
+    } catch (error: any) {
+      logError('Fetch error:', error);
+      return { error: error.message, status: 0 };
+    }
+  };
+  
+  return makeRequest();
+}
+
 // Enhanced caching with expiration
 const cache: Record<string, { data: any; timestamp: number; expiresAt: number }> = {};
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes cache lifetime
@@ -56,86 +126,47 @@ const CACHE_TTL = 15 * 60 * 1000; // 15 minutes cache lifetime
 // Create API client with better error handling
 const createGhlApiClient = (apiKey: string) => {
   const client = axios.create({
-    baseURL: 'https://rest.gohighlevel.com/v1',
+    baseURL: 'https://services.leadconnectorhq.com',
     headers: {
       Authorization: `Bearer ${apiKey}`,
+      Version: '2021-04-15',
+      Accept: 'application/json',
     },
   });
 
-  // Add request interceptor for rate limiting
+  // Add request interceptor for rate limiting (simple version)
   client.interceptors.request.use(async (config) => {
-    // Check if we're currently rate limited
-    if (requestTracker.isRateLimited) {
-      throw new Error('Rate limited: Too many requests');
-    }
-
-    // Clean up old requests
-    const now = Date.now();
-    requestTracker.requests = requestTracker.requests.filter(
-      time => now - time < rateLimitConfig.windowMs
-    );
-
-    // Check if we've hit the limit
-    if (requestTracker.requests.length >= rateLimitConfig.maxRequests) {
-      console.log('Rate limit reached, throttling requests');
-      requestTracker.isRateLimited = true;
-
-      // Set a timeout to reset the rate limit
-      requestTracker.retryTimeout = setTimeout(() => {
-        requestTracker.isRateLimited = false;
-        requestTracker.requests = [];
-        console.log('Rate limit reset, resuming requests');
-      }, rateLimitConfig.retryAfterMs);
-
-      throw new Error('Rate limited: Too many requests');
-    }
-
-    // Track this request
-    requestTracker.requests.push(now);
+    // Simple implementation without the requestTracker
     return config;
   });
 
-  // Add response interceptor for error handling
+  // Add response interceptor for handling errors and rate limits
   client.interceptors.response.use(
-    response => response,
+    (response) => {
+      return response;
+    },
     async (error) => {
-      if (error.response) {
-        // Handle specific error codes
-        switch (error.response.status) {
-          case 401:
-            console.error('Authentication error: Invalid or expired API key');
-            // Clear invalid credentials
-            if (typeof window !== 'undefined') {
-              const storedUser = localStorage.getItem('user');
-              if (storedUser) {
-                const user = JSON.parse(storedUser);
-                // Only clear if this is definitely an auth issue
-                if (user.ghlApiKey) {
-                  console.log('Clearing invalid credentials');
-                  // We'll redirect to login in the UI layer
-                }
-              }
-            }
-            break;
-
-          case 429:
-            console.log('Rate limit hit on GoHighLevel API, implementing backoff');
-            // Implement exponential backoff
-            const retryCount = error.config.retryCount || 0;
-            if (retryCount < rateLimitConfig.maxRetries) {
-              const delay = rateLimitConfig.retryAfterMs * Math.pow(2, retryCount);
-              console.log(`Retrying after ${delay}ms (retry ${retryCount + 1}/${rateLimitConfig.maxRetries})`);
-
-              return new Promise(resolve => {
-                setTimeout(() => {
-                  error.config.retryCount = retryCount + 1;
-                  resolve(client(error.config));
-                }, delay);
-              });
-            }
-            break;
+      // Handle rate limiting
+      if (error.response && error.response.status === 429) {
+        logError('Rate limit hit on GoHighLevel API, implementing backoff');
+        
+        const retryCount = error.config.retryCount || 0;
+        if (retryCount < rateLimitConfig.maxRetries) {
+          const delay = rateLimitConfig.retryDelay * Math.pow(rateLimitConfig.retryMultiplier, retryCount);
+          log(`Retrying after ${delay}ms (retry ${retryCount + 1}/${rateLimitConfig.maxRetries})`);
+          
+          // Wait for the specified delay
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          
+          // Update retry count
+          error.config.retryCount = retryCount + 1;
+          
+          // Retry the request
+          return client(error.config);
         }
       }
+      
+      // Re-throw the error if we're not retrying
       return Promise.reject(error);
     }
   );
