@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
 // This would be replaced with actual email service configuration
-// Example services: SendGrid, Mailgun, AWS SES, etc.
-const EMAIL_API_KEY = process.env.EMAIL_API_KEY || 'your-api-key-here';
+// SendGrid has been removed. A new email service provider will be implemented soon.
+const EMAIL_API_KEY = process.env.EMAIL_API_KEY || 'pending-implementation';
 const EMAIL_SENDER = process.env.EMAIL_SENDER || 'noreply@yourdomain.com';
 
 // Store email logs for demonstration purposes
@@ -11,6 +11,9 @@ export const emailLogs: any[] = [];
 
 export async function POST(request: Request) {
   try {
+    // Notify that email service is unavailable
+    console.warn('Email service is currently unavailable. A new provider will be integrated soon.');
+    
     // Parse the request body
     const data = await request.json();
     
@@ -26,23 +29,22 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { 
           status: 'error', 
-          message: 'Missing required fields: to, subject, or message' 
+          message: 'Missing required fields: to, subject, or message',
+          serviceStatus: 'Email service is currently unavailable due to provider migration.'
         }, 
         { status: 400 }
       );
     }
     
-    // In a real implementation, this would make an API call to your email service
-    // For demonstration, we'll simulate a successful API call
-    
-    // Create a log entry
+    // Create a log entry (for tracking purposes only, email won't actually be sent)
     const emailLog = {
       id: `email-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       to: data.to,
       subject: data.subject,
       contactName: data.contactName || null,
-      status: 'delivered',
-      createdAt: new Date().toISOString()
+      status: 'undelivered',
+      createdAt: new Date().toISOString(),
+      note: 'Email service is being migrated to a new provider.'
     };
     
     // Store the log
@@ -53,20 +55,22 @@ export async function POST(request: Request) {
       emailLogs.length = 50;
     }
     
-    // Return a success response
+    // Return a service unavailable response
     return NextResponse.json({
-      status: 'success',
-      message: 'Email sent successfully',
-      emailId: emailLog.id
-    });
+      status: 'error',
+      message: 'Email service temporarily unavailable',
+      emailId: emailLog.id,
+      serviceStatus: 'Email service is currently unavailable due to provider migration. Please refer to docs/sendgrid-deprecation.md for more information.'
+    }, { status: 503 });
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error processing email request:', error);
     
     // Return an error response
     return NextResponse.json(
       { 
         status: 'error', 
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        serviceStatus: 'Email service is currently unavailable due to provider migration.'
       }, 
       { status: 500 }
     );

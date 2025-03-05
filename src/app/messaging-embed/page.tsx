@@ -770,19 +770,14 @@ export default function MessagingEmbedPage() {
       log('Mark as read response:', data);
 
       if (data.success) {
-        // Update conversation in state to remove unread status
-        setConversations(prevConversations => {
-          return prevConversations.map(conv => {
-            if (conv.id === conversationId) {
-              return {
-                ...conv,
-                unread: false,
-                unreadCount: 0
-              };
-            }
-            return conv;
-          });
-        });
+        // Update the conversation's unread status in the state
+        setConversations(prevConversations => 
+          prevConversations.map(conv => 
+            conv.id === conversationId 
+              ? { ...conv, unread: false, originalData: { ...conv.originalData, unreadCount: 0 } } 
+              : conv
+          )
+        );
       }
     } catch (error) {
       log('Failed to mark conversation as read:', error);

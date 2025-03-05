@@ -73,19 +73,34 @@ export async function POST(
         
         // Get the request body
         const body = await request.json();
-        const { text } = body;
+        const { text, contactId } = body;
         
         if (!text || text.trim() === '') {
             return NextResponse.json({ error: 'Message text is required' }, { status: 400 });
         }
         
         // Send the message
-        const response = await sendMessage(conversationId, text);
+        const result = await sendMessage(conversationId, text, contactId);
         
-        return NextResponse.json(response);
+        if (result.error) {
+            log(`Error sending message, falling back to mock: ${result.error}`);
+            return NextResponse.json(getMockMessageResponse(conversationId, text));
+        }
+        
+        return NextResponse.json(result);
     } catch (error) {
         logError("Error in conversation message POST:", error);
-        return NextResponse.json(getMockMessageResponse(params.id, 'Mock response text'));
+        
+        // Try to extract the conversation ID for the mock response
+        let conversationId = '';
+        try {
+            conversationId = params.id;
+        } catch (e) {
+            // Ignore
+        }
+        
+        // Fallback to mock response
+        return NextResponse.json(getMockMessageResponse(conversationId, 'Mock response text'));
     }
 }
 
