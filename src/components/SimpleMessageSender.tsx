@@ -73,25 +73,25 @@ export default function SimpleMessageSender() {
   };
   
   return (
-    <div className="flex flex-1 flex-col md:flex-row h-full">
+    <div className="flex flex-1 flex-col md:flex-row h-full bg-white rounded-lg shadow-sm">
       {/* Left panel - Message form */}
-      <div className="w-full md:w-1/3 border-r p-4">
-        <h2 className="text-lg font-semibold mb-4">New Message</h2>
+      <div className="w-full md:w-1/3 border-r border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-6">New Message</h2>
         
         {error && (
-          <div className="mb-4 p-2 bg-red-50 border border-red-200 text-red-700 rounded flex items-start text-sm">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start text-sm">
             <AlertCircle className="mr-2 h-4 w-4 mt-0.5" />
             <p>{error}</p>
           </div>
         )}
         
         {success && (
-          <div className="mb-4 p-2 bg-green-50 border border-green-200 text-green-700 rounded text-sm">
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
             <p>{success}</p>
           </div>
         )}
         
-        <form onSubmit={handleSendMessage} className="space-y-3">
+        <form onSubmit={handleSendMessage} className="space-y-4">
           <div>
             <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
               Phone Number
@@ -99,7 +99,7 @@ export default function SimpleMessageSender() {
             <input
               id="phoneNumber"
               type="tel"
-              className="w-full p-2 border border-gray-300 rounded text-sm"
+              className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7c3aed] focus:border-[#7c3aed] transition-colors"
               placeholder="+1 555 123 4567"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
@@ -113,7 +113,7 @@ export default function SimpleMessageSender() {
             </label>
             <textarea
               id="message"
-              className="w-full p-2 border border-gray-300 rounded text-sm"
+              className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#7c3aed] focus:border-[#7c3aed] transition-colors"
               placeholder="Type your message here..."
               rows={4}
               value={message}
@@ -125,7 +125,7 @@ export default function SimpleMessageSender() {
           <button
             type="submit"
             disabled={isSending}
-            className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded flex items-center justify-center transition-colors disabled:bg-blue-300"
+            className="w-full py-2.5 px-4 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-medium rounded-lg flex items-center justify-center transition-colors disabled:bg-[#a78bfa] disabled:cursor-not-allowed"
           >
             {isSending ? 'Sending...' : (
               <>
@@ -136,16 +136,16 @@ export default function SimpleMessageSender() {
           </button>
         </form>
         
-        <div className="mt-6">
-          <h3 className="font-medium text-sm mb-2">Recent Messages</h3>
+        <div className="mt-8">
+          <h3 className="font-medium text-sm text-gray-900 mb-3">Recent Messages</h3>
           {sentMessages.length === 0 ? (
             <p className="text-sm text-gray-500">No messages sent yet</p>
           ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto">
+            <div className="space-y-3 max-h-[calc(100vh-24rem)] overflow-y-auto pr-2">
               {sentMessages.map((msg, index) => (
-                <div key={index} className="p-2 bg-gray-50 rounded text-sm border">
+                <div key={index} className="p-3 bg-gray-50 rounded-lg text-sm border border-gray-200 hover:border-[#7c3aed] transition-colors">
                   <div className="flex justify-between mb-1">
-                    <span className="text-blue-600 font-medium">{msg.to}</span>
+                    <span className="text-[#7c3aed] font-medium">{msg.to}</span>
                     <span className="text-xs text-gray-500">{msg.time}</span>
                   </div>
                   <p className="text-gray-700">{msg.text}</p>
@@ -157,10 +157,10 @@ export default function SimpleMessageSender() {
       </div>
       
       {/* Right panel - Conversation placeholder */}
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
+      <div className="flex-1 flex items-center justify-center bg-gray-50/50 p-6">
         <div className="text-center text-gray-500">
-          <p>No conversation selected</p>
-          <p className="text-sm mt-1">Send a message to start a new conversation</p>
+          <p className="text-lg font-medium mb-1">No conversation selected</p>
+          <p className="text-sm">Send a message to start a new conversation</p>
         </div>
       </div>
     </div>
