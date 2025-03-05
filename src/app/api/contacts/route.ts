@@ -3,10 +3,12 @@ import { getContacts, fetchWithErrorHandling } from '@/lib/enhancedApi';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  // const cookieStore = await cookies();
-  // const token = cookieStore.get('ghl_access_token');
-  // const locationId = cookieStore.get('ghl_location_id');
-
+  const cookieStore = await cookies();
+  const token = cookieStore.get('ghl_access_token');
+  const locationId = cookieStore.get('ghl_location_id');
+  
+  console.log(`token>>: `, token?.value);
+  console.log(`locationId>>: `, locationId?.value);
   // if (!token || !locationId) {
   //   return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   // }
@@ -19,19 +21,22 @@ export async function GET(request: Request) {
     
     const headers =   {
       'Accept': 'application/json',
-      'Authorization': `Bearer 123`,
+      'Authorization': `Bearer ${token?.value}`,
       'Version': '2021-07-28'
     }
+    
     console.log(`headers>>: `, headers);
-    const mockURL = "https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/?locationId=ve9EPM428h8vShlRW1KT";
-    const prodURL = "https://services.leadconnectorhq.com/contacts/?locationId=${locationId.value}";
+    const mockURL = "https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/${}";
+    const prodURL = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId?.value ?? "N3z6NPutyGGVRyOxjSDy"}`;
     // Direct fetch to GHL API
-    const response = await fetch(mockURL, {
+    const response = await fetch(prodURL, {
       headers
     });
 
+
     if (!response.ok) {
       const error = await response.json();
+      console.log(`Error: `, error);
       return NextResponse.json({ error: error.message }, { status: response.status });
     }
 
