@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOpportunities, fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { fetchWithErrorHandling, getAuthHeaders } from '@/lib/enhancedApi';
 
 export async function GET(
   request: NextRequest,
@@ -15,7 +15,7 @@ export async function GET(
   }
 
   try {
-    const data = await fetchWithErrorHandling(() => getOpportunities(id));
+    const data = await fetchWithErrorHandling(() => getOpportunitiesById(id));
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(
@@ -32,6 +32,23 @@ const getMockOpportunitiesById = async (id: String) => {
     method: 'GET',
     headers: { Authorization: 'Bearer 123', Version: '2021-07-28', Accept: 'application/json' }
   };
+  const response = await fetch(url, options);
+  const data = await response.json();
+  return data;
+}
+
+const getOpportunitiesById = async (id: string) => {
+  const { token, locationId } = await getAuthHeaders();
+  const url = `https://services.leadconnectorhq.com/opportunities/search?location_id=${locationId}`;
+  const options = {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Version: '2021-07-28',
+      Accept: 'application/json'
+    }
+  }
+
   const response = await fetch(url, options);
   const data = await response.json();
   return data;

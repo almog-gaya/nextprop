@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getPipelines, fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { fetchWithErrorHandling, getAuthHeaders } from '@/lib/enhancedApi';
 
 export async function GET() {
   const data = await fetchWithErrorHandling(getPipelines);
   return NextResponse.json(data);
 } 
-/**
- curl --request GET \
-  --url 'https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/pipelines?locationId=ve9EPM428h8vShlRW1KT' \
-  --header 'Accept: application/json' \
-  --header 'Authorization: Bearer 123' \
-  --header 'Version: 2021-07-28'
- */
+
 const getMockPipeLines = async () => {
   const response = await fetch('https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/pipelines?locationId=ve9EPM428h8vShlRW1KT', {
     method: 'GET',
@@ -22,6 +16,21 @@ const getMockPipeLines = async () => {
     }
   });
   return response.json();
-
 }
  
+const getPipelines = async () => {
+  const {token, locationId} = await getAuthHeaders();
+  const url = `https://services.leadconnectorhq.com/opportunities/pipelines?locationId=${locationId}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Version': '2021-07-28'
+    }
+  });
+
+  return response.json();
+
+}
