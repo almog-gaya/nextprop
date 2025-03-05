@@ -101,9 +101,9 @@ export const SCOPES = [
  sec: f4255b9f-27ea-4a16-8012-91ccacf9196a
  */
 export const GHL_AUTH_CONFIG = {
-  clientId: '67c7e02f74be2556d96030df-m7vh9hwi',
-  clientSecret: 'f4255b9f-27ea-4a16-8012-91ccacf9196a',
-  redirectUri: 'http://nextpropai.netlify.app/api/auth/callback',
+  clientId: process.env.NEXT_PUBLIC_GHL_CLIENT_ID || '67bc8f8b36855ce268c6dff2-m7jaua8i',
+  clientSecret: process.env.GHL_CLIENT_SECRET || '8f6711c5-9eb3-46b2-a0ae-dafb056cab22',
+  redirectUri: process.env.NEXT_PUBLIC_GHL_REDIRECT_URI || 'http://localhost:3000/api/auth/callback',
   baseUrl: 'https://marketplace.gohighlevel.com',
   tokenUrl: 'https://services.leadconnectorhq.com/oauth/token'
 };
