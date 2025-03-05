@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ business }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating business:', error);
+    console.error('Error creating business:3', error);
     return NextResponse.json(
       { error: error.message || 'Failed to create business' },
       { status: 500 }

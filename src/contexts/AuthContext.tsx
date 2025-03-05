@@ -120,8 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Create a business record for this user
         const businessData = await createBusinessForUser(data.user.id, {
           name: businessName,
-          contact_email: email,
-          // Other business fields can be set later
+          contact_email: email,     
+          phone_number: '', 
+          status: 'verified',
+          verification_attempts: 0,
         });
         
         setBusiness(businessData);

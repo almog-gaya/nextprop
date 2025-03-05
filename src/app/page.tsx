@@ -22,6 +22,7 @@ import {
   MagnifyingGlassIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import axiosInstance from '@/lib/axiosInstance';
 
 // Pipeline types
 interface Opportunity {
@@ -129,6 +130,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [apiConfigured, setApiConfigured] = useState(true);
+  const [isBusinessConfigured, setIsBusinessConfigured] = useState(false);
 
   // Fetch pipelines and opportunities
   useEffect(() => {
@@ -139,10 +141,10 @@ export default function DashboardPage() {
 
       try {
         console.log('Fetching pipeline data...');
-        const response = await fetch('/api/pipelines');
+        const response = await axiosInstance.get('/api/pipelines');
         console.log('Pipeline API response status:', response.status);
         
-        if (!response.ok) {
+        if (!response.data) {
           console.error('Failed to fetch pipelines:', response.statusText);
           // Handle 404 errors (API not configured)
           if (response.status === 404) {
@@ -152,7 +154,7 @@ export default function DashboardPage() {
           } else {
             // For other errors, try to get more details from the response
             try {
-              const errorData = await response.json();
+              const errorData = await response.data;
               setError(`Error fetching pipeline data: ${errorData.error || response.statusText}`);
               console.error('Detailed error:', errorData);
             } catch (parseError) {
@@ -163,7 +165,7 @@ export default function DashboardPage() {
           return;
         }
 
-        const pipelineData: GHLPipelineResponse = await response.json();
+        const pipelineData: GHLPipelineResponse = await response.data;
         console.log('Received pipeline data:', pipelineData?.pipelines?.length || 0, 'pipelines');
 
         if (pipelineData && pipelineData.pipelines && pipelineData.pipelines.length > 0) {
@@ -171,12 +173,12 @@ export default function DashboardPage() {
             pipelineData.pipelines.map(async (pipeline: GHLPipeline) => {
               // For each pipeline, fetch its opportunities
               try {
-                const opportunitiesResponse = await fetch(`/api/pipelines/${pipeline.id}/opportunities`);
-                if (!opportunitiesResponse.ok) {
+                const opportunitiesResponse = await axiosInstance.get(`/api/pipelines/${pipeline.id}/opportunities`);
+                if (!opportunitiesResponse.data) {
                   throw new Error(`Error fetching opportunities: ${opportunitiesResponse.statusText}`);
                 }
                 
-                const opportunitiesData: GHLOpportunityResponse = await opportunitiesResponse.json();
+                const opportunitiesData: GHLOpportunityResponse = await opportunitiesResponse.data;
                 
                 // Group opportunities by stage
                 const opportunitiesByStage: Record<string, Opportunity[]> = {};
@@ -240,7 +242,13 @@ export default function DashboardPage() {
           setError('No pipeline data available');
         }
       } catch (error) {
+       
         console.error('Error fetching pipeline data:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        if(errorMessage == "NO_BUSINESS") {
+
+        }
+        setError(errorMessage);
         setError('Failed to fetch pipeline data: ' + (error as Error).message);
       } finally {
         setIsLoading(false);

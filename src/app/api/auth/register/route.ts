@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         business,
       });
     } catch (businessError) {
-      console.error('Error creating business:', businessError);
+      console.error('Error creating business:2', businessError);
       
       // Clean up the auth user if business creation fails
       await supabase.auth.admin.deleteUser(authData.user.id);

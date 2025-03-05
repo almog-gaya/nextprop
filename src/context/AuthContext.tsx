@@ -5,6 +5,7 @@ import { User, AuthState, LoginCredentials, SignupCredentials } from '@/types/au
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { flushAllAuthData } from '@/lib/authUtils';
+import { supabase } from '@/lib/supabase';
 
 // Mock users for demonstration (in a real app, this would be in a database)
 const MOCK_USERS: User[] = [
@@ -235,7 +236,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Logout function
-  const logout = () => {
+  const logout = async () => {
+
+    /// logout via supabase
+    // Clear token from cookies
+    Cookies.remove('nextprop_token');
+  
+    const { error } = await supabase.auth.signOut()
+    console.log(`Complete logout: ${error}`)
+
     // Use our utility to clear all auth data
     flushAllAuthData();
     

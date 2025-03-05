@@ -3,7 +3,8 @@ import { getPipelines } from '@/lib/crm';
 
 export async function GET(request: NextRequest) {
   try {
-    const pipelines = await getPipelines();
+    const businessId = request.headers.get('X-Business-Id')!;
+    const pipelines = await getPipelines(businessId);
     
     return NextResponse.json({
       pipelines,

@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import ApiKeyManager from '@/components/ApiKeyManager';
 import { useAuth } from '@/context/AuthContext';
 import { UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
-
+import { supabase } from '@/lib/supabase';
 export default function SettingsPage() {
   const { authState, logout } = useAuth();
   const { user } = authState;
@@ -14,7 +14,9 @@ export default function SettingsPage() {
   
   const handleLogout = () => {
     setIsLoggingOut(true);
-    setTimeout(() => {
+    console.log(`Logging out...`)
+    setTimeout(async () => {
+      const { error } = await supabase.auth.signOut()
       logout();
     }, 500);
   };

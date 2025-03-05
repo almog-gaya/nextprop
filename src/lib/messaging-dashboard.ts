@@ -188,6 +188,8 @@ export async function createBusinessForUser(
   userId: string, 
   businessData: Partial<Business>
 ) {
+
+  console.log(`[createBusinessForUser] userId: ${userId}, businessData: ${JSON.stringify(businessData)}`)
   try {
     const newBusiness = {
       ...businessData,
@@ -198,9 +200,12 @@ export async function createBusinessForUser(
       .from('businesses')
       .insert(newBusiness)
       .select();
+      
 
     if (error) {
-      console.error('Error creating business:', error);
+      console.error('Error creating business1:', error);
+      console.log(JSON.stringify(error));
+      console.log(`${error.cause}, ${error.details}, ${error.hint}`)
       throw new Error('Could not create business');
     }
 

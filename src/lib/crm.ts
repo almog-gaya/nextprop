@@ -8,34 +8,42 @@ import {
 } from '../types/database';
 
 // Get the current business ID for the logged-in user
-export async function getCurrentBusinessId() {
+export async function getCurrentBusinessId(userId?: string) {
   try {
     console.log('getCurrentBusinessId: Getting current user');
-    const user = await getCurrentUser();
-    console.log('getCurrentBusinessId: Current user:', user ? user.email : 'null');
+    // const user = await getCurrentUser();
+    // console.log('getCurrentBusinessId: Current user:', user ? user.email : 'null');
     
     // Almog hardcoded business ID (return regardless of user)
     const ALMOG_BUSINESS_ID = '3a541cbd-2a17-4a28-b384-448f1ce8cf32';
     
-    // If user is null, but we're in a server context (like API routes), 
-    // return the hardcoded business ID for testing purposes
-    if (!user) {
-      console.log('getCurrentBusinessId: No user found, returning hardcoded business for testing');
-      return ALMOG_BUSINESS_ID;
-    }
+    // if(!user) {
+    //   /// if user null  go to login
+    //   console.log('getCurrentBusinessId: No user found, returning null');
+      
+    // }
+    // // If user is null, but we're in a server context (like API routes), 
+    // // return the hardcoded business ID for testing purposes
+    // if (!user) {
+    //   console.log('getCurrentBusinessId: No user found, returning hardcoded business for testing');
+    //   return ALMOG_BUSINESS_ID;
+    // }
     
-    // Special handling for almog@gaya.app user
-    if (user.id === '1fba1611-fdc5-438b-8575-34670faafe05' || user.email === 'almog@gaya.app') {
-      console.log('Special handling for almog@gaya.app user in CRM module');
-      // Return the hardcoded business ID that matches the one used in other components
-      return ALMOG_BUSINESS_ID;
-    }
+    // // Special handling for almog@gaya.app user
+    // if (user.id === '1fba1611-fdc5-438b-8575-34670faafe05' || user.email === 'almog@gaya.app') {
+    //   console.log('Special handling for almog@gaya.app user in CRM module');
+    //   // Return the hardcoded business ID that matches the one used in other components
+    //   return ALMOG_BUSINESS_ID;
+    // }
     
+    if(!userId){
+      console.log(`Returning ALMOG businessId as userId is ${userId}`)
+    }
     // Normal flow for other users
     const { data, error } = await supabase
       .from('businesses')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId || ALMOG_BUSINESS_ID)
       .single();
     
     if (error) {
@@ -52,8 +60,9 @@ export async function getCurrentBusinessId() {
 
 // -------------------- CONTACTS --------------------
 
-export async function getContacts(params = {}) {
-  const businessId = await getCurrentBusinessId();
+export async function getContacts(params: any) {
+  const currentUserId = params.userId;
+  const businessId = await getCurrentBusinessId(currentUserId);
   if (!businessId) return { contacts: [], meta: { total: 0 } };
   
   const { data, error, count } = await supabase
@@ -79,8 +88,8 @@ export async function getContacts(params = {}) {
   };
 }
 
-export async function getContactById(contactId: string) {
-  const businessId = await getCurrentBusinessId();
+export async function getContactById(contactId: string, params: any) {
+  const businessId = await getCurrentBusinessId(params.userId);
   if (!businessId) return null;
   
   const { data, error } = await supabase
@@ -98,8 +107,8 @@ export async function getContactById(contactId: string) {
   return data;
 }
 
-export async function createContact(contact: ContactCreate) {
-  const businessId = await getCurrentBusinessId();
+export async function createContact(contact: ContactCreate, params: any) {
+  const businessId = await getCurrentBusinessId(params.userId);
   if (!businessId) throw new Error('No business found for current user');
   
   const { data, error } = await supabase
@@ -116,8 +125,8 @@ export async function createContact(contact: ContactCreate) {
   return data;
 }
 
-export async function updateContact(contactId: string, updates: ContactUpdate) {
-  const businessId = await getCurrentBusinessId();
+export async function updateContact(contactId: string, updates: ContactUpdate, params: any) {
+  const businessId = await getCurrentBusinessId(params.userId);
   if (!businessId) throw new Error('No business found for current user');
   
   const { data, error } = await supabase
@@ -156,9 +165,8 @@ export async function deleteContact(contactId: string) {
 
 // -------------------- PIPELINES --------------------
 
-export async function getPipelines() {
-  console.log('getPipelines: Fetching business ID');
-  const businessId = await getCurrentBusinessId();
+export async function getPipelines(businessId?: string) {
+  console.log('getPipelines: Fetching business ID'); 
   console.log('getPipelines: Business ID retrieved:', businessId);
   
   if (!businessId) {
@@ -458,8 +466,8 @@ export async function deletePipelineStage(stageId: string) {
 
 // -------------------- OPPORTUNITIES --------------------
 
-export async function getOpportunitiesByPipeline(pipelineId: string, params = {}) {
-  const businessId = await getCurrentBusinessId();
+export async function getOpportunitiesByPipeline(pipelineId: string, params: any) {
+  const businessId = await getCurrentBusinessId(params.userId);
   if (!businessId) return { opportunities: [], meta: { total: 0 } };
   
   const { data, error, count } = await supabase
@@ -501,8 +509,8 @@ export async function getOpportunitiesByPipeline(pipelineId: string, params = {}
   };
 }
 
-export async function getOpportunityById(opportunityId: string) {
-  const businessId = await getCurrentBusinessId();
+export async function getOpportunityById(opportunityId: string, params: any) {
+  const businessId = await getCurrentBusinessId(params.userId);
   if (!businessId) return null;
   
   const { data, error } = await supabase

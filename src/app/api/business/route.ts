@@ -70,6 +70,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    console.log('[api/business/route.ts] POST request received')
     const { userId, businessData } = await request.json();
     
     if (!userId || !businessData) {
@@ -78,11 +79,12 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    console.log(`[api/business/route.ts] POST request received for user [${userId}]`)
     
     const business = await createBusinessForUser(userId, businessData);
     return NextResponse.json({ business });
   } catch (error: any) {
-    console.error('Error creating business:', error);
+    console.error('Error creating business:3', error);
     return NextResponse.json(
       { error: error.message || "Failed to create business" },
       { status: 500 }

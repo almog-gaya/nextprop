@@ -10,7 +10,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const businessId = params.id;
+    // get business id from headers
+    const businessId = request.headers.get('X-Business-Id')!;
     const business = await getBusinessById(businessId);
     
     if (!business) {

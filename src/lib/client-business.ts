@@ -32,13 +32,22 @@ export async function createBusinessForUser(
   businessData: Partial<Business>
 ): Promise<Business | null> {
   try {
+    const body = {
+      userId,
+      businessData,
+    };
+    console.log('Before stringify');
+    const stringifiedBody = JSON.stringify(body);
+    console.log('After stringify');
     const response = await fetch('/api/business', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId, businessData }),
+      body: stringifiedBody,
     });
+
+    console.log('Response:', response);
 
     if (!response.ok) {
       const error = await response.json();
@@ -48,7 +57,9 @@ export async function createBusinessForUser(
     const data = await response.json();
     return data.business;
   } catch (error) {
-    console.error('Error creating business:', error);
+
+    console.log('Error creating business:4', error)
+    console.error('Error creating business:4', error);
     return null;
   }
 }
