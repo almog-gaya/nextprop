@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Send, Search, Phone, Video, MoreVertical, ArrowLeft, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { toast } from 'sonner';
+import { MessagingSkeleton } from '@/components/SkeletonLoaders';
 
 // Add logging control to reduce console noise
 const ENABLE_VERBOSE_LOGGING = false;
@@ -997,28 +998,22 @@ export default function MessagingEmbedPage() {
 
   return (
     <DashboardLayout title="Messaging">
-      <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="md:col-span-4 border-r border-gray-200 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 text-center">Loading conversations...</div>
-          ) : (
+      {loading || loadingMessages ? (
+        <MessagingSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="md:col-span-4 border-r border-gray-200 overflow-y-auto">
             <ConversationList
               conversations={conversations}
               activeId={activeConversationId}
               onSelect={handleConversationSelect}
             />
-          )}
+          </div>
+          <div className="md:col-span-8 flex flex-col overflow-hidden">
+            {renderMessageThread()}
+          </div>
         </div>
-        <div className="md:col-span-8 flex flex-col overflow-hidden">
-          {loadingMessages ? (
-            <div className="h-full flex items-center justify-center">
-              <div>Loading messages...</div>
-            </div>
-          ) : (
-            renderMessageThread()
-          )}
-        </div>
-      </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { EnvelopeIcon, ArrowPathIcon, PlusIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { EmailCampaignsSkeleton } from '@/components/SkeletonLoaders';
 
 // Prevent excessive API calls with throttling
 function useThrottledEffect(callback: () => void, delay: number) {
@@ -140,14 +141,7 @@ export default function EmailsPage() {
   if (loading.campaigns && filteredCampaigns.length === 0) {
     return (
       <DashboardLayout title="Email Campaigns">
-        <div className="p-6 max-w-6xl mx-auto">
-          <div className="flex justify-center items-center h-64">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#7c3aed] mb-4"></div>
-              <p className="text-gray-600">Loading campaigns...</p>
-            </div>
-          </div>
-        </div>
+        <EmailCampaignsSkeleton />
       </DashboardLayout>
     );
   }

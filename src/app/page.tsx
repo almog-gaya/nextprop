@@ -23,6 +23,7 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';  // Change from 'next/router' to 'next/navigation'
+import { StatsCardSkeleton, TableSkeleton } from '@/components/SkeletonLoaders';
 
 // Pipeline types
 interface Opportunity {
@@ -913,10 +914,23 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <DashboardLayout title="Dashboard">
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <p className="text-gray-600">Loading dashboard...</p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold text-gray-800 mb-2">Welcome to Your Dashboard</h1>
+            <p className="text-gray-600">Here's what's happening with your pipelines and opportunities.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {Array(4).fill(0).map((_, i) => (
+              <StatsCardSkeleton key={i} />
+            ))}
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Current Opportunities</h2>
+            </div>
+            <TableSkeleton rows={5} columns={5} />
           </div>
         </div>
       </DashboardLayout>
@@ -927,21 +941,22 @@ export default function DashboardPage() {
   if (error) {
     return (
       <DashboardLayout title="Dashboard">
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center max-w-md">
-            <div className="text-yellow-500 mb-4">
-              <ExclamationTriangleIcon className="h-12 w-12 mx-auto" />
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
+              <span>{error}</span>
             </div>
-            <h2 className="text-xl font-medium text-gray-900 mb-2">API Configuration Required</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <p className="text-gray-600 mb-6">The pipeline integration with GoHighLevel (GHL) needs to be configured. Please contact your administrator to set up the API integration.</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <ArrowPathIcon className="h-4 w-4 mr-2" />
-              Retry
-            </button>
+            {!apiConfigured && (
+              <div className="mt-4">
+                <p className="mb-4">It looks like you need to configure your API integration. Please go to the settings page to set up your integration.</p>
+                <Link href="/settings">
+                  <button className="nextprop-button-secondary">
+                    Go to Settings
+                  </button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </DashboardLayout>
@@ -952,22 +967,11 @@ export default function DashboardPage() {
   if (!selectedPipeline) {
     return (
       <DashboardLayout title="Dashboard">
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center max-w-md">
-            <h2 className="text-xl font-medium text-gray-900 mb-2">Pipeline Setup Required</h2>
-            <p className="text-gray-600 mb-4">There are currently no active pipelines. The API integration with GoHighLevel needs to be configured.</p>
-            <div className="space-y-3">
-              <p className="text-gray-600 bg-gray-50 p-4 rounded-md border border-gray-200 text-left text-sm">
-                <strong>Technical Note:</strong> The API endpoint <code>/api/pipelines</code> is returning a 404 error. 
-                Please ensure the GHL API configuration is complete and that the pipeline endpoints are properly set up.
-              </p>
-              <button 
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                onClick={() => window.location.reload()}
-              >
-                <ArrowPathIcon className="h-4 w-4 mr-2" />
-                Retry Connection
-              </button>
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
+              <span>No pipeline selected</span>
             </div>
           </div>
         </div>
@@ -977,401 +981,387 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout title="Dashboard">
-      <style jsx global>{customStyles}</style>
-      
-      {/* Notification */}
-      {notificationActive && (
-        <div className="fixed top-4 right-4 z-50 flex items-center p-4 bg-white border border-green-200 rounded-lg shadow-lg">
-          <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-          <span className="text-gray-700">{notification.message}</span>
-          <button 
-            className="ml-4 text-gray-400 hover:text-gray-600"
-            onClick={() => setNotificationActive(false)}
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-      
-      <div className="h-full overflow-hidden flex flex-col bg-gray-50">
-        {/* Header with Pipeline Selector */}
-        <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 font-medium text-gray-900"
-                >
-                  <span className="text-xl">
-                    {selectedPipeline ? pipelines.find(p => p.id === selectedPipeline)?.name || 'Select Pipeline' : 'Select Pipeline'}
-                  </span>
-                  <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+      <div className="container mx-auto px-4 py-8">
+        <div className="h-full overflow-hidden flex flex-col bg-gray-50">
+          {/* Header with Pipeline Selector */}
+          <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center space-x-2 font-medium text-gray-900"
+                  >
+                    <span className="text-xl">
+                      {selectedPipeline ? pipelines.find(p => p.id === selectedPipeline)?.name || 'Select Pipeline' : 'Select Pipeline'}
+                    </span>
+                    <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                  </button>
+                  
+                  {isDropdownOpen && pipelines.length > 0 && (
+                    <div className="absolute left-0 mt-2 z-20 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <div className="py-1">
+                        {pipelines.map(pipeline => (
+                          <button
+                            key={pipeline.id}
+                            onClick={() => handlePipelineChange(pipeline.id)}
+                            className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            {pipeline.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <span className="ml-3 text-blue-600 font-medium">
+                  {selectedPipeline ? 
+                    (pipelines.find(p => p.id === selectedPipeline)?.totalOpportunities || 0) + ' opportunities' :
+                    '0 opportunities'}
+                </span>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <div className="flex border border-gray-200 rounded-md overflow-hidden">
+                  <button 
+                    className={`p-2 ${viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500'}`}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    <Squares2X2Icon className="h-5 w-5" />
+                  </button>
+                  <button 
+                    className={`p-2 ${viewMode === 'list' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500'}`}
+                    onClick={() => setViewMode('list')}
+                  >
+                    <Bars4Icon className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                  <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                  Import
                 </button>
                 
-                {isDropdownOpen && pipelines.length > 0 && (
-                  <div className="absolute left-0 mt-2 z-20 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <div className="py-1">
-                      {pipelines.map(pipeline => (
-                        <button
-                          key={pipeline.id}
-                          onClick={() => handlePipelineChange(pipeline.id)}
-                          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          {pipeline.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <span className="ml-3 text-blue-600 font-medium">
-                {selectedPipeline ? 
-                  (pipelines.find(p => p.id === selectedPipeline)?.totalOpportunities || 0) + ' opportunities' :
-                  '0 opportunities'}
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <div className="flex border border-gray-200 rounded-md overflow-hidden">
                 <button 
-                  className={`p-2 ${viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500'}`}
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Squares2X2Icon className="h-5 w-5" />
-                </button>
-                <button 
-                  className={`p-2 ${viewMode === 'list' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500'}`}
-                  onClick={() => setViewMode('list')}
-                >
-                  <Bars4Icon className="h-5 w-5" />
-                </button>
-              </div>
-              
-              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-                Import
-              </button>
-              
-              <button 
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                onClick={async () => {
-                  if (!apiConfigured) {
-                    setNotification({
-                      message: 'API not configured. Cannot create opportunities yet.',
-                      type: 'error'
-                    });
-                    setNotificationActive(true);
-                    return;
-                  }
-                  
-                  try {
-                    const response = await fetch('/api/opportunities/create', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application-json',
-                      },
-                      body: JSON.stringify({
-                        pipelineId: selectedPipeline,
-                        stageId: 'voice-drop-sent'
-                      }),
-                    });
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                  onClick={async () => {
+                    if (!apiConfigured) {
+                      setNotification({
+                        message: 'API not configured. Cannot create opportunities yet.',
+                        type: 'error'
+                      });
+                      setNotificationActive(true);
+                      return;
+                    }
                     
-                    if (response.ok) {
-                      const newOpportunity = await response.json();
-                      if (newOpportunity) {
-                        handleCommunication(newOpportunity.id, 'voicemail');
+                    try {
+                      const response = await fetch('/api/opportunities/create', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application-json',
+                        },
+                        body: JSON.stringify({
+                          pipelineId: selectedPipeline,
+                          stageId: 'voice-drop-sent'
+                        }),
+                      });
+                      
+                      if (response.ok) {
+                        const newOpportunity = await response.json();
+                        if (newOpportunity) {
+                          handleCommunication(newOpportunity.id, 'voicemail');
+                        }
+                      } else {
+                        setNotification({
+                          message: 'Failed to create opportunity. Please try again.',
+                          type: 'error'
+                        });
+                        setNotificationActive(true);
                       }
-                    } else {
+                    } catch (err) {
+                      console.error('Error creating opportunity:', err);
                       setNotification({
                         message: 'Failed to create opportunity. Please try again.',
                         type: 'error'
                       });
                       setNotificationActive(true);
                     }
-                  } catch (err) {
-                    console.error('Error creating opportunity:', err);
-                    setNotification({
-                      message: 'Failed to create opportunity. Please try again.',
-                      type: 'error'
-                    });
-                    setNotificationActive(true);
-                  }
-                }}
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add opportunity
-              </button>
+                  }}
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add opportunity
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Search and Filters */}
-        <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div className="flex space-x-3">
-              <button
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                onClick={() => setIsFilterModalOpen(true)}
-              >
-                <FunnelIcon className="h-4 w-4 mr-2 text-gray-500" />
-                Advanced Filters
-                {Object.values(filters).some(val => 
-                  Array.isArray(val) ? val.length > 0 : 
-                  typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
-                  val !== ''
-                ) && (
-                  <span className="ml-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {Object.values(filters).reduce((acc, val) => {
-                      if (Array.isArray(val)) return acc + (val.length > 0 ? 1 : 0);
-                      if (typeof val === 'object') {
-                        return acc + (Object.values(val).some(v => v !== '') ? 1 : 0);
-                      }
-                      return acc + (val !== '' ? 1 : 0);
-                    }, 0)}
-                  </span>
-                )}
-              </button>
-              <button
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                onClick={() => setIsSortModalOpen(true)}
-              >
-                <ArrowPathIcon className="h-4 w-4 mr-2 text-gray-500" />
-                Sort
-                {sortConfig && (
-                  <span className="ml-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    1
-                  </span>
-                )}
-              </button>
-            </div>
-            
-            <div className="flex space-x-3">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search Opportunities"
-                  className="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+          
+          {/* Search and Filters */}
+          <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              <div className="flex space-x-3">
+                <button
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={() => setIsFilterModalOpen(true)}
+                >
+                  <FunnelIcon className="h-4 w-4 mr-2 text-gray-500" />
+                  Advanced Filters
+                  {Object.values(filters).some(val => 
+                    Array.isArray(val) ? val.length > 0 : 
+                    typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
+                    val !== ''
+                  ) && (
+                    <span className="ml-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {Object.values(filters).reduce((acc, val) => {
+                        if (Array.isArray(val)) return acc + (val.length > 0 ? 1 : 0);
+                        if (typeof val === 'object') {
+                          return acc + (Object.values(val).some(v => v !== '') ? 1 : 0);
+                        }
+                        return acc + (val !== '' ? 1 : 0);
+                      }, 0)}
+                    </span>
+                  )}
+                </button>
+                <button
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={() => setIsSortModalOpen(true)}
+                >
+                  <ArrowPathIcon className="h-4 w-4 mr-2 text-gray-500" />
+                  Sort
+                  {sortConfig && (
+                    <span className="ml-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      1
+                    </span>
+                  )}
+                </button>
               </div>
               
-              <div className="flex border border-gray-300 rounded-md overflow-hidden">
-                <button
-                  className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-gray-100 text-gray-800' : 'bg-white text-gray-500'}`}
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Squares2X2Icon className="h-5 w-5" />
-                </button>
-                <button
-                  className={`px-3 py-2 ${viewMode === 'list' ? 'bg-gray-100 text-gray-800' : 'bg-white text-gray-500'}`}
-                  onClick={() => setViewMode('list')}
-                >
-                  <Bars4Icon className="h-5 w-5" />
-                </button>
+              <div className="flex space-x-3">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search Opportunities"
+                    className="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                  <button
+                    className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-gray-100 text-gray-800' : 'bg-white text-gray-500'}`}
+                    onClick={() => setViewMode('grid')}
+                  >
+                    <Squares2X2Icon className="h-5 w-5" />
+                  </button>
+                  <button
+                    className={`px-3 py-2 ${viewMode === 'list' ? 'bg-gray-100 text-gray-800' : 'bg-white text-gray-500'}`}
+                    onClick={() => setViewMode('list')}
+                  >
+                    <Bars4Icon className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Active filters display */}
-        {(Object.values(filters).some(val => 
-          Array.isArray(val) ? val.length > 0 : 
-          typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
-          val !== ''
-        ) || searchTerm) && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {searchTerm && (
-              <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
-                <span>Search: {searchTerm}</span>
+          
+          {/* Active filters display */}
+          {(Object.values(filters).some(val => 
+            Array.isArray(val) ? val.length > 0 : 
+            typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
+            val !== ''
+          ) || searchTerm) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {searchTerm && (
+                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
+                  <span>Search: {searchTerm}</span>
+                  <button 
+                    className="ml-2 text-blue-500 hover:text-blue-700"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              
+              {filters.value.min && (
+                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
+                  <span>Min Value: ${filters.value.min}</span>
+                  <button 
+                    className="ml-2 text-blue-500 hover:text-blue-700"
+                    onClick={() => setFilters({...filters, value: {...filters.value, min: ''}})}
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              
+              {filters.value.max && (
+                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
+                  <span>Max Value: ${filters.value.max}</span>
+                  <button 
+                    className="ml-2 text-blue-500 hover:text-blue-700"
+                    onClick={() => setFilters({...filters, value: {...filters.value, max: ''}})}
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              
+              {filters.lastActivityType.map(type => (
+                <div key={type} className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
+                  <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                  <button 
+                    className="ml-2 text-blue-500 hover:text-blue-700"
+                    onClick={() => setFilters({
+                      ...filters, 
+                      lastActivityType: filters.lastActivityType.filter(t => t !== type)
+                    })}
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              
+              {(Object.values(filters).some(val => 
+                Array.isArray(val) ? val.length > 0 : 
+                typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
+                val !== ''
+              ) || searchTerm) && (
                 <button 
-                  className="ml-2 text-blue-500 hover:text-blue-700"
-                  onClick={() => setSearchTerm('')}
+                  className="text-sm text-gray-600 hover:text-gray-800 underline"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilters({
+                      value: { min: '', max: '' },
+                      source: [],
+                      lastActivityType: [],
+                      dateRange: { start: '', end: '' }
+                    });
+                    setSortConfig(null);
+                  }}
                 >
-                  <XMarkIcon className="h-4 w-4" />
+                  Clear all filters
                 </button>
-              </div>
-            )}
-            
-            {filters.value.min && (
-              <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
-                <span>Min Value: ${filters.value.min}</span>
-                <button 
-                  className="ml-2 text-blue-500 hover:text-blue-700"
-                  onClick={() => setFilters({...filters, value: {...filters.value, min: ''}})}
-                >
-                  <XMarkIcon className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-            
-            {filters.value.max && (
-              <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
-                <span>Max Value: ${filters.value.max}</span>
-                <button 
-                  className="ml-2 text-blue-500 hover:text-blue-700"
-                  onClick={() => setFilters({...filters, value: {...filters.value, max: ''}})}
-                >
-                  <XMarkIcon className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-            
-            {filters.lastActivityType.map(type => (
-              <div key={type} className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
-                <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                <button 
-                  className="ml-2 text-blue-500 hover:text-blue-700"
-                  onClick={() => setFilters({
-                    ...filters, 
-                    lastActivityType: filters.lastActivityType.filter(t => t !== type)
-                  })}
-                >
-                  <XMarkIcon className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            
-            {(Object.values(filters).some(val => 
-              Array.isArray(val) ? val.length > 0 : 
-              typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
-              val !== ''
-            ) || searchTerm) && (
-              <button 
-                className="text-sm text-gray-600 hover:text-gray-800 underline"
-                onClick={() => {
-                  setSearchTerm('');
-                  setFilters({
-                    value: { min: '', max: '' },
-                    source: [],
-                    lastActivityType: [],
-                    dateRange: { start: '', end: '' }
-                  });
-                  setSortConfig(null);
-                }}
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
-        )}
-        
-        {/* Pipeline Grid */}
-        <div className="flex-1 overflow-auto">
-          <div className="px-4 py-6 sm:px-6 lg:px-8">
-            {viewMode === 'grid' ? (
-              // Grid view
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                {opportunities.map(stage => (
-                  <div key={stage.id} className="bg-white rounded-md shadow-sm border border-gray-200">
-                    <div className="p-3 border-b border-gray-200 flex justify-between items-center">
-                      <h3 className="font-medium text-gray-900">{stage.name}</h3>
-                      <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                        {getProcessedOpportunities(stage.id).length}
-                      </span>
+              )}
+            </div>
+          )}
+          
+          {/* Pipeline Grid */}
+          <div className="flex-1 overflow-auto">
+            <div className="px-4 py-6 sm:px-6 lg:px-8">
+              {viewMode === 'grid' ? (
+                // Grid view
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  {opportunities.map(stage => (
+                    <div key={stage.id} className="bg-white rounded-md shadow-sm border border-gray-200">
+                      <div className="p-3 border-b border-gray-200 flex justify-between items-center">
+                        <h3 className="font-medium text-gray-900">{stage.name}</h3>
+                        <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                          {getProcessedOpportunities(stage.id).length}
+                        </span>
+                      </div>
+                      <div className="p-2 overflow-y-auto max-h-[calc(100vh-300px)] custom-scrollbar">
+                        {getProcessedOpportunities(stage.id).map(opportunity => (
+                          <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+                        ))}
+                        {getProcessedOpportunities(stage.id).length === 0 && (
+                          <div className="text-center py-8 text-gray-500">
+                            <p>No opportunities in this stage</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="p-2 overflow-y-auto max-h-[calc(100vh-300px)] custom-scrollbar">
-                      {getProcessedOpportunities(stage.id).map(opportunity => (
-                        <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-                      ))}
-                      {getProcessedOpportunities(stage.id).length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          <p>No opportunities in this stage</p>
-                        </div>
+                  ))}
+                </div>
+              ) : (
+                // List view
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Business
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Value
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Stage
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Last Activity
+                        </th>
+                        <th scope="col" className="relative px-6 py-3">
+                          <span className="sr-only">Actions</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {opportunities.flatMap(stage => 
+                        getProcessedOpportunities(stage.id).map(opportunity => (
+                          <tr key={opportunity.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">{opportunity.name}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-500">{opportunity.businessName || '-'}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{opportunity.value}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                {opportunities.find(s => s.id === opportunity.stage)?.name || opportunity.stage}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {opportunity.lastActivity ? new Date(opportunity.lastActivity).toLocaleDateString() : '-'}
+                              {opportunity.lastActivityType && (
+                                <span className="ml-1 text-xs text-gray-500">({opportunity.lastActivityType})</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex justify-end space-x-2">
+                                <button className="text-blue-600 hover:text-blue-900">
+                                  <PhoneIcon className="h-4 w-4" />
+                                </button>
+                                <button className="text-blue-600 hover:text-blue-900">
+                                  <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                                </button>
+                                <button className="text-blue-600 hover:text-blue-900">
+                                  <EnvelopeIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
                       )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              // List view
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Business
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Value
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Stage
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Last Activity
-                      </th>
-                      <th scope="col" className="relative px-6 py-3">
-                        <span className="sr-only">Actions</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {opportunities.flatMap(stage => 
-                      getProcessedOpportunities(stage.id).map(opportunity => (
-                        <tr key={opportunity.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{opportunity.name}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{opportunity.businessName || '-'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{opportunity.value}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              {opportunities.find(s => s.id === opportunity.stage)?.name || opportunity.stage}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {opportunity.lastActivity ? new Date(opportunity.lastActivity).toLocaleDateString() : '-'}
-                            {opportunity.lastActivityType && (
-                              <span className="ml-1 text-xs text-gray-500">({opportunity.lastActivityType})</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
-                              <button className="text-blue-600 hover:text-blue-900">
-                                <PhoneIcon className="h-4 w-4" />
-                              </button>
-                              <button className="text-blue-600 hover:text-blue-900">
-                                <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                              </button>
-                              <button className="text-blue-600 hover:text-blue-900">
-                                <EnvelopeIcon className="h-4 w-4" />
-                              </button>
-                            </div>
+                      {opportunities.flatMap(stage => getProcessedOpportunities(stage.id)).length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
+                            No opportunities match your filters
                           </td>
                         </tr>
-                      ))
-                    )}
-                    {opportunities.flatMap(stage => getProcessedOpportunities(stage.id)).length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
-                          No opportunities match your filters
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
+          
+          {/* Modals */}
+          {isFilterModalOpen && <FilterModal />}
+          {isSortModalOpen && <SortModal />}
         </div>
-        
-        {/* Modals */}
-        {isFilterModalOpen && <FilterModal />}
-        {isSortModalOpen && <SortModal />}
       </div>
     </DashboardLayout>
   );

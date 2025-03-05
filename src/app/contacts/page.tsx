@@ -7,6 +7,7 @@ import { Contact } from '@/types';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { timezones } from '@/utils/timezones';
+import { ContactListSkeleton } from '@/components/SkeletonLoaders';
 
 interface CustomField {
   id: string;
@@ -546,9 +547,7 @@ export default function ContactsPage() {
         )}
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="loader"></div>
-          </div>
+          <ContactListSkeleton />
         ) : error ? (
           <div className="bg-red-50 p-4 rounded-md text-red-800">
             <p>{error}</p>
