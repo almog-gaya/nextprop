@@ -153,7 +153,7 @@ export default function Sidebar() {
           />
         ))}
         
-        <SidebarDropdown
+        {/* <SidebarDropdown
           icon={<ChartBarIcon className="w-5 h-5" />}
           text="Pipelines"
           active={pathname.startsWith('/pipelines')}
@@ -169,7 +169,7 @@ export default function Sidebar() {
               active={pathname === link.href}
             />
           ))}
-        </SidebarDropdown>
+        </SidebarDropdown> */}
 {/* 
         <SidebarLink
           icon={<PhoneIcon className="w-5 h-5" />}
