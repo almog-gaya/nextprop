@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
     const {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
         assignedTo,
         customFields
     } = await request.json();
-    const data = await fetchWithErrorHandling(await createMockOpportunity(
+    const data = await fetchWithErrorHandling(await createOpportunity(
         pipelineId,
         locationId,
         name,
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
 }
 
-const createMockOpportunity = async (
+const createOpportunity = async (
     pipelineId: string,
     locationId: string,
     name: string,
@@ -39,11 +40,14 @@ const createMockOpportunity = async (
     assignedTo: string,
     customFields: any[]
 ) => {
-    const url = 'https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/';
+    const cookieStore = await cookies();
+    const token = cookieStore.get('ghl_access_token');
+    
+    const url = 'https://services.leadconnectorhq.com/opportunities/';
     const options = {
         method: 'POST',
         headers: {
-            Authorization: 'Bearer 123',
+            Authorization: `Bearer ${token?.value}`,
             Version: '2021-07-28',
             'Content-Type': 'application/json',
             Accept: 'application/json'
@@ -53,5 +57,4 @@ const createMockOpportunity = async (
     const response = await fetch(url, options);
     const data = await response.json();
     return data;
-
 }

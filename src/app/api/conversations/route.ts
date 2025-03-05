@@ -10,9 +10,23 @@ export async function GET(request: NextRequest) {
   const sort = searchParams.get('sort') || 'desc';
   const sortBy = searchParams.get('sortBy') || 'last_message_date';
 
-
-  const data = await fetchWithErrorHandling(() => getMockConversations(status, sort, sortBy));
-  return NextResponse.json(data);
+  try {
+    // Try to get real data
+    let data = await getConversations(status, sort, sortBy);
+    
+    // Check if there's an error and fall back to mock data
+    if (data.statusCode === 401 || data.error) {
+      console.log("Falling back to mock data due to API error:", data);
+      data = await getMockConversations(status, sort, sortBy);
+    }
+    
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("Error fetching conversations:", error);
+    // Fallback to mock data
+    const mockData = await getMockConversations(status, sort, sortBy);
+    return NextResponse.json(mockData);
+  }
 }
 
 const getMockConversations = async (
@@ -48,14 +62,27 @@ const getConversations = async (
   const token = (cookieStore.get('ghl_access_token'))?.value;
   const locationId = (cookieStore.get('ghl_location_id'))?.value;
   const url = `https://services.leadconnectorhq.com/conversations/search?locationId=${locationId}&status=${status}&sort=${sort}&sortBy=${sortBy}`;
-  const header = { Authorization: `Bearer ${token}`, Version: '2021-04-15', Accept: 'application/json' }
+  const headers = { Authorization: `Bearer ${token}`, Version: '2021-04-15', Accept: 'application/json' }
   console.log(`url: `, url)
-  console.log(`header:`, JSON.stringify(header));
+  console.log(`header:`, JSON.stringify(headers));
   const options = {
     method: 'GET',
-    header,
+    headers,
   };
-  const response = await fetch(url, options);
-  const data = await response.json();
-  return data;
+  
+  try {
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error fetching conversations: ${response.status} - ${errorText}`);
+      return { error: `API Error: ${response.status}`, message: errorText };
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching conversations:", error);
+    return { error: "Failed to fetch conversations", details: error };
+  }
 }

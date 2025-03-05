@@ -11,7 +11,7 @@ export async function PUT(
     const contactId = await params.id;
     console.log('Updating contact in GHL:', params.id, 'with data:', body);
 
-    const response = await fetchWithErrorHandling(() => mockUpdateContact(contactId, body));
+    const response = await fetchWithErrorHandling(() => updateContact(contactId, body));
     console.log('GHL update response:', response);
 
     if (response.error) {
@@ -59,22 +59,20 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const contactId = await params.id;
+    const contactId = params.id;
+    console.log('Deleting contact in GHL:', contactId);
 
     const response = await fetchWithErrorHandling(() => deleteContactById(contactId));
+    console.log('GHL delete response:', response);
 
-    if (response.error) {
-      return NextResponse.json(
-        { error: response.error },
-        { status: response.status || 500 }
-      );
-    }
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(
+      { success: true, message: 'Contact deleted successfully' },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error('Error deleting contact:', error);
     return NextResponse.json(
-      { error: 'Failed to delete contact' },
+      { error: 'Failed to delete contact', details: error.message },
       { status: 500 }
     );
   }
@@ -82,28 +80,26 @@ export async function DELETE(
 
 const deleteContactById = async (contactId: string) => {
   const {token} = await getAuthHeaders();
-  // const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
-  const url = 'https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/ocQHyuzHvysMo5N5VsXc';
+  const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
 
   const options = {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}`, Version: '2021-07-28', Accept: 'application/json' }
   };
 
-
   const response = await fetch(url, options);
   const data = await response.json();
 
   return data;
-
 };
 
-const mockUpdateContact = async (contactId: string, contactData: any) => {
-  const url = 'https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/ocQHyuzHvysMo5N5VsXc';
+const updateContact = async (contactId: string, contactData: any) => {
+  const {token} = await getAuthHeaders();
+  const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
   const options = {
     method: 'PUT',
     headers: {
-      Authorization: 'Bearer 123',
+      Authorization: `Bearer ${token}`,
       Version: '2021-07-28',
       'Content-Type': 'application/json',
       Accept: 'application/json'

@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPipelines, fetchWithErrorHandling } from '@/lib/enhancedApi';
 
 export async function GET() {
-  // const data = await fetchWithErrorHandling(getPipelines);
-  const data = await fetchWithErrorHandling(getMockPipeLines);
+  const data = await fetchWithErrorHandling(getPipelines);
   return NextResponse.json(data);
 } 
 /**

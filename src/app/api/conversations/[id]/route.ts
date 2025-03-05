@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -10,20 +11,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'conversation id is required' }, { status: 400 });
   }
 
-  const data = await fetchWithErrorHandling(() => getMockConversation(id));
+  const data = await fetchWithErrorHandling(() => getConversation(id));
   return NextResponse.json(data);
 }
 
-const getMockConversation = async (
+const getConversation = async (
   id: string
 ) => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('ghl_access_token');
+
   const response = await fetch(
-    `https://stoplight.io/mocks/highlevel/integrations/39582856/conversations/${id}`,
+    `https://services.leadconnectorhq.com/conversations/${id}`,
     {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': 'Bearer 123',
+        'Authorization': `Bearer ${token?.value}`,
         'Version': '2021-07-28',
       }
     }

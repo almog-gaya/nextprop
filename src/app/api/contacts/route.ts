@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const mockURL = `https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/?locationId=${locationId?.value}`;
     const prodURL = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId?.value ?? "N3z6NPutyGGVRyOxjSDy"}`;
     // Direct fetch to GHL API
-    const response = await fetch(mockURL, {
+    const response = await fetch(prodURL, {
       headers
     });
 
@@ -76,11 +76,13 @@ export async function POST(request: Request) {
 
 
 const mockCreateContact = async (contactData: any) => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('ghl_access_token');
   const url = 'https://services.leadconnectorhq.com/contacts/';
   const options = {
     method: 'POST',
     headers: {
-      Authorization: 'Bearer 123',
+      Authorization: `Bearer ${token?.value}`,
       Version: '2021-07-28',
       'Content-Type': 'application/json',
       Accept: 'application/json'

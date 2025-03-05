@@ -15,9 +15,7 @@ export async function GET(
   }
 
   try {
-    // const data = await fetchWithErrorHandling(() => getOpportunities(id));
-
-    const data = await fetchWithErrorHandling(() => getMockOpportunitiesById(id));
+    const data = await fetchWithErrorHandling(() => getOpportunities(id));
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { cookies } from 'next/headers';
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
     try {
@@ -10,7 +11,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             return NextResponse.json({ error: 'Opportunity ID is required' }, { status: 400 });
         }
 
-        const data = await fetchWithErrorHandling(await deleteMockOpportunityById(id));
+        const data = await fetchWithErrorHandling(await deleteOpportunityById(id));
         return NextResponse.json({ 
             success: true, 
             message: 'Opportunity deleted successfully',
@@ -39,12 +40,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             assignedTo,
             customFields
         } = await request.json();
-
+        console.log(`PUT request received with id: ${id}`);
+        
         if (!id) {
             return NextResponse.json({ error: 'Opportunity ID is required' }, { status: 400 });
         }
 
-        const data = await fetchWithErrorHandling(await updateMockOpportunityById(
+        const data = await fetchWithErrorHandling(await updateOpportunityById(
             id,
             pipelineId,
             locationId,
@@ -56,7 +58,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             assignedTo,
             customFields
         ));
-        
         return NextResponse.json({ 
             success: true, 
             message: 'Opportunity updated successfully',
@@ -71,7 +72,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-const updateMockOpportunityById = async (
+const updateOpportunityById = async (
     opportunityId: string,
     pipelineId: string,
     locationId: string,
@@ -83,14 +84,17 @@ const updateMockOpportunityById = async (
     assignedTo: string,
     customFields: any
 ) => {
-    const url = `https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/${opportunityId}`;
+    const cookieStore = await cookies();
+    const token = cookieStore.get('ghl_access_token');
+    
+    const url = `https://services.leadconnectorhq.com/opportunities/${opportunityId}`;
     const options = {
         method: 'PUT',
         headers: {
-            Authorization: 'Bearer 123',
+            Authorization: `Bearer ${token?.value}`,
             Version: '2021-07-28',
-            Accept: 'application/json',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
         },
         body: JSON.stringify({
             pipelineId,
@@ -109,12 +113,15 @@ const updateMockOpportunityById = async (
     return data;
 }
 
-const deleteMockOpportunityById = async (opportunityId: string) => {
-    const url = `https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/${opportunityId}`;
+const deleteOpportunityById = async (opportunityId: string) => {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('ghl_access_token');
+    
+    const url = `https://services.leadconnectorhq.com/opportunities/${opportunityId}`;
     const options = {
         method: 'DELETE',
         headers: { 
-            Authorization: 'Bearer 123', 
+            Authorization: `Bearer ${token?.value}`, 
             Version: '2021-07-28', 
             Accept: 'application/json' 
         }
