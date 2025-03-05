@@ -484,9 +484,9 @@ export default function DashboardPage() {
             <div className="text-yellow-500 mb-4">
               <ExclamationTriangleIcon className="h-12 w-12 mx-auto" />
             </div>
-            <h2 className="text-xl font-medium text-gray-900 mb-2">API Configuration Required</h2>
+            <h2 className="text-xl font-medium text-gray-900 mb-2">Database Connection Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
-            <p className="text-gray-600 mb-6">The pipeline integration with GoHighLevel (GHL) needs to be configured. Please contact your administrator to set up the API integration.</p>
+            <p className="text-gray-600 mb-6">Unable to retrieve pipeline data from the database. Please verify that the Supabase connection is properly configured.</p>
             <button 
               onClick={() => window.location.reload()} 
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
@@ -507,11 +507,11 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center h-full">
           <div className="text-center max-w-md">
             <h2 className="text-xl font-medium text-gray-900 mb-2">Pipeline Setup Required</h2>
-            <p className="text-gray-600 mb-4">There are currently no active pipelines. The API integration with GoHighLevel needs to be configured.</p>
+            <p className="text-gray-600 mb-4">There are currently no active pipelines in the database. Please check your Supabase database setup.</p>
             <div className="space-y-3">
               <p className="text-gray-600 bg-gray-50 p-4 rounded-md border border-gray-200 text-left text-sm">
-                <strong>Technical Note:</strong> The API endpoint <code>/api/pipelines</code> is returning a 404 error. 
-                Please ensure the GHL API configuration is complete and that the pipeline endpoints are properly set up.
+                <strong>Technical Note:</strong> The API endpoint <code>/api/pipelines</code> is not returning any pipeline data. 
+                Please verify that your Supabase database has pipeline data and that the connection is correctly configured.
               </p>
               <button 
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"

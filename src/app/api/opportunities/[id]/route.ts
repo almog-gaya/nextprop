@@ -1,132 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { getOpportunityById, updateOpportunity, deleteOpportunity } from '@/lib/crm';
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-    try {
-        const id = params.id;
-        console.log(`DELETE request received with id: ${id}`);
-        
-        if (!id) {
-            return NextResponse.json({ error: 'Opportunity ID is required' }, { status: 400 });
-        }
+export async function GET(
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> }
+) {
+  const { id } = await props.params;
 
-        const data = await fetchWithErrorHandling(await deleteMockOpportunityById(id));
-        return NextResponse.json({ 
-            success: true, 
-            message: 'Opportunity deleted successfully',
-            data 
-        }, { status: 200 });
-    } catch (error: any) {
-        console.error('Delete opportunity error:', error);
-        return NextResponse.json({ 
-            error: 'Failed to delete opportunity', 
-            message: error.message 
-        }, { status: 500 });
-    }
-}
+  if (!id) {
+    return NextResponse.json(
+      { error: true, message: 'Opportunity ID is required' },
+      { status: 400 }
+    );
+  }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-    try {
-        const id = params.id;
-        const {
-            pipelineId,
-            locationId,
-            name,
-            pipelineStageId,
-            status,
-            contactId,
-            monetaryValue,
-            assignedTo,
-            customFields
-        } = await request.json();
-
-        if (!id) {
-            return NextResponse.json({ error: 'Opportunity ID is required' }, { status: 400 });
-        }
-
-        const data = await fetchWithErrorHandling(await updateMockOpportunityById(
-            id,
-            pipelineId,
-            locationId,
-            name,
-            pipelineStageId,
-            status,
-            contactId,
-            monetaryValue,
-            assignedTo,
-            customFields
-        ));
-        
-        return NextResponse.json({ 
-            success: true, 
-            message: 'Opportunity updated successfully',
-            data 
-        }, { status: 200 });
-    } catch (error: any) {
-        console.error('Update opportunity error:', error);
-        return NextResponse.json({ 
-            error: 'Failed to update opportunity', 
-            message: error.message 
-        }, { status: 500 });
-    }
-}
-
-const updateMockOpportunityById = async (
-    opportunityId: string,
-    pipelineId: string,
-    locationId: string,
-    name: string,
-    pipelineStageId: string,
-    status: string,
-    contactId: string,
-    monetaryValue: number,
-    assignedTo: string,
-    customFields: any
-) => {
-    const url = `https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/${opportunityId}`;
-    const options = {
-        method: 'PUT',
-        headers: {
-            Authorization: 'Bearer 123',
-            Version: '2021-07-28',
-            Accept: 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            pipelineId,
-            locationId,
-            name,
-            pipelineStageId,
-            status,
-            contactId,
-            monetaryValue,
-            assignedTo,
-            customFields
-        })
-    };
-    const response = await fetch(url, options);
-    const data = await response.json();
-    return data;
-}
-
-const deleteMockOpportunityById = async (opportunityId: string) => {
-    const url = `https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/${opportunityId}`;
-    const options = {
-        method: 'DELETE',
-        headers: { 
-            Authorization: 'Bearer 123', 
-            Version: '2021-07-28', 
-            Accept: 'application/json' 
-        }
-    };
-    const response = await fetch(url, options);
+  try {
+    const opportunity = await getOpportunityById(id);
     
-    // Check if response is OK
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    if (!opportunity) {
+      return NextResponse.json(
+        { error: true, message: 'Opportunity not found' },
+        { status: 404 }
+      );
     }
-    
-    // Try to parse JSON, but handle empty response
-    const text = await response.text();
-    return text ? JSON.parse(text) : { success: true };
+
+    return NextResponse.json(opportunity);
+  } catch (error: any) {
+    console.error('Error fetching opportunity:', error);
+    return NextResponse.json(
+      { error: true, message: error.message || 'Failed to fetch opportunity' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> }
+) {
+  const { id } = await props.params;
+
+  if (!id) {
+    return NextResponse.json(
+      { error: true, message: 'Opportunity ID is required' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const updates = await request.json();
+    const opportunity = await updateOpportunity(id, updates);
+
+    return NextResponse.json(opportunity);
+  } catch (error: any) {
+    console.error('Error updating opportunity:', error);
+    return NextResponse.json(
+      { error: true, message: error.message || 'Failed to update opportunity' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> }
+) {
+  const { id } = await props.params;
+
+  if (!id) {
+    return NextResponse.json(
+      { error: true, message: 'Opportunity ID is required' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    await deleteOpportunity(id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Opportunity deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Error deleting opportunity:', error);
+    return NextResponse.json(
+      { error: true, message: error.message || 'Failed to delete opportunity' },
+      { status: 500 }
+    );
+  }
 }

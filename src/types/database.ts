@@ -62,6 +62,59 @@ export interface Message {
 }
 
 /**
+ * Contact entity
+ */
+export interface Contact {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  business_id?: string;
+  tags?: string[];
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Pipeline entity
+ */
+export interface Pipeline {
+  id: string;
+  name: string;
+  business_id: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Pipeline Stage entity
+ */
+export interface PipelineStage {
+  id: string;
+  name: string;
+  pipeline_id: string;
+  order_num: number;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Opportunity entity
+ */
+export interface Opportunity {
+  id: string;
+  name: string;
+  monetary_value: number;
+  pipeline_id: string;
+  stage_id?: string;
+  contact_id?: string;
+  status: string;
+  business_id: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
  * New message creation type
  */
 export type MessageCreate = Omit<Message, 'id' | 'created_at' | 'updated_at'>;
@@ -92,6 +145,46 @@ export type VerificationCheckCreate = Omit<VerificationCheck, 'id' | 'created_at
 export type MessageUpdate = Partial<Omit<Message, 'id' | 'created_at' | 'updated_at'>>;
 
 /**
+ * Contact create type
+ */
+export type ContactCreate = Omit<Contact, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Contact update type
+ */
+export type ContactUpdate = Partial<Omit<Contact, 'id' | 'created_at' | 'updated_at'>>;
+
+/**
+ * Pipeline create type
+ */
+export type PipelineCreate = Omit<Pipeline, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Pipeline update type
+ */
+export type PipelineUpdate = Partial<Omit<Pipeline, 'id' | 'created_at' | 'updated_at'>>;
+
+/**
+ * Pipeline Stage create type
+ */
+export type PipelineStageCreate = Omit<PipelineStage, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Pipeline Stage update type
+ */
+export type PipelineStageUpdate = Partial<Omit<PipelineStage, 'id' | 'created_at' | 'updated_at'>>;
+
+/**
+ * Opportunity create type
+ */
+export type OpportunityCreate = Omit<Opportunity, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Opportunity update type
+ */
+export type OpportunityUpdate = Partial<Omit<Opportunity, 'id' | 'created_at' | 'updated_at'>>;
+
+/**
  * Database schema type
  */
 export interface Database {
@@ -100,5 +193,9 @@ export interface Database {
     verification_attempts: VerificationAttempt;
     verification_checks: VerificationCheck;
     messages: Message;
+    contacts: Contact;
+    pipelines: Pipeline;
+    pipeline_stages: PipelineStage;
+    opportunities: Opportunity;
   }
 } 
