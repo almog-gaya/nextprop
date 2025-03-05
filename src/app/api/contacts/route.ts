@@ -6,30 +6,20 @@ export async function GET(request: Request) {
   const cookieStore = await cookies();
   const token = cookieStore.get('ghl_access_token');
   const locationId = cookieStore.get('ghl_location_id');
-  
-  console.log(`token>>: `, token?.value);
-  console.log(`locationId>>: `, locationId?.value);
-  // if (!token || !locationId) {
-  //   return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  // }
 
   try {
-    const { searchParams } = new URL(request.url);
-    const forceRefresh = searchParams.get('forceRefresh') === 'true';
-    
-    console.log('Fetching contacts with forceRefresh:', forceRefresh);
-    
-    const headers =   {
+    const headers = {
       'Accept': 'application/json',
       'Authorization': `Bearer ${token?.value}`,
       'Version': '2021-07-28'
     }
-    
+
     console.log(`headers>>: `, headers);
-    const mockURL = "https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/${}";
+    console.log(`locationid:>> `, locationId);
+    const mockURL = `https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/?locationId=${locationId?.value}`;
     const prodURL = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId?.value ?? "N3z6NPutyGGVRyOxjSDy"}`;
     // Direct fetch to GHL API
-    const response = await fetch(prodURL, {
+    const response = await fetch(mockURL, {
       headers
     });
 
@@ -41,7 +31,7 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
-    
+
     // Process contacts to ensure proper name handling
     const processedData = {
       contacts: (data.contacts || []).map((contact: any) => {
@@ -60,7 +50,7 @@ export async function GET(request: Request) {
         };
       })
     };
-    
+
     return NextResponse.json(processedData);
   } catch (error: any) {
     console.error('Error in contacts API route:', error);
@@ -70,3 +60,39 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function POST(request: Request) {
+
+  const body = await request.json();
+  try {
+    console.log(`[Create]: Contact: `, JSON.stringify(body));
+    const response = await mockCreateContact(body);
+    return NextResponse.json(response);
+  } catch (error: any) {
+    console.error('Error in POST request:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+
+const mockCreateContact = async (contactData: any) => {
+  const url = 'https://services.leadconnectorhq.com/contacts/';
+  const options = {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer 123',
+      Version: '2021-07-28',
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify(contactData) };
+
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+};
+
+

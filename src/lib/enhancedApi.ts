@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { cookies } from 'next/headers';
 
 const API_BASE_URL = 'https://rest.gohighlevel.com/v1';
 
@@ -18,7 +19,7 @@ export function getCurrentApiKey() {
           return user.ghlApiKey;
         }
       }
-      
+
       // If not in localStorage, try to get from nextprop_token
       const token = localStorage.getItem('nextprop_token');
       if (token && validateApiKey(token)) {
@@ -28,7 +29,7 @@ export function getCurrentApiKey() {
       console.error('Error getting API key from session:', error);
     }
   }
-  
+
   // Fall back to default API key
   return DEFAULT_API_KEY;
 }
@@ -78,14 +79,14 @@ const createGhlApiClient = (apiKey: string) => {
     if (requestTracker.requests.length >= rateLimitConfig.maxRequests) {
       console.log('Rate limit reached, throttling requests');
       requestTracker.isRateLimited = true;
-      
+
       // Set a timeout to reset the rate limit
       requestTracker.retryTimeout = setTimeout(() => {
         requestTracker.isRateLimited = false;
         requestTracker.requests = [];
         console.log('Rate limit reset, resuming requests');
       }, rateLimitConfig.retryAfterMs);
-      
+
       throw new Error('Rate limited: Too many requests');
     }
 
@@ -116,7 +117,7 @@ const createGhlApiClient = (apiKey: string) => {
               }
             }
             break;
-            
+
           case 429:
             console.log('Rate limit hit on GoHighLevel API, implementing backoff');
             // Implement exponential backoff
@@ -124,7 +125,7 @@ const createGhlApiClient = (apiKey: string) => {
             if (retryCount < rateLimitConfig.maxRetries) {
               const delay = rateLimitConfig.retryAfterMs * Math.pow(2, retryCount);
               console.log(`Retrying after ${delay}ms (retry ${retryCount + 1}/${rateLimitConfig.maxRetries})`);
-              
+
               return new Promise(resolve => {
                 setTimeout(() => {
                   error.config.retryCount = retryCount + 1;
@@ -149,19 +150,19 @@ function validateApiKey(apiKey: string): boolean {
   if (!apiKey || apiKey.length < 20) {
     return false;
   }
-  
+
   // Check for JWT format (three parts separated by dots)
   // Many JWT tokens may include other characters, so this is a more permissive check
   const jwtPattern = /^[\w-]+\.[\w-]+\.[\w-]+$/;
-  
+
   // Check for traditional API key format
   const apiKeyPattern = /^[a-zA-Z0-9_-]{20,}$/;
-  
+
   // For debugging - remove in production
-  console.log('API Key validation:', apiKey.substring(0, 10) + '...', 
-    'JWT format:', jwtPattern.test(apiKey), 
+  console.log('API Key validation:', apiKey.substring(0, 10) + '...',
+    'JWT format:', jwtPattern.test(apiKey),
     'API key format:', apiKeyPattern.test(apiKey));
-  
+
   // Return true if it matches either pattern
   return jwtPattern.test(apiKey) || apiKeyPattern.test(apiKey);
 }
@@ -171,24 +172,24 @@ async function getCachedData(endpoint: string, params: any = {}, apiKey: string,
   // Generate cache key based on endpoint and parameters
   const cacheKey = `${endpoint}:${JSON.stringify(params)}:${apiKey}`;
   const now = Date.now();
-  
+
   // Check if we have valid cached data
   if (!forceRefresh && cache[cacheKey] && now < cache[cacheKey].expiresAt) {
     console.log(`Using cached data for ${endpoint}`);
     return cache[cacheKey].data;
   }
-  
+
   try {
     const client = createGhlApiClient(apiKey);
     const response = await client.get(endpoint, { params });
-    
+
     // Cache the response with expiration
-    cache[cacheKey] = { 
-      data: response.data, 
+    cache[cacheKey] = {
+      data: response.data,
       timestamp: now,
       expiresAt: now + CACHE_TTL
     };
-    
+
     return response.data;
   } catch (error) {
     // Check if we have stale cache we can use as fallback
@@ -198,7 +199,7 @@ async function getCachedData(endpoint: string, params: any = {}, apiKey: string,
       cache[cacheKey].expiresAt = now + (CACHE_TTL / 3); // Extend by 1/3 of normal TTL
       return cache[cacheKey].data;
     }
-    
+
     // If no cache, propagate the error
     throw error;
   }
@@ -209,13 +210,13 @@ async function getContacts(params: any = {}, apiKey = getCurrentApiKey(), locati
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
   }
-  
+
   try {
     const fullParams = {
       locationId,
       ...params,
     };
-    
+
     const data = await getCachedData('/contacts', fullParams, apiKey, forceRefresh);
     return data;
   } catch (error) {
@@ -229,12 +230,12 @@ async function getOpportunities(pipelineId: string, params: any = {}, apiKey = g
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
   }
-  
+
   try {
     const fullParams = {
       ...params,
     };
-    
+
     const data = await getCachedData(`/pipelines/${pipelineId}/opportunities/`, fullParams, apiKey);
     return data;
   } catch (error) {
@@ -247,17 +248,17 @@ async function getOpportunities(pipelineId: string, params: any = {}, apiKey = g
 async function getPipelines(params: any = {}, apiKey = getCurrentApiKey(), locationId = DEFAULT_LOCATION_ID) {
   console.log('getPipelines called with apiKey:', apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : 'none');
   console.log('locationId:', locationId || 'none');
-  
+
   if (!validateApiKey(apiKey)) {
     console.error('API key validation failed in getPipelines');
     throw new Error('Invalid API key format');
   }
-  
+
   try {
     const fullParams = {
       ...params,
     };
-    
+
     console.log('Fetching pipeline data from API...');
     const data = await getCachedData('/pipelines/', fullParams, apiKey);
     console.log('Pipeline data fetched successfully:', data ? 'Data received' : 'No data');
@@ -273,13 +274,13 @@ async function getCalls(params: any = {}, apiKey = getCurrentApiKey(), locationI
   if (!validateApiKey(apiKey)) {
     throw new Error('Invalid API key format');
   }
-  
+
   try {
     const fullParams = {
       locationId,
       ...params,
     };
-    
+
     const data = await getCachedData('/calls', fullParams, apiKey);
     return data;
   } catch (error) {
@@ -294,17 +295,17 @@ async function fetchWithErrorHandling<T>(fetcher: () => Promise<T>) {
     return await fetcher();
   } catch (error) {
     console.error('Error in fetchWithErrorHandling:', error);
-    
+
     // Check if it's an API key validation error
     if (error instanceof Error && error.message.includes('Invalid API key')) {
       console.error('API key validation error:', error.message);
-      return { 
-        error: 'The GoHighLevel API key is invalid or missing. Please update your API key in settings.', 
+      return {
+        error: 'The GoHighLevel API key is invalid or missing. Please update your API key in settings.',
         status: 401,
         details: error.message
       };
     }
-    
+
     if (axios.isAxiosError(error)) {
       if (error.response) {
         const status = error.response.status;
@@ -380,7 +381,7 @@ export async function updateContact(contactId: string, data: any) {
   );
 
   const updatedContact = getResponse.data;
-  
+
   // Update the cache with the new data
   const cacheKey = `/contacts/${contactId}`;
   cache[cacheKey] = {
@@ -410,6 +411,16 @@ export async function deleteContact(contactId: string) {
   return response.data;
 }
 
+const getAuthHeaders = async () => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('ghl_access_token');
+  const locationId = cookieStore.get('ghl_location_id');
+  return {
+    'token': token?.value,
+    'locationId': locationId?.value
+  }
+}
+
 export {
   createGhlApiClient,
   getContacts,
@@ -420,5 +431,6 @@ export {
   validateApiKey,
   getCachedData,
   DEFAULT_API_KEY,
-  DEFAULT_LOCATION_ID
+  DEFAULT_LOCATION_ID,
+  getAuthHeaders
 }; 

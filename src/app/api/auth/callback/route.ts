@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     const tokens = await response.json();
     const cookieStore = await cookies();
-
+    console.log(`Callback: `, JSON.stringify(tokens));
     // Set cookies with explicit options
     cookieStore.set('ghl_access_token', tokens.access_token, {
       httpOnly: false, // Accessible from client
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    if (tokens.location_id) {
-      cookieStore.set('ghl_location_id', tokens.location_id, {
+    if (tokens.locationId) {
+      cookieStore.set('ghl_location_id', tokens.locationId, {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -55,6 +55,38 @@ export async function GET(request: NextRequest) {
         maxAge: 60 * 60 * 24 * 7,
       });
     }
+
+    if (tokens.userId) {
+      cookieStore.set('ghl_user_id', tokens.userId, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
+
+    if (tokens.userType) {
+      cookieStore.set('ghl_user_type', tokens.userType, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
+
+
+    if (tokens.companyId) {
+      cookieStore.set('ghl_company_id', tokens.companyId, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
+
 
     if (tokens.refresh_token) {
       cookieStore.set('ghl_refresh_token', tokens.refresh_token, {

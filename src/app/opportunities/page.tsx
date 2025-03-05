@@ -19,8 +19,7 @@ export default function OpportunitiesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [formData, setFormData] = useState({
-    pipelineId: '',
-    locationId: 've9EPM428h8vShlRW1KT',
+    pipelineId: '', 
     name: '',
     pipelineStageId: '',
     status: 'open',
@@ -116,8 +115,7 @@ export default function OpportunitiesPage() {
   const handleEdit = (opportunity: any) => {
     setSelectedOpportunity(opportunity);
     setFormData({
-      pipelineId: opportunity.pipelineId,
-      locationId: 've9EPM428h8vShlRW1KT',
+      pipelineId: opportunity.pipelineId, 
       name: opportunity.name,
       pipelineStageId: opportunity.pipelineStageId,
       status: opportunity.status,
@@ -180,8 +178,7 @@ export default function OpportunitiesPage() {
 
   const resetForm = () => {
     setFormData({
-      pipelineId: '',
-      locationId: 've9EPM428h8vShlRW1KT',
+      pipelineId: '', 
       name: '',
       pipelineStageId: '',
       status: 'open',

@@ -44,9 +44,17 @@ export interface OpportunitiesResponse {
 export interface Contact {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
+  locationId?: string;
   email?: string;
   phone?: string;
   tags?: string[];
+  timezone?: string;
+  dnd: boolean;
+  customFields?: {
+    [key: string]: string | number | boolean | null;
+  };
   createdAt?: string;
   updatedAt?: string;
 }
