@@ -203,6 +203,30 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
     }
   };
 
+  const handleCall = async () => {
+     
+    const response = await fetch(`/api/conversations/messages/outbound`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'call',
+        conversationId: activeConversation.id,
+        // TODO: Need to figure out, what is the `conversationProviderId`
+        conversationProviderId: messages[0].conversationProviderId,
+        date: new Date().toISOString(),
+        // TODO: need to figure out, from where can get the to/from phone numbers
+        call: {
+            to: "+15037081210",
+            from: "+15037081210",
+            status: "completed"
+          }
+      }),
+    });
+    const data = await response.json();
+  }
+
   // If no active conversation is selected
   if (!activeConversation) {
     return (
@@ -267,7 +291,10 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
                 <RefreshCw size={20} className="text-gray-600" />
               </div>
             </button>
-            <button className="p-2 rounded-full hover:bg-gray-100 mr-1">
+            <button
+              className="p-2 rounded-full hover:bg-gray-100 mr-1"
+              onClick={handleCall}
+            >
               <Phone size={20} className="text-gray-600" />
             </button>
             <button className="p-2 rounded-full hover:bg-gray-100">

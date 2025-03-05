@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
 
     const data = await fetchWithErrorHandling(() => makeExternalOutboundCall(
         type,
+        attachments,
         conversationId,
         conversationProviderId,
         altId,
@@ -30,13 +31,31 @@ export async function POST(request: NextRequest) {
 
 const makeExternalOutboundCall = async (
     type: string,
+    attachments: string[],
     conversationId: string,
     conversationProviderId: string,
     altId: string,
     date: string,
     call: any) => {
 
-    const url = 'https://stoplight.io/mocks/highlevel/integrations/39582856/conversations/messages/outbound';
+    const mockURL = 'https://stoplight.io/mocks/highlevel/integrations/39582856/conversations/messages/outbound';
+    const prodURL = `https://services.leadconnectorhq.com/conversations/messages/outbound`;
+    var body = {
+        type,
+        attachments,
+        conversationId,
+        conversationProviderId,
+        altId,
+        date,
+        call
+    };
+
+    console.log('body', body);
+    /// adding only that are not null 
+    const bodyParam = Object.fromEntries(
+        Object.entries(body).filter(([_, value]) => value !== null)
+    );
+
     const options = {
         method: 'POST',
         headers: {
@@ -45,9 +64,9 @@ const makeExternalOutboundCall = async (
             'Content-Type': 'application/json',
             Accept: 'application/json'
         },
-        body: '{"type":"Call","attachments":["string"],"conversationId":"ve9EPM428h8vShlRW1KT","conversationProviderId":"61d6d1f9cdac7612faf80753","altId":"61d6d1f9cdac7612faf80753","date":"2019-08-24T14:15:22Z","call":{"to":"+15037081210","from":"+15037081210","status":"completed"}}'
+        body: JSON.stringify(bodyParam)
     };
-    const response = await fetch(url, options);
+    const response = await fetch(mockURL, options);
     const data = await response.json();
 
     return data;
