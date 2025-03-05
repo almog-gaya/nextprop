@@ -1,42 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {  fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { getBusinessConversations } from '@/lib/messaging-dashboard';
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  
-  // Extract query parameters
-  const status = searchParams.get('status') || 'all';
-  const sort = searchParams.get('sort') || 'desc';
-  const sortBy = searchParams.get('sortBy') || 'last_message_date';
-  const locationId = searchParams.get('locationId');
+/**
+ * GET /api/conversations
+ * Get all conversations from Supabase
+ */
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const businessId = searchParams.get('businessId');
 
-  if (!locationId) {
-    return NextResponse.json({ error: 'locationId is required' }, { status: 400 });
+    if (!businessId) {
+      return NextResponse.json(
+        { error: 'Business ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const conversations = await getBusinessConversations(businessId);
+    
+    return NextResponse.json(conversations);
+  } catch (error) {
+    console.error('Error fetching conversations:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
- 
-  const data = await fetchWithErrorHandling(() => getMockConversations(locationId, status, sort, sortBy));
-   return NextResponse.json(data);
-} 
-
-const getMockConversations = async (
-  locationId: string,
-  status: string,
-  sort: string,
-  sortBy: string
-) => {
-
-const url = 'https://stoplight.io/mocks/highlevel/integrations/39582856/conversations/search?locationId=123';
-const options = {
-  method: 'GET',
-  headers: {
-    Authorization: 'Bearer 123',
-    Version: '2021-04-15',
-    Prefer: 'code=200',
-    Accept: 'application/json'
-  }
-};
-const response = await fetch(url, options);
-const data = await response.json();
-  return data;
 }
  

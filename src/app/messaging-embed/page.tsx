@@ -3,7 +3,27 @@
 import { useEffect, useState } from 'react';
 import { Send, Search, Phone, Video, MoreVertical, ArrowLeft } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import Link from 'next/link';
 
+// Add a banner component to redirect to the new messaging dashboard
+function RedirectBanner() {
+  return (
+    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 mb-4 rounded-lg shadow-md">
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        <div>
+          <h3 className="font-bold text-lg">We've upgraded our messaging system!</h3>
+          <p className="mt-1">Experience our new and improved messaging dashboard with better features and reliability.</p>
+        </div>
+        <Link 
+          href="/messages" 
+          className="mt-3 md:mt-0 px-4 py-2 bg-white text-indigo-700 rounded-md font-medium hover:bg-indigo-50 transition-colors"
+        >
+          Go to new Messages
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 function Avatar({ initials }: { initials: string }) {
   return (
@@ -268,30 +288,47 @@ export default function MessagingEmbedPage() {
   };
 
   return (
-    <DashboardLayout title="Messaging >>>">
-      <div className="h-[calc(100vh-200px)] grid grid-cols-1 md:grid-cols-3 bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="hidden md:block">
-          {loading ? (
-            <div className="p-4 text-center">Loading conversations...</div>
-          ) : (
-            <ConversationList
-              conversations={formattedConversations}
-              activeId={activeConversationId}
-              onSelect={setActiveConversationId}
-            />
-          )}
-        </div>
-        <div className="md:col-span-2">
-          {loadingMessages ? (
-            <div className="h-full flex items-center justify-center">
-              <div>Loading messages...</div>
-            </div>
-          ) : (
-            <MessageThread
-              messages={messages}
-              onSend={handleSendMessage}
-            />
-          )}
+    <DashboardLayout title="Messaging">
+      {/* Add the redirect banner at the top */}
+      <RedirectBanner />
+      
+      <div className="bg-white rounded-lg shadow-md overflow-hidden h-[calc(100vh-250px)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 h-full">
+          <div className="hidden md:block">
+            {loading ? (
+              <div className="p-4 text-center">Loading conversations...</div>
+            ) : (
+              <ConversationList
+                conversations={formattedConversations}
+                activeId={activeConversationId}
+                onSelect={setActiveConversationId}
+              />
+            )}
+          </div>
+          <div className="md:col-span-2">
+            {loadingMessages ? (
+              <div className="h-full flex items-center justify-center">
+                <div>Loading messages...</div>
+              </div>
+            ) : (
+              <MessageThread
+                messages={messages}
+                onSend={(text: string) => {
+                  // Add message locally for immediate feedback
+                  const tempMessage = {
+                    id: `temp-${Date.now()}`,
+                    senderId: 'user',
+                    text,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  };
+                  setMessages(prev => [...prev, tempMessage]);
+                  
+                  // In a real app, you would send the message to the API here
+                  console.log('Sending message:', text);
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
     </DashboardLayout>

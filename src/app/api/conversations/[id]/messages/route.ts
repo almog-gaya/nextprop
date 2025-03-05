@@ -1,34 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { getConversationMessages } from '@/lib/messaging-dashboard';
 
+/**
+ * GET /api/conversations/[id]/messages
+ * Get all messages for a specific conversation from Supabase
+ */
 export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    const conversationId = params.id;
-
-    if (!conversationId) {
-        return NextResponse.json({ error: 'conversation id is required' }, { status: 400 });
-    }
-
-    const data = await fetchWithErrorHandling(() => getMockMessagesByConversationId(conversationId));
-    return NextResponse.json(data);
-}
-
-const getMockMessagesByConversationId = async (conversationId: string) => {
-    const url = `https://stoplight.io/mocks/highlevel/integrations/39582856/conversations/${conversationId}/messages`;
-    const options = {
-        method: 'GET',
-        headers: {
-            Authorization: 'Bearer 123',
-            Version: '2021-04-15',
-            Prefer: 'code=200',
-            Accept: 'application/json'
+    try {
+        const conversationId = params.id;
+        
+        if (!conversationId) {
+            return NextResponse.json({ error: 'conversation id is required' }, { status: 400 });
         }
-    };
-    const response = await fetch(url, options);
-    const data = await response.json();
-    return data;
+
+        // Get messages from Supabase
+        const data = await getConversationMessages(conversationId);
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error('Error fetching conversation messages:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch conversation messages' },
+            { status: 500 }
+        );
+    }
 }
 
 /**

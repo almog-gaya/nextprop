@@ -1,112 +1,54 @@
-
-
 import { NextRequest, NextResponse } from 'next/server';
-import {  fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { sendMessage } from '@/lib/messaging-dashboard';
 
+/**
+ * POST /api/conversations/messages
+ * Send a message using Twilio and store in Supabase
+ */
 export async function POST(request: NextRequest) {
-    const {
-        type,
-        contactId,
-        appointmentId,
-        attachments,
-        emailFrom,
-        emailCc,
-        emailBcc,
-        html,
-        message,
-        subject,
-        replyMessageId,
-        templateId,
-        threadId,
-        scheduledTimestamp,
-        conversationProviderId,
-        emailTo,
-        emailReplyMode,
-        fromNumber,
-        toNumber
-    } = await request.json();
-    const data = await fetchWithErrorHandling(() => getMockMessagesByConversationId(
-        type,
-        contactId,
-        appointmentId,
-        attachments,
-        emailFrom,
-        emailCc,
-        emailBcc,
-        html,
-        message,
-        subject,
-        replyMessageId,
-        templateId,
-        threadId,
-        scheduledTimestamp,
-        conversationProviderId,
-        emailTo,
-        emailReplyMode,
-        fromNumber,
-        toNumber
-    ));
-
-    return NextResponse.json(data);
-}
-
-const getMockMessagesByConversationId = async (
-    type: string,
-    contactId: string,
-    appointmentId: string,
-    attachments: string[],
-    emailFrom: string,
-    emailCc: string[],
-    emailBcc: string[],
-    html: string,
-    message: string,
-    subject: string,
-    replyMessageId: string,
-    templateId: string,
-    threadId: string,
-    scheduledTimestamp: number,
-    conversationProviderId: string,
-    emailTo: string,
-    emailReplyMode: string,
-    fromNumber: string,
-    toNumber: string
-) => {
-  
-    const url = 'URL_ADDRESSlight.io/mocks/highlevel/integrations/39582856/conversations/messages';
-    const options = {
-        method: 'POST',
-        headers: {
-            Authorization: 'Bearer 123',
-            Version: '2021-04-15',
-            Prefer: 'code=200',
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-        },
-        body: JSON.stringify({
-            type,
-            contactId,
-            appointmentId,
-            attachments,
-            emailFrom,
-            emailCc,
-            emailBcc,
-            html,
+    try {
+        const {
             message,
-            subject,
-            replyMessageId,
-            templateId,
-            threadId,
-            scheduledTimestamp,
-            conversationProviderId,
-            emailTo,
-            emailReplyMode,
             fromNumber,
-            toNumber
-        })
-    };
-    const response = await fetch(url, options);
-    const data = await response.json();
-    return data;
+            toNumber,
+            businessId
+        } = await request.json();
+        
+        // Validate required fields
+        if (!message || !fromNumber || !toNumber) {
+            return NextResponse.json(
+                { error: 'message, fromNumber, and toNumber are required' },
+                { status: 400 }
+            );
+        }
+        
+        // Validate phone number format (E.164)
+        const phoneNumberRegex = /^\+[1-9]\d{1,14}$/;
+        if (!phoneNumberRegex.test(toNumber)) {
+            return NextResponse.json(
+                { error: 'Invalid phone number format. Use E.164 format (e.g., +12025550123)' },
+                { status: 400 }
+            );
+        }
+        
+        // Send the message using our Twilio service
+        const result = await sendMessage({
+            message,
+            fromNumber,
+            toNumber,
+            businessId
+        });
+        
+        return NextResponse.json(result);
+    } catch (error: any) {
+        console.error('Failed to send message:', error);
+        
+        // Return appropriate error response
+        return NextResponse.json(
+            { error: error.message || 'Failed to send message' },
+            { status: 500 }
+        );
+    }
 }
 
 

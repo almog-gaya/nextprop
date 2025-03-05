@@ -3,15 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { BellIcon, MagnifyingGlassIcon, UserCircleIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   title: string;
 }
 
 export default function Header({ title }: HeaderProps) {
-  const { authState, logout } = useAuth();
-  const { user } = authState;
+  const { user, business, signOut } = useAuth();
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -29,6 +28,10 @@ export default function Header({ title }: HeaderProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+  };
   
   return (
     <header className="bg-white shadow-sm px-8 py-5 flex items-center justify-between border-b border-gray-200">
@@ -36,7 +39,7 @@ export default function Header({ title }: HeaderProps) {
         <h1 className="text-2xl font-extrabold nextprop-gradient-text">{title}</h1>
         {user && (
           <p className="text-sm text-gray-600 mt-1">
-            Welcome back, <span className="font-semibold">{user.name || user.email.split('@')[0]}</span>!
+            Welcome back, <span className="font-semibold">{business?.name || user.email?.split('@')[0]}</span>!
           </p>
         )}
       </div>
@@ -65,7 +68,7 @@ export default function Header({ title }: HeaderProps) {
               <UserCircleIcon className="h-6 w-6 text-white" />
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-[#1e1b4b] font-semibold text-sm">{user?.name || 'User'}</span>
+              <span className="text-[#1e1b4b] font-semibold text-sm">{business?.name || 'Business'}</span>
               <span className="text-gray-500 text-xs">
                 {user?.email ? user.email.split('@')[0] : 'user'}
               </span>
@@ -75,7 +78,7 @@ export default function Header({ title }: HeaderProps) {
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
               <div className="px-4 py-2 border-b border-gray-200">
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+                <p className="text-sm font-medium text-gray-900">{business?.name || 'Business'}</p>
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>
               </div>
               
@@ -85,7 +88,7 @@ export default function Header({ title }: HeaderProps) {
               </Link>
               
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
               >
                 <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2 text-gray-500" />

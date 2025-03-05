@@ -186,3 +186,49 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Database Setup
+
+Before running the application, you need to set up the database schema in Supabase:
+
+1. Log in to your [Supabase Dashboard](https://app.supabase.io)
+2. Select your project
+3. Navigate to the SQL Editor from the left sidebar
+4. Create a new query
+5. Copy the contents of the `supabase/schema.sql` file from this project
+6. Run the SQL query to create all necessary tables and security policies
+
+## Environment Variables
+
+Create a `.env.local` file with the following variables:
+
+```
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Twilio
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=your-twilio-phone-number
+TWILIO_VERIFY_SERVICE_SID=your-twilio-verify-service-sid
+```
+
+## Running the Application
+
+```bash
+# Install dependencies
+npm install
+
+# Run the development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Features
+
+- SMS messaging via Twilio
+- Persistent data storage in Supabase
+- Multi-tenant business model
+- Message threading and conversation management

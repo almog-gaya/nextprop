@@ -697,8 +697,8 @@ export default function DashboardPage() {
         <div className="flex-1 overflow-auto">
           <div className="px-4 py-6 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {opportunities.map(stage => (
-                <div key={stage.id} className="bg-white rounded-md shadow-sm border border-gray-200">
+              {opportunities.map((stage, stageIndex) => (
+                <div key={stage.id || `stage-${stageIndex}`} className="bg-white rounded-md shadow-sm border border-gray-200">
                   <div className="p-3 border-b border-gray-200 flex justify-between items-center">
                     <h3 className="font-medium text-gray-900">{stage.name}</h3>
                     <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">{stage.count}</span>
@@ -707,8 +707,11 @@ export default function DashboardPage() {
                     {stage.total}
                   </div>
                   <div className="p-2 overflow-y-auto max-h-[calc(100vh-300px)] custom-scrollbar">
-                    {stage.opportunities.map(opportunity => (
-                      <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+                    {stage.opportunities.map((opportunity, oppIndex) => (
+                      <OpportunityCard 
+                        key={opportunity.id || `${stage.id}-opp-${oppIndex}`} 
+                        opportunity={opportunity} 
+                      />
                     ))}
                     {stage.opportunities.length === 0 && (
                       <div className="text-center py-8 text-gray-500">
