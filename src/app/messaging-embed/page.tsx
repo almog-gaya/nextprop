@@ -1,10 +1,22 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Send, Search, Phone, Video, MoreVertical, ArrowLeft } from 'lucide-react';
+import { Send, Search, Phone, Video, MoreVertical, ArrowLeft, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { toast } from 'sonner';
 
+// Add logging control to reduce console noise
+const ENABLE_VERBOSE_LOGGING = false;
 
+const log = (message: string, data?: any) => {
+  if (ENABLE_VERBOSE_LOGGING) {
+    if (data) {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
+  }
+};
 
 function Avatar({ initials }: { initials: string }) {
   return (
@@ -138,12 +150,14 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
   const [newMessage, setNewMessage] = useState('');
   const [sendingStatus, setSendingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Helper function to get initials from name
   const getInitials = (name: string) => {
     if (!name) return 'U';
     return name.split(' ')
-      .map(n => n[0])
+      .filter((n: string) => n.length > 0)
+      .map((n: string) => n[0])
       .join('')
       .toUpperCase()
       .substring(0, 2);
@@ -181,6 +195,14 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
     }
   };
 
+  const handleRefresh = () => {
+    if (activeConversation && !refreshing) {
+      setRefreshing(true);
+      onLoadMore(true); // Pass true to indicate it's a refresh
+      setTimeout(() => setRefreshing(false), 1000);
+    }
+  };
+
   // If no active conversation is selected
   if (!activeConversation) {
     return (
@@ -192,6 +214,26 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
       </div>
     );
   }
+
+  // Render skeleton loading state for messages
+  const renderSkeletonLoader = () => {
+    return (
+      <div className="animate-pulse space-y-4 py-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} mb-4`}>
+            <div 
+              className={`max-w-[65%] rounded-lg px-4 py-2 ${
+                i % 2 === 0 ? 'bg-blue-400 text-white' : 'bg-gray-200 text-gray-900'
+              }`}
+            >
+              <div className="h-4 w-24 bg-gray-300 rounded mb-2"></div>
+              <div className="h-3 w-12 bg-gray-300 rounded"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -216,11 +258,17 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
             </div>
           </div>
           <div className="flex">
-            <button className="p-2 rounded-full hover:bg-gray-100 mr-1">
-              <Phone size={20} className="text-gray-600" />
+            <button 
+              className="p-2 rounded-full hover:bg-gray-100 mr-1" 
+              onClick={handleRefresh}
+              disabled={loading || refreshing}
+            >
+              <div className={`${refreshing ? 'animate-spin' : ''}`}>
+                <RefreshCw size={20} className="text-gray-600" />
+              </div>
             </button>
             <button className="p-2 rounded-full hover:bg-gray-100 mr-1">
-              <Video size={20} className="text-gray-600" />
+              <Phone size={20} className="text-gray-600" />
             </button>
             <button className="p-2 rounded-full hover:bg-gray-100">
               <MoreVertical size={20} className="text-gray-600" />
@@ -229,21 +277,23 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
         </div>
       </div>
 
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      {/* Messages */}
+      <div className="flex-grow overflow-y-auto p-4">
         {hasMore && (
-          <div className="flex justify-center my-2">
-            <button 
+          <div className="flex justify-center mb-4">
+            <button
               onClick={onLoadMore}
+              className="bg-white text-blue-600 px-4 py-2 rounded-full border border-blue-300 text-sm font-medium hover:bg-blue-50 transition-colors"
               disabled={loading}
-              className={`text-sm ${loading ? 'bg-gray-200 text-gray-500' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'} font-semibold py-1 px-3 rounded-full transition-colors`}
             >
               {loading ? 'Loading...' : 'Load earlier messages'}
             </button>
           </div>
         )}
         
-        {messages && messages.length > 0 ? (
+        {loading && messages.length === 0 ? (
+          renderSkeletonLoader()
+        ) : messages && messages.length > 0 ? (
           messages.map((message: any) => (
             <div
               key={message.id}
@@ -252,17 +302,24 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
               <div
                 className={`max-w-[85%] rounded-lg px-4 py-2 ${
                   message.senderId === 'user'
-                    ? 'bg-blue-600 text-white'
+                    ? message.sendFailed ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-900'
                 }`}
               >
                 <p className="break-words whitespace-pre-wrap text-sm">{message.text}</p>
                 <div
-                  className={`text-xs mt-1 ${
-                    message.senderId === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  className={`text-xs mt-1 flex items-center ${
+                    message.senderId === 'user' 
+                      ? message.sendFailed ? 'text-red-500' : 'text-blue-100'
+                      : 'text-gray-500'
                   }`}
                 >
                   {message.timestamp}
+                  {message.sendFailed && (
+                    <span className="ml-2 text-red-500 flex items-center">
+                      <AlertCircle size={12} className="mr-1" /> Failed to send
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -270,7 +327,9 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
         ) : (
           <div className="flex flex-col h-full items-center justify-center text-gray-500">
             <div className="text-center p-4">
-              {activeConversation ? (
+              {loading ? (
+                <p>Loading messages...</p>
+              ) : activeConversation ? (
                 <p>No messages in this conversation yet. Send a message to start the conversation.</p>
               ) : (
                 <p>Select a conversation to view messages.</p>
@@ -279,49 +338,48 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
           </div>
         )}
         
-        {/* This div serves as a reference for auto-scrolling to the bottom */}
-        <div ref={messagesEndRef}></div>
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
-      <div className="p-4 border-t border-gray-200 bg-white shadow-lg">
-        <div className="flex flex-col">
-          {sendingStatus === 'error' && (
-            <div className="mb-2 text-sm text-red-600 bg-red-50 p-2 rounded">
-              Failed to send message. Please try again.
-            </div>
-          )}
-          {sendingStatus === 'success' && (
-            <div className="mb-2 text-sm text-green-600 bg-green-50 p-2 rounded">
-              Message sent successfully.
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <textarea
-              className="flex-grow p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[50px] text-base"
-              placeholder="Type a message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={1}
-            />
-            <button
-              className={`rounded-full p-3 flex-shrink-0 hover:shadow-md w-12 h-12 flex items-center justify-center ${
-                sendingStatus === 'sending' 
-                  ? 'bg-gray-400 text-white cursor-not-allowed' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700 transition-colors'
-              }`}
-              onClick={handleSend}
-              disabled={sendingStatus === 'sending'}
-            >
-              {sendingStatus === 'sending' ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <Send size={22} />
-              )}
-            </button>
-          </div>
+      <div className="border-t border-gray-200 p-3 bg-white">
+        <div className="flex items-end">
+          <textarea
+            className="flex-grow border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px] max-h-[160px]"
+            placeholder="Type a message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={sendingStatus === 'sending'}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!newMessage.trim() || sendingStatus === 'sending'}
+            className={`ml-2 p-3 rounded-full flex items-center justify-center ${
+              !newMessage.trim() || sendingStatus === 'sending'
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {sendingStatus === 'sending' ? (
+              <div className="w-5 h-5 border-2 border-t-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send size={18} className={!newMessage.trim() ? 'text-gray-400' : 'text-white'} />
+            )}
+          </button>
         </div>
+        
+        {/* Message Status */}
+        {sendingStatus === 'success' && (
+          <div className="mt-1 text-xs text-green-600 flex items-center">
+            <CheckCircle size={12} className="mr-1" /> Message sent successfully
+          </div>
+        )}
+        {sendingStatus === 'error' && (
+          <div className="mt-1 text-xs text-red-600 flex items-center">
+            <AlertCircle size={12} className="mr-1" /> Failed to send message. Please try again.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -372,26 +430,27 @@ export default function MessagingEmbedPage() {
   const [messagesPage, setMessagesPage] = useState<string | null>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
+  const [hasPendingNewMessage, setHasPendingNewMessage] = useState(false);
 
   // fetching conversations
   useEffect(() => {
     const fetchConversations = async () => {
       setLoading(true);
       try {
-        console.log('Fetching conversations...');
+        log('Fetching conversations...');
         const response = await fetch('/api/conversations');
         const data = await response.json();
-        console.log('Conversations API Response:', data);
+        log('Conversations API Response:', data);
 
         if (data.error) {
-          console.error('Error fetching conversations:', data.error);
+          log('Error fetching conversations:', data.error);
           setConversations([]);
           setLoading(false);
           return;
         }
 
         if (Array.isArray(data?.conversations)) {
-          console.log(`Found ${data.conversations.length} conversations`);
+          log(`Found ${data.conversations.length} conversations`);
           
           // Format conversations for display
           const formattedConversations = await Promise.all(data.conversations.map(async (conv: Conversation) => {
@@ -418,10 +477,10 @@ export default function MessagingEmbedPage() {
                   // Use the most recent message as preview
                   const latestMessage = msgData.messages[0];
                   previewMessage = latestMessage.body || latestMessage.text || previewMessage;
-                  console.log(`Updated preview for conversation ${conv.id}: ${previewMessage}`);
+                  log(`Updated preview for conversation ${conv.id}: ${previewMessage}`);
                 }
               } catch (error) {
-                console.error(`Error fetching latest message for conversation ${conv.id}:`, error);
+                log(`Error fetching latest message for conversation ${conv.id}:`, error);
                 // Use the existing lastMessageBody as fallback
               }
             }
@@ -440,7 +499,7 @@ export default function MessagingEmbedPage() {
             };
           }));
           
-          console.log('Conversations with unread status:', formattedConversations.map(c => ({ id: c.id, name: c.name, unread: c.unread, unreadCount: c.originalData?.unreadCount })));
+          log('Conversations with unread status:', formattedConversations.map(c => ({ id: c.id, name: c.name, unread: c.unread, unreadCount: c.originalData?.unreadCount })));
           
           // Sort conversations by most recent activity (unread first, then most recent)
           const sortedConversations = formattedConversations.sort((a: any, b: any) => {
@@ -457,15 +516,15 @@ export default function MessagingEmbedPage() {
           
           // Set active conversation if none is selected
           if (!activeConversationId && sortedConversations.length > 0) {
-            console.log('Setting initial active conversation:', sortedConversations[0].id);
+            log('Setting initial active conversation:', sortedConversations[0].id);
             setActiveConversationId(sortedConversations[0].id);
           }
         } else {
-          console.error('Invalid conversations format:', data);
+          log('Invalid conversations format:', data);
           setConversations([]);
         }
       } catch (error) {
-        console.error('Failed to fetch conversations:', error);
+        log('Failed to fetch conversations:', error);
         setConversations([]);
       } finally {
         setLoading(false);
@@ -485,20 +544,26 @@ export default function MessagingEmbedPage() {
   const fetchMessages = async (conversationId: string, pageToken?: string, append = false) => {
     if (!conversationId) return;
 
-    setLoadingMessages(true);
+    if (!append) {
+      setLoadingMessages(true);
+    }
+    
     try {
       let url = `/api/conversations/${conversationId}/messages`;
       if (pageToken) {
         url += `?page=${pageToken}`;
       }
       
-      console.log(`Fetching messages for conversation: ${conversationId}${pageToken ? ', page: ' + pageToken : ''}`);
+      // Limit console logging to reduce noise
+      if (!pageToken) {
+        log(`Fetching messages for conversation: ${conversationId}`);
+      }
+      
       const response = await fetch(url);
       const data = await response.json();
-      console.log('Messages API Response:', data);
-
+      
       if (data.error) {
-        console.error('Error fetching messages:', data.error);
+        log('Error fetching messages:', data.error);
         if (!append) {
           setMessages([]);
         }
@@ -512,8 +577,6 @@ export default function MessagingEmbedPage() {
       }
 
       if (Array.isArray(data?.messages)) {
-        console.log(`Found ${data.messages.length} messages`);
-        
         // Add additional validation and formatting for messages
         const formattedMessages = data.messages
           .filter((msg: any) => msg && (msg.body || msg.text)) // Filter out any invalid messages
@@ -532,8 +595,6 @@ export default function MessagingEmbedPage() {
         formattedMessages.sort((a: any, b: any) => {
           return new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
         });
-        
-        console.log('Formatted messages:', formattedMessages);
         
         // Either set or append messages depending on if we're loading more
         if (append) {
@@ -568,13 +629,13 @@ export default function MessagingEmbedPage() {
           });
         }
       } else {
-        console.error('Invalid messages format:', data);
+        log('Invalid messages format:', data);
         if (!append) {
           setMessages([]);
         }
       }
     } catch (error) {
-      console.error('Failed to fetch messages:', error);
+      log('Failed to fetch messages:', error);
       if (!append) {
         setMessages([]);
       }
@@ -594,101 +655,100 @@ export default function MessagingEmbedPage() {
   }, [activeConversationId]);
 
   // Add a loadMoreMessages function
-  const loadMoreMessages = () => {
-    if (activeConversationId && messagesPage && !loadingMessages) {
+  const loadMoreMessages = (isRefresh = false) => {
+    if (!activeConversationId || (loadingMessages && !isRefresh)) return;
+    
+    if (isRefresh) {
+      // For refresh, we want to fetch the most recent messages
+      setMessages([]);
+      setMessagesPage(null);
+      fetchMessages(activeConversationId);
+    } else if (messagesPage) {
+      // For loading more messages (earlier messages), we append
       fetchMessages(activeConversationId, messagesPage, true);
     }
   };
 
   // Update handleSendMessage to also update the conversation preview immediately
   const handleSendMessage = async (text: string, callback?: (success: boolean) => void) => {
-    if (!activeConversationId || !text.trim()) return;
-
-    const currentConversation = conversations.find(conv => conv.id === activeConversationId);
-    if (!currentConversation) {
-      console.error('Cannot send message: Conversation not found');
-      if (callback) callback(false);
+    if (!activeConversationId || !text) {
+      callback?.(false);
       return;
     }
 
-    // Optimistically add the message to the UI
-    const tempId = `temp-${Date.now()}`;
-    const newMessage = {
-      id: tempId,
-      senderId: 'user',
-      text: text,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-
     try {
-      console.log(`Sending message to conversation ${activeConversationId}: ${text}`);
-      console.log(`Contact ID: ${currentConversation.contactId}`);
-      console.log(`API endpoint: /api/conversations/${activeConversationId}/messages`);
+      // Optimistically add message to UI immediately
+      const tempId = `temp-${Date.now()}`;
+      const tempMessage = {
+        id: tempId,
+        senderId: 'user',
+        text: text,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        dateAdded: new Date().toISOString()
+      };
       
-      const response = await fetch(`/api/conversations/${activeConversationId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          text,
-          contactId: currentConversation.contactId 
-        })
-      });
+      // Add optimistic message to UI
+      setMessages(prev => [...prev, tempMessage]);
 
-      const data = await response.json();
-      console.log('Send message response:', data);
-
-      if (data.error) {
-        console.error('Error sending message:', data.error);
-        if (callback) callback(false);
-        return;
-      }
-
-      // Immediately update the conversation in the list with the latest message
-      // This ensures the conversation preview shows the most recent message right away
+      // Also update conversation preview right away
       setConversations(prevConversations => {
         const updatedConversations = [...prevConversations];
         const index = updatedConversations.findIndex(conv => conv.id === activeConversationId);
         
         if (index !== -1) {
-          // Create an updated conversation with the latest message
-          const updatedConversation = { 
+          const updatedConversation: ConversationDisplay = {
             ...updatedConversations[index],
             lastMessage: text,
             lastMessageBody: text,
             timestamp: 'Just now'
           };
           
-          // Also update the originalData if it exists
-          if (updatedConversation.originalData) {
-            updatedConversation.originalData = {
-              ...updatedConversation.originalData,
-              lastMessageBody: text
-            };
-          }
+          updatedConversations[index] = updatedConversation;
           
-          // Remove the conversation from its current position
-          updatedConversations.splice(index, 1);
-          // Add it to the beginning of the array
-          updatedConversations.unshift(updatedConversation);
+          // Move this conversation to the top if it's not already
+          if (index > 0) {
+            const [conversation] = updatedConversations.splice(index, 1);
+            updatedConversations.unshift(conversation);
+          }
         }
-        
         return updatedConversations;
       });
 
-      // Set message sent to true to trigger conversation refresh
-      setMessageSent(true);
+      // Make API call to send message
+      const response = await fetch(`/api/conversations/${activeConversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
 
-      if (callback) callback(true);
+      const data = await response.json();
+
+      if (response.ok) {
+        // Update the optimistic message with the real message details
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId
+            ? { ...msg, id: data.id || msg.id }
+            : msg
+        ));
+        
+        callback?.(true);
+      } else {
+        log('Failed to send message:', data.error);
+        
+        // Mark the message as failed
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId
+            ? { ...msg, sendFailed: true }
+            : msg
+        ));
+        
+        callback?.(false);
+      }
     } catch (error) {
-      console.error('Failed to send message:', error);
-      if (callback) callback(false);
+      log('Error sending message:', error);
+      callback?.(false);
     }
   };
 
@@ -697,7 +757,7 @@ export default function MessagingEmbedPage() {
   
   // Add a function to mark a conversation as read
   const markConversationAsRead = async (conversationId: string) => {
-    console.log('Marking conversation as read:', conversationId);
+    log('Marking conversation as read:', conversationId);
     try {
       const response = await fetch(`/api/conversations/${conversationId}/read`, {
         method: 'POST',
@@ -707,71 +767,76 @@ export default function MessagingEmbedPage() {
       });
 
       const data = await response.json();
-      console.log('Mark as read response:', data);
+      log('Mark as read response:', data);
 
       if (data.success) {
-        // Update conversation in state to remove unread status
-        setConversations(prevConversations => {
-          return prevConversations.map(conv => {
-            if (conv.id === conversationId) {
-              return {
-                ...conv,
-                unread: false,
-                unreadCount: 0
-              };
-            }
-            return conv;
-          });
-        });
+        // Update the conversation's unread status in the state
+        setConversations(prevConversations => 
+          prevConversations.map(conv => 
+            conv.id === conversationId 
+              ? { ...conv, unread: false, originalData: { ...conv.originalData, unreadCount: 0 } } 
+              : conv
+          )
+        );
       }
     } catch (error) {
-      console.error('Failed to mark conversation as read:', error);
+      log('Failed to mark conversation as read:', error);
     }
   };
 
   // Update the setActiveConversationId function to also mark the conversation as read
   const handleConversationSelect = (id: string) => {
+    // Don't reset state if same conversation is selected
+    if (id === activeConversationId) return;
+    
+    // Set active ID first so UI updates immediately
+    setActiveConversationId(id);
+    
+    // Clear messages and show loading state
+    setMessages([]);
+    setMessagesPage(null);
+    setLoadingMessages(true);
+    
+    // After UI is updated to show loading, fetch messages
+    fetchMessages(id);
+    
     // Mark the conversation as read when selected
     const conversation = conversations.find(conv => conv.id === id);
     if (conversation && conversation.unread) {
       markConversationAsRead(id);
+      
+      // Update conversation state to reflect read status
+      setConversations(prevConversations => {
+        return prevConversations.map(conv => 
+          conv.id === id
+            ? { ...conv, unread: false, unreadCount: 0 }
+            : conv
+        );
+      });
     }
-    
-    // Fetch messages if a different conversation is being selected
-    if (id !== activeConversationId) {
-      setMessages([]);
-      setMessagesPage(null);
-      setLoadingMessages(true);
-      fetchMessages(id);
-    }
-    
-    // Set the active conversation ID
-    setActiveConversationId(id);
   };
 
-  // Periodically check for new messages and update unread status
+  // Update the checkForNewMessages function
   useEffect(() => {
+    // Function to check for new messages
     const checkForNewMessages = async () => {
-      // Only run if we have conversations loaded
-      if (conversations.length === 0 || loading) return;
-
       try {
-        console.log('Checking for new messages and updated unread status');
-        // Fetch latest conversations
+        // Don't check for new messages if we're actively refreshing
+        if (loading) return;
+        
+        // Make API call to get latest conversations
         const response = await fetch('/api/conversations');
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
         const data = await response.json();
         
-        // Process the response similar to fetchConversations
-        if (data.conversations) {
-          // Format and update conversations
-          const updatedConversations = await Promise.all(data.conversations.map(async (conv: any) => {
-            // Extract name
-            const name = conv.contactName || conv.fullName || 'Unknown Contact';
-            
-            // Get initials
+        if (data.error) {
+          log('Error fetching conversations:', data.error);
+          return;
+        }
+        
+        // Process the response to extract contact names and generate initials
+        if (Array.isArray(data.conversations)) {
+          const newConversations = data.conversations.map((conv: Conversation) => {
+            const name = conv.fullName || conv.contactName || 'Unknown Contact';
             const initials = name
               .split(' ')
               .filter((n: string) => n.length > 0)
@@ -782,33 +847,123 @@ export default function MessagingEmbedPage() {
               
             return {
               id: conv.id,
-              name: name,
+              name,
               avatar: initials,
-              lastMessage: conv.lastMessageBody || 'No messages yet',
-              timestamp: 'Recent',
-              unread: conv.unreadCount > 0,
               contactId: conv.contactId,
               email: conv.email,
               phone: conv.phone,
+              lastMessage: conv.lastMessageBody || 'No messages yet',
+              timestamp: 'Recent',  // We'll improve this
+              unread: conv.unreadCount > 0,
+              unreadCount: conv.unreadCount || 0,
               originalData: conv
             };
-          }));
+          });
           
-          // Update state with new conversations
-          setConversations(updatedConversations);
-          console.log('Updated conversations with new unread status');
+          // Check for new unread messages
+          const hasNewUnreadMessages = newConversations.some((newConv: ConversationDisplay) => {
+            // Find matching conversation in current state
+            const existingConv = conversations.find(conv => conv.id === newConv.id);
+            
+            // If it's unread and either doesn't exist in current state or has more unread count
+            return newConv.unread && (!existingConv || newConv.unreadCount > (existingConv?.unreadCount || 0));
+          });
+          
+          if (hasNewUnreadMessages) {
+            // Show notification for new messages
+            toast.info('You have new unread messages', {
+              description: 'Check your conversations for new messages',
+              duration: 4000,
+            });
+            
+            // Flag that we have pending new messages
+            setHasPendingNewMessage(true);
+            
+            // Play notification sound (optional)
+            try {
+              const audio = new Audio('/notification.mp3');
+              audio.play().catch(e => log('Could not play notification sound', e));
+            } catch (e) {
+              log('Audio not supported');
+            }
+          }
+          
+          // Logic to update state without losing current active conversation
+          setConversations(currentConvs => {
+            // For the active conversation, keep the current version to avoid UI glitches
+            const updatedConversations = newConversations.map((newConv: ConversationDisplay) => {
+              // If this is the active conversation, preserve message display state
+              if (newConv.id === activeConversationId) {
+                const existingConv = currentConvs.find(c => c.id === activeConversationId);
+                if (existingConv) {
+                  return {
+                    ...newConv,
+                    // Keep the unread status as false if we're currently viewing it
+                    unread: false,
+                    unreadCount: 0
+                  };
+                }
+              }
+              return newConv;
+            });
+            
+            // Sort by unread status (unread first) and then by recency
+            return updatedConversations.sort((a: ConversationDisplay, b: ConversationDisplay) => {
+              // First by unread status
+              if (a.unread && !b.unread) return -1;
+              if (!a.unread && b.unread) return 1;
+              
+              // Then by most recent
+              return 0; // We would need timestamps to sort by recency
+            });
+          });
         }
       } catch (error) {
-        console.error('Error checking for new messages:', error);
+        log('Error checking for new messages:', error);
       }
     };
 
-    // Check every 30 seconds for new messages
-    const intervalId = setInterval(checkForNewMessages, 30000);
-
+    // Check for new messages periodically
+    const interval = setInterval(checkForNewMessages, 120000); // 2 minutes
+    
     // Clean up the interval on component unmount
-    return () => clearInterval(intervalId);
-  }, [conversations.length, loading]);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Reset the pending new message flag when active conversation changes
+  useEffect(() => {
+    if (hasPendingNewMessage) {
+      setHasPendingNewMessage(false);
+    }
+  }, [activeConversationId, hasPendingNewMessage]);
+
+  // Update the message thread component to show new message indicator
+  const renderMessageThread = () => {
+    if (!activeConversationId) {
+      return (
+        <div className="flex flex-col h-full items-center justify-center text-gray-500 p-8">
+          <div className="text-center">
+            <h3 className="text-lg font-medium mb-2">Select a conversation</h3>
+            <p>Choose a contact from the left to start chatting.</p>
+          </div>
+        </div>
+      );
+    }
+
+    const activeConversation = conversations.find(conv => conv.id === activeConversationId);
+    if (!activeConversation) return null;
+
+    return (
+      <MessageThread
+        activeConversation={activeConversation}
+        onSendMessage={handleSendMessage}
+        messages={messages}
+        onLoadMore={loadMoreMessages}
+        hasMore={hasMoreMessages}
+        loading={loadingMessages}
+      />
+    );
+  };
 
   return (
     <DashboardLayout title="Messaging >>>">
@@ -830,14 +985,7 @@ export default function MessagingEmbedPage() {
               <div>Loading messages...</div>
             </div>
           ) : (
-            <MessageThread
-              messages={messages}
-              onSendMessage={handleSendMessage}
-              activeConversation={activeConversation}
-              onLoadMore={loadMoreMessages}
-              hasMore={hasMoreMessages}
-              loading={loadingMessages}
-            />
+            renderMessageThread()
           )}
         </div>
       </div>

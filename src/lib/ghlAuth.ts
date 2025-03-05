@@ -1,5 +1,3 @@
- 
- 
 export async function exchangeCodeForTokens(code: string) {
   try {
     const response = await fetch('/api/auth/token', {
@@ -105,7 +103,7 @@ export const SCOPES = [
 export const GHL_AUTH_CONFIG = {
   clientId: '67c7e02f74be2556d96030df-m7vh9hwi',
   clientSecret: 'f4255b9f-27ea-4a16-8012-91ccacf9196a',
-  redirectUri: 'http://localhost:3000/api/auth/callback',
+  redirectUri: 'http://nextpropai.netlify.app/api/auth/callback',
   baseUrl: 'https://marketplace.gohighlevel.com',
   tokenUrl: 'https://services.leadconnectorhq.com/oauth/token'
 };

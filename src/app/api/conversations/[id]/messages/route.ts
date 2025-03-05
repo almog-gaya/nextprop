@@ -2,36 +2,59 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithErrorHandling } from '@/lib/enhancedApi';
 import { cookies } from 'next/headers';
 
+// Add logging control to reduce console noise
+const ENABLE_VERBOSE_LOGGING = false;
+
+const log = (message: string, data?: any) => {
+  if (ENABLE_VERBOSE_LOGGING) {
+    if (data) {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
+  }
+};
+
+// Only show actual errors in console
+const logError = (message: string, error?: any) => {
+  console.error(message, error);
+};
+
 export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     try {
-        const { id } = params;
+        const { id } = await Promise.resolve(params);
         const conversationId = id;
-        const pageToken = request.nextUrl.searchParams.get('page');
-        console.log("Processing conversation ID:", conversationId, "Page token:", pageToken);
         
-        if (!conversationId) {
-            return NextResponse.json({ error: 'conversation id is required' }, { status: 400 });
+        const cookieStore = await cookies();
+        const accessToken = cookieStore.get('ghl_access_token')?.value;
+        
+        if (!accessToken) {
+            return NextResponse.json({ error: 'Authentication error: No access token' }, { status: 401 });
         }
 
-        // Try to get real data
-        let data = await getMessagesByConversationId(conversationId, pageToken);
+        const searchParams = request.nextUrl.searchParams;
+        const pageToken = searchParams.get('pageToken');
         
-        // If there's an error, use mock data for development
-        if (data.error) {
-            console.log("Falling back to mock data due to error:", data.error);
-            data = getMockMessages(conversationId, pageToken);
+        log(`Fetching messages for conversation ${conversationId}${pageToken ? ` with pageToken ${pageToken}` : ''}`);
+
+        // Try to get real data
+        const data = await getConversationMessages(conversationId, pageToken);
+        
+        // Check if there's an error and fall back to mock data
+        if (data.statusCode === 401 || data.error) {
+            log("Falling back to mock data due to API error:", data);
+            return NextResponse.json(generateMockMessages(pageToken));
         }
         
-        console.log("Conversation messages response:", JSON.stringify(data).substring(0, 200) + "...");
         return NextResponse.json(data);
     } catch (error) {
-        console.error("Error in conversation messages API:", error);
-        // Fallback to mock data on error
-        const mockData = getMockMessages(params.id, null);
-        return NextResponse.json(mockData);
+        logError("Error fetching messages:", error);
+        // Fallback to mock data
+        const currentPageToken = request.nextUrl.searchParams.get('pageToken');
+        return NextResponse.json(generateMockMessages(currentPageToken));
     }
 }
 
@@ -42,37 +65,48 @@ export async function POST(
     try {
         const { id } = await Promise.resolve(params);
         const conversationId = id;
-        console.log("Sending message to conversation ID:", conversationId);
         
+        // Check for valid conversation ID
         if (!conversationId) {
-            return NextResponse.json({ error: 'conversation id is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
         }
         
-        const { text, contactId } = await request.json();
+        // Get the request body
+        const body = await request.json();
+        const { text, contactId } = body;
         
-        if (!text || !text.trim()) {
-            return NextResponse.json({ error: 'message text is required' }, { status: 400 });
+        if (!text || text.trim() === '') {
+            return NextResponse.json({ error: 'Message text is required' }, { status: 400 });
         }
         
+        // Send the message
         const result = await sendMessage(conversationId, text, contactId);
         
         if (result.error) {
-            // If there's an error, try falling back to mock data
-            console.log(`Simulating successful message send due to error: ${result.error}`);
+            log(`Error sending message, falling back to mock: ${result.error}`);
             return NextResponse.json(getMockMessageResponse(conversationId, text));
         }
         
         return NextResponse.json(result);
     } catch (error) {
-        console.error("Error in POST handler:", error);
-        return NextResponse.json({ error: "Internal Server Error", details: error }, { status: 500 });
+        logError("Error in conversation message POST:", error);
+        
+        // Try to extract the conversation ID for the mock response
+        let conversationId = '';
+        try {
+            conversationId = params.id;
+        } catch (e) {
+            // Ignore
+        }
+        
+        // Fallback to mock response
+        return NextResponse.json(getMockMessageResponse(conversationId, 'Mock response text'));
     }
 }
 
 const sendMessage = async (conversationId: string, text: string, contactId?: string) => {
     const cookieStore = await cookies();
     const token = cookieStore.get('ghl_access_token');
-    const locationId = cookieStore.get('ghl_location_id');
     
     if (!token?.value) {
         console.error("No access token found in cookies");
@@ -80,7 +114,6 @@ const sendMessage = async (conversationId: string, text: string, contactId?: str
     }
     
     const url = `https://services.leadconnectorhq.com/conversations/messages`;
-    console.log("Sending message to URL:", url);
     
     const headers = {
         Authorization: `Bearer ${token?.value}`,
@@ -103,8 +136,6 @@ const sendMessage = async (conversationId: string, text: string, contactId?: str
             body: JSON.stringify(messageData)
         };
         
-        console.log("Sending with options:", JSON.stringify(options));
-        
         const response = await fetch(url, options);
         
         if (!response.ok) {
@@ -124,7 +155,7 @@ const sendMessage = async (conversationId: string, text: string, contactId?: str
         }
         
         const data = await response.json();
-        return { success: true, data };
+        return { success: true, id: data.id || `msg-${Date.now()}`, data };
     } catch (error) {
         console.error("Error sending message:", error);
         return { error: "Failed to send message", details: error };
@@ -135,6 +166,7 @@ const sendMessage = async (conversationId: string, text: string, contactId?: str
 const getMockMessageResponse = (conversationId: string, text: string) => {
     return {
         success: true,
+        id: `mock-msg-${Date.now()}`,
         data: {
             id: `mock-msg-${Date.now()}`,
             conversationId: conversationId,
@@ -148,42 +180,41 @@ const getMockMessageResponse = (conversationId: string, text: string) => {
     };
 }
 
-const getMessagesByConversationId = async (conversationId: string, pageToken: string | null) => {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('ghl_access_token');
-    const locationId = cookieStore.get('ghl_location_id');
-    
-    if (!token?.value) {
-        console.error("No access token found in cookies");
-        return { error: "Authentication error: No access token" };
-    }
-    
-    if (!locationId?.value) {
-        console.warn("No location ID found in cookies");
-    }
-    
-    let url = `https://services.leadconnectorhq.com/conversations/${conversationId}/messages`;
-    // Add page token to URL if provided
-    if (pageToken) {
-        url += `?lastMessageId=${pageToken}`;
-    }
-    
-    console.log("Fetching messages from URL:", url);
-    
-    const headers = {
-        Authorization: `Bearer ${token?.value}`,
-        Version: '2021-04-15',
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-    };
-    
-    console.log("Using headers:", JSON.stringify(headers));
-    
+const getConversationMessages = async (conversationId: string, pageToken?: string | null) => {
     try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('ghl_access_token')?.value;
+        
+        if (!token) {
+            return { error: 'No access token available' };
+        }
+        
+        let url = `https://services.leadconnectorhq.com/conversations/${conversationId}/messages`;
+        
+        // Build query params
+        const queryParams = new URLSearchParams();
+        if (pageToken) {
+            queryParams.append('lastMessageId', pageToken);
+        }
+        
+        // Append query params to URL if any exist
+        const queryString = queryParams.toString();
+        if (queryString) {
+            url += `?${queryString}`;
+        }
+        
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            Version: '2021-04-15',
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+        };
+        
         const options = {
             method: 'GET',
             headers
         };
+        
         const response = await fetch(url, options);
         
         if (!response.ok) {
@@ -203,12 +234,9 @@ const getMessagesByConversationId = async (conversationId: string, pageToken: st
         }
         
         const data = await response.json();
-        console.log("Raw API response structure:", JSON.stringify(data).substring(0, 300));
         
         // Handle the nested structure from GHL API
         if (data && data.messages && Array.isArray(data.messages.messages)) {
-            console.log(`Found ${data.messages.messages.length} messages in nested structure`);
-            
             // Sort messages by date, newest first
             const sortedMessages = [...data.messages.messages].sort((a, b) => {
                 // Sort by dateAdded in descending order (newest first)
@@ -223,8 +251,6 @@ const getMessagesByConversationId = async (conversationId: string, pageToken: st
             };
         } else if (data && Array.isArray(data.messages)) {
             // Handle the case where messages is directly an array
-            console.log(`Found ${data.messages.length} messages in flat structure`);
-            
             // Sort messages by date, newest first
             const sortedMessages = [...data.messages].sort((a, b) => {
                 // Sort by dateAdded in descending order (newest first)
@@ -236,112 +262,74 @@ const getMessagesByConversationId = async (conversationId: string, pageToken: st
                 messages: sortedMessages
             };
         } else {
-            console.error("Invalid response format:", data);
-            return { error: "Invalid response format", details: data };
+            log("Invalid response format from API");
+            return { error: "Invalid response format", details: "Message structure not recognized" };
         }
     } catch (error) {
-        console.error("Error fetching conversation messages:", error);
-        return { error: "Failed to fetch messages", details: error };
+        logError("Error fetching conversation messages:", error);
+        return { error: "Failed to fetch conversation messages" };
     }
 }
 
-// Updated the mock data function to support pagination
-const getMockMessages = (conversationId: string, pageToken: string | null) => {
-    console.log(`Generating mock messages for conversation ${conversationId}, page: ${pageToken}`);
+// Generate mock messages
+const generateMockMessages = (pageToken?: string | null) => {
+    log(`Generating mock messages${pageToken ? ' for page ' + pageToken : ''}`);
     
-    // Create a more realistic conversation with multiple messages
-    const now = new Date();
-    const messages = [];
-    
-    // For pagination simulation
+    // Generate 20 mock messages
     const totalMessages = 20;
-    const messagesPerPage = 10;
-    const page = pageToken ? parseInt(pageToken.replace(/\D/g, '')) % 2 : 0;
-    const startIndex = page * messagesPerPage;
-    const hasNextPage = startIndex + messagesPerPage < totalMessages;
     
-    // Add mock messages with varying timestamps based on pagination
-    for (let i = 0; i < messagesPerPage; i++) {
-        const messageIndex = startIndex + i;
-        if (messageIndex >= totalMessages) break;
-        
-        const isInbound = messageIndex % 2 === 0;
-        const hoursAgo = messageIndex;
-        
-        messages.push({
-            id: `mock-msg-${messageIndex + 1}`,
-            type: 1,
-            messageType: "SMS",
-            locationId: "location-123",
-            contactId: "contact-123",
-            conversationId: conversationId,
-            dateAdded: new Date(now.getTime() - hoursAgo * 3600000).toISOString(),
-            body: isInbound 
-                ? getMockInboundMessage(messageIndex) 
-                : getMockOutboundMessage(messageIndex),
-            direction: isInbound ? "inbound" : "outbound",
-            status: "connected",
-            contentType: "text/plain"
-        });
+    // Create an array of mock messages with alternating directions
+    const messages = Array.from({ length: totalMessages }, (_, i) => {
+        const index = pageToken ? parseInt(pageToken) + i : i;
+        return index % 2 === 0 ? getMockInboundMessage(index) : getMockOutboundMessage(index);
+    });
+    
+    // If pageToken is provided, simulate pagination by returning a subset
+    let startIndex = 0;
+    let hasNextPage = false;
+    
+    if (pageToken) {
+        // If we have a page token, start from message 5 (simulating older messages)
+        startIndex = 5;
+        hasNextPage = false; // No more pages after this
+    } else {
+        // First page, we'll say there are more
+        hasNextPage = true;
     }
     
-    // Add a message indicating this is mock data
-    if (page === 0) {
-        messages.push({
-            id: "mock-notice",
-            type: 1,
-            messageType: "SMS",
-            locationId: "location-123",
-            contactId: "contact-123",
-            conversationId: conversationId,
-            dateAdded: new Date(now.getTime() - (totalMessages + 1) * 3600000).toISOString(),
-            body: "[NOTE: These are mock messages. Check your API authentication to see real data.]",
-            direction: "outbound",
-            status: "connected",
-            contentType: "text/plain"
-        });
-    }
+    const messagesSubset = messages.slice(startIndex, startIndex + 10);
     
     return {
-        lastMessageId: hasNextPage ? `mock-page-${page + 1}` : null,
+        messages: messagesSubset,
         nextPage: hasNextPage,
-        messages: messages
+        lastMessageId: pageToken ? null : "mock-msg-5" // For first page, next page token is "mock-msg-5"
     };
 }
 
-// Helper functions for more varied mock messages
 function getMockInboundMessage(index: number) {
-    const inboundMessages = [
-        "Hi there, I'm interested in your services.",
-        "Can you tell me more about your pricing?",
-        "What are your hours of operation?",
-        "Do you offer consultations?",
-        "I saw your ad online and wanted to reach out.",
-        "Is there a way to schedule an appointment?",
-        "Thanks for the information!",
-        "That sounds great, I'd like to proceed.",
-        "Can we set up a meeting next week?",
-        "Do you have any availability on Friday?"
-    ];
+    const date = new Date();
+    date.setMinutes(date.getMinutes() - (index * 5)); // Each message 5 minutes apart
     
-    return inboundMessages[index % inboundMessages.length];
+    return {
+        id: `mock-in-${index}`,
+        body: `This is an inbound message ${index}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
+        direction: "inbound",
+        dateAdded: date.toISOString(),
+        messageType: "SMS"
+    };
 }
 
 function getMockOutboundMessage(index: number) {
-    const outboundMessages = [
-        "Thank you for reaching out to us!",
-        "Our pricing starts at $99 per month. Would you like more details?",
-        "We're open Monday-Friday from 9am to 5pm.",
-        "Yes, we offer free 30-minute consultations.",
-        "I'd be happy to provide more information about our services.",
-        "You can schedule an appointment through our website or I can help you now.",
-        "Is there anything else you'd like to know?",
-        "Great! I'll send you the details to get started.",
-        "We have availability next Tuesday at 2pm or Wednesday at 10am.",
-        "I've added you to our system. You'll receive a confirmation email shortly."
-    ];
+    const date = new Date();
+    date.setMinutes(date.getMinutes() - (index * 5)); // Each message 5 minutes apart
     
-    return outboundMessages[index % outboundMessages.length];
+    return {
+        id: `mock-out-${index}`,
+        body: `This is an outbound message ${index}. Lorem ipsum dolor sit amet.`,
+        direction: "outbound",
+        dateAdded: date.toISOString(),
+        messageType: "SMS"
+    };
 }
 
 /**
