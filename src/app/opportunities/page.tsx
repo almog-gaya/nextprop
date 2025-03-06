@@ -72,7 +72,7 @@ export default function OpportunitiesPage() {
 
   return (
     <DashboardLayout title="Opportunities">
-      <div className="mb-2">
+      {/* <div className="mb-2">
         <div className="flex space-x-4 border-b border-gray-200">
           <button
             className={`px-4 py-2 text-sm font-medium ${activeTab === 'opportunities'
@@ -93,9 +93,20 @@ export default function OpportunitiesPage() {
             Pipelines
           </button>
         </div>
-      </div>
-
-      {activeTab === 'opportunities' ? (
+      </div> */}
+      <OpportunitiesTab
+        pipelines={pipelines}
+        opportunities={opportunities}
+        contacts={contacts}
+        selectedPipelineId={selectedPipelineId}
+        setSelectedPipelineId={setSelectedPipelineId}
+        isLoading={isLoading}
+        error={error}
+        setOpportunities={setOpportunities}
+        setError={setError}
+        setIsLoading={setIsLoading}
+      />
+      {/* {activeTab === 'opportunities' ? (
         <OpportunitiesTab
           pipelines={pipelines}
           opportunities={opportunities}
@@ -113,7 +124,7 @@ export default function OpportunitiesPage() {
           pipelines={pipelines}
           setPipelines={setPipelines}
         />
-      )}
+      )} */}
     </DashboardLayout>
   );
 }
