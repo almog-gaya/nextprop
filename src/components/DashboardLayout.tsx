@@ -28,12 +28,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
       
       <div className="ml-64 flex-1 flex flex-col">
         <Header title={title} />
-        
-        <main className="flex-1 p-8">
-          <div className="mb-8">
-            <div className="nextprop-gradient h-1 w-32 rounded-full mb-1"></div>
-          </div>
-          
+        <main className="flex-1 p-2"> 
           {children}
         </main>
       </div>

@@ -23,8 +23,10 @@ export interface Opportunity {
   contact?: Contact;
   pipelineId: string;
   stageId?: string;
+  assignedTo?: string;
   createdAt?: string;
   updatedAt?: string;
+  customFields?: any;
 }
 
 export interface OpportunitiesResponse {

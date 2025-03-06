@@ -3,21 +3,16 @@ import { getAuthHeaders } from '@/lib/enhancedApi';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('ghl_access_token');
-  const locationId = cookieStore.get('ghl_location_id');
+  const {locationId, token} = await getAuthHeaders()
 
   try {
     const headers = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${token?.value}`,
+      'Authorization': `Bearer ${token}`,
       'Version': '2021-07-28'
-    }
-
-    console.log(`headers>>: `, headers);
-    console.log(`locationid:>> `, locationId);
-    const mockURL = `https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/?locationId=${locationId?.value}`;
-    const prodURL = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId?.value ?? "N3z6NPutyGGVRyOxjSDy"}`;
+    } 
+    const mockURL = `https://stoplight.io/mocks/highlevel/integrations/39582863/contacts/?locationId=${locationId}`;
+    const prodURL = `https://services.leadconnectorhq.com/contacts/?locationId=${locationId}`;
     // Direct fetch to GHL API
     const response = await fetch(prodURL, {
       headers
