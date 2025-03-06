@@ -25,7 +25,7 @@ const createSubAccount = async (data: any) => {
     // Add snapshot settings with the specified ID
     data.snapshot = {
         "id": "Y5EDypqp6IRP3QhoWGL4",
-        "type": "vertical"
+        "type": "own"
     };
     
     const response = await fetch('https://rest.gohighlevel.com/v1/locations/', {
