@@ -65,7 +65,7 @@ const ContactList: React.FC = () => {
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="flex justify-between items-center p-6 border-b">
         <h3 className="text-lg font-medium">Recent Contacts</h3>
-        <button className="text-sm text-blue-600 hover:text-blue-800">View All</button>
+        <button className="text-sm text-purple-600 hover:text-blue-800">View All</button>
       </div>
       
       <div className="overflow-x-auto">
@@ -116,8 +116,8 @@ const ContactList: React.FC = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <button className="text-blue-600 hover:text-blue-900 mr-3">Call</button>
-                  <button className="text-blue-600 hover:text-blue-900">Email</button>
+                  <button className="text-purple-600 hover:text-blue-900 mr-3">Call</button>
+                  <button className="text-purple-600 hover:text-blue-900">Email</button>
                 </td>
               </tr>
             ))}

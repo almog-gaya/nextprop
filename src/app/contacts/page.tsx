@@ -598,7 +598,7 @@ export default function ContactsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => handleEdit(contact)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        className="text-purple-600 hover:text-blue-900 mr-3"
                       >
                         Edit
                       </button>

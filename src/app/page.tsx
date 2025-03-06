@@ -541,34 +541,34 @@ export default function DashboardPage() {
         
         <div className="flex justify-between px-3 py-2 border-t border-gray-100 bg-gray-50 rounded-b-md">
           <button 
-            className="text-gray-500 hover:text-blue-600 p-1"
+            className="text-gray-500 hover:text-purple-600 p-1"
             onClick={() => handleCommunication(opportunity.id, 'call')}
             title="Simulate a returned call"
           >
             <PhoneIcon className="h-4 w-4" />
           </button>
           <button 
-            className="text-gray-500 hover:text-blue-600 p-1"
+            className="text-gray-500 hover:text-purple-600 p-1"
             onClick={() => handleCommunication(opportunity.id, 'sms')}
             title="Simulate a returned SMS"
           >
             <ChatBubbleLeftRightIcon className="h-4 w-4" />
           </button>
           <button 
-            className="text-gray-500 hover:text-blue-600 p-1"
+            className="text-gray-500 hover:text-purple-600 p-1"
             onClick={() => handleCommunication(opportunity.id, 'email')}
             title="Send email"
           >
             <EnvelopeIcon className="h-4 w-4" />
           </button>
           <button 
-            className="text-gray-500 hover:text-blue-600 p-1"
+            className="text-gray-500 hover:text-purple-600 p-1"
             title="Schedule a meeting"
           >
             <CalendarIcon className="h-4 w-4" />
           </button>
           <button 
-            className="text-gray-500 hover:text-blue-600 p-1"
+            className="text-gray-500 hover:text-purple-600 p-1"
             title="Edit opportunity"
           >
             <PencilIcon className="h-4 w-4" />
@@ -744,7 +744,7 @@ export default function DashboardPage() {
             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="button"
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm"
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm"
                 onClick={handleApplyFilters}
               >
                 Apply Filters
@@ -880,7 +880,7 @@ export default function DashboardPage() {
             <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button
                 type="button"
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm"
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-purple-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm"
                 onClick={handleApplySort}
               >
                 Apply Sort
@@ -1016,7 +1016,7 @@ export default function DashboardPage() {
                   )}
                 </div>
                 
-                <span className="ml-3 text-blue-600 font-medium">
+                <span className="ml-3 text-purple-600 font-medium">
                   {selectedPipeline ? 
                     (pipelines.find(p => p.id === selectedPipeline)?.totalOpportunities || 0) + ' opportunities' :
                     '0 opportunities'}
@@ -1026,13 +1026,13 @@ export default function DashboardPage() {
               <div className="flex items-center space-x-3">
                 <div className="flex border border-gray-200 rounded-md overflow-hidden">
                   <button 
-                    className={`p-2 ${viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500'}`}
+                    className={`p-2 ${viewMode === 'grid' ? 'bg-blue-50 text-purple-600' : 'bg-white text-gray-500'}`}
                     onClick={() => setViewMode('grid')}
                   >
                     <Squares2X2Icon className="h-5 w-5" />
                   </button>
                   <button 
-                    className={`p-2 ${viewMode === 'list' ? 'bg-blue-50 text-blue-600' : 'bg-white text-gray-500'}`}
+                    className={`p-2 ${viewMode === 'list' ? 'bg-blue-50 text-purple-600' : 'bg-white text-gray-500'}`}
                     onClick={() => setViewMode('list')}
                   >
                     <Bars4Icon className="h-5 w-5" />
@@ -1045,7 +1045,7 @@ export default function DashboardPage() {
                 </button>
                 
                 <button 
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-blue-700"
                   onClick={async () => {
                     if (!apiConfigured) {
                       setNotification({
@@ -1330,13 +1330,13 @@ export default function DashboardPage() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <div className="flex justify-end space-x-2">
-                                <button className="text-blue-600 hover:text-blue-900">
+                                <button className="text-purple-600 hover:text-blue-900">
                                   <PhoneIcon className="h-4 w-4" />
                                 </button>
-                                <button className="text-blue-600 hover:text-blue-900">
+                                <button className="text-purple-600 hover:text-blue-900">
                                   <ChatBubbleLeftRightIcon className="h-4 w-4" />
                                 </button>
-                                <button className="text-blue-600 hover:text-blue-900">
+                                <button className="text-purple-600 hover:text-blue-900">
                                   <EnvelopeIcon className="h-4 w-4" />
                                 </button>
                               </div>

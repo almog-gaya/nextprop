@@ -181,7 +181,7 @@ const PipelinesTab: React.FC<PipelinesTabProps> = ({ pipelines, setPipelines }) 
         <div className="flex space-x-4 mt-4 md:mt-0">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-blue-700 transition-colors"
             disabled={isSubmitting}
           >
             Add Pipeline
@@ -291,7 +291,7 @@ const PipelinesTab: React.FC<PipelinesTabProps> = ({ pipelines, setPipelines }) 
                   <button
                     type="button"
                     onClick={addStage}
-                    className="text-blue-600 text-sm hover:underline mt-2"
+                    className="text-purple-600 text-sm hover:underline mt-2"
                     disabled={isSubmitting}
                   >
                     + Add stage
@@ -443,7 +443,7 @@ const PipelinesTab: React.FC<PipelinesTabProps> = ({ pipelines, setPipelines }) 
                   <button
                     type="button"
                     onClick={addStage}
-                    className="text-blue-600 text-sm hover:underline mt-2"
+                    className="text-purple-600 text-sm hover:underline mt-2"
                     disabled={isSubmitting}
                   >
                     + Add stage
@@ -561,7 +561,7 @@ const PipelinesTab: React.FC<PipelinesTabProps> = ({ pipelines, setPipelines }) 
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                       <button
                         onClick={() => handleEdit(pipeline)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        className="text-purple-600 hover:text-blue-900 mr-3"
                       >
                         Edit
                       </button>

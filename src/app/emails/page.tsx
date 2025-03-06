@@ -6,7 +6,6 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { EnvelopeIcon, ArrowPathIcon, PlusIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { EmailCampaignsSkeleton } from '@/components/SkeletonLoaders';
 
 // Prevent excessive API calls with throttling
 function useThrottledEffect(callback: () => void, delay: number) {
@@ -137,15 +136,6 @@ export default function EmailsPage() {
     }).format(date);
   };
 
-  // Show loading state if needed
-  if (loading.campaigns && filteredCampaigns.length === 0) {
-    return (
-      <DashboardLayout title="Email Campaigns">
-        <EmailCampaignsSkeleton />
-      </DashboardLayout>
-    );
-  }
-
   // Show error state if needed
   if (error) {
     return (
@@ -212,14 +202,27 @@ export default function EmailsPage() {
             />
           </div>
           
-          {filteredCampaigns.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">
-              <EnvelopeIcon className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-              <p className="text-lg font-medium">No campaigns found</p>
-              <p className="text-sm mt-1">Create a new campaign to get started</p>
-            </div>
-          ) : (
-            <div className="mt-4">
+          {/* Campaign list with loading state only for the content */}
+          <div className="mt-4">
+            {loading.campaigns && filteredCampaigns.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-4 animate-pulse">
+                {[1, 2, 3].map((_, index) => (
+                  <div key={index} className="mb-4 last:mb-0">
+                    <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+                    <div className="flex space-x-2">
+                      <div className="h-4 bg-gray-200 rounded w-16"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredCampaigns.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">
+                <EnvelopeIcon className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                <p className="text-lg font-medium">No campaigns found</p>
+                <p className="text-sm mt-1">Create a new campaign to get started</p>
+              </div>
+            ) : (
               <div className="bg-gray-50 rounded-lg">
                 {filteredCampaigns.map((campaign, index) => (
                   <div 
@@ -268,18 +271,22 @@ export default function EmailsPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         
-        {/* Quick Stats */}
+        {/* Quick Stats with loading state only for the dynamic content */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="nextprop-card">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-600 text-sm uppercase">Total Campaigns</h3>
               <EnvelopeIcon className="h-5 w-5 text-[#7c3aed]" />
             </div>
-            <p className="text-3xl font-bold text-[#1e1b4b] mt-2">{campaignsArray.length}</p>
+            {loading.campaigns && campaignsArray.length === 0 ? (
+              <div className="h-8 bg-gray-200 rounded w-16 mt-2 animate-pulse"></div>
+            ) : (
+              <p className="text-3xl font-bold text-[#1e1b4b] mt-2">{campaignsArray.length}</p>
+            )}
           </div>
           
           <div className="nextprop-card">
@@ -287,13 +294,17 @@ export default function EmailsPage() {
               <h3 className="font-semibold text-gray-600 text-sm uppercase">Active Campaigns</h3>
               <EnvelopeIcon className="h-5 w-5 text-green-500" />
             </div>
-            <p className="text-3xl font-bold text-[#1e1b4b] mt-2">
-              {campaignsArray.filter(campaign => 
-                typeof campaign.status === 'string' 
-                  ? campaign.status.toLowerCase() === 'active' 
-                  : campaign.status === 1
-              ).length}
-            </p>
+            {loading.campaigns && campaignsArray.length === 0 ? (
+              <div className="h-8 bg-gray-200 rounded w-16 mt-2 animate-pulse"></div>
+            ) : (
+              <p className="text-3xl font-bold text-[#1e1b4b] mt-2">
+                {campaignsArray.filter(campaign => 
+                  typeof campaign.status === 'string' 
+                    ? campaign.status.toLowerCase() === 'active' 
+                    : campaign.status === 1
+                ).length}
+              </p>
+            )}
           </div>
           
           <div className="nextprop-card">
@@ -301,13 +312,17 @@ export default function EmailsPage() {
               <h3 className="font-semibold text-gray-600 text-sm uppercase">Paused Campaigns</h3>
               <EnvelopeIcon className="h-5 w-5 text-yellow-500" />
             </div>
-            <p className="text-3xl font-bold text-[#1e1b4b] mt-2">
-              {campaignsArray.filter(campaign => 
-                typeof campaign.status === 'string' 
-                  ? campaign.status.toLowerCase() === 'paused' 
-                  : campaign.status === 2
-              ).length}
-            </p>
+            {loading.campaigns && campaignsArray.length === 0 ? (
+              <div className="h-8 bg-gray-200 rounded w-16 mt-2 animate-pulse"></div>
+            ) : (
+              <p className="text-3xl font-bold text-[#1e1b4b] mt-2">
+                {campaignsArray.filter(campaign => 
+                  typeof campaign.status === 'string' 
+                    ? campaign.status.toLowerCase() === 'paused' 
+                    : campaign.status === 2
+                ).length}
+              </p>
+            )}
           </div>
         </div>
       </div>

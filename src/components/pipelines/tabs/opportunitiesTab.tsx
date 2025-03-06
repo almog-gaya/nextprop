@@ -197,7 +197,7 @@ const OpportunitiesTab: React.FC<{
                     </select>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-blue-700 transition-colors"
                         disabled={isSubmitting}
                     >
                         Add Opportunity
@@ -368,7 +368,7 @@ const OpportunitiesTab: React.FC<{
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting ? 'Creating...' : 'Create Opportunity'}
@@ -541,7 +541,7 @@ const OpportunitiesTab: React.FC<{
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting ? 'Updating...' : 'Update Opportunity'}
@@ -631,7 +631,7 @@ const OpportunitiesTab: React.FC<{
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button
                                                 onClick={() => handleEdit(opportunity)}
-                                                className="text-blue-600 hover:text-blue-900 mr-3"
+                                                className="text-purple-600 hover:text-blue-900 mr-3"
                                             >
                                                 Edit
                                             </button>
