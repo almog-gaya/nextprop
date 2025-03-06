@@ -12,6 +12,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "NextProp AI",
   description: "Real Estate CRM",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
