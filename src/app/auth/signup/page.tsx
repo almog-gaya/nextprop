@@ -3,47 +3,56 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getAuthUrl } from '@/lib/ghlAuth';
 
 export default function Signup() {
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    companyId: 'c19vX1spjlLJWQKMUWVD',
+    businessName: '',
     address: '',
     city: '',
-    state: '',
     country: 'US',
+    state: '',
     postalCode: '',
     website: '',
     timezone: 'US/Central',
-    prospectInfo: {
-      firstName: '',
-      lastName: '',
-      email: ''
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '', 
+    phone: '',
+    settings: {
+      allowDuplicateContact: false,
+      allowDuplicateOpportunity: false,
+      allowFacebookNameMerge: false,
+      disableContactTimezone: false
     }
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const router = useRouter();
- 
+
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.name) newErrors.name = 'Sub-account name is required';
-    if (!formData.companyId) newErrors.companyId = 'Company ID is required';
-    if (!formData.prospectInfo.firstName) newErrors.firstName = 'First name is required';
-    if (!formData.prospectInfo.lastName) newErrors.lastName = 'Last name is required';
-    if (!formData.prospectInfo.email) {
+    if (!formData.businessName) newErrors.businessName = 'Business name is required';
+    if (!formData.firstName) newErrors.firstName = 'First name is required';
+    if (!formData.lastName) newErrors.lastName = 'Last name is required';
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 5) {
+      newErrors.password = 'Password must be at least 8 characters long';
+    }
+    if (!formData.email) {
       newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.prospectInfo.email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
     }
     if (formData.phone && !/^\+\d{10,15}$/.test(formData.phone)) {
       newErrors.phone = 'Phone must be in format +1234567890';
     }
     if (formData.website && !/^https?:\/\/[^\s/$.?#].[^\s]*$/.test(formData.website)) {
-      newErrors.website = 'Invalid URL format';
+      newErrors.website = 'Invalid URL format (must start with http:// or https://)';
     }
 
     setErrors(newErrors);
@@ -51,40 +60,21 @@ export default function Signup() {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name.includes('prospectInfo.')) {
-      const field = name.split('.')[1];
+    const { name, value, type, checked } = e.target;
+    if (name.startsWith('settings.')) {
+      const settingName = name.split('.')[1];
       setFormData(prev => ({
         ...prev,
-        prospectInfo: { ...prev.prospectInfo, [field]: value }
+        settings: { ...prev.settings, [settingName]: type === 'checkbox' ? checked : value }
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
-    // Clear error when user starts typing
-    if (errors[name.split('.')[1] || name]) {
-      setErrors(prev => ({ ...prev, [name.split('.')[1] || name]: '' }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
-  const getCookieValue = (name: string): string | null => {
-    if (typeof window === 'undefined') {
-      console.log(`getCookieValue: Cannot access cookies, running on server`);
-      return null;
-    }
-  
-    const cookies = document.cookie.split(';').map(c => c.trim());
-    console.log(`getCookieValue: Looking for ${name} in cookies:`, cookies);
-    
-    const cookie = cookies.find(c => c.startsWith(`${name}=`));
-    if (cookie) {
-      const value = cookie.split('=')[1];
-      console.log(`getCookieValue: Found ${name}=${value}`);
-      return value;
-    }
-    
-    console.log(`getCookieValue: ${name} not found`);
-    return null;
-  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -93,37 +83,27 @@ export default function Signup() {
     setSubmitStatus({ type: '', message: '' });
 
     try {
-      const token = await getCookieValue('ghl_access_token');
-      console.log(`JWT: ${token}`)
-      const response = await fetch('https://services.leadconnectorhq.com/locations/', {
+      const response = await fetch('/api/auth/ghl/signup', {
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token!,
-          'Version': '2021-07-28',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create sub-account');
+        throw new Error(errorData.message || 'Failed to create an account');
       }
 
       setSubmitStatus({ 
         type: 'success', 
-        message: 'Sub-account created successfully! Redirecting...' 
+        message: 'Account created successfully! Redirecting...' 
       });
       
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
-
+      window.location.href = getAuthUrl();
     } catch (err) {
       setSubmitStatus({ 
         type: 'error', 
-        message: err.message || 'An error occurred while creating the sub-account' 
+        message: err.message || 'An error occurred while creating an account' 
       });
     } finally {
       setIsSubmitting(false);
@@ -134,9 +114,9 @@ export default function Signup() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-8 transform transition-all hover:shadow-2xl">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Create New Sub-Account</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Create New Account</h2>
           <p className="mt-2 text-sm text-gray-600">
-            Set up your new location |{' '}
+            Set up your business account |{' '}
             <Link href="/auth/login" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
               Sign in instead
             </Link>
@@ -159,58 +139,68 @@ export default function Signup() {
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-gray-900">Business Details</h3>
               <InputField
-                label="Sub-Account Name"
-                name="name"
-                value={formData.name}
+                label="Business Name"
+                name="businessName"
+                value={formData.businessName}
                 onChange={handleChange}
-                error={errors.name}
+                error={errors.businessName}
                 required
               />
               <InputField
                 label="Phone Number"
                 name="phone"
                 type="tel"
-                placeholder="+1410039940"
+                placeholder="+12025550107"
                 value={formData.phone}
                 onChange={handleChange}
                 error={errors.phone}
               />
               <InputField
-                label="Company ID"
-                name="companyId"
-                value={formData.companyId}
+                label="Website"
+                name="website"
+                type="url"
+                placeholder="https://example.com"
+                value={formData.website}
                 onChange={handleChange}
-                error={errors.companyId}
-                required
+                error={errors.website}
               />
             </div>
 
-            {/* Prospect Details */}
+            {/* Contact Details */}
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Prospect Details</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Contact Details</h3>
               <InputField
                 label="First Name"
-                name="prospectInfo.firstName"
-                value={formData.prospectInfo.firstName}
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
                 error={errors.firstName}
                 required
               />
               <InputField
                 label="Last Name"
-                name="prospectInfo.lastName"
-                value={formData.prospectInfo.lastName}
+                name="lastName"
+                value={formData.lastName}
                 onChange={handleChange}
                 error={errors.lastName}
                 required
               />
               <InputField
                 label="Email"
-                name="prospectInfo.email"
+                name="email"
                 type="email"
-                value={formData.prospectInfo.email}
+                value={formData.email}
                 onChange={handleChange}
                 error={errors.email}
+                required
+              />
+              <InputField
+                label="Password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                error={errors.password}
                 required
               />
             </div>
@@ -246,7 +236,6 @@ export default function Signup() {
                 options={[
                   { value: 'US', label: 'United States' },
                   { value: 'CA', label: 'Canada' },
-                  // Add more countries as needed
                 ]}
               />
               <InputField
@@ -254,15 +243,6 @@ export default function Signup() {
                 name="postalCode"
                 value={formData.postalCode}
                 onChange={handleChange}
-              />
-              <InputField
-                label="Website"
-                name="website"
-                type="url"
-                placeholder="https://example.com"
-                value={formData.website}
-                onChange={handleChange}
-                error={errors.website}
               />
               <SelectField
                 label="Timezone"
@@ -273,8 +253,38 @@ export default function Signup() {
                   { value: 'US/Central', label: 'US/Central' },
                   { value: 'US/Eastern', label: 'US/Eastern' },
                   { value: 'US/Pacific', label: 'US/Pacific' },
-                  // Add more timezones as needed
                 ]}
+              />
+            </div>
+          </div>
+
+          {/* Settings */}
+          <div className="space-y-4 pt-6 border-t border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Settings</h3>
+            <div className="space-y-3">
+              <CheckboxField
+                label="Allow Duplicate Contacts"
+                name="settings.allowDuplicateContact"
+                checked={formData.settings.allowDuplicateContact}
+                onChange={handleChange}
+              />
+              <CheckboxField
+                label="Allow Duplicate Opportunities"
+                name="settings.allowDuplicateOpportunity"
+                checked={formData.settings.allowDuplicateOpportunity}
+                onChange={handleChange}
+              />
+              <CheckboxField
+                label="Allow Facebook Name Merge"
+                name="settings.allowFacebookNameMerge"
+                checked={formData.settings.allowFacebookNameMerge}
+                onChange={handleChange}
+              />
+              <CheckboxField
+                label="Disable Contact Timezone"
+                name="settings.disableContactTimezone"
+                checked={formData.settings.disableContactTimezone}
+                onChange={handleChange}
               />
             </div>
           </div>
@@ -290,7 +300,7 @@ export default function Signup() {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             )}
-            <span>{isSubmitting ? 'Creating...' : 'Create Sub-Account'}</span>
+            <span>{isSubmitting ? 'Creating...' : 'Create Account'}</span>
           </button>
         </form>
       </div>
@@ -298,7 +308,6 @@ export default function Signup() {
   );
 }
 
-// Reusable Input Component
 const InputField = ({ label, name, type = 'text', value, onChange, error, required, placeholder }) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
@@ -320,7 +329,6 @@ const InputField = ({ label, name, type = 'text', value, onChange, error, requir
   </div>
 );
 
-// Reusable Select Component
 const SelectField = ({ label, name, value, onChange, options }) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
@@ -335,5 +343,19 @@ const SelectField = ({ label, name, value, onChange, options }) => (
         <option key={option.value} value={option.value}>{option.label}</option>
       ))}
     </select>
+  </div>
+);
+
+const CheckboxField = ({ label, name, checked, onChange }) => (
+  <div className="flex items-center">
+    <input
+      id={name}
+      name={name}
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+    />
+    <label htmlFor={name} className="ml-2 block text-sm text-gray-700">{label}</label>
   </div>
 );
