@@ -2,6 +2,8 @@
 export interface Pipeline {
   id: string;
   name: string;
+  showInFunnel?: boolean;
+  showInPieChart?: boolean;
   stages?: PipelineStage[];
   createdAt?: string;
   updatedAt?: string;
@@ -11,6 +13,8 @@ export interface PipelineStage {
   id: string;
   name: string;
   order: number;
+  showInFunnel?: boolean;
+  showInPieChart?: boolean;
   pipelineId: string;
 }
 
