@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getContacts, fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { getAuthHeaders } from '@/lib/enhancedApi';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
@@ -76,25 +76,30 @@ export async function POST(request: Request) {
 
 
 const mockCreateContact = async (contactData: any) => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('ghl_access_token');
+  const { token, locationId } = await getAuthHeaders();
   const url = 'https://services.leadconnectorhq.com/contacts/';
+  contactData.locationId = locationId;
   const options = {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token?.value}`,
+      Authorization: `Bearer ${token}`,
       Version: '2021-07-28',
       'Content-Type': 'application/json',
       Accept: 'application/json'
     },
-    body: JSON.stringify(contactData) };
+    body: JSON.stringify(contactData)
+  };
 
-    const response = await fetch(url, options);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data;
+  console.log(`[Create]: Contact: `, JSON.stringify(options))
+
+  const response = await fetch(url, options);
+  // console.log(`[Create]: Response: `, response.body)
+  // if (!response.ok) {
+  //   throw new Error(`HTTP error! status: ${response.status}`);
+  // }
+  const data = await response.json();
+  console.log(`[Create]: Data: `, JSON.stringify(data));
+  return data;
 };
 
 
