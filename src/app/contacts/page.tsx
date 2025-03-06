@@ -188,19 +188,31 @@ export default function ContactsPage() {
 
   const handleAdd = async (formData: any) => {
     setIsSubmitting(true);
-
+  
     if (!formData.firstName) {
       toast.error('First Name is required');
       setIsSubmitting(false);
       return;
     }
-
+  
     try {
-      const response = await axios.post('/api/contacts', formData, {
-      });
-
-      if (response.data && response.data.id) {
-        setContacts(prevContacts => [response.data as Contact, ...prevContacts]);
+      const response = await axios.post('/api/contacts', formData, {});
+      console.log('API Response:', response.data); // Debug the response
+  
+      // Check for nested contact object
+      const contactData = response.data.contact; // Extract the contact object
+      if (contactData && contactData.id) {
+        const processedContact = {
+          ...contactData,
+          name: contactData.firstName || (contactData.phone ? `Contact ${contactData.phone.slice(-4)}` : 'Unknown Contact'),
+        };
+  
+        setContacts(prevContacts => {
+          const newContacts = [processedContact, ...prevContacts];
+          console.log('Updated contacts:', newContacts);
+          return newContacts;
+        });
+  
         toast.success('Contact added successfully');
         setIsAddModalOpen(false);
         setNewContact({
@@ -215,8 +227,12 @@ export default function ContactsPage() {
           source: 'public api',
           country: 'US',
         });
+      } else {
+        console.error('Invalid response: missing contact.id', response.data);
+        toast.error('Invalid response from server');
       }
     } catch (err: any) {
+      console.error('Add Contact Error:', err);
       toast.error(err.response?.data?.error || 'Failed to add contact');
     } finally {
       setIsSubmitting(false);

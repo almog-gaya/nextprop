@@ -59,7 +59,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const contactId = params.id;
+    const contactId = await params.id;
     console.log('Deleting contact in GHL:', contactId);
 
     const response = await fetchWithErrorHandling(() => deleteContactById(contactId));
@@ -79,7 +79,7 @@ export async function DELETE(
 }
 
 const deleteContactById = async (contactId: string) => {
-  const {token} = await getAuthHeaders();
+  const { token } = await getAuthHeaders();
   const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
 
   const options = {
@@ -94,8 +94,9 @@ const deleteContactById = async (contactId: string) => {
 };
 
 const updateContact = async (contactId: string, contactData: any) => {
-  const {token} = await getAuthHeaders();
+  const { token } = await getAuthHeaders();
   const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
+  delete contactData.locationId;
   const options = {
     method: 'PUT',
     headers: {
@@ -104,12 +105,13 @@ const updateContact = async (contactId: string, contactData: any) => {
       'Content-Type': 'application/json',
       Accept: 'application/json'
     },
-    body: JSON.stringify(contactData) };
+    body: JSON.stringify(contactData)
+  };
 
-    const response = await fetch(url, options);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data;
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data = await response.json();
+  return data;
 };

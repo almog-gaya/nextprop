@@ -65,8 +65,7 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   try {
-    console.log(`[Create]: Contact: `, JSON.stringify(body));
-    const response = await mockCreateContact(body);
+     const response = await createContact(body);
     return NextResponse.json(response);
   } catch (error: any) {
     console.error('Error in POST request:', error);
@@ -75,7 +74,7 @@ export async function POST(request: Request) {
 }
 
 
-const mockCreateContact = async (contactData: any) => {
+const createContact = async (contactData: any) => {
   const { token, locationId } = await getAuthHeaders();
   const url = 'https://services.leadconnectorhq.com/contacts/';
   contactData.locationId = locationId;
@@ -90,15 +89,13 @@ const mockCreateContact = async (contactData: any) => {
     body: JSON.stringify(contactData)
   };
 
-  console.log(`[Create]: Contact: `, JSON.stringify(options))
-
+ 
   const response = await fetch(url, options);
-  // console.log(`[Create]: Response: `, response.body)
-  // if (!response.ok) {
-  //   throw new Error(`HTTP error! status: ${response.status}`);
-  // }
+   if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
   const data = await response.json();
-  console.log(`[Create]: Data: `, JSON.stringify(data));
+  console.log(`[Create]: Data Response: `, JSON.stringify(data));
   return data;
 };
 
