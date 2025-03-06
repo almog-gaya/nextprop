@@ -105,8 +105,8 @@ export const SCOPES = [
 const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY === 'true';
 
 export const GHL_AUTH_CONFIG = {
-  clientId: process.env.NEXT_PUBLIC_GHL_CLIENT_ID || '67bc8f8b36855ce268c6dff2-m7jaua8i',
-  clientSecret: process.env.GHL_CLIENT_SECRET || '8f6711c5-9eb3-46b2-a0ae-dafb056cab22',
+  clientId: '67c7e02f74be2556d96030df-m7wwc9vn',
+  clientSecret: '6736b036-6551-4faa-b71a-ce53d365085e',
   redirectUri: isProduction
     ? 'https://nextpropai.netlify.app/api/auth/callback'
     : 'http://localhost:3000/api/auth/callback',
