@@ -105,8 +105,8 @@ export const SCOPES = [
 const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY === 'true';
 
 export const GHL_AUTH_CONFIG = {
-  clientId: '67c7e02f74be2556d96030df-m7wwc9vn',
-  clientSecret: '6736b036-6551-4faa-b71a-ce53d365085e',
+  clientId: process.env.NEXT_PUBLIC_GHL_CLIENT_ID || '67c7e02f74be2556d96030df-m7wwc9vn',
+  clientSecret: process.env.GHL_CLIENT_SECRET || '6736b036-6551-4faa-b71a-ce53d365085e',
   redirectUri: isProduction
     ? 'https://nextpropai.netlify.app/api/auth/callback'
     : 'http://localhost:3000/api/auth/callback',
@@ -135,11 +135,11 @@ export function getAuthUrl() {
 
 export function checkAuthStatus() {
   if (typeof window === 'undefined') return { isAuthenticated: false };
-  
+
   const cookies = document.cookie.split(';');
   const token = cookies.find(c => c.trim().startsWith('ghl_access_token='));
   const locationId = cookies.find(c => c.trim().startsWith('ghl_location_id='));
-  
+
   return {
     isAuthenticated: !!token,
     hasLocation: !!locationId,
