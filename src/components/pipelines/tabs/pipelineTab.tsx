@@ -8,7 +8,7 @@ interface PipelinesTabProps {
   pipelines: Pipeline[];
   setPipelines: React.Dispatch<React.SetStateAction<Pipeline[]>>;
 }
-
+///ok
 interface Stage {
   name: string;
   position: number;
@@ -425,6 +425,7 @@ const PipelinesTab: React.FC<PipelinesTabProps> = ({ pipelines, setPipelines }) 
                           className="p-1 text-red-600 hover:text-red-800"
                           disabled={isSubmitting || formData.stages.length <= 1}
                         >
+                          
                           <svg
                             className="w-4 h-4"
                             fill="currentColor"
