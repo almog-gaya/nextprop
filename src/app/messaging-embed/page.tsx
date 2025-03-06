@@ -110,7 +110,7 @@ function ConversationList({ conversations, activeId, onSelect }: any) {
                   </p>
                 </div>
                 {conversation.unread && (
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-600 flex-shrink-0 mt-1.5"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-purple-600 flex-shrink-0 mt-1.5"></div>
                 )}
               </div>
             </div>
@@ -127,7 +127,7 @@ function ConversationList({ conversations, activeId, onSelect }: any) {
           <button
             onClick={handlePrevPage}
             disabled={page === 1}
-            className={`px-3 py-1 text-sm rounded ${page === 1 ? 'text-gray-400' : 'text-blue-600 hover:bg-blue-50'}`}
+            className={`px-3 py-1 text-sm rounded ${page === 1 ? 'text-gray-400' : 'text-purple-600 hover:bg-blue-50'}`}
           >
             Previous
           </button>
@@ -137,7 +137,7 @@ function ConversationList({ conversations, activeId, onSelect }: any) {
           <button
             onClick={handleNextPage}
             disabled={page === totalPages}
-            className={`px-3 py-1 text-sm rounded ${page === totalPages ? 'text-gray-400' : 'text-blue-600 hover:bg-blue-50'}`}
+            className={`px-3 py-1 text-sm rounded ${page === totalPages ? 'text-gray-400' : 'text-purple-600 hover:bg-blue-50'}`}
           >
             Next
           </button>
@@ -311,7 +311,7 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
           <div className="flex justify-center mb-4">
             <button
               onClick={onLoadMore}
-              className="bg-white text-blue-600 px-4 py-2 rounded-full border border-blue-300 text-sm font-medium hover:bg-blue-50 transition-colors"
+              className="bg-white text-purple-600 px-4 py-2 rounded-full border border-blue-300 text-sm font-medium hover:bg-blue-50 transition-colors"
               disabled={loading}
             >
               {loading ? 'Loading...' : 'Load earlier messages'}
@@ -330,7 +330,7 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
               <div
                 className={`max-w-[85%] rounded-lg px-4 py-2 ${
                   message.senderId === 'user'
-                    ? message.sendFailed ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-blue-600 text-white'
+                    ? message.sendFailed ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-purple-600 text-white'
                     : 'bg-gray-200 text-gray-900'
                 }`}
               >
@@ -386,7 +386,7 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
             className={`ml-2 p-3 rounded-full flex items-center justify-center ${
               !newMessage.trim() || sendingStatus === 'sending'
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-purple-600 text-white hover:bg-blue-700'
             }`}
           >
             {sendingStatus === 'sending' ? (

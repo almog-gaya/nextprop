@@ -65,7 +65,7 @@ const LeadSummary: React.FC = () => {
       </div>
       
       <div className="mt-6 pt-4 border-t border-gray-200">
-        <button className="text-sm text-blue-600 hover:text-blue-800">
+        <button className="text-sm text-purple-600 hover:text-blue-800">
           View Detailed Report
         </button>
       </div>

@@ -76,8 +76,8 @@ export default function OpportunitiesPage() {
         <div className="flex space-x-4 border-b border-gray-200">
           <button
             className={`px-4 py-2 text-sm font-medium ${activeTab === 'opportunities'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-blue-600 hover:border-b-2 hover:border-blue-600'
+                ? 'text-purple-600 border-b-2 border-purple-600'
+                : 'text-gray-600 hover:text-purple-600 hover:border-b-2 hover:border-purple-600'
               } transition-colors`}
             onClick={() => setActiveTab('opportunities')}
           >
@@ -85,8 +85,8 @@ export default function OpportunitiesPage() {
           </button>
           <button
             className={`px-4 py-2 text-sm font-medium ${activeTab === 'pipelines'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-blue-600 hover:border-b-2 hover:border-blue-600'
+                ? 'text-purple-600 border-b-2 border-purple-600'
+                : 'text-gray-600 hover:text-purple-600 hover:border-b-2 hover:border-purple-600'
               } transition-colors`}
             onClick={() => setActiveTab('pipelines')}
           >

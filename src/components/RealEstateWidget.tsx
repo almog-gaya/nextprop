@@ -27,7 +27,7 @@ const RealEstateWidget: React.FC<RealEstateWidgetProps> = ({ className = '' }) =
           </h3>
           <Link 
             href="/properties" 
-            className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+            className="text-sm text-purple-600 hover:text-blue-800 flex items-center"
           >
             View All
             <ArrowRightIcon className="h-3 w-3 ml-1" />
@@ -68,7 +68,7 @@ const RealEstateWidget: React.FC<RealEstateWidgetProps> = ({ className = '' }) =
             />
             <Link
               href={`/properties?city=${encodeURIComponent(citySearch)}`}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-r-lg"
+              className="bg-purple-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-r-lg"
             >
               Search
             </Link>

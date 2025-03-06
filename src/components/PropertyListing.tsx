@@ -325,7 +325,7 @@ export default function PropertyListing({ limit = 6 }: PropertyListingProps) {
             </p>
             <button
               onClick={handleSearch}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-blue-700"
             >
               Search Properties
             </button>
@@ -439,7 +439,7 @@ export default function PropertyListing({ limit = 6 }: PropertyListingProps) {
                       disabled={addedLeads.includes(property.property_id)}
                       className={`w-full mt-2 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm ${addedLeads.includes(property.property_id) 
                         ? 'bg-green-600 text-white cursor-default' 
-                        : 'text-white bg-blue-600 hover:bg-blue-700'}`}
+                        : 'text-white bg-purple-600 hover:bg-blue-700'}`}
                     >
                       {addedLeads.includes(property.property_id) ? 'Added to Contacts' : 'Add to Contacts'}
                     </button>

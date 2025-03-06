@@ -215,22 +215,22 @@ export default function PipelineBoard() {
         </div>
         
         <div className="flex justify-around p-2">
-          <button className="text-gray-500 hover:text-blue-600 p-1">
+          <button className="text-gray-500 hover:text-purple-600 p-1">
             <PhoneIcon className="h-4 w-4" />
           </button>
-          <button className="text-gray-500 hover:text-blue-600 p-1">
+          <button className="text-gray-500 hover:text-purple-600 p-1">
             <EnvelopeIcon className="h-4 w-4" />
           </button>
-          <button className="text-gray-500 hover:text-blue-600 p-1">
+          <button className="text-gray-500 hover:text-purple-600 p-1">
             <ChatBubbleLeftRightIcon className="h-4 w-4" />
           </button>
-          <button className="text-gray-500 hover:text-blue-600 p-1">
+          <button className="text-gray-500 hover:text-purple-600 p-1">
             <CalendarIcon className="h-4 w-4" />
           </button>
-          <button className="text-gray-500 hover:text-blue-600 p-1">
+          <button className="text-gray-500 hover:text-purple-600 p-1">
             <PencilIcon className="h-4 w-4" />
           </button>
-          <button className="text-gray-500 hover:text-blue-600 p-1">
+          <button className="text-gray-500 hover:text-purple-600 p-1">
             <UserCircleIcon className="h-4 w-4" />
           </button>
         </div>
@@ -269,21 +269,21 @@ export default function PipelineBoard() {
             )}
           </div>
           
-          <span className="text-blue-600 text-sm">{selectedPipeline.totalOpportunities} opportunities</span>
+          <span className="text-purple-600 text-sm">{selectedPipeline.totalOpportunities} opportunities</span>
         </div>
         
         <div className="flex items-center space-x-3">
           <button className="bg-white border border-gray-300 rounded p-1 text-gray-500 hover:bg-gray-50">
-            <Squares2X2Icon className={`h-5 w-5 ${viewMode === 'grid' ? 'text-blue-600' : 'text-gray-500'}`} onClick={() => setViewMode('grid')} />
+            <Squares2X2Icon className={`h-5 w-5 ${viewMode === 'grid' ? 'text-purple-600' : 'text-gray-500'}`} onClick={() => setViewMode('grid')} />
           </button>
           <button className="bg-white border border-gray-300 rounded p-1 text-gray-500 hover:bg-gray-50">
-            <Bars4Icon className={`h-5 w-5 ${viewMode === 'list' ? 'text-blue-600' : 'text-gray-500'}`} onClick={() => setViewMode('list')} />
+            <Bars4Icon className={`h-5 w-5 ${viewMode === 'list' ? 'text-purple-600' : 'text-gray-500'}`} onClick={() => setViewMode('list')} />
           </button>
           <button className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-800 hover:bg-gray-50 flex items-center space-x-1">
             <ArrowDownTrayIcon className="h-4 w-4" />
             <span>Import</span>
           </button>
-          <button className="bg-blue-600 text-white rounded px-3 py-2 hover:bg-blue-700 flex items-center space-x-1">
+          <button className="bg-purple-600 text-white rounded px-3 py-2 hover:bg-blue-700 flex items-center space-x-1">
             <PlusIcon className="h-4 w-4" />
             <span>Add opportunity</span>
           </button>
@@ -294,7 +294,7 @@ export default function PipelineBoard() {
       <div className="mb-4">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-6">
-            <button className="border-blue-500 text-blue-600 whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm">
+            <button className="border-blue-500 text-purple-600 whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm">
               All
             </button>
             <button className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm">
