@@ -44,13 +44,27 @@ export default function SettingsPage() {
             <div>
               <h3 className="text-sm font-medium text-gray-700">Member Since</h3>
               <p className="mt-1 text-gray-900">
-                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                {user?.createdAt 
+                  ? new Date(user.createdAt).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) 
+                  : 'N/A'}
               </p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-700">Last Login</h3>
               <p className="mt-1 text-gray-900">
-                {user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'N/A'}
+                {user?.lastLogin 
+                  ? new Date(user.lastLogin).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) 
+                  : 'N/A'}
               </p>
             </div>
           </div>
@@ -75,7 +89,7 @@ export default function SettingsPage() {
         </div>
         
         {/* API Key Manager */}
-        <ApiKeyManager />
+        {/* <ApiKeyManager /> */}
       </div>
     </DashboardLayout>
   );

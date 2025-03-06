@@ -10,12 +10,12 @@ import { flushAllAuthData } from '@/lib/authUtils';
 const MOCK_USERS: User[] = [
   {
     id: '1',
-    email: 'demo@nextprop.ai',
-    name: 'Demo User',
+    email: 'john.smith@nextprop.ai',
+    name: 'John Smith',
     ghlApiKey: 'demo-ghl-api-key-123',
     ghlLocationId: 'demo-location-123',
-    createdAt: new Date().toISOString(),
-    lastLogin: new Date().toISOString(),
+    createdAt: '2023-09-15T14:30:00Z',
+    lastLogin: '2024-03-05T09:45:22Z',
   },
 ];
 
@@ -60,6 +60,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (token && storedUser) {
           const user = JSON.parse(storedUser) as User;
+          
+          // Find the user in MOCK_USERS and update their lastLogin if needed
+          const mockUser = MOCK_USERS.find(u => u.id === user.id);
+          if (mockUser) {
+            // Use the most recent lastLogin value (either from localStorage or MOCK_USERS)
+            const mostRecentLogin = user.lastLogin && mockUser.lastLogin
+              ? new Date(user.lastLogin) > new Date(mockUser.lastLogin)
+                ? user.lastLogin
+                : mockUser.lastLogin
+              : user.lastLogin || mockUser.lastLogin;
+            
+            user.lastLogin = mostRecentLogin;
+            
+            // Update the mock user
+            mockUser.lastLogin = mostRecentLogin;
+            
+            // Update localStorage with the most recent data
+            localStorage.setItem('nextprop_user', JSON.stringify(user));
+          }
+          
           setAuthState({
             user,
             isLoading: false,
@@ -123,11 +143,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Invalid API key. Please check your API key and try again');
       }
       
-      // Update last login
+      // Update last login with current time
+      const currentTime = new Date().toISOString();
       const updatedUser = {
         ...user,
-        lastLogin: new Date().toISOString(),
+        lastLogin: currentTime,
       };
+      
+      // Update the mock user data
+      const userIndex = MOCK_USERS.findIndex(u => u.id === user.id);
+      if (userIndex !== -1) {
+        MOCK_USERS[userIndex].lastLogin = currentTime;
+      }
       
       // Store in localStorage
       localStorage.setItem('nextprop_user', JSON.stringify(updatedUser));
@@ -189,15 +216,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('An account with this email already exists. Please sign in instead.');
       }
       
-      // Create new user
+      // Create new user with current timestamp for both dates
+      const currentTime = new Date().toISOString();
       const newUser: User = {
         id: String(MOCK_USERS.length + 1),
         email: credentials.email,
         name: credentials.name,
         ghlApiKey: apiKey,
         ghlLocationId: credentials.ghlLocationId,
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
+        createdAt: currentTime,
+        lastLogin: currentTime,
       };
       
       // In a real app, we would add the user to the database
