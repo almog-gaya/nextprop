@@ -1,250 +1,339 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
-import { flushAllAuthData, setAllAuthData } from '@/lib/authUtils';
 
 export default function Signup() {
-  const [email, setEmail] = useState('');
-  const [apiKey, setApiKey] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    companyId: 'c19vX1spjlLJWQKMUWVD',
+    address: '',
+    city: '',
+    state: '',
+    country: 'US',
+    postalCode: '',
+    website: '',
+    timezone: 'US/Central',
+    prospectInfo: {
+      firstName: '',
+      lastName: '',
+      email: ''
+    }
+  });
+  const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<'email' | 'apiKey' | 'general' | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const { signup } = useAuth();
+ 
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.name) newErrors.name = 'Sub-account name is required';
+    if (!formData.companyId) newErrors.companyId = 'Company ID is required';
+    if (!formData.prospectInfo.firstName) newErrors.firstName = 'First name is required';
+    if (!formData.prospectInfo.lastName) newErrors.lastName = 'Last name is required';
+    if (!formData.prospectInfo.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.prospectInfo.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+    if (formData.phone && !/^\+\d{10,15}$/.test(formData.phone)) {
+      newErrors.phone = 'Phone must be in format +1234567890';
+    }
+    if (formData.website && !/^https?:\/\/[^\s/$.?#].[^\s]*$/.test(formData.website)) {
+      newErrors.website = 'Invalid URL format';
+    }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name.includes('prospectInfo.')) {
+      const field = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        prospectInfo: { ...prev.prospectInfo, [field]: value }
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    // Clear error when user starts typing
+    if (errors[name.split('.')[1] || name]) {
+      setErrors(prev => ({ ...prev, [name.split('.')[1] || name]: '' }));
+    }
+  };
+  const getCookieValue = (name: string): string | null => {
+    if (typeof window === 'undefined') {
+      console.log(`getCookieValue: Cannot access cookies, running on server`);
+      return null;
+    }
+  
+    const cookies = document.cookie.split(';').map(c => c.trim());
+    console.log(`getCookieValue: Looking for ${name} in cookies:`, cookies);
+    
+    const cookie = cookies.find(c => c.startsWith(`${name}=`));
+    if (cookie) {
+      const value = cookie.split('=')[1];
+      console.log(`getCookieValue: Found ${name}=${value}`);
+      return value;
+    }
+    
+    console.log(`getCookieValue: ${name} not found`);
+    return null;
+  };
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setIsSubmitting(true);
-    setSuccess(null);
-    setError(null);
-    setErrorType(null);
-    
-    // Basic validation
-    if (!email) {
-      setError('Email address is required');
-      setErrorType('email');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    if (!apiKey) {
-      setError('API key is required');
-      setErrorType('apiKey');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      setErrorType('email');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // API key validation
-    if (apiKey.length < 20) {
-      setError('API key must be at least 20 characters long');
-      setErrorType('apiKey');
-      setIsSubmitting(false);
-      return;
-    }
-    
+    setSubmitStatus({ type: '', message: '' });
+
     try {
-      console.log('Attempting to register with API key:', apiKey.substring(0, 5) + '...');
-      
-      // Pass the apiKey as password and as ghlApiKey
-      await signup({
-        email,
-        password: apiKey,
-        name: email.split('@')[0],
-        ghlApiKey: apiKey
+      const token = await getCookieValue('ghl_access_token');
+      console.log(`JWT: ${token}`)
+      const response = await fetch('https://services.leadconnectorhq.com/locations/', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token!,
+          'Version': '2021-07-28',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create sub-account');
+      }
+
+      setSubmitStatus({ 
+        type: 'success', 
+        message: 'Sub-account created successfully! Redirecting...' 
       });
       
-      // Ensure all authentication data is set consistently
-      const userData = {
-        email,
-        name: email.split('@')[0],
-        ghlApiKey: apiKey,
-        createdAt: new Date().toISOString()
-      };
-      
-      setAllAuthData(userData, apiKey);
-      
-      // Show success message before redirecting
-      setSuccess('Account created successfully! Redirecting to dashboard...');
-      
-      // Force redirect to dashboard after a brief delay to show success message
       setTimeout(() => {
-        console.log('Signup successful, redirecting to dashboard');
         router.push('/');
       }, 1500);
-      
+
     } catch (err) {
-      console.error('Signup failed:', err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      
-      // Determine error type for better visual feedback
-      if (errorMessage.toLowerCase().includes('already exists')) {
-        setError('An account with this email already exists');
-        setErrorType('email');
-      } else if (errorMessage.toLowerCase().includes('api key')) {
-        setError('The API key format is invalid');
-        setErrorType('apiKey');
-      } else {
-        setError('Registration failed: ' + errorMessage);
-        setErrorType('general');
-      }
+      setSubmitStatus({ 
+        type: 'error', 
+        message: err.message || 'An error occurred while creating the sub-account' 
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleFlushAuth = () => {
-    flushAllAuthData();
-    // Reset form fields
-    setEmail('');
-    setApiKey('');
-    // Show confirmation
-    setError(null);
-    setSuccess('All authentication data has been cleared. You can now create a new account.');
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-        <div>
-          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">Create your account</h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link href="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
-              sign in to your account
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-8 transform transition-all hover:shadow-2xl">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">Create New Sub-Account</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Set up your new location |{' '}
+            <Link href="/auth/login" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
+              Sign in instead
             </Link>
           </p>
         </div>
-        
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
+
+        {submitStatus.message && (
+          <div className={`p-4 rounded-lg mb-6 ${
+            submitStatus.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-700' 
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            {submitStatus.message}
           </div>
         )}
-        
-        {success && (
-          <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-green-700">{success}</p>
-              </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Business Details */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900">Business Details</h3>
+              <InputField
+                label="Sub-Account Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                error={errors.name}
+                required
+              />
+              <InputField
+                label="Phone Number"
+                name="phone"
+                type="tel"
+                placeholder="+1410039940"
+                value={formData.phone}
+                onChange={handleChange}
+                error={errors.phone}
+              />
+              <InputField
+                label="Company ID"
+                name="companyId"
+                value={formData.companyId}
+                onChange={handleChange}
+                error={errors.companyId}
+                required
+              />
             </div>
-          </div>
-        )}
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md space-y-4">
-            <div>
-              <label htmlFor="email-address" className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-              <input
-                id="email-address"
-                name="email"
+
+            {/* Prospect Details */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900">Prospect Details</h3>
+              <InputField
+                label="First Name"
+                name="prospectInfo.firstName"
+                value={formData.prospectInfo.firstName}
+                onChange={handleChange}
+                error={errors.firstName}
+                required
+              />
+              <InputField
+                label="Last Name"
+                name="prospectInfo.lastName"
+                value={formData.prospectInfo.lastName}
+                onChange={handleChange}
+                error={errors.lastName}
+                required
+              />
+              <InputField
+                label="Email"
+                name="prospectInfo.email"
                 type="email"
-                autoComplete="email"
+                value={formData.prospectInfo.email}
+                onChange={handleChange}
+                error={errors.email}
                 required
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errorType === 'email' ? 'border-red-300 ring-1 ring-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-colors`}
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
               />
-              {errorType === 'email' && (
-                <p className="mt-1 text-xs text-red-600" id="email-error">
-                  {error}
-                </p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="api-key" className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-              <input
-                id="api-key"
-                name="apiKey"
-                type="text"
-                required
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errorType === 'apiKey' ? 'border-red-300 ring-1 ring-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-colors`}
-                placeholder="Enter your GoHighLevel API Key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-              {errorType === 'apiKey' && (
-                <p className="mt-1 text-xs text-red-600" id="api-key-error">
-                  {error}
-                </p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">
-                Your GoHighLevel API key can be found in your account settings
-              </p>
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isSubmitting ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors`}
-            >
-              {isSubmitting && (
-                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                  <svg className="h-5 w-5 text-indigo-300 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </span>
-              )}
-              {isSubmitting ? 'Creating account...' : 'Create account'}
-            </button>
+          {/* Location Details */}
+          <div className="space-y-6 pt-6 border-t border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Location Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <InputField
+                label="Address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+              />
+              <InputField
+                label="City"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+              />
+              <InputField
+                label="State"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+              />
+              <SelectField
+                label="Country"
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                options={[
+                  { value: 'US', label: 'United States' },
+                  { value: 'CA', label: 'Canada' },
+                  // Add more countries as needed
+                ]}
+              />
+              <InputField
+                label="Postal Code"
+                name="postalCode"
+                value={formData.postalCode}
+                onChange={handleChange}
+              />
+              <InputField
+                label="Website"
+                name="website"
+                type="url"
+                placeholder="https://example.com"
+                value={formData.website}
+                onChange={handleChange}
+                error={errors.website}
+              />
+              <SelectField
+                label="Timezone"
+                name="timezone"
+                value={formData.timezone}
+                onChange={handleChange}
+                options={[
+                  { value: 'US/Central', label: 'US/Central' },
+                  { value: 'US/Eastern', label: 'US/Eastern' },
+                  { value: 'US/Pacific', label: 'US/Pacific' },
+                  // Add more timezones as needed
+                ]}
+              />
+            </div>
           </div>
-          
-          <div className="mt-2 text-center text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
-            <p>
-              NextProp.ai uses your GoHighLevel API key to securely access your data.
-              <br />
-              We never store your actual credentials on our servers.
-            </p>
-          </div>
-        </form>
 
-        <div className="mt-4 flex justify-center">
           <button
-            type="button"
-            onClick={handleFlushAuth}
-            className="text-sm text-red-600 hover:text-red-800 transition-colors"
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
           >
-            Flush All Auth Data (For Testing)
+            {isSubmitting && (
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            )}
+            <span>{isSubmitting ? 'Creating...' : 'Create Sub-Account'}</span>
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );
-} 
+}
+
+// Reusable Input Component
+const InputField = ({ label, name, type = 'text', value, onChange, error, required, placeholder }) => (
+  <div>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <input
+      id={name}
+      name={name}
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      required={required}
+      className={`w-full px-4 py-2 border ${
+        error ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'
+      } rounded-lg focus:outline-none focus:ring-2 transition-colors`}
+    />
+    {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+  </div>
+);
+
+// Reusable Select Component
+const SelectField = ({ label, name, value, onChange, options }) => (
+  <div>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <select
+      id={name}
+      name={name}
+      value={value}
+      onChange={onChange}
+      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+    >
+      {options.map(option => (
+        <option key={option.value} value={option.value}>{option.label}</option>
+      ))}
+    </select>
+  </div>
+);

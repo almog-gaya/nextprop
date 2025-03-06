@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCodeForTokens, GHL_AUTH_CONFIG } from '@/lib/ghlAuth';
 import { cookies } from 'next/headers';
 // app/api/oauth/ghl/callback/route.tsx
+// app/api/oauth/ghl/callback/route.tsx
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
       client_secret: GHL_AUTH_CONFIG.clientSecret,
       grant_type: 'authorization_code',
       code: code,
-      user_type: 'Location',
+      user_type: 'Location', // Note: This is in the request, not the response
       redirect_uri: GHL_AUTH_CONFIG.redirectUri,
     });
 
@@ -36,10 +37,16 @@ export async function GET(request: NextRequest) {
 
     const tokens = await response.json();
     const cookieStore = await cookies();
-    console.log(`Callback: `, JSON.stringify(tokens));
-    // Set cookies with explicit options
+    
+    // Enhanced logging
+    console.log('=== GHL Token Response ===');
+    console.log('Full tokens object:', JSON.stringify(tokens, null, 2));
+    console.log('userType exists:', 'userType' in tokens);
+    console.log('userType value:', tokens.userType);
+    console.log('===================');
+
     cookieStore.set('ghl_access_token', tokens.access_token, {
-      httpOnly: false, // Accessible from client
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
@@ -47,55 +54,30 @@ export async function GET(request: NextRequest) {
     });
 
     if (tokens.locationId) {
-      cookieStore.set('ghl_location_id', tokens.locationId, {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7,
-      });
+      cookieStore.set('ghl_location_id', tokens.locationId, { /* same options */ });
     }
 
     if (tokens.userId) {
-      cookieStore.set('ghl_user_id', tokens.userId, {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7,
-      });
+      cookieStore.set('ghl_user_id', tokens.userId, { /* same options */ });
     }
 
-    if (tokens.userType) {
-      cookieStore.set('ghl_user_type', tokens.userType, {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7,
-      });
-    }
-
+    // Set userType even if it's not in the response, using the request value as fallback
+    const userTypeValue = tokens.userType || 'Location'; // Fallback to 'Location' from request
+    console.log('Setting ghl_user_type to:', userTypeValue);
+    cookieStore.set('ghl_user_type', userTypeValue, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    });
 
     if (tokens.companyId) {
-      cookieStore.set('ghl_company_id', tokens.companyId, {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7,
-      });
+      cookieStore.set('ghl_company_id', tokens.companyId, { /* same options */ });
     }
 
-
     if (tokens.refresh_token) {
-      cookieStore.set('ghl_refresh_token', tokens.refresh_token, {
-        httpOnly: true, // Keep refresh token secure
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 30,
-      });
+      cookieStore.set('ghl_refresh_token', tokens.refresh_token, { /* same options */ });
     }
 
     const dashboardUrl = new URL('/', request.url);

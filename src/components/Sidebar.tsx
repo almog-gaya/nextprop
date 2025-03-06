@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import classNames from 'classnames';
@@ -17,7 +17,6 @@ import {
   ChevronUpIcon,
   EnvelopeIcon
 } from '@heroicons/react/24/outline';
-import Image from 'next/image';
 
 interface SidebarLinkProps {
   icon: React.ReactNode;
@@ -82,49 +81,56 @@ const SidebarDropdown = ({ icon, text, active, open, onClick, children }: Sideba
 export default function Sidebar() {
   const pathname = usePathname();
   const [pipelinesOpen, setPipelinesOpen] = useState(pathname.startsWith('/pipelines'));
-  
+  const [userType, setUserType] = useState<string | null>(null);
+
+  useEffect(() => {
+     
+    // Check if document.cookie is accessible
+    if (typeof document.cookie === 'undefined') {
+      console.error('document.cookie is undefined - possible SSR issue');
+      return;
+    }
+
+    // Split and log all cookies
+    const cookies = document.cookie.split(';');
+ 
+    // Look for our specific cookie
+    const ghlCookie = cookies.find(cookie => {
+      const trimmed = cookie.trim();
+       return trimmed.startsWith('ghl_user_type=');
+    });
+
+ 
+    if (ghlCookie) {
+      const value = ghlCookie.split('=')[1]?.trim();
+       setUserType(value);
+    } else {
+      console.log('No ghl_user_type cookie found');
+      setUserType(null);
+    } 
+  }, []);
+
   const links = [
-    { 
-      icon: <HomeIcon className="w-5 h-5" />, 
-      text: 'Dashboard', 
-      href: '/' 
-    },
-    { 
-      icon: <UserGroupIcon className="w-5 h-5" />, 
-      text: 'Contacts', 
-      href: '/contacts' 
-    },
-    { 
-      icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, 
-      text: 'Messaging', 
-      href: '/messaging-embed' 
-    },
-    { 
-      icon: <PhoneIcon className="w-5 h-5" />, 
-      text: 'Ringless Voicemails', 
-      href: '/calls' 
-    },
-    { 
-      icon: <HomeModernIcon className="w-5 h-5" />, 
-      text: 'Properties', 
-      href: '/properties' 
-    },
-    { 
-      icon: <CurrencyDollarIcon className="w-5 h-5" />, 
-      text: 'Opportunities', 
-      href: '/opportunities' 
-    },
+    { icon: <HomeIcon className="w-5 h-5" />, text: 'Dashboard', href: '/' },
+    { icon: <UserGroupIcon className="w-5 h-5" />, text: 'Contacts', href: '/contacts' },
+    { icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, text: 'Messaging', href: '/messaging-embed' },
+    { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/calls' },
+    { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
+    { icon: <CurrencyDollarIcon className="w-5 h-5" />, text: 'Opportunities', href: '/opportunities' },
   ];
 
+ 
+  if (userType === 'Company') {
+    links.push({
+      icon: <ChartBarIcon className="w-5 h-5" />,
+      text: 'Create Sub Acc',
+      href: '/auth/signup'
+    });
+  }
+
   const pipelineLinks = [
-    {
-      text: 'All Pipelines',
-      href: '/pipelines'
-    },
-    {
-      text: 'Distressed Homeowners',
-      href: '/pipelines/distressed-homeowners'
-    }
+    { text: 'All Pipelines', href: '/pipelines' },
+    { text: 'Distressed Homeowners', href: '/pipelines/distressed-homeowners' }
   ];
 
   return (
@@ -153,7 +159,8 @@ export default function Sidebar() {
           />
         ))}
         
-        {/* <SidebarDropdown
+        {/* Uncomment if you want the Pipelines dropdown back
+        <SidebarDropdown
           icon={<ChartBarIcon className="w-5 h-5" />}
           text="Pipelines"
           active={pathname.startsWith('/pipelines')}
@@ -169,14 +176,9 @@ export default function Sidebar() {
               active={pathname === link.href}
             />
           ))}
-        </SidebarDropdown> */}
-{/* 
-        <SidebarLink
-          icon={<PhoneIcon className="w-5 h-5" />}
-          text="Calls"
-          href="/calls"
-          active={pathname === '/calls'}
-        /> */}
+        </SidebarDropdown>
+        */}
+
         <SidebarLink
           icon={<EnvelopeIcon className="w-5 h-5" />}
           text="Email Campaigns"
@@ -197,4 +199,4 @@ export default function Sidebar() {
       </div>
     </div>
   );
-} 
+}
