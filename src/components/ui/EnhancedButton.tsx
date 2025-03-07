@@ -1,7 +1,6 @@
 'use client';
 
 import React, { ButtonHTMLAttributes, forwardRef } from 'react';
-import { cn } from "@/lib/utils"
 
 // Button variants
 export type ButtonVariant = 
@@ -18,7 +17,7 @@ export type ButtonVariant =
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 // Button props interface
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface EnhancedButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
@@ -29,7 +28,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+const EnhancedButton = forwardRef<HTMLButtonElement, EnhancedButtonProps>(
   (
     {
       variant = 'primary',
@@ -151,6 +150,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   }
 );
 
-Button.displayName = 'Button';
+EnhancedButton.displayName = 'EnhancedButton';
 
-export default Button; 
+export default EnhancedButton; 

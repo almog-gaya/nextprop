@@ -24,6 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';  // Change from 'next/router' to 'next/navigation'
 import { StatsCardSkeleton, TableSkeleton } from '@/components/SkeletonLoaders';
+import { NotImplementedButton, implementedFeatures } from '@/utils/ButtonStateHelper';
 
 // Pipeline types
 interface Opportunity {
@@ -910,6 +911,112 @@ export default function DashboardPage() {
     );
   };
 
+  // Replace the header buttons with NotImplementedButton where needed
+  const renderHeaderButtons = () => (
+    <div className="flex items-center space-x-3">
+      <button className="bg-white border border-gray-300 rounded p-1 text-gray-500 hover:bg-gray-50">
+        <Squares2X2Icon className={`h-5 w-5 ${viewMode === 'grid' ? 'text-purple-600' : 'text-gray-500'}`} onClick={() => setViewMode('grid')} />
+      </button>
+      <button className="bg-white border border-gray-300 rounded p-1 text-gray-500 hover:bg-gray-50">
+        <Bars4Icon className={`h-5 w-5 ${viewMode === 'list' ? 'text-purple-600' : 'text-gray-500'}`} onClick={() => setViewMode('list')} />
+      </button>
+      {implementedFeatures['import-opportunities'] ? (
+        <button className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-800 hover:bg-gray-50 flex items-center space-x-1">
+          <ArrowDownTrayIcon className="h-4 w-4" />
+          <span>Import</span>
+        </button>
+      ) : (
+        <NotImplementedButton 
+          className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-800 hover:bg-gray-50 flex items-center space-x-1"
+          icon={<ArrowDownTrayIcon className="h-4 w-4" />}
+          message="Import functionality is coming soon. This will allow you to import opportunities from CSV files."
+        >
+          <span>Import</span>
+        </NotImplementedButton>
+      )}
+      {implementedFeatures['add-opportunity'] ? (
+        <button className="bg-purple-600 text-white rounded px-3 py-2 hover:bg-purple-700 flex items-center space-x-1">
+          <PlusIcon className="h-4 w-4" />
+          <span>Add opportunity</span>
+        </button>
+      ) : (
+        <NotImplementedButton 
+          className="bg-purple-600 text-white rounded px-3 py-2 hover:bg-purple-700 flex items-center space-x-1"
+          icon={<PlusIcon className="h-4 w-4" />}
+          message="The add opportunity form is under development. You will be able to create new opportunities here soon."
+        >
+          <span>Add opportunity</span>
+        </NotImplementedButton>
+      )}
+    </div>
+  );
+
+  // Replace the filter bar buttons with NotImplementedButton where needed
+  const renderFilterBar = () => (
+    <div className="mb-4 flex justify-between items-center">
+      <div className="flex space-x-2">
+        {implementedFeatures['advanced-filters'] ? (
+          <button className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            <FunnelIcon className="h-4 w-4 mr-2" />
+            Advanced Filters
+          </button>
+        ) : (
+          <NotImplementedButton 
+            className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            icon={<FunnelIcon className="h-4 w-4 mr-2" />}
+            message="Advanced filtering is under development. You will be able to create complex filters here soon."
+          >
+            Advanced Filters
+          </NotImplementedButton>
+        )}
+        {implementedFeatures['sort-opportunities'] ? (
+          <button className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            <ArrowPathIcon className="h-4 w-4 mr-2" />
+            Sort (1)
+          </button>
+        ) : (
+          <NotImplementedButton 
+            className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            icon={<ArrowPathIcon className="h-4 w-4 mr-2" />}
+            message="Sorting functionality is under development. You will be able to sort opportunities by multiple criteria."
+          >
+            Sort (1)
+          </NotImplementedButton>
+        )}
+      </div>
+      
+      <div className="flex">
+        <div className="relative">
+          <input 
+            type="text" 
+            placeholder="Search Opportunities"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="border border-gray-300 rounded-md pl-10 pr-4 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          <div className="absolute left-3 top-2.5 text-gray-400">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+        
+        {implementedFeatures['manage-fields'] ? (
+          <button className="ml-2 bg-white border border-gray-300 rounded px-3 py-2 text-gray-500 hover:bg-gray-50">
+            Manage Fields
+          </button>
+        ) : (
+          <NotImplementedButton 
+            className="ml-2 bg-white border border-gray-300 rounded px-3 py-2 text-gray-500 hover:bg-gray-50"
+            message="Field management is under development. You will be able to customize which fields appear in your views."
+          >
+            Manage Fields
+          </NotImplementedButton>
+        )}
+      </div>
+    </div>
+  );
+
   // Loading state
   if (isLoading) {
     return (
@@ -983,273 +1090,51 @@ export default function DashboardPage() {
     <DashboardLayout title="Dashboard">
       <div className="container mx-auto px-4 py-8">
         <div className="h-full overflow-hidden flex flex-col bg-gray-50">
-          {/* Header with Pipeline Selector */}
-          <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex items-center space-x-2 font-medium text-gray-900"
-                  >
-                    <span className="text-xl">
-                      {selectedPipeline ? pipelines.find(p => p.id === selectedPipeline)?.name || 'Select Pipeline' : 'Select Pipeline'}
-                    </span>
-                    <ChevronDownIcon className="h-5 w-5 text-gray-500" />
-                  </button>
-                  
-                  {isDropdownOpen && pipelines.length > 0 && (
-                    <div className="absolute left-0 mt-2 z-20 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                      <div className="py-1">
-                        {pipelines.map(pipeline => (
-                          <button
-                            key={pipeline.id}
-                            onClick={() => handlePipelineChange(pipeline.id)}
-                            className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            {pipeline.name}
-                          </button>
-                        ))}
-                      </div>
+          {/* Header */}
+          <div className="bg-white p-3 shadow mb-4 flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <button 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 text-gray-800 hover:bg-gray-50"
+                >
+                  <span>
+                    {typeof selectedPipeline === 'object' && selectedPipeline ? 
+                      selectedPipeline.name : 
+                      pipelines.find(p => p.id === selectedPipeline as string)?.name || 'Select Pipeline'}
+                  </span>
+                  <ChevronDownIcon className="h-4 w-4" />
+                </button>
+                
+                {isDropdownOpen && (
+                  <div className="absolute left-0 mt-1 z-10 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="py-1">
+                      {pipelines.map(pipeline => (
+                        <button
+                          key={pipeline.id}
+                          onClick={() => handlePipelineChange(pipeline.id)}
+                          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          {pipeline.name}
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
-                
-                <span className="ml-3 text-purple-600 font-medium">
-                  {selectedPipeline ? 
-                    (pipelines.find(p => p.id === selectedPipeline)?.totalOpportunities || 0) + ' opportunities' :
-                    '0 opportunities'}
-                </span>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="flex border border-gray-200 rounded-md overflow-hidden">
-                  <button 
-                    className={`p-2 ${viewMode === 'grid' ? 'bg-blue-50 text-purple-600' : 'bg-white text-gray-500'}`}
-                    onClick={() => setViewMode('grid')}
-                  >
-                    <Squares2X2Icon className="h-5 w-5" />
-                  </button>
-                  <button 
-                    className={`p-2 ${viewMode === 'list' ? 'bg-blue-50 text-purple-600' : 'bg-white text-gray-500'}`}
-                    onClick={() => setViewMode('list')}
-                  >
-                    <Bars4Icon className="h-5 w-5" />
-                  </button>
-                </div>
-                
-                <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                  <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-                  Import
-                </button>
-                
-                <button 
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-blue-700"
-                  onClick={async () => {
-                    if (!apiConfigured) {
-                      setNotification({
-                        message: 'API not configured. Cannot create opportunities yet.',
-                        type: 'error'
-                      });
-                      setNotificationActive(true);
-                      return;
-                    }
-                    
-                    try {
-                      const response = await fetch('/api/opportunities/create', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application-json',
-                        },
-                        body: JSON.stringify({
-                          pipelineId: selectedPipeline,
-                          stageId: 'voice-drop-sent'
-                        }),
-                      });
-                      
-                      if (response.ok) {
-                        const newOpportunity = await response.json();
-                        if (newOpportunity) {
-                          handleCommunication(newOpportunity.id, 'voicemail');
-                        }
-                      } else {
-                        setNotification({
-                          message: 'Failed to create opportunity. Please try again.',
-                          type: 'error'
-                        });
-                        setNotificationActive(true);
-                      }
-                    } catch (err) {
-                      console.error('Error creating opportunity:', err);
-                      setNotification({
-                        message: 'Failed to create opportunity. Please try again.',
-                        type: 'error'
-                      });
-                      setNotificationActive(true);
-                    }
-                  }}
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Add opportunity
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Search and Filters */}
-          <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center">
-              <div className="flex space-x-3">
-                <button
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                  onClick={() => setIsFilterModalOpen(true)}
-                >
-                  <FunnelIcon className="h-4 w-4 mr-2 text-gray-500" />
-                  Advanced Filters
-                  {Object.values(filters).some(val => 
-                    Array.isArray(val) ? val.length > 0 : 
-                    typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
-                    val !== ''
-                  ) && (
-                    <span className="ml-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {Object.values(filters).reduce((acc, val) => {
-                        if (Array.isArray(val)) return acc + (val.length > 0 ? 1 : 0);
-                        if (typeof val === 'object') {
-                          return acc + (Object.values(val).some(v => v !== '') ? 1 : 0);
-                        }
-                        return acc + (val !== '' ? 1 : 0);
-                      }, 0)}
-                    </span>
-                  )}
-                </button>
-                <button
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                  onClick={() => setIsSortModalOpen(true)}
-                >
-                  <ArrowPathIcon className="h-4 w-4 mr-2 text-gray-500" />
-                  Sort
-                  {sortConfig && (
-                    <span className="ml-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      1
-                    </span>
-                  )}
-                </button>
-              </div>
-              
-              <div className="flex space-x-3">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Search Opportunities"
-                    className="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                
-                <div className="flex border border-gray-300 rounded-md overflow-hidden">
-                  <button
-                    className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-gray-100 text-gray-800' : 'bg-white text-gray-500'}`}
-                    onClick={() => setViewMode('grid')}
-                  >
-                    <Squares2X2Icon className="h-5 w-5" />
-                  </button>
-                  <button
-                    className={`px-3 py-2 ${viewMode === 'list' ? 'bg-gray-100 text-gray-800' : 'bg-white text-gray-500'}`}
-                    onClick={() => setViewMode('list')}
-                  >
-                    <Bars4Icon className="h-5 w-5" />
-                  </button>
-                </div>
+                )}
               </div>
+              
+              <span className="text-purple-600 text-sm">
+                {typeof selectedPipeline === 'object' && selectedPipeline ? 
+                  selectedPipeline.totalOpportunities : 
+                  pipelines.find(p => p.id === selectedPipeline as string)?.totalOpportunities || 0} opportunities
+              </span>
             </div>
+            
+            {renderHeaderButtons()}
           </div>
           
-          {/* Active filters display */}
-          {(Object.values(filters).some(val => 
-            Array.isArray(val) ? val.length > 0 : 
-            typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
-            val !== ''
-          ) || searchTerm) && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {searchTerm && (
-                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
-                  <span>Search: {searchTerm}</span>
-                  <button 
-                    className="ml-2 text-blue-500 hover:text-blue-700"
-                    onClick={() => setSearchTerm('')}
-                  >
-                    <XMarkIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              
-              {filters.value.min && (
-                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
-                  <span>Min Value: ${filters.value.min}</span>
-                  <button 
-                    className="ml-2 text-blue-500 hover:text-blue-700"
-                    onClick={() => setFilters({...filters, value: {...filters.value, min: ''}})}
-                  >
-                    <XMarkIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              
-              {filters.value.max && (
-                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
-                  <span>Max Value: ${filters.value.max}</span>
-                  <button 
-                    className="ml-2 text-blue-500 hover:text-blue-700"
-                    onClick={() => setFilters({...filters, value: {...filters.value, max: ''}})}
-                  >
-                    <XMarkIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              
-              {filters.lastActivityType.map(type => (
-                <div key={type} className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
-                  <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
-                  <button 
-                    className="ml-2 text-blue-500 hover:text-blue-700"
-                    onClick={() => setFilters({
-                      ...filters, 
-                      lastActivityType: filters.lastActivityType.filter(t => t !== type)
-                    })}
-                  >
-                    <XMarkIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              
-              {(Object.values(filters).some(val => 
-                Array.isArray(val) ? val.length > 0 : 
-                typeof val === 'object' ? Object.values(val).some(v => v !== '') : 
-                val !== ''
-              ) || searchTerm) && (
-                <button 
-                  className="text-sm text-gray-600 hover:text-gray-800 underline"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setFilters({
-                      value: { min: '', max: '' },
-                      source: [],
-                      lastActivityType: [],
-                      dateRange: { start: '', end: '' }
-                    });
-                    setSortConfig(null);
-                  }}
-                >
-                  Clear all filters
-                </button>
-              )}
-            </div>
-          )}
+          {/* Filter Bar */}
+          {renderFilterBar()}
           
           {/* Pipeline Grid */}
           <div className="flex-1 overflow-auto">
