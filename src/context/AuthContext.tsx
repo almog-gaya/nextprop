@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initAuth = async () => {
       try {
         // Try to get auth data from cookies first
-        const token = Cookies.get('nextprop_token');
+        const token = Cookies.get('ghl_access_token');
         const storedUser = localStorage.getItem('nextprop_user');
         
         if (token && storedUser) {
