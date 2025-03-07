@@ -699,12 +699,17 @@ export default function MessagingEmbedPage() {
     }
   };
 
+  const getActiveConversationContactId = () => {
+    const activeConversation = conversations.find(conv => conv.id === activeConversationId);
+    return activeConversation?.contactId || null;
+  };
   // Update handleSendMessage to also update the conversation preview immediately
   const handleSendMessage = async (text: string, callback?: (success: boolean) => void) => {
-    if (!activeConversationId || !text) {
+     if (!activeConversationId || !text) {
       callback?.(false);
       return;
     }
+
 
     try {
       // Optimistically add message to UI immediately
@@ -744,13 +749,16 @@ export default function MessagingEmbedPage() {
         return updatedConversations;
       });
 
+      const contactId = getActiveConversationContactId();
+
+
       // Make API call to send message
       const response = await fetch(`/api/conversations/${activeConversationId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text , contactId}),
       });
 
       const data = await response.json();

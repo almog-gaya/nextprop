@@ -126,8 +126,11 @@ const sendMessage = async (conversationId: string, text: string, contactId?: str
         type: "SMS",
         message: text,
         conversationId: conversationId,
-        contactId: contactId
+        contactId: contactId,
+        conversationProviderId: 'twilio_provider'
     };
+
+    console.log(`[SendMessage] : `, JSON.stringify(messageData))
     
     try {
         const options = {

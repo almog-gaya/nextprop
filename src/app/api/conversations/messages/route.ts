@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         fromNumber,
         toNumber
     } = await request.json();
-    const data = await fetchWithErrorHandling(() => getMockMessagesByConversationId(
+    const data = await fetchWithErrorHandling(() => SendMessage(
         type,
         contactId,
         appointmentId,
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
 }
 
-const getMockMessagesByConversationId = async (
+const SendMessage = async (
     type: string,
     contactId: string,
     appointmentId: string,
@@ -72,7 +72,7 @@ const getMockMessagesByConversationId = async (
     toNumber: string
 ) => {
   
-    const url = 'URL_ADDRESSlight.io/mocks/highlevel/integrations/39582856/conversations/messages';
+    const url = 'https://services.leadconnectorhq.com/conversations/messages';
     const options = {
         method: 'POST',
         headers: {
