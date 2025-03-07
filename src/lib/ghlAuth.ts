@@ -104,12 +104,16 @@ export const SCOPES = [
 // Check if running in production (either via NODE_ENV or Netlify-specific env vars)
 const isProduction = process.env.NODE_ENV === 'production' || process.env.NETLIFY === 'true';
 
+// Get redirect URI from environment variables if available
+const redirectUri = process.env.NEXT_PUBLIC_GHL_REDIRECT_URI || 
+  (isProduction 
+    ? 'https://nextpropai.com/api/auth/callback'
+    : 'http://localhost:3000/api/auth/callback');
+
 export const GHL_AUTH_CONFIG = {
   clientId: process.env.NEXT_PUBLIC_GHL_CLIENT_ID || '67c7e02f74be2556d96030df-m7wwc9vn',
   clientSecret: process.env.GHL_CLIENT_SECRET || '6736b036-6551-4faa-b71a-ce53d365085e',
-  redirectUri: isProduction
-    ? 'https://nextpropai.com/api/auth/callback'
-    : 'http://localhost:3000/api/auth/callback',
+  redirectUri: redirectUri,
   baseUrl: 'https://marketplace.gohighlevel.com',
   tokenUrl: 'https://services.leadconnectorhq.com/oauth/token'
 };

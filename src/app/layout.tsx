@@ -38,8 +38,8 @@ export default function RootLayout({
                 mutations.forEach(function(mutation) {
                   if (mutation.attributeName === 'class') {
                     const element = mutation.target;
-                    if (element.tagName === 'HTML' && element.classList.contains('hentry')) {
-                      element.classList.remove('hentry');
+                    if (element.tagName === 'HTML' && element.classList.contains('entry')) {
+                      element.classList.remove('entry');
                     }
                     if (element.tagName === 'BODY' && element.classList.contains('entry-content')) {
                       element.classList.remove('entry-content');
