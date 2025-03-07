@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     const tokens = await response.json();
     const cookieStore = await cookies();
-    
+
     // Enhanced logging
     console.log('=== GHL Token Response ===');
     console.log('Full tokens object:', JSON.stringify(tokens, null, 2));
@@ -80,9 +80,13 @@ export async function GET(request: NextRequest) {
       cookieStore.set('ghl_refresh_token', tokens.refresh_token, { /* same options */ });
     }
 
-    const dashboardUrl = new URL('/', request.url);
+    // const dashboardUrl = new URL('/', request.url);
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://nextpropai.com';
+    const dashboardUrl = new URL('/', baseUrl);
     dashboardUrl.searchParams.set('auth', 'success');
     return NextResponse.redirect(dashboardUrl);
+    // dashboardUrl.searchParams.set('auth', 'success');
+    // return NextResponse.redirect(dashboardUrl);
   } catch (error) {
     console.error('OAuth callback error:', error);
     const errorUrl = new URL('/auth/login', request.url);
