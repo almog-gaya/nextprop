@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { OpportunityListSkeleton } from '@/components/SkeletonLoaders';
 import axios from 'axios';
 import { Pipeline, Opportunity } from '@/types';
@@ -47,19 +47,68 @@ const OpportunitiesTab: React.FC<{
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // Validate required fields
+        if (!formData.contactId) {
+            setError("Please select a contact before creating an opportunity");
+            return;
+        }
+        
         setIsSubmitting(true);
         try {
+            // Add debug log for form data
+            console.log("Form data being submitted:", JSON.stringify(formData, null, 2));
+            
             const response = await axios.post('/api/opportunities', formData);
             setIsModalOpen(false);
             
-            console.log(`Received Data`, response.data.opportunity)
+            console.log(`Received Data:`, response.data.opportunity);
+            
+            // Option 1: Add to local state
             const newOpportunity = response.data?.opportunity;
-            setOpportunities(prevOpportunities => [...prevOpportunities, newOpportunity]);
+            if (newOpportunity) {
+                // Make sure all required fields exist to prevent rendering errors
+                const formattedOpportunity = {
+                    id: newOpportunity.id || `temp-${Date.now()}`,
+                    name: newOpportunity.name || formData.name || 'New Opportunity',
+                    monetaryValue: newOpportunity.monetaryValue || formData.monetaryValue || 0,
+                    status: newOpportunity.status || formData.status || 'open',
+                    pipelineId: newOpportunity.pipelineId || formData.pipelineId,
+                    stageId: newOpportunity.pipelineStageId || formData.pipelineStageId, // Ensure stageId is set
+                    createdAt: newOpportunity.createdAt || new Date().toISOString(),
+                    contact: newOpportunity.contact || { id: formData.contactId, name: 'Contact' }
+                };
+                
+                console.log("Formatted opportunity to add:", formattedOpportunity);
+                setOpportunities(prevOpportunities => {
+                    console.log("Current opportunities count:", prevOpportunities?.length || 0);
+                    return [...(prevOpportunities || []), formattedOpportunity];
+                });
+                
+                // Option 2: Refresh data from server
+                if (selectedPipelineId) {
+                    setIsLoading(true);
+                    try {
+                        console.log("Refreshing data from pipeline:", selectedPipelineId);
+                        const refreshResponse = await axios.get(`/api/pipelines/${selectedPipelineId}/opportunities`);
+                        console.log("Refresh response:", refreshResponse.data);
+                        if (refreshResponse.data && Array.isArray(refreshResponse.data.opportunities)) {
+                            console.log("Refresh found opportunities:", refreshResponse.data.opportunities.length);
+                            setOpportunities(refreshResponse.data.opportunities || []);
+                        }
+                    } catch (refreshErr) {
+                        console.error('Failed to refresh opportunities:', refreshErr);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                }
+            }
             
             setError(null);
             resetForm();
         } catch (err: any) {
-            setError(err.message || 'Failed to create opportunity');
+            console.error('Error creating opportunity:', err);
+            setError(err.response?.data?.message || err.message || 'Failed to create opportunity');
         } finally {
             setIsSubmitting(false);
         }
@@ -173,6 +222,12 @@ const OpportunitiesTab: React.FC<{
     const selectedPipeline = pipelines.find(p => p.id === formData.pipelineId);
     const stages = selectedPipeline?.stages || [];
 
+    useEffect(() => {
+        // Debug log for opportunities
+        console.log("Current opportunities:", opportunities);
+        console.log("Selected pipeline:", selectedPipelineId);
+    }, [opportunities, selectedPipelineId]);
+
     if (isLoading) return <OpportunityListSkeleton />;
 
     return (
@@ -224,12 +279,18 @@ const OpportunitiesTab: React.FC<{
                                     <h4 className="text-lg font-medium text-gray-800 mb-3 border-b border-gray-200 pb-2">Contact Details</h4>
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Contact Name *</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Primary Contact Name <span className="text-red-600">*</span>
+                                                {!formData.contactId && (
+                                                    <span className="text-red-500 text-xs ml-1">(required)</span>
+                                                )}
+                                            </label>
                                             <select
                                                 value={formData.contactId}
                                                 onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
-                                                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className={`w-full border ${!formData.contactId ? 'border-red-300' : 'border-gray-200'} rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                                 disabled={isSubmitting}
+                                                required
                                             >
                                                 <option value="">Select Contact</option>
                                                 {contacts.map(contact => (
@@ -238,6 +299,9 @@ const OpportunitiesTab: React.FC<{
                                                     </option>
                                                 ))}
                                             </select>
+                                            {!formData.contactId && (
+                                                <p className="mt-1 text-sm text-red-600">A contact is required to create an opportunity</p>
+                                            )}
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
@@ -357,21 +421,33 @@ const OpportunitiesTab: React.FC<{
                                     </div>
                                 </div>
                             </div>
-                            <div className="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                            <div className="mt-8 flex items-center justify-end space-x-3">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition-colors"
                                     disabled={isSubmitting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                                    disabled={isSubmitting}
+                                    className={`px-4 py-2 rounded text-white transition-colors ${
+                                        !formData.contactId 
+                                            ? 'bg-gray-400 cursor-not-allowed' 
+                                            : 'bg-purple-600 hover:bg-blue-700'
+                                    }`}
+                                    disabled={isSubmitting || !formData.contactId}
                                 >
-                                    {isSubmitting ? 'Creating...' : 'Create Opportunity'}
+                                    {isSubmitting ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Creating...
+                                        </>
+                                    ) : 'Create Opportunity'}
                                 </button>
                             </div>
                         </form>
@@ -602,48 +678,56 @@ const OpportunitiesTab: React.FC<{
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stage</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {opportunities.map((opportunity) => (
-                                    <tr key={opportunity.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">{opportunity.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            ${opportunity.monetaryValue.toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs rounded-full ${opportunity.status === 'open' ? 'bg-green-100 text-green-800' :
-                                                opportunity.status === 'won' ? 'bg-blue-100 text-blue-800' :
-                                                    opportunity.status === 'lost' ? 'bg-red-100 text-red-800' :
-                                                        'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                {opportunity.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {opportunity.contact?.name || 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {new Date(opportunity.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button
-                                                onClick={() => handleEdit(opportunity)}
-                                                className="text-purple-600 hover:text-blue-900 mr-3"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(opportunity)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {console.log("Rendering opportunities table with count:", opportunities.length)}
+                                {opportunities.map((opportunity, index) => {
+                                    console.log(`Rendering opportunity ${index}:`, opportunity);
+                                    return opportunity ? (
+                                        <tr key={opportunity.id || `unknown-${index}`}>
+                                            <td className="px-6 py-4 whitespace-nowrap">{opportunity?.name || 'Unnamed'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                ${opportunity?.monetaryValue ? opportunity.monetaryValue.toLocaleString() : '0'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2 py-1 text-xs rounded-full ${opportunity?.status === 'open' ? 'bg-green-100 text-green-800' :
+                                                    opportunity?.status === 'won' ? 'bg-blue-100 text-blue-800' :
+                                                        opportunity?.status === 'lost' ? 'bg-red-100 text-red-800' :
+                                                            'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                    {opportunity?.status || 'Unknown'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {opportunity?.contact?.name || 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {opportunity?.stageId || opportunity?.pipelineStageId || 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {opportunity?.createdAt ? new Date(opportunity.createdAt).toLocaleDateString() : 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button
+                                                    onClick={() => opportunity && handleEdit(opportunity)}
+                                                    className="text-purple-600 hover:text-blue-900 mr-3"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => opportunity && handleDelete(opportunity)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ) : null;
+                                })}
                             </tbody>
                         </table>
                     </div>

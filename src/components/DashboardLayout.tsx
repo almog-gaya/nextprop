@@ -26,9 +26,9 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
     <div className="min-h-screen flex bg-gray-50">
       <Sidebar />
       
-      <div className="ml-64 flex-1 flex flex-col">
+      <div className="min-h-screen ml-64 flex-1 flex flex-col">
         <Header title={title} />
-        <main className="flex-1 p-2"> 
+        <main className="flex-1"> 
           {children}
         </main>
       </div>

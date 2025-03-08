@@ -1255,28 +1255,33 @@ export default function DashboardPage() {
           <div className="flex-1 overflow-auto">
             <div className="px-4 py-6 sm:px-6 lg:px-8">
               {viewMode === 'grid' ? (
-                // Grid view
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                  {opportunities.map(stage => (
-                    <div key={stage.id} className="bg-white rounded-md shadow-sm border border-gray-200">
-                      <div className="p-3 border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="font-medium text-gray-900">{stage.name}</h3>
-                        <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                          {getProcessedOpportunities(stage.id).length}
-                        </span>
+                // Grid view - now horizontally scrollable
+                <div className="overflow-x-auto pb-4">
+                  <div className="flex space-x-4 min-w-max">
+                    {opportunities.map(stage => (
+                      <div 
+                        key={stage.id} 
+                        className="bg-white rounded-md shadow-sm border border-gray-200 w-80 flex-shrink-0"
+                      >
+                        <div className="p-3 border-b border-gray-200 flex justify-between items-center">
+                          <h3 className="font-medium text-gray-900">{stage.name}</h3>
+                          <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                            {getProcessedOpportunities(stage.id).length}
+                          </span>
+                        </div>
+                        <div className="p-2 overflow-y-auto max-h-[calc(100vh-300px)] custom-scrollbar">
+                          {getProcessedOpportunities(stage.id).map(opportunity => (
+                            <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+                          ))}
+                          {getProcessedOpportunities(stage.id).length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                              <p>No opportunities in this stage</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="p-2 overflow-y-auto max-h-[calc(100vh-300px)] custom-scrollbar">
-                        {getProcessedOpportunities(stage.id).map(opportunity => (
-                          <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-                        ))}
-                        {getProcessedOpportunities(stage.id).length === 0 && (
-                          <div className="text-center py-8 text-gray-500">
-                            <p>No opportunities in this stage</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ) : (
                 // List view
