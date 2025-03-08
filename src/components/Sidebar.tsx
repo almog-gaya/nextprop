@@ -15,7 +15,8 @@ import {
   ChatBubbleLeftRightIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarLinkProps {
@@ -117,6 +118,7 @@ export default function Sidebar() {
     { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/calls' },
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
     { icon: <CurrencyDollarIcon className="w-5 h-5" />, text: 'Opportunities', href: '/opportunities' },
+    { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' },
   ];
 
  
