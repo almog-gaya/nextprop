@@ -119,10 +119,10 @@ export const GHL_AUTH_CONFIG = {
 };
 
 // Debug environment
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('NETLIFY:', process.env.NETLIFY);
-console.log('Is Production:', isProduction);
-console.log('Redirect URI being used:', GHL_AUTH_CONFIG.redirectUri);
+// console.log('NODE_ENV:', process.env.NODE_ENV);
+// console.log('NETLIFY:', process.env.NETLIFY);
+// console.log('Is Production:', isProduction);
+// console.log('Redirect URI being used:', GHL_AUTH_CONFIG.redirectUri);
 
 export function getAuthUrl() {
   const params = new URLSearchParams({

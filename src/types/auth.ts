@@ -32,3 +32,23 @@ export interface AuthResponse {
   user: User;
   token: string;
 } 
+
+
+/// Acutual API types - GHL
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  locationId?: string;
+  userId?: string;
+  companyId?: string;
+  userType?: string;
+}
+
+export interface CookieOptions {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'lax' | 'strict' | 'none';
+  path: string;
+  maxAge: number;
+}

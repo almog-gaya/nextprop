@@ -1,59 +1,101 @@
+// middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { clearAuthCookies, isTokenExpired, refreshAccessToken, setAuthCookies } from '@/utils/authUtils';
+import { cookies } from 'next/headers';
 
-// Define which routes are public (don't require auth)
-const publicRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password'];
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  log(`[Middleware] Processing request for: ${pathname}`);
 
-export function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname;
-  
-  // Define paths that don't require authentication
-  const publicPaths = [
-    '/auth/login',
-    '/auth/signup',
-    '/api/health',
-    '/api/auth/ghl/callback',
-    '/api/auth',
-    '/oauth/callback',  // Add the OAuth callback route
-    '/oauth/chooselocation'  // Add the location selection route
-  ];
-  
-  // Check if the path is public
-  const isPublicPath = publicPaths.some(publicPath => 
-    path === publicPath || 
-    path.startsWith(publicPath + '/') ||
-    path.startsWith('/_next/') ||
-    path.includes('favicon.ico')
-  );
-  
-  // Get the tokens from cookies
-  const ghlToken = request.cookies.get('ghl_access_token')?.value;
-  
-  // Allow OAuth flow to proceed without redirects
-  if (path.startsWith('/oauth/')) {
+  const isApiRoute = pathname.startsWith('/api/');
+  if (!isApiRoute) {
+    log('[Middleware] Not an API route, skipping');
     return NextResponse.next();
   }
-  
-  // If it's a protected path and there's no valid token, redirect to login
-  if (!isPublicPath && !ghlToken) {
-    if (path.startsWith('/api/')) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Authentication required' }),
-        { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-    
-    // For regular routes, redirect to login
-    const url = new URL('/auth/login', request.url);
-    url.searchParams.set('from', path);
-    return NextResponse.redirect(url);
+
+  const isAuthRoute = pathname.startsWith('/api/auth/');
+  if (isAuthRoute) {
+    log('[Middleware] Auth route detected, skipping auth check');
+    return NextResponse.next();
   }
-  
+
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('ghl_access_token')?.value;
+  const refreshToken = cookieStore.get('ghl_refresh_token')?.value;
+  const tokenTimestamp = cookieStore.get('ghl_token_timestamp')?.value;
+
+  // console.log('[Middleware] Cookies - Access Token:', accessToken ? 'exists' : 'missing');
+  // console.log('[Middleware] Cookies - Refresh Token:', refreshToken ? 'exists' : 'missing');
+  // console.log('[Middleware] Cookies - Timestamp:', tokenTimestamp);
+
+  // If no access token, redirect immediately
+  if (!accessToken) {
+    log('[Middleware] No access token, redirecting to login');
+    clearAuthCookies(cookieStore);
+    return NextResponse.redirect(new URL('/auth/login', request.url));
+  }
+
+  // If timestamp is missing or token is expired, attempt refresh or redirect
+  if (!tokenTimestamp || isTokenExpired(tokenTimestamp)) {
+    if (!refreshToken) {
+      log('[Middleware] Token expired/missing timestamp and no refresh token, redirecting');
+      clearAuthCookies(cookieStore);
+      return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
+
+    try {
+      log('[Middleware] Attempting token refresh');
+      const newTokens = await refreshAccessToken(refreshToken);
+      log('[Middleware] Token refresh successful');
+      setAuthCookies(cookieStore, newTokens);
+
+      const response = NextResponse.next();
+      response.cookies.set('ghl_access_token', newTokens.access_token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 12,
+      });
+      response.cookies.set('ghl_token_timestamp', Date.now().toString(), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 12,
+      });
+      if (newTokens.refresh_token) {
+        response.cookies.set('ghl_refresh_token', newTokens.refresh_token, {
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60 * 12,
+        });
+      }
+      return response;
+    } catch (error) {
+      logError(`Token refresh failed: ${error}`);
+      clearAuthCookies(cookieStore);
+      log('[Middleware] Redirecting to login due to refresh failure');
+      return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
+  }
+
+  log('Token is valid, proceeding with request');
   return NextResponse.next();
 }
 
+const log = (mesage: any) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[Middleware] ${mesage}`)
+  }
+}
+const logError = (mesage: any) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`[Middleware] ${mesage}`)
+  }
+}
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
+  matcher: '/api/:path*',
 };
