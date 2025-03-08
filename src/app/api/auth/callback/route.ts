@@ -80,6 +80,15 @@ export async function GET(request: NextRequest) {
       cookieStore.set('ghl_refresh_token', tokens.refresh_token, { /* same options */ });
     }
 
+    // Add a timestamp cookie to track when the tokens were issued
+    cookieStore.set('ghl_token_timestamp', Date.now().toString(), {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
     // const dashboardUrl = new URL('/', request.url);
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://nextpropai.com';
     const dashboardUrl = new URL('/', baseUrl);
