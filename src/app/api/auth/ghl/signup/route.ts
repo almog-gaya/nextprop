@@ -79,7 +79,7 @@ const createSubAccount = async (data: any) => {
   }
 }
 
-const createUser = async (locationId: string, password: string, data: any, retries = 3, delay = 1000) => {
+const createUser = async (locationId: string, password: string, data: any, retries = 5, delay = 1000) => {
   try {
     const agencyToken = process.env.AGENCY_API_KEY;
     if (!agencyToken) {
