@@ -1,106 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { exchangeCodeForTokens, GHL_AUTH_CONFIG } from '@/lib/ghlAuth';
-import { cookies } from 'next/headers';
-// app/api/oauth/ghl/callback/route.tsx
-// app/api/oauth/ghl/callback/route.tsx
+import { exchangeCodeForTokens, getRedirectUrl, logTokenResponse, setAuthCookies } from "@/utils/authUtils";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const code = searchParams.get('code');
+    const code = request.nextUrl.searchParams.get('code');
 
     if (!code) {
-      return NextResponse.redirect(new URL('/auth/login?error=no_code', request.url));
+      return NextResponse.redirect(
+        getRedirectUrl(request.url, false, new Error('no_code'))
+      );
     }
 
-    const data = new URLSearchParams({
-      client_id: GHL_AUTH_CONFIG.clientId,
-      client_secret: GHL_AUTH_CONFIG.clientSecret,
-      grant_type: 'authorization_code',
-      code: code,
-      user_type: 'Location', // Note: This is in the request, not the response
-      redirect_uri: GHL_AUTH_CONFIG.redirectUri,
-    });
+    const tokens = await exchangeCodeForTokens(code);
+    logTokenResponse(tokens);
 
-    const response = await fetch(GHL_AUTH_CONFIG.tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: data,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to exchange code for tokens');
-    }
-
-    const tokens = await response.json();
     const cookieStore = await cookies();
+    setAuthCookies(cookieStore, tokens);
 
-    // Enhanced logging
-    console.log('=== GHL Token Response ===');
-    console.log('Full tokens object:', JSON.stringify(tokens, null, 2));
-    console.log('userType exists:', 'userType' in tokens);
-    console.log('userType value:', tokens.userType);
-    console.log('===================');
-
-    cookieStore.set('ghl_access_token', tokens.access_token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
-    if (tokens.locationId) {
-      cookieStore.set('ghl_location_id', tokens.locationId, { /* same options */ });
-    }
-
-    if (tokens.userId) {
-      cookieStore.set('ghl_user_id', tokens.userId, { /* same options */ });
-    }
-
-    // Set userType even if it's not in the response, using the request value as fallback
-    const userTypeValue = tokens.userType || 'Location'; // Fallback to 'Location' from request
-    console.log('Setting ghl_user_type to:', userTypeValue);
-    cookieStore.set('ghl_user_type', userTypeValue, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
-    if (tokens.companyId) {
-      cookieStore.set('ghl_company_id', tokens.companyId, { /* same options */ });
-    }
-
-    if (tokens.refresh_token) {
-      cookieStore.set('ghl_refresh_token', tokens.refresh_token, { /* same options */ });
-    }
-
-    // Add a timestamp cookie to track when the tokens were issued
-    cookieStore.set('ghl_token_timestamp', Date.now().toString(), {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
-
-    // const dashboardUrl = new URL('/', request.url);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://nextpropai.com';
-    const dashboardUrl = new URL('/', baseUrl);
-    dashboardUrl.searchParams.set('auth', 'success');
-    return NextResponse.redirect(dashboardUrl);
-    // dashboardUrl.searchParams.set('auth', 'success');
-    // return NextResponse.redirect(dashboardUrl);
+    return NextResponse.redirect(getRedirectUrl(request.url, true));
   } catch (error) {
     console.error('OAuth callback error:', error);
-    const errorUrl = new URL('/auth/login', request.url);
-    errorUrl.searchParams.set('error', 'auth_failed');
-    errorUrl.searchParams.set('message', (error as Error).message);
-    return NextResponse.redirect(errorUrl);
+    return NextResponse.redirect(
+      getRedirectUrl(request.url, false, error as Error)
+    );
   }
 }

@@ -1,106 +1,101 @@
+// middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { clearAuthCookies, isTokenExpired, refreshAccessToken, setAuthCookies } from '@/utils/authUtils';
+import { cookies } from 'next/headers';
 
-// Define which routes are public (don't require auth)
-const publicRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password'];
-
-// This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
-  // Skip middleware for non-API routes or auth routes to prevent infinite loops
-  const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/api/auth/') || 
-                      request.nextUrl.pathname.startsWith('/auth/');
-  
-  // Don't run this middleware for auth-related routes to avoid loops
-  if (!isApiRoute || isAuthRoute) {
+  const pathname = request.nextUrl.pathname;
+  log(`[Middleware] Processing request for: ${pathname}`);
+
+  const isApiRoute = pathname.startsWith('/api/');
+  if (!isApiRoute) {
+    log('[Middleware] Not an API route, skipping');
     return NextResponse.next();
   }
 
-  const accessToken = request.cookies.get('ghl_access_token')?.value;
-  
-  // If no access token, allow the request to fail naturally
+  const isAuthRoute = pathname.startsWith('/api/auth/');
+  if (isAuthRoute) {
+    log('[Middleware] Auth route detected, skipping auth check');
+    return NextResponse.next();
+  }
+
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('ghl_access_token')?.value;
+  const refreshToken = cookieStore.get('ghl_refresh_token')?.value;
+  const tokenTimestamp = cookieStore.get('ghl_token_timestamp')?.value;
+
+  // console.log('[Middleware] Cookies - Access Token:', accessToken ? 'exists' : 'missing');
+  // console.log('[Middleware] Cookies - Refresh Token:', refreshToken ? 'exists' : 'missing');
+  // console.log('[Middleware] Cookies - Timestamp:', tokenTimestamp);
+
+  // If no access token, redirect immediately
   if (!accessToken) {
-    return NextResponse.next();
+    log('[Middleware] No access token, redirecting to login');
+    clearAuthCookies(cookieStore);
+    return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
-  // Calculate if the token needs refreshing (we'll assume it's needed if it exists but may be old)
-  // You can implement more sophisticated logic if you can decode the JWT to check actual expiry
-  const needsRefresh = shouldRefreshToken(request.cookies);
-  
-  if (needsRefresh) {
+  // If timestamp is missing or token is expired, attempt refresh or redirect
+  if (!tokenTimestamp || isTokenExpired(tokenTimestamp)) {
+    if (!refreshToken) {
+      log('[Middleware] Token expired/missing timestamp and no refresh token, redirecting');
+      clearAuthCookies(cookieStore);
+      return NextResponse.redirect(new URL('/auth/login', request.url));
+    }
+
     try {
-      // Call our refresh endpoint
-      const refreshUrl = new URL('/api/auth/refresh', request.url);
-      const refreshResponse = await fetch(refreshUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: request.headers.get('cookie') || '',
-        },
+      log('[Middleware] Attempting token refresh');
+      const newTokens = await refreshAccessToken(refreshToken);
+      log('[Middleware] Token refresh successful');
+      setAuthCookies(cookieStore, newTokens);
+
+      const response = NextResponse.next();
+      response.cookies.set('ghl_access_token', newTokens.access_token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 12,
       });
-
-      if (!refreshResponse.ok) {
-        console.error('Failed to refresh token in middleware');
-        
-        // If refresh fails on a data API, redirect to login
-        if (isApiDataRoute(request)) {
-          return NextResponse.redirect(new URL('/auth/login', request.url));
-        }
-        
-        // For other API routes, let the request proceed (will likely fail with auth errors)
-        return NextResponse.next();
+      response.cookies.set('ghl_token_timestamp', Date.now().toString(), {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 12,
+      });
+      if (newTokens.refresh_token) {
+        response.cookies.set('ghl_refresh_token', newTokens.refresh_token, {
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60 * 12,
+        });
       }
-
-      // Get cookies from refresh response
-      const refreshData = await refreshResponse.json();
-      console.log('Token refreshed successfully in middleware');
-      
-      // The response already has set cookies in our refresh endpoint,
-      // so we can just proceed with the original request
-      return NextResponse.next();
+      return response;
     } catch (error) {
-      console.error('Error in token refresh middleware:', error);
-      return NextResponse.next();
+      logError(`Token refresh failed: ${error}`);
+      clearAuthCookies(cookieStore);
+      log('[Middleware] Redirecting to login due to refresh failure');
+      return NextResponse.redirect(new URL('/auth/login', request.url));
     }
   }
 
-  // No refresh needed, continue
+  log('Token is valid, proceeding with request');
   return NextResponse.next();
 }
 
-// Only run the middleware for API routes
+const log = (mesage: any) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[Middleware] ${mesage}`)
+  }
+}
+const logError = (mesage: any) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`[Middleware] ${mesage}`)
+  }
+}
 export const config = {
   matcher: '/api/:path*',
 };
-
-// Helper function to determine if a token needs refreshing
-function shouldRefreshToken(cookies: any): boolean {
-  // This is a simplistic check. In a real app, you might:
-  // 1. Decode the JWT and check its expiration
-  // 2. Refresh when within 1 hour of expiry
-  
-  // Get the timestamp when the token was last refreshed (if we track it)
-  const tokenTimestamp = cookies.get('ghl_token_timestamp')?.value;
-  
-  if (!tokenTimestamp) {
-    // No timestamp, assume we need to refresh
-    return true;
-  }
-  
-  const tokenAge = Date.now() - parseInt(tokenTimestamp);
-  // Refresh if token is older than 23 hours
-  return tokenAge > 23 * 60 * 60 * 1000;
-}
-
-// Helper function to check if this is a data API route that should redirect to login on auth failure
-function isApiDataRoute(request: NextRequest): boolean {
-  // Define which API routes should redirect to login if auth fails
-  const dataRoutes = [
-    '/api/contacts',
-    '/api/opportunities',
-    '/api/pipelines',
-    '/api/locations',
-    '/api/conversations',
-  ];
-  
-  return dataRoutes.some(route => request.nextUrl.pathname.startsWith(route));
-}

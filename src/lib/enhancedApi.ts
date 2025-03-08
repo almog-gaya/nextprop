@@ -1,3 +1,4 @@
+import { refreshAccessToken, setAuthCookies, shouldRefreshToken } from '@/utils/authUtils';
 import axios from 'axios';
 import { cookies } from 'next/headers';
 
@@ -442,16 +443,58 @@ export async function deleteContact(contactId: string) {
   return response.data;
 }
 
-const getAuthHeaders = async () => {
+ const getAuthHeaders = async () => {
   const cookieStore = await cookies();
+  
   const token = cookieStore.get('ghl_access_token');
+  const refreshToken = cookieStore.get('ghl_refresh_token');
+  const timestamp = cookieStore.get('ghl_token_timestamp');
   const locationId = cookieStore.get('ghl_location_id');
-  return {
-    'token': token?.value,
-    'locationId': locationId?.value
-  }
-}
 
+  // Check if we have all required values
+  if (!token?.value || !timestamp?.value) {
+      throw new Error('Missing authentication credentials');
+  }
+
+  // Check if token needs refreshing
+  if (refreshToken?.value && shouldRefreshToken(timestamp.value)) {
+      try {
+          const newTokens = await refreshAccessToken(refreshToken.value);
+          // Update cookies with new tokens
+          setAuthCookies(cookieStore, newTokens);
+          return {
+              token: newTokens.access_token,
+              locationId: locationId?.value
+          };
+      } catch (error) {
+          console.error('Failed to refresh token:', error);
+          // Return existing token if refresh fails (it might still be valid)
+      }
+  }
+
+  // Return existing values if no refresh needed or refresh failed
+  return {
+      token: token.value,
+      locationId: locationId?.value
+  };
+};
+
+// Optional: Add a force refresh function
+ const forceRefreshToken = async () => {
+  const cookieStore = await cookies();
+  const refreshToken = cookieStore.get('ghl_refresh_token');
+  
+  if (!refreshToken?.value) {
+      throw new Error('No refresh token available');
+  }
+
+  const newTokens = await refreshAccessToken(refreshToken.value);
+  setAuthCookies(cookieStore, newTokens);
+  return {
+      token: newTokens.access_token,
+      locationId: cookieStore.get('ghl_location_id')?.value
+  };
+};
 export {
   createGhlApiClient,
   getContacts,
@@ -463,5 +506,6 @@ export {
   getCachedData,
   DEFAULT_API_KEY,
   DEFAULT_LOCATION_ID,
-  getAuthHeaders
+  getAuthHeaders,
+  forceRefreshToken
 }; 

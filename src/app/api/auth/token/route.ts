@@ -2,19 +2,14 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { GHL_AUTH_CONFIG } from '@/lib/ghlAuth';
 
+// Refresh token
 export async function POST(request: Request) {
-  try {
-    const { code } = await request.json();
-
-    console.log('CODE: ', code);
+  try {  
 
     const data = new URLSearchParams({
       client_id: GHL_AUTH_CONFIG.clientId,
       client_secret: GHL_AUTH_CONFIG.clientSecret,
-      grant_type: 'authorization_code',
-      code: code,
-      user_type: 'Location',
-      redirect_uri: GHL_AUTH_CONFIG.redirectUri
+      grant_type: 'refresh_token',  
     });
 
     const response = await fetch(GHL_AUTH_CONFIG.tokenUrl, {
