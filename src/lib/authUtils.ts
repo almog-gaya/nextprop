@@ -18,12 +18,46 @@ export function flushAllAuthData() {
     
     // Clear auth tokens from cookies (multiple methods to ensure all are cleared)
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'nextprop_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    
+    // Also clear all GHL cookies on client side
+    document.cookie = 'ghl_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'ghl_refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'ghl_token_timestamp=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'ghl_location_id=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'ghl_user_id=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'ghl_company_id=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'ghl_user_type=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'ghl_location_data=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    document.cookie = 'ghl_token_data=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     
     // Use js-cookie for the nextprop_token
     try {
       Cookies.remove('nextprop_token', { path: '/' });
+      Cookies.remove('auth_token', { path: '/' });
+      
+      // Also remove GHL cookies with js-cookie
+      Cookies.remove('ghl_access_token', { path: '/' });
+      Cookies.remove('ghl_refresh_token', { path: '/' });
+      Cookies.remove('ghl_token_timestamp', { path: '/' });
+      Cookies.remove('ghl_location_id', { path: '/' });
+      Cookies.remove('ghl_user_id', { path: '/' });
+      Cookies.remove('ghl_company_id', { path: '/' });
+      Cookies.remove('ghl_user_type', { path: '/' });
+      Cookies.remove('ghl_location_data', { path: '/' });
+      Cookies.remove('ghl_token_data', { path: '/' });
     } catch (e) {
       console.warn('Error removing cookie with js-cookie:', e);
+    }
+    
+    // Call the logout API to ensure server-side cookies are cleared
+    try {
+      fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.warn('Error calling logout API:', e);
     }
     
     console.log('All authentication data has been flushed');

@@ -275,6 +275,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       error: null
     });
     
+    // Force a POST request to the logout API endpoint to clear server-side cookies
+    fetch('/api/auth/logout', { 
+      method: 'POST',
+      credentials: 'include' 
+    }).catch(err => {
+      console.error('Error calling logout API:', err);
+    });
+    
     // Navigate to login
     router.push('/auth/login');
   };
