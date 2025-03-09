@@ -16,6 +16,8 @@ let dynamicReviewStageId: string | null = null;
 // Interface for scraped contact data
 interface ScrapedContact {
   name: string;
+  firstName?: string; // Optional first name
+  lastName?: string;  // Optional last name
   email: string;
   phone: string;
   address: {
@@ -121,7 +123,9 @@ async function generateContact(index: number): Promise<ScrapedContact> {
         propertyDisplayRules: property.propertyDisplayRules || null,
         listingAgent: property.listingAgent || null,
         brokerInfo: property.brokerInfo || null,
-        realtorInfo: property.realtorInfo || null
+        realtorInfo: property.realtorInfo || null,
+        // Include the raw property for debugging - REMOVE AFTER DEBUGGING
+        rawProperty: property
       }, null, 2));
       
       // Extract agent/broker information from the property data - looking in multiple possible locations
@@ -132,6 +136,77 @@ async function generateContact(index: number): Promise<ScrapedContact> {
       let mlsName = '';
       let builderName = '';
       let attributionName = '';
+      let agentEmail = ''; // Real agent email from Zillow
+      let agentPhone = ''; // Real agent phone from Zillow
+      let displayName = ''; // Name to display for the contact
+      
+      // Deep look for contact info throughout the property object
+      function searchForContactInfo(obj: any, path = '') {
+        // Skip null and undefined
+        if (obj === null || obj === undefined) return;
+        
+        // Handle objects
+        if (typeof obj === 'object' && !Array.isArray(obj)) {
+          // Check for common properties at this level
+          if (obj.email && typeof obj.email === 'string' && obj.email.includes('@') && !agentEmail) {
+            agentEmail = obj.email;
+            console.log(`Found real email at ${path}.email: ${agentEmail}`);
+          }
+          
+          if (obj.phone && typeof obj.phone === 'string' && !agentPhone) {
+            agentPhone = obj.phone;
+            console.log(`Found real phone at ${path}.phone: ${agentPhone}`);
+          }
+          
+          if (obj.agentEmail && typeof obj.agentEmail === 'string' && obj.agentEmail.includes('@') && !agentEmail) {
+            agentEmail = obj.agentEmail;
+            console.log(`Found real email at ${path}.agentEmail: ${agentEmail}`);
+          }
+          
+          if (obj.agentPhone && typeof obj.agentPhone === 'string' && !agentPhone) {
+            agentPhone = obj.agentPhone;
+            console.log(`Found real phone at ${path}.agentPhone: ${agentPhone}`);
+          }
+          
+          // Recursively search all properties
+          for (const key in obj) {
+            searchForContactInfo(obj[key], path ? `${path}.${key}` : key);
+          }
+        } 
+        // Handle arrays
+        else if (Array.isArray(obj)) {
+          obj.forEach((item, index) => {
+            searchForContactInfo(item, `${path}[${index}]`);
+          });
+        }
+      }
+      
+      // Perform deep search for contact info
+      searchForContactInfo(property);
+      
+      // Extract real email if available
+      if (agentEmail) {
+        agentEmail = agentEmail;
+      } else if (property.listingAgent?.email) {
+        agentEmail = property.listingAgent.email;
+      } else if (property.attributionInfo?.agentEmail) {
+        agentEmail = property.attributionInfo.agentEmail;
+      } else if (property.realtorInfo?.email) {
+        agentEmail = property.realtorInfo.email;
+      }
+      
+      // Extract real phone number if available
+      if (agentPhone) {
+        agentPhone = agentPhone;
+      } else if (property.listingAgent?.phone) {
+        agentPhone = property.listingAgent.phone;
+      } else if (property.attributionInfo?.agentPhone) {
+        agentPhone = property.attributionInfo.agentPhone;
+      } else if (property.realtorInfo?.phone) {
+        agentPhone = property.realtorInfo.phone;
+      } else if (property.brokerInfo?.phone) {
+        agentPhone = property.brokerInfo.phone;
+      }
       
       // Find agent name - checking all possible locations in the API response
       // Direct agent property
@@ -194,17 +269,17 @@ async function generateContact(index: number): Promise<ScrapedContact> {
       }
       // If we don't have agent name but have broker or builder, use that instead
       else if (brokerName) {
-        // Instead of "Agent at BROKER", just use the broker/agency name directly
-        if (brokerName.indexOf(',') > 0) {
-          // If broker name has commas (like "COYLE REALTY INC, LLC"), clean it up
-          agentFirstName = '';
-          agentLastName = brokerName.trim();
-        } else {
-          agentFirstName = '';
-          agentLastName = brokerName.trim();
-        }
+        // Use the full broker name as is
+        displayName = brokerName.trim();
+        
+        // For broker/agency names, we don't want to split the name into first/last
+        // Keep the original, fully qualified name
+        agentFirstName = 'Agency';
+        agentLastName = brokerName.trim();
       } else if (builderName) {
-        agentFirstName = '';
+        // Use the full builder name
+        displayName = builderName.trim();
+        agentFirstName = 'Builder';
         agentLastName = builderName.trim();
       } else {
         // If no agent/broker/builder info at all, use property details
@@ -251,7 +326,6 @@ async function generateContact(index: number): Promise<ScrapedContact> {
       }
       
       // Use real agent/broker information to create the name to display
-      let displayName = '';
       if (agentName) {
         displayName = agentName;
       } else if (brokerName) {
@@ -269,21 +343,40 @@ async function generateContact(index: number): Promise<ScrapedContact> {
       
       // Create professional email - for broker/agency emails, use info@ or sales@ prefix
       let email = '';
-      if (cleanFirstName && cleanLastName) {
-        // If we have a real agent name, use their first/last name
-        email = `${cleanFirstName}.${cleanLastName}@${domain}`;
+      // Add a random component to ensure uniqueness
+      const uniqueSuffix = Math.random().toString(36).substring(2, 6);
+      
+      if (agentEmail) {
+        // If we found a real email in the property data, use it directly
+        email = agentEmail;
+        console.log(`Using REAL agent email from Zillow: ${agentEmail}`);
+      } else if (cleanFirstName && cleanLastName) {
+        // If we have a real agent name, use their first/last name with a unique suffix
+        email = `${cleanFirstName}.${cleanLastName}.${uniqueSuffix}@${domain}`;
       } else if (brokerName || builderName) {
-        // For broker/builder, use a professional info@ format
-        email = `info@${domain}`;
+        // For broker/builder, use a professional info@ format with a unique suffix
+        // This prevents duplicate emails for the same agency
+        email = `info.${uniqueSuffix}@${domain}`;
       } else {
-        // Fallback
-        email = `sales@${domain}`;
+        // Fallback with unique suffix
+        email = `sales.${uniqueSuffix}@${domain}`;
       }
       
-      // Generate a phone with area code from property zipcode for regional authenticity
-      const areaCode = zipcode.substring(0, 3) || Math.floor(100 + Math.random() * 900).toString();
-      const randomPart = Math.floor(1000000 + Math.random() * 9000000).toString();
-      const phone = `+1${areaCode}${randomPart}`;
+      // Use real phone if available, otherwise generate one
+      let phone = '';
+      if (agentPhone) {
+        // Format the phone number consistently if needed
+        phone = agentPhone.replace(/[^0-9+]/g, '');
+        if (!phone.startsWith('+')) {
+          phone = '+1' + phone;
+        }
+        console.log(`Using REAL agent phone from Zillow: ${agentPhone}`);
+      } else {
+        // Generate a phone with area code from property zipcode for regional authenticity
+        const areaCode = zipcode.substring(0, 3) || Math.floor(100 + Math.random() * 900).toString();
+        const randomPart = Math.floor(1000000 + Math.random() * 9000000).toString();
+        phone = `+1${areaCode}${randomPart}`;
+      }
       
       // Get price formatted for display
       let price = "Unknown";
@@ -321,8 +414,50 @@ async function generateContact(index: number): Promise<ScrapedContact> {
       
       console.log(`Generated REAL agent contact: ${displayName}`);
       
+      // For GHL API, we need to provide both firstName and lastName
+      // But for broker/agency names, we want to store them properly
+      let firstName = '';
+      let lastName = '';
+      
+      if (displayName.includes(' ')) {
+        // If display name has spaces, it could be a person's name
+        const nameParts = displayName.split(' ');
+        if (agentFirstName && agentLastName) {
+          // Use the parsed first/last name if available
+          firstName = agentFirstName;
+          lastName = agentLastName;
+        } else if (displayName.toUpperCase() === displayName) {
+          // All uppercase name is likely a company name (like "COYLE REALTY INC")
+          firstName = displayName;
+          lastName = '';
+        } else {
+          // Otherwise split the display name at the first space
+          firstName = nameParts[0];
+          lastName = nameParts.slice(1).join(' ');
+        }
+      } else {
+        // Single word name - probably a company name
+        firstName = displayName;
+        lastName = '';
+      }
+      
+      // If the name is a company/broker name and not a person, format it for GHL
+      if (brokerName && !agentName) {
+        // Place the ENTIRE broker name in the firstName field
+        firstName = brokerName.trim();
+        lastName = '';
+      } else if (builderName && !agentName) {
+        // Place the ENTIRE builder name in the firstName field
+        firstName = builderName.trim();
+        lastName = '';
+      }
+      
+      console.log(`Generated REAL agent contact: ${firstName} ${lastName}`);
+      
       return {
         name: displayName,
+        firstName,
+        lastName,
         email,
         phone,
         address: {
@@ -502,7 +637,7 @@ async function addContactToGHL(contact: ScrapedContact) {
     if (!token || !locationId) {
       throw new Error("Missing authentication token or locationId");
     }
-    
+
     // Determine if the contact name is a broker/agency name
     const isBrokerOrAgency = 
       contact.name.toUpperCase() === contact.name || // All caps is likely a broker
@@ -513,14 +648,18 @@ async function addContactToGHL(contact: ScrapedContact) {
       contact.name.includes("INC") ||
       contact.name.includes("HOMES");
     
-    // Format name into first and last - preserve original split if it's already done
+    // Format name into first and last - prioritize the firstName/lastName if available
     let firstName = '';
     let lastName = '';
     
-    if (isBrokerOrAgency) {
-      // For broker/agency names, use the full name as lastName
-      firstName = 'Agency';
-      lastName = contact.name;
+    if (contact.firstName && contact.lastName !== undefined) {
+      // Use the pre-formatted first/last name if available from generateContact
+      firstName = contact.firstName;
+      lastName = contact.lastName;
+    } else if (isBrokerOrAgency) {
+      // For broker/agency names, put the entire name in firstName
+      firstName = contact.name;
+      lastName = '';
     }
     // Check if the name has spaces - likely a full name
     else if (contact.name.includes(' ')) {
@@ -588,7 +727,7 @@ async function addContactToGHL(contact: ScrapedContact) {
         customFields.push({
           id: 'xTlKIDZLBkk6TtQeZdvk',
           key: 'contact.property_price',
-          value: String(contact.property.price.value)
+          value: contact.property.price.value.toString()
         });
       }
       
@@ -601,8 +740,8 @@ async function addContactToGHL(contact: ScrapedContact) {
           baths: contact.property.bathrooms || 0,
           sqft: contact.property.livingArea || 0,
           year_built: contact.property.yearBuilt || 0,
-          property_type: contact.property.propertyType || 'Unknown',
-          zpid: contact.property.zpid || 'Unknown'
+          property_type: contact.property.propertyType || '',
+          zpid: contact.property.zpid || 0
         })
       });
       
@@ -629,7 +768,7 @@ async function addContactToGHL(contact: ScrapedContact) {
         customFields.push({
           id: 'DzWpL1KtYn5qRmH7oBvX',
           key: 'contact.property_notes',
-          value: contact.notes.substring(0, 250) // Limit to 250 chars for safety
+          value: contact.notes.substring(0, 500) // Trim to 500 chars
         });
       }
     }
