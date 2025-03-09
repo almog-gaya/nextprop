@@ -24,6 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';  // Change from 'next/router' to 'next/navigation'
 import { StatsCardSkeleton, TableSkeleton } from '@/components/SkeletonLoaders';
+import AutomationPreview from '@/components/AutomationPreview';
 
 // Pipeline types
 interface Opportunity {
@@ -1254,6 +1255,9 @@ export default function DashboardPage() {
           {/* Pipeline Grid */}
           <div className="flex-1 overflow-auto">
             <div className="px-4 py-6 sm:px-6 lg:px-8">
+              {/* Automation Preview */}
+              <AutomationPreview className="mb-6" />
+              
               {viewMode === 'grid' ? (
                 // Grid view - now horizontally scrollable
                 <div className="overflow-x-auto pb-4">

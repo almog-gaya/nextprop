@@ -12,7 +12,14 @@ import {
   ArrowLeftIcon,
   CheckIcon,
   XMarkIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  DocumentTextIcon,
+  PencilIcon,
+  ChatBubbleLeftRightIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  BuildingLibraryIcon
 } from '@heroicons/react/24/outline';
 import { Toaster, toast } from 'react-hot-toast';
 import { 
@@ -30,12 +37,21 @@ interface EmailTemplate {
   name: string;
   subject: string;
   body: string;
+  previewText?: string;
+  sendDelay?: number; // Delay in hours
+  sendTime?: string; // Specific time of day (e.g., "09:00")
+  type: 'introduction' | 'follow-up' | 'property-info' | 'custom';
 }
 
 interface SmsTemplate {
   id: string;
   name: string;
   message: string;
+  sendDelay?: number; // Delay in hours
+  sendTime?: string; // Specific time of day
+  includeLink?: boolean;
+  maxLength?: number;
+  type: 'introduction' | 'follow-up' | 'property-info' | 'custom';
 }
 
 interface VoicemailTemplate {
@@ -43,6 +59,11 @@ interface VoicemailTemplate {
   name: string;
   audioUrl: string;
   transcription: string;
+  duration?: number; // Length in seconds
+  voiceType?: 'male' | 'female' | 'ai';
+  sendDelay?: number; // Delay in hours
+  sendTime?: string; // Specific time of day
+  type: 'introduction' | 'follow-up' | 'property-info' | 'custom';
 }
 
 export default function AutomationsPage() {
@@ -54,22 +75,22 @@ export default function AutomationsPage() {
   
   // Wizard step management
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 5;
+  const totalSteps = 4;
   
   // Default mock templates
   const defaultEmailTemplates: EmailTemplate[] = [
-    { id: '1', name: 'Property Introduction', subject: 'New Properties in Your Area', body: 'Hello, we found properties that match your criteria...' },
-    { id: '2', name: 'Follow Up Email', subject: 'Following Up on Properties', body: 'Just checking in about the properties we sent...' }
+    { id: '1', name: 'Property Introduction', subject: 'New Properties in Your Area', body: 'Hello, we found properties that match your criteria...', type: 'introduction' },
+    { id: '2', name: 'Follow Up Email', subject: 'Following Up on Properties', body: 'Just checking in about the properties we sent...', type: 'follow-up' }
   ];
   
   const defaultSmsTemplates: SmsTemplate[] = [
-    { id: '1', name: 'Quick Intro', message: 'Hi! We found properties matching your criteria. Reply YES to learn more.' },
-    { id: '2', name: 'Property Alert', message: 'New property alert! Check out this listing: [PROPERTY_LINK]' }
+    { id: '1', name: 'Quick Intro', message: 'Hi! We found properties matching your criteria. Reply YES to learn more.', type: 'introduction' },
+    { id: '2', name: 'Property Alert', message: 'New property alert! Check out this listing: [PROPERTY_LINK]', type: 'property-info' }
   ];
   
   const defaultVoicemailTemplates: VoicemailTemplate[] = [
-    { id: '1', name: 'Brief Introduction', audioUrl: '/audio/intro.mp3', transcription: 'Hello, this is [NAME] from NextProp. We found some properties that match your criteria...' },
-    { id: '2', name: 'Callback Request', audioUrl: '/audio/callback.mp3', transcription: 'Hi there, I recently sent you information about some properties. Please call me back at...' }
+    { id: '1', name: 'Brief Introduction', audioUrl: '/audio/intro.mp3', transcription: 'Hello, this is [NAME] from NextProp. We found some properties that match your criteria...', type: 'introduction' },
+    { id: '2', name: 'Callback Request', audioUrl: '/audio/callback.mp3', transcription: 'Hi there, I recently sent you information about some properties. Please call me back at...', type: 'follow-up' }
   ];
   
   // Extended form state for the wizard
@@ -313,6 +334,26 @@ export default function AutomationsPage() {
           : automation
       )
     );
+    
+    // Save activated automation to localStorage
+    setTimeout(() => {
+      const updatedAutomations = automations.map(automation => 
+        automation.id === id 
+          ? { ...automation, status: 'active' as const, lastRun: new Date().toISOString() } 
+          : automation
+      );
+      localStorage.setItem('automations', JSON.stringify(updatedAutomations));
+      
+      // Store job ID for dashboard to display
+      const jobId = `job_${id}`;
+      const storedJobIds = localStorage.getItem('activeJobIds');
+      let activeJobIds = storedJobIds ? JSON.parse(storedJobIds) : [];
+      if (!activeJobIds.includes(jobId)) {
+        activeJobIds.push(jobId);
+        localStorage.setItem('activeJobIds', JSON.stringify(activeJobIds));
+      }
+    }, 0);
+    
     toast.success('Automation activated! It will start running based on the schedule.');
   };
 
@@ -355,6 +396,23 @@ export default function AutomationsPage() {
             : a
         )
       );
+      
+      // Store job ID for dashboard to display
+      const storedJobIds = localStorage.getItem('activeJobIds');
+      let activeJobIds = storedJobIds ? JSON.parse(storedJobIds) : [];
+      if (!activeJobIds.includes(result.jobId)) {
+        activeJobIds.push(result.jobId);
+        localStorage.setItem('activeJobIds', JSON.stringify(activeJobIds));
+      }
+      
+      // Also ensure automations array is updated in localStorage
+      const updatedAutomations = automations.map(a => 
+        a.id === id 
+          ? { ...a, lastRun: new Date().toISOString() } 
+          : a
+      );
+      localStorage.setItem('automations', JSON.stringify(updatedAutomations));
+      
     } catch (error) {
       console.error('Error starting automation:', error);
       toast.error('Failed to start automation', { id: `job-${id}` });
@@ -371,6 +429,15 @@ export default function AutomationsPage() {
         const { [jobId]: _, ...rest } = prev;
         return rest;
       });
+      
+      // Remove jobId from localStorage
+      const storedJobIds = localStorage.getItem('activeJobIds');
+      if (storedJobIds) {
+        let activeJobIds = JSON.parse(storedJobIds);
+        activeJobIds = activeJobIds.filter((id: string) => id !== jobId);
+        localStorage.setItem('activeJobIds', JSON.stringify(activeJobIds));
+      }
+      
     } catch (error) {
       console.error('Error cancelling job:', error);
       toast.error('Failed to cancel job');
@@ -380,11 +447,10 @@ export default function AutomationsPage() {
   // Wizard Step Indicator Component
   const WizardStepIndicator = () => {
     const steps = [
-      { number: 1, title: 'Basic Info' },
-      { number: 2, title: 'Property Scraper' },
-      { number: 3, title: 'Contact Management' },
-      { number: 4, title: 'Communication' },
-      { number: 5, title: 'Review & Schedule' }
+      { number: 1, title: 'Property Sources' },
+      { number: 2, title: 'Contact Management' },
+      { number: 3, title: 'Communication Setup' },
+      { number: 4, title: 'Review & Launch' }
     ];
     
     return (
@@ -393,7 +459,7 @@ export default function AutomationsPage() {
           {steps.map((step, index) => (
             <React.Fragment key={step.number}>
               <div 
-                className={`flex flex-col items-center cursor-pointer ${index < steps.length - 1 ? 'w-1/5' : ''}`}
+                className={`flex flex-col items-center cursor-pointer ${index < steps.length - 1 ? 'w-1/4' : ''}`}
                 onClick={() => goToStep(step.number)}
               >
                 <div 
@@ -486,122 +552,191 @@ export default function AutomationsPage() {
           <WizardStepIndicator />
           
           <div className="border-t border-gray-200 pt-6">
-            {/* Step 1: Basic Info */}
+            {/* Step 1: Property Sources */}
             {currentStep === 1 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Automation Name*
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                    placeholder="e.g., 'Zillow Daily Lead Processor'"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                    placeholder="What does this automation do?"
-                    rows={3}
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Step 2: Property Scraper */}
-            {currentStep === 2 && (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Property Scraper Configuration</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Property Sources Configuration</h3>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Zillow Search Query*
-                  </label>
-                  <input
-                    type="text"
-                    name="searchQuery"
-                    value={formData.searchQuery}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                    placeholder="e.g., 'Properties in Miami under $1M'"
-                  />
-                  <p className="mt-1 text-sm text-gray-500">
-                    Enter the search query that will be used to find properties on Zillow.
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Number of Contacts to Generate*
-                  </label>
-                  <input
-                    type="number"
-                    name="contactCount"
-                    value={formData.contactCount}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border border-gray-300 rounded-md"
-                    min="1"
-                    max="1000"
-                  />
-                  <p className="mt-1 text-sm text-gray-500">
-                    Specify how many contact records should be created from the scraped properties.
-                  </p>
-                </div>
-                
-                <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
-                  <h4 className="font-medium text-yellow-800 mb-2">Property Data Extraction</h4>
-                  <p className="text-sm text-yellow-700">
-                    The system will extract the following details for each property:
-                  </p>
-                  <ul className="list-disc list-inside text-sm text-yellow-700 mt-2 space-y-1">
-                    <li>Address, City, State, Zip</li>
-                    <li>Property Price</li>
-                    <li>Bedrooms & Bathrooms</li>
-                    <li>Square Footage</li>
-                    <li>Year Built</li>
-                    <li>Contact Information (if available)</li>
-                  </ul>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                    <div className="flex items-center mb-4">
+                      <BuildingLibraryIcon className="h-6 w-6 text-indigo-600 mr-2" />
+                      <h3 className="text-lg font-medium text-gray-900">Zillow Property Scraper</h3>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Search Query*
+                        </label>
+                        <input
+                          type="text"
+                          name="searchQuery"
+                          value={formData.searchQuery}
+                          onChange={handleInputChange}
+                          className="w-full p-2 border border-gray-300 rounded-md"
+                          placeholder="e.g., 'Properties in Miami under $1M'"
+                        />
+                        <p className="mt-1 text-sm text-gray-500">
+                          Be specific about location, price range, and property type.
+                        </p>
+                      </div>
+{/*                       
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Min Price
+                          </label>
+                          <div className="relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                              type="number"
+                              name="minPrice"
+                              placeholder="100,000"
+                              className="p-2 pl-7 w-full border border-gray-300 rounded-md"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Max Price
+                          </label>
+                          <div className="relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                              type="number"
+                              name="maxPrice"
+                              placeholder="1,000,000"
+                              className="p-2 pl-7 w-full border border-gray-300 rounded-md"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                       */}
+                      {/* <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Min Beds
+                          </label>
+                          <select
+                            name="minBeds"
+                            className="p-2 w-full border border-gray-300 rounded-md"
+                          >
+                            <option value="">Any</option>
+                            <option value="1">1+</option>
+                            <option value="2">2+</option>
+                            <option value="3">3+</option>
+                            <option value="4">4+</option>
+                            <option value="5">5+</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Min Baths
+                          </label>
+                          <select
+                            name="minBaths"
+                            className="p-2 w-full border border-gray-300 rounded-md"
+                          >
+                            <option value="">Any</option>
+                            <option value="1">1+</option>
+                            <option value="2">2+</option>
+                            <option value="3">3+</option>
+                            <option value="4">4+</option>
+                          </select>
+                        </div>
+                      </div> */}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Number of Contacts to Generate*
+                      </label>
+                      <input
+                        type="number"
+                        name="contactCount"
+                        value={formData.contactCount}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        min="1"
+                        max="1000"
+                      />
+                      <p className="mt-1 text-sm text-gray-500">
+                        How many contact records should be created from the scraped properties.
+                      </p>
+                    </div>
+                    
+                    <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <ExclamationCircleIcon className="h-5 w-5 text-yellow-400" />
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-yellow-800">Property Data Extraction</h3>
+                          <div className="mt-2 text-sm text-yellow-700">
+                            <p className="mb-2">The system will extract the following details:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              <li>Address, City, State, Zip</li>
+                              <li>Property Price</li>
+                              <li>Bedrooms & Bathrooms</li>
+                              <li>Square Footage</li>
+                              <li>Year Built</li>
+                              <li>Contact Information (if available)</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <h4 className="block text-sm font-medium text-gray-700 mb-2">Automation Name (Optional)</h4>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        placeholder="e.g., 'Miami Properties Campaign'"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
             
-            {/* Step 3: Contact Management */}
-            {currentStep === 3 && (
+            {/* Step 2: Contact Management */}
+            {currentStep === 2 && (
               <div className="space-y-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Management</h3>
                 
                 <div className="flex items-center">
-                  <input
+                  {/* <input
                     type="checkbox"
                     id="checkDuplicates"
                     name="checkDuplicates"
                     checked={formData.checkDuplicates}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
-                      checkDuplicates: e.target.checked
+                      checkDuplicates: true
                     }))}
                     className="w-4 h-4 text-indigo-600 border-gray-300 rounded"
-                  />
-                  <label htmlFor="checkDuplicates" className="ml-2 block text-sm text-gray-900">
+                  /> */}
+                  {/* <label htmlFor="checkDuplicates" className="ml-2 block text-sm text-gray-900">
                     Check for duplicate contacts before adding
-                  </label>
+                  </label> */}
                 </div>
-                <p className="text-sm text-gray-500 ml-6">
+                {/* <p className="text-sm text-gray-500 ml-6">
                   System will check if contacts already exist in your database using email, phone, and address.
                 </p>
-                
+                 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Target Pipeline
@@ -678,176 +813,435 @@ export default function AutomationsPage() {
               </div>
             )}
             
-            {/* Step 4: Communication Channels */}
-            {currentStep === 4 && (
+            {/* Step 3: Communication Channels */}
+            {currentStep === 3 && (
               <div className="space-y-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Communication Methods</h3>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Communication Channels*
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                    <div className="border border-gray-300 rounded-md p-4 hover:bg-gray-50 cursor-pointer">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Email Configuration */}
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-4 bg-indigo-50 border-b border-gray-200 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <EnvelopeIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                        <h4 className="font-medium text-indigo-900">Email Campaigns</h4>
+                      </div>
                       <div className="flex items-center">
                         <input
                           type="checkbox"
                           id="email"
                           checked={formData.communicationChannels.includes('email')}
                           onChange={() => handleCheckboxChange('email')}
-                          className="w-4 h-4 text-indigo-600 border-gray-300 rounded"
+                          className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
                         />
-                        <label htmlFor="email" className="ml-2 block font-medium text-gray-700">
-                          Email
+                        <label htmlFor="email" className="ml-2 text-sm text-gray-700">
+                          Enable
                         </label>
                       </div>
-                      <p className="mt-1 text-sm text-gray-500 ml-6">
-                        Send automated email campaigns to contacts.
-                      </p>
-                      
-                      {formData.communicationChannels.includes('email') && (
-                        <div className="mt-3 ml-6">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Select Email Templates:</p>
-                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                    </div>
+                    
+                    {formData.communicationChannels.includes('email') && (
+                      <div className="p-4">
+                        <div className="mb-4">
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Select Email Templates:</h5>
+                          
+                          <div className="space-y-3 max-h-64 overflow-y-auto p-1">
                             {availableTemplates.email.map(template => (
-                              <div key={template.id} className="flex items-start">
-                                <input
-                                  type="checkbox"
-                                  id={`email-template-${template.id}`}
-                                  checked={formData.emailTemplates.includes(template.id)}
-                                  onChange={(e) => handleTemplateSelection('email', template.id, e.target.checked)}
-                                  className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded"
-                                />
-                                <div className="ml-2">
-                                  <label htmlFor={`email-template-${template.id}`} className="block text-sm font-medium text-gray-700">
-                                    {template.name}
-                                  </label>
-                                  <p className="text-xs text-gray-500">Subject: {template.subject}</p>
+                              <div key={template.id} className="border border-gray-200 rounded-md p-3 hover:bg-gray-50">
+                                <div className="flex items-start mb-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`email-template-${template.id}`}
+                                    checked={formData.emailTemplates.includes(template.id)}
+                                    onChange={(e) => handleTemplateSelection('email', template.id, e.target.checked)}
+                                    className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                                  />
+                                  <div className="ml-3 flex-1">
+                                    <label htmlFor={`email-template-${template.id}`} className="block text-sm font-medium text-gray-900">
+                                      {template.name}
+                                    </label>
+                                    <span className="block text-xs text-gray-500 mt-1">Type: {template.type}</span>
+                                  </div>
+                                  <button 
+                                    type="button"
+                                    className="p-1 text-indigo-600 hover:bg-indigo-50 rounded-full"
+                                    title="Edit Template"
+                                  >
+                                    <PencilIcon className="h-4 w-4" />
+                                  </button>
                                 </div>
+                                
+                                {formData.emailTemplates.includes(template.id) && (
+                                  <div className="mt-2 pl-7">
+                                    <div className="bg-gray-50 p-2 rounded-md">
+                                      <p className="text-xs font-medium text-gray-700">Subject: {template.subject}</p>
+                                      <p className="text-xs text-gray-600 mt-1">{template.body.substring(0, 100)}...</p>
+                                      
+                                      <div className="mt-3 pt-2 border-t border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-gray-500">Send Delay:</span>
+                                          <select 
+                                            className="text-xs p-1 border border-gray-300 rounded"
+                                            defaultValue={template.sendDelay || 0}
+                                          >
+                                            <option value="0">Immediately</option>
+                                            <option value="24">After 1 day</option>
+                                            <option value="48">After 2 days</option>
+                                            <option value="72">After 3 days</option>
+                                            <option value="168">After 1 week</option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="border border-gray-300 rounded-md p-4 hover:bg-gray-50 cursor-pointer">
+                        
+                        <button
+                          type="button"
+                          className="mt-2 flex items-center text-indigo-600 text-sm hover:text-indigo-800"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Create New Email Template
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* SMS Configuration */}
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-4 bg-green-50 border-b border-gray-200 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <ChatBubbleLeftRightIcon className="h-5 w-5 text-green-600 mr-2" />
+                        <h4 className="font-medium text-green-900">SMS Campaigns</h4>
+                      </div>
                       <div className="flex items-center">
                         <input
                           type="checkbox"
                           id="sms"
                           checked={formData.communicationChannels.includes('sms')}
                           onChange={() => handleCheckboxChange('sms')}
-                          className="w-4 h-4 text-indigo-600 border-gray-300 rounded"
+                          className="h-4 w-4 text-green-600 border-gray-300 rounded"
                         />
-                        <label htmlFor="sms" className="ml-2 block font-medium text-gray-700">
-                          SMS
+                        <label htmlFor="sms" className="ml-2 text-sm text-gray-700">
+                          Enable
                         </label>
                       </div>
-                      <p className="mt-1 text-sm text-gray-500 ml-6">
-                        Send automated text message campaigns to contacts.
-                      </p>
-                      
-                      {formData.communicationChannels.includes('sms') && (
-                        <div className="mt-3 ml-6">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Select SMS Templates:</p>
-                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                    </div>
+                    
+                    {formData.communicationChannels.includes('sms') && (
+                      <div className="p-4">
+                        <div className="mb-4">
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Select SMS Templates:</h5>
+                          
+                          <div className="space-y-3 max-h-64 overflow-y-auto p-1">
                             {availableTemplates.sms.map(template => (
-                              <div key={template.id} className="flex items-start">
-                                <input
-                                  type="checkbox"
-                                  id={`sms-template-${template.id}`}
-                                  checked={formData.smsTemplates.includes(template.id)}
-                                  onChange={(e) => handleTemplateSelection('sms', template.id, e.target.checked)}
-                                  className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded"
-                                />
-                                <div className="ml-2">
-                                  <label htmlFor={`sms-template-${template.id}`} className="block text-sm font-medium text-gray-700">
-                                    {template.name}
-                                  </label>
-                                  <p className="text-xs text-gray-500">{template.message.substring(0, 40)}...</p>
+                              <div key={template.id} className="border border-gray-200 rounded-md p-3 hover:bg-gray-50">
+                                <div className="flex items-start mb-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`sms-template-${template.id}`}
+                                    checked={formData.smsTemplates.includes(template.id)}
+                                    onChange={(e) => handleTemplateSelection('sms', template.id, e.target.checked)}
+                                    className="mt-1 h-4 w-4 text-green-600 border-gray-300 rounded"
+                                  />
+                                  <div className="ml-3 flex-1">
+                                    <label htmlFor={`sms-template-${template.id}`} className="block text-sm font-medium text-gray-900">
+                                      {template.name}
+                                    </label>
+                                    <span className="block text-xs text-gray-500 mt-1">Type: {template.type}</span>
+                                  </div>
+                                  <button 
+                                    type="button"
+                                    className="p-1 text-green-600 hover:bg-green-50 rounded-full"
+                                    title="Edit Template"
+                                  >
+                                    <PencilIcon className="h-4 w-4" />
+                                  </button>
                                 </div>
+                                
+                                {formData.smsTemplates.includes(template.id) && (
+                                  <div className="mt-2 pl-7">
+                                    <div className="bg-gray-50 p-2 rounded-md">
+                                      <p className="text-xs text-gray-600">{template.message}</p>
+                                      
+                                      <div className="mt-3 space-y-2 pt-2 border-t border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-gray-500">Send Delay:</span>
+                                          <select 
+                                            className="text-xs p-1 border border-gray-300 rounded"
+                                            defaultValue={template.sendDelay || 0}
+                                          >
+                                            <option value="0">Immediately</option>
+                                            <option value="24">After 1 day</option>
+                                            <option value="48">After 2 days</option>
+                                            <option value="72">After 3 days</option>
+                                          </select>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-gray-500">Best Time to Call:</span>
+                                          <select 
+                                            className="text-xs p-1 border border-gray-300 rounded"
+                                            defaultValue={template.sendTime || 'evening'}
+                                          >
+                                            <option value="morning">Morning (9-11 AM)</option>
+                                            <option value="afternoon">Afternoon (1-3 PM)</option>
+                                            <option value="evening">Evening (6-8 PM)</option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="border border-gray-300 rounded-md p-4 hover:bg-gray-50 cursor-pointer">
+                        
+                        <button
+                          type="button"
+                          className="mt-2 flex items-center text-green-600 text-sm hover:text-green-800"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Create New SMS Template
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  {/* Voicemail Configuration */}
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-4 bg-amber-50 border-b border-gray-200 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <PhoneIcon className="h-5 w-5 text-amber-600 mr-2" />
+                        <h4 className="font-medium text-amber-900">Ringless Voicemail</h4>
+                      </div>
                       <div className="flex items-center">
                         <input
                           type="checkbox"
                           id="voicemail"
                           checked={formData.communicationChannels.includes('voicemail')}
                           onChange={() => handleCheckboxChange('voicemail')}
-                          className="w-4 h-4 text-indigo-600 border-gray-300 rounded"
+                          className="h-4 w-4 text-amber-600 border-gray-300 rounded"
                         />
-                        <label htmlFor="voicemail" className="ml-2 block font-medium text-gray-700">
-                          Ringless Voicemail
+                        <label htmlFor="voicemail" className="ml-2 text-sm text-gray-700">
+                          Enable
                         </label>
                       </div>
-                      <p className="mt-1 text-sm text-gray-500 ml-6">
-                        Deliver voicemail messages directly to contacts' voicemail box.
-                      </p>
-                      
-                      {formData.communicationChannels.includes('voicemail') && (
-                        <div className="mt-3 ml-6">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Select Voicemail Templates:</p>
-                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                    </div>
+                    
+                    {formData.communicationChannels.includes('voicemail') && (
+                      <div className="p-4">
+                        <div className="mb-4">
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Select Voicemail Templates:</h5>
+                          
+                          <div className="space-y-3 max-h-64 overflow-y-auto p-1">
                             {availableTemplates.voicemail.map(template => (
-                              <div key={template.id} className="flex items-start">
-                                <input
-                                  type="checkbox"
-                                  id={`voicemail-template-${template.id}`}
-                                  checked={formData.voicemailTemplates.includes(template.id)}
-                                  onChange={(e) => handleTemplateSelection('voicemail', template.id, e.target.checked)}
-                                  className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded"
-                                />
-                                <div className="ml-2">
-                                  <label htmlFor={`voicemail-template-${template.id}`} className="block text-sm font-medium text-gray-700">
-                                    {template.name}
-                                  </label>
-                                  <p className="text-xs text-gray-500">{template.transcription.substring(0, 40)}...</p>
+                              <div key={template.id} className="border border-gray-200 rounded-md p-3 hover:bg-gray-50">
+                                <div className="flex items-start mb-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`voicemail-template-${template.id}`}
+                                    checked={formData.voicemailTemplates.includes(template.id)}
+                                    onChange={(e) => handleTemplateSelection('voicemail', template.id, e.target.checked)}
+                                    className="mt-1 h-4 w-4 text-amber-600 border-gray-300 rounded"
+                                  />
+                                  <div className="ml-3 flex-1">
+                                    <label htmlFor={`voicemail-template-${template.id}`} className="block text-sm font-medium text-gray-900">
+                                      {template.name}
+                                    </label>
+                                    <span className="block text-xs text-gray-500 mt-1">
+                                      Duration: {template.duration || '30'}s | Voice: {template.voiceType || 'male'}
+                                    </span>
+                                  </div>
+                                  <button 
+                                    type="button"
+                                    className="p-1 text-amber-600 hover:bg-amber-50 rounded-full"
+                                    title="Edit Template"
+                                  >
+                                    <PencilIcon className="h-4 w-4" />
+                                  </button>
                                 </div>
+                                
+                                {formData.voicemailTemplates.includes(template.id) && (
+                                  <div className="mt-2 pl-7">
+                                    <div className="bg-gray-50 p-2 rounded-md">
+                                      <div className="flex items-center mb-2">
+                                        <button
+                                          type="button"
+                                          className="p-1 bg-amber-100 rounded-full text-amber-700"
+                                          title="Play Voicemail"
+                                        >
+                                          <PlayIcon className="h-4 w-4" />
+                                        </button>
+                                        <span className="ml-2 text-xs text-gray-600">Preview audio</span>
+                                      </div>
+                                      
+                                      <p className="text-xs text-gray-600 italic">"{template.transcription.substring(0, 100)}..."</p>
+                                      
+                                      <div className="mt-3 space-y-2 pt-2 border-t border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-gray-500">Send Delay:</span>
+                                          <select 
+                                            className="text-xs p-1 border border-gray-300 rounded"
+                                            defaultValue={template.sendDelay || 48}
+                                          >
+                                            <option value="24">After 1 day</option>
+                                            <option value="48">After 2 days</option>
+                                            <option value="72">After 3 days</option>
+                                            <option value="120">After 5 days</option>
+                                          </select>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs text-gray-500">Best Time to Call:</span>
+                                          <select 
+                                            className="text-xs p-1 border border-gray-300 rounded"
+                                            defaultValue={template.sendTime || 'evening'}
+                                          >
+                                            <option value="morning">Morning (9 AM - 11 AM)</option>
+                                            <option value="afternoon">Afternoon (1 PM - 3 PM)</option>
+                                            <option value="evening">Evening (6 PM - 8 PM)</option>
+                                          </select>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="border border-gray-300 rounded-md p-4 hover:bg-gray-50 cursor-pointer">
+                        
+                        <button
+                          type="button"
+                          className="mt-2 flex items-center text-amber-600 text-sm hover:text-amber-800"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Create New Voicemail Template
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Call Configuration */}
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-4 bg-blue-50 border-b border-gray-200 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <PhoneIcon className="h-5 w-5 text-blue-600 mr-2" />
+                        <h4 className="font-medium text-blue-900">Automated Calls</h4>
+                      </div>
                       <div className="flex items-center">
                         <input
                           type="checkbox"
                           id="call"
                           checked={formData.communicationChannels.includes('call')}
                           onChange={() => handleCheckboxChange('call')}
-                          className="w-4 h-4 text-indigo-600 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                         />
-                        <label htmlFor="call" className="ml-2 block font-medium text-gray-700">
-                          Automated Calls
+                        <label htmlFor="call" className="ml-2 text-sm text-gray-700">
+                          Enable
                         </label>
                       </div>
-                      <p className="mt-1 text-sm text-gray-500 ml-6">
-                        Schedule automated phone calls to contacts.
-                      </p>
-                      
-                      {formData.communicationChannels.includes('call') && (
-                        <div className="mt-3 ml-6 p-2 bg-yellow-50 text-yellow-700 text-sm rounded border border-yellow-200">
-                          Call templates must be set up in your phone settings. 
-                          Automated calls will use your default call script.
-                        </div>
-                      )}
                     </div>
+                    
+                    {formData.communicationChannels.includes('call') && (
+                      <div className="p-4">
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <div className="flex">
+                            <ExclamationCircleIcon className="h-5 w-5 text-blue-500 mr-2" />
+                            <p className="text-sm text-blue-700">
+                              Automated calls use your default call script configured in the phone settings.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Call Schedule
+                            </label>
+                            <select
+                              name="callSchedule"
+                              className="w-full p-2 border border-gray-300 rounded-md"
+                              defaultValue="business-hours"
+                            >
+                              <option value="business-hours">Business Hours (9 AM - 5 PM)</option>
+                              <option value="morning">Morning Only (9 AM - 12 PM)</option>
+                              <option value="afternoon">Afternoon Only (1 PM - 5 PM)</option>
+                              <option value="evening">Evening Only (6 PM - 8 PM)</option>
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Call Delay After Lead Creation
+                            </label>
+                            <select
+                              name="callDelay"
+                              className="w-full p-2 border border-gray-300 rounded-md"
+                              defaultValue="72"
+                            >
+                              <option value="24">1 Day</option>
+                              <option value="48">2 Days</option>
+                              <option value="72">3 Days</option>
+                              <option value="120">5 Days</option>
+                              <option value="168">1 Week</option>
+                            </select>
+                          </div>
+                          
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="skipVoicemailRecipients"
+                              defaultChecked={true}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                            />
+                            <label htmlFor="skipVoicemailRecipients" className="ml-2 text-sm text-gray-700">
+                              Skip contacts who received a voicemail
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-4 border border-gray-200 rounded-md bg-gray-50">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Communication Sequence</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Define the order in which communications will be sent:
+                  </p>
+                  
+                  <div className="flex flex-col space-y-2">
+                    {formData.communicationChannels.length > 0 ? (
+                      formData.communicationChannels.map((channel, index) => (
+                        <div key={channel} className="flex items-center bg-white p-2 rounded-md border border-gray-200">
+                          <span className="h-5 w-5 flex items-center justify-center bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium mr-2">
+                            {index + 1}
+                          </span>
+                          <span className="capitalize text-gray-700">{channel}</span>
+                          {index < formData.communicationChannels.length - 1 && (
+                            <span className="text-gray-400 mx-2">→</span>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">No communication channels selected</p>
+                    )}
                   </div>
                 </div>
               </div>
             )}
             
-            {/* Step 5: Review & Schedule */}
-            {currentStep === 5 && (
+            {/* Step 4: Review & Schedule */}
+            {currentStep === 4 && (
               <div className="space-y-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Review & Schedule</h3>
                 
@@ -1180,13 +1574,13 @@ export default function AutomationsPage() {
     <DashboardLayout title="Automations">
       <div className="flex justify-between items-center mb-8 px-4 pt-4">
         <h1 className="text-3xl font-bold text-gray-900"></h1>
-        <button
+        {/* <button
           onClick={() => setIsCreating(true)}
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center"
         >
           <PlusIcon className="w-5 h-5 mr-2" />
           New Automation
-        </button>
+        </button> */}
       </div>
       {pageContent}
       <Toaster position="top-right" />
