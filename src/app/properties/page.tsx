@@ -1,350 +1,500 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { MagnifyingGlassIcon, UserIcon, PhoneIcon, EnvelopeIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
+import { MagnifyingGlassIcon, ArrowPathIcon, UserPlusIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import DashboardLayout from '@/components/DashboardLayout';
-import Image from 'next/image';
-import { PropertyListingSkeleton } from '@/components/SkeletonLoaders';
 
-// Define Property interface
-interface Property {
-  property_id: string;
-  listing_id?: string;
-  price: string;
-  beds: number;
-  baths: number;
+// Define response types
+interface ContactData {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
+
+interface OriginalContactData {
+  name: string;
+  email: string;
+  phone: string;
   address: {
     line: string;
     city: string;
     state_code: string;
     postal_code: string;
   };
-  title?: string;
-  home_size?: string;
-  year_built?: string;
-  property_type?: string;
-  days_on_zillow?: string;
-  image_url?: string;
-  contact?: {
-    name: string;
-    email: string;
-    phone: string;
-  };
+}
+
+interface PipelineData {
+  success: boolean;
+  message?: string;
+  opportunity?: any;
+  error?: string;
+}
+
+interface ScrapedContactResult {
+  success: boolean;
+  index: number;
+  contact?: ContactData;
+  originalContact?: OriginalContactData;
+  pipeline?: PipelineData;
+  error?: string;
 }
 
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [addedLeads, setAddedLeads] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('Miami property under $1,000,000');
+  const [isScraping, setIsScraping] = useState(false);
+  const [processedCount, setProcessedCount] = useState(0);
+  const [progressPercentage, setProgressPercentage] = useState(0);
+  const [successCount, setSuccessCount] = useState(0);
+  const [failureCount, setFailureCount] = useState(0);
+  const [currentStatus, setCurrentStatus] = useState('');
+  const [completionMessage, setCompletionMessage] = useState<{ title: string; message: string; actions: { label: string; href: string }[] } | null>(null);
 
-  // Example search suggestions with more specific format
-  const searchSuggestions = [
-    "Houses for sale built after 2001 within price 500000, minimum lotsize 5000 sqft, 3 beds, 3 baths, in Miami Florida",
-    "Condos for sale under $1.5M with ocean view, 2+ beds, 2+ baths in Brickell Miami FL",
-    "Single family homes in Coral Gables FL under $2.5M, built after 2010, minimum 4 beds, 3 baths, with pool",
-    "Modern apartments in Downtown Miami under $800K with gym access, 2+ beds, built after 2015"
-  ];
+  // Generate leads for multiple properties (default 100)
+  const handleScrapeContacts = async () => {
+    setIsScraping(true);
+    setProgressPercentage(0);
+    setProcessedCount(0);
+    setSuccessCount(0);
+    setFailureCount(0);
+    setCurrentStatus('');
+    setCompletionMessage(null);
 
-  const handleSearch = async (query = searchQuery) => {
-    if (!query.trim()) {
-      setSearchQuery("Properties in Miami under $3M");
-      query = "Properties in Miami under $3M";
-    }
-    
-    setLoading(true);
-    setError(null);
-    
     try {
-      // Specifically using the Zillow Working API endpoint
-      const url = '/api/properties/ai-search';
-      const params = {
-        prompt: query.trim(),
-        limit: '8', // Limiting to 8 results (between 5-10 as requested)
-        api: 'zillow' // Explicitly specify Zillow API
-      };
+      // Start the scraping process
+      setCurrentStatus('Starting contact generation...');
       
-      const queryString = new URLSearchParams(params).toString();
-      const response = await fetch(`${url}?${queryString}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch properties');
-      }
-      
-      const data = await response.json();
-      
-      // Ensure we have image_url and contact information for all properties
-      const processedProperties = data.map((property: any) => ({
-        ...property,
-        // If image_url is missing, use a default Miami property image
-        image_url: property.image_url || 'https://images.unsplash.com/photo-1549415697-8edfc62b131b?q=80&w=1000&auto=format&fit=crop',
-        // Make sure price is properly formatted
-        price: property.price && typeof property.price === 'string' 
-          ? property.price.startsWith('$') ? property.price : `$${property.price}`
-          : typeof property.price === 'number' ? `$${property.price.toLocaleString()}` : '$TBD',
-        // Ensure contact information exists
-        contact: property.contact || generateRandomContact()
-      }));
-      
-      setProperties(processedProperties);
-    } catch (err) {
-      console.error('Error fetching properties:', err);
-      setError('Failed to load properties. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Generate random contact for demo purposes
-  const generateRandomContact = () => {
-    const firstNames = ['John', 'Sarah', 'Michael', 'Emma', 'David', 'Maria', 'Robert', 'Jessica'];
-    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia'];
-    const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'realestate.com'];
-    
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-    const domain = domains[Math.floor(Math.random() * domains.length)];
-    
-    return {
-      name: `${firstName} ${lastName}`,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${domain}`,
-      phone: `(305) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`
-    };
-  };
-
-  // Handle adding property to leads/contacts
-  const handleAddToLeads = async (property: Property) => {
-    try {
-      // Don't add the same lead twice
-      if (addedLeads.includes(property.property_id)) {
-        alert(`${property.contact?.name || 'Contact'} is already in your leads!`);
-        return;
-      }
-      
-      // Generate a contact name if none exists
-      let contactName = property.contact?.name;
-      if (!contactName) {
-        // Try to create a name from the address
-        const streetName = property.address.line.split(' ')[1]; // Get street name without number
-        const cityName = property.address.city;
-        contactName = `${streetName} ${cityName} Owner`;
-      }
-      
-      const response = await fetch('/api/contacts/add-lead', {
+      // Call the API to start processing
+      const startResponse = await fetch('/api/contacts/scrape-contacts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: contactName,
-          email: property.contact?.email || `contact@${property.property_id}.example.com`,
-          phone: property.contact?.phone || '',
-          address: `${property.address.line}, ${property.address.city}, ${property.address.state_code} ${property.address.postal_code}`,
-          notes: `Interested in: ${property.address.line} - ${property.price}`,
-          source: 'Real Estate Listing',
-          type: 'Property Inquiry',
-          propertyDetails: property // Include the full property details
-        }),
+        body: JSON.stringify({ count: 100, delayMs: 500 }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to add lead');
+      if (!startResponse.ok) {
+        const errorData = await startResponse.json();
+        throw new Error(`Failed to start contact scraping: ${errorData.error || startResponse.statusText}`);
       }
 
-      // Track added leads to prevent duplicates
-      setAddedLeads(prev => [...prev, property.property_id]);
+      // Process batches of data
+      let startIndex = 0;
+      const batchSize = 5; // Smaller batch size
+      const totalContacts = 100;
+      let allResults: ScrapedContactResult[] = [];
       
-      // Show success feedback
-      alert(`Successfully added ${contactName} to contacts!`);
-    } catch (err) {
-      console.error('Error adding lead:', err);
-      alert('Failed to add contact. Please try again.');
+      // Record pipeline failures for reporting
+      let pipelineFailures = 0;
+
+      while (startIndex < totalContacts) {
+        setCurrentStatus(`Processing contacts ${startIndex + 1}-${Math.min(startIndex + batchSize, totalContacts)} of ${totalContacts}...`);
+        
+        // Fetch the next batch
+        const batchResponse = await fetch(`/api/contacts/scrape-contacts?startIndex=${startIndex}&batchSize=${batchSize}`);
+        
+        if (!batchResponse.ok) {
+          const errorData = await batchResponse.json();
+          throw new Error(`Failed to process contact batch: ${errorData.error || batchResponse.statusText}`);
+        }
+        
+        const batchData = await batchResponse.json();
+        console.log(`Batch ${startIndex}-${batchData.endIndex} results:`, batchData);
+        
+        // Track successful and failed contacts
+        const batchSuccesses = batchData.results.filter((r: {success: boolean}) => r.success).length;
+        const batchFailures = batchData.results.filter((r: {success: boolean}) => !r.success).length;
+        
+        // Count pipeline failures (contacts created but failed to add to pipeline)
+        const batchPipelineFailures = batchData.results.filter((r: ScrapedContactResult) => 
+          r.success && r.pipeline && !r.pipeline.success
+        ).length;
+        pipelineFailures += batchPipelineFailures;
+        
+        // Update counts
+        setSuccessCount(prev => prev + batchSuccesses);
+        setFailureCount(prev => prev + batchFailures);
+        setProcessedCount(prev => prev + batchData.results.length);
+        
+        // Calculate progress
+        const newProgressPercentage = Math.round(((startIndex + batchData.results.length) / totalContacts) * 100);
+        setProgressPercentage(newProgressPercentage);
+        
+        // Update results
+        allResults = [...allResults, ...batchData.results];
+        
+        // Move to next batch
+        startIndex = batchData.endIndex;
+      }
+
+      // Calculate final success rate
+      const totalSuccessful = allResults.filter((r: ScrapedContactResult) => r.success).length;
+      const totalFailed = allResults.filter((r: ScrapedContactResult) => !r.success).length;
+      const successRate = Math.round((totalSuccessful / totalContacts) * 100);
+
+      // Set completion message based on results
+      if (pipelineFailures > 0) {
+        setCurrentStatus(`Completed processing ${totalContacts} contacts. ${totalSuccessful} contacts created, but ${pipelineFailures} failed to add to pipeline.`);
+      } else {
+        setCurrentStatus(`Completed processing ${totalContacts} contacts. ${totalSuccessful} successful, ${totalFailed} failed (${successRate}% success rate).`);
+      }
+      
+      // Set appropriate completion message
+      if (totalSuccessful > 0) {
+        setCompletionMessage({
+          title: "Contact Generation Complete",
+          message: `${totalSuccessful} contacts have been created${pipelineFailures === 0 ? ' and added to the leads pipeline' : ''}.
+                   ${pipelineFailures > 0 ? `${pipelineFailures} contacts failed to be added to the pipeline.` : ''}
+                   ${totalFailed > 0 ? `${totalFailed} contacts failed to be created (${successRate}% success rate).` : ''}`,
+          actions: [
+            {
+              label: "View Contacts",
+              href: "/contacts"
+            },
+            {
+              label: "Check Pipeline",
+              href: "/opportunities"
+            }
+          ]
+        });
+      } else {
+        setCompletionMessage({
+          title: "Contact Generation Failed",
+          message: "No contacts were created successfully. See console logs for details.",
+          actions: []
+        });
+      }
+    } catch (error) {
+      console.error('Error generating contacts:', error);
+      setProgressPercentage(0);
+      setCurrentStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setCompletionMessage({
+        title: "Contact Generation Failed",
+        message: `Error: ${error instanceof Error ? error.message : 'An unknown error occurred'}`,
+        actions: []
+      });
+    } finally {
+      setIsScraping(false);
     }
   };
 
-  // Use suggestion for search
-  const useSuggestion = (suggestion: string) => {
-    setSearchQuery(suggestion);
-    handleSearch(suggestion);
+  // Generate a single lead for testing
+  const handleGenerateSingleLead = async () => {
+    setIsScraping(true);
+    setProgressPercentage(0);
+    setCurrentStatus('Generating a single lead for testing...');
+    setCompletionMessage(null);
+
+    try {
+      // Start with POST to initialize
+      const startResponse = await fetch('/api/contacts/scrape-contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ count: 1, delayMs: 100 }),
+      });
+
+      if (!startResponse.ok) {
+        const errorData = await startResponse.json();
+        throw new Error(`Failed to start contact generation: ${errorData.error || startResponse.statusText}`);
+      }
+
+      // Fetch single contact
+      const response = await fetch('/api/contacts/scrape-contacts?startIndex=0&batchSize=1');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to generate test lead: ${errorData.error || response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Test lead generation result:", data);
+      
+      // Check if successful
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        
+        if (result.success) {
+          setProgressPercentage(100);
+          
+          // Check pipeline status
+          if (result.pipeline && result.pipeline.success) {
+            setCurrentStatus('Test lead generated successfully and added to pipeline!');
+          } else {
+            const pipelineError = result.pipeline?.error || 'Unknown pipeline error';
+            setCurrentStatus(`Test lead created but failed to add to pipeline: ${pipelineError}`);
+          }
+          
+          setCompletionMessage({
+            title: "Test Lead Generated",
+            message: `Lead was created with ID: ${result.contact?.id || 'Unknown'}. ${result.pipeline?.success ? 'Successfully added to pipeline.' : 'Failed to add to pipeline.'}`,
+            actions: [
+              {
+                label: "View Contact",
+                href: "/contacts"
+              },
+              {
+                label: "Check Pipeline",
+                href: "/opportunities"
+              }
+            ]
+          });
+        } else {
+          throw new Error(`Failed to create test lead: ${result.error || 'Unknown error'}`);
+        }
+      } else {
+        throw new Error('No results returned from API');
+      }
+    } catch (error) {
+      console.error('Error generating test lead:', error);
+      setProgressPercentage(0);
+      setCurrentStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setCompletionMessage({
+        title: "Test Lead Generation Failed",
+        message: `Error: ${error instanceof Error ? error.message : 'An unknown error occurred'}`,
+        actions: []
+      });
+    } finally {
+      setIsScraping(false);
+    }
   };
 
-  // Load default search on first render
-  useEffect(() => {
-    handleSearch("Properties in Miami under $3M");
-  }, []);
+  // New function to check authentication
+  const checkAuthentication = async () => {
+    try {
+      setCurrentStatus('Checking authentication...');
+      setIsScraping(true);
+      setProgressPercentage(30);
+      
+      const response = await fetch('/api/contacts/auth-check');
+      const data = await response.json();
+      
+      console.log('Auth check result:', data);
+      
+      if (data.status === 'success') {
+        // If we have pipelines, log them
+        if (data.pipelines && data.pipelines.length > 0) {
+          // Find the Leads pipeline if it exists
+          const leadsPipeline = data.pipelines.find((p: any) => 
+            p.name.toLowerCase().includes('lead') || 
+            p.name.toLowerCase().includes('opportunity')
+          );
+          
+          let message = `Authentication successful! Found ${data.pipelines.length} pipelines.`;
+          
+          if (leadsPipeline) {
+            message += ` Recommended Pipeline ID: ${leadsPipeline.id}`;
+            
+            // If we have stages, recommend the first stage
+            if (leadsPipeline.stages && leadsPipeline.stages.length > 0) {
+              message += `, First Stage ID: ${leadsPipeline.stages[0].id}`;
+            }
+          }
+          
+          setCurrentStatus(message);
+          setProgressPercentage(100);
+          
+          setCompletionMessage({
+            title: "Authentication Check Successful",
+            message: message,
+            actions: []
+          });
+        } else {
+          setCurrentStatus('Authentication successful, but no pipelines found.');
+          setProgressPercentage(100);
+          
+          setCompletionMessage({
+            title: "Authentication Check Successful",
+            message: "You are authenticated but no pipelines were found. Please create a pipeline in GHL first.",
+            actions: []
+          });
+        }
+      } else {
+        setCurrentStatus(`Authentication failed: ${data.message}`);
+        setProgressPercentage(100);
+        
+        setCompletionMessage({
+          title: "Authentication Check Failed",
+          message: `Error: ${data.message}. Auth status: ${JSON.stringify(data.auth)}`,
+          actions: []
+        });
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      setCurrentStatus(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setProgressPercentage(100);
+      
+      setCompletionMessage({
+        title: "Authentication Check Failed",
+        message: `Error: ${error instanceof Error ? error.message : 'An unknown error occurred'}`,
+        actions: []
+      });
+    } finally {
+      setIsScraping(false);
+    }
+  };
 
   return (
     <DashboardLayout title="Properties">
-      <div className="container mx-auto px-4 py-8">
-        {/* Search Bar */}
+      <div className="py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-            <div className="flex-grow relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Describe properties you're looking for (e.g. location, price range, features)"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <button
-              onClick={() => handleSearch()}
-              className="nextprop-button py-2 px-4 whitespace-nowrap"
-              disabled={loading}
-            >
-              {loading ? 'Searching...' : 'Search Properties'}
-            </button>
+          <h1 className="text-2xl font-semibold text-gray-900">Properties</h1>
+        </div>
+
+        {/* Banner */}
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg mb-8">
+          <div className="p-6 md:p-8 text-white">
+            <h2 className="text-xl md:text-2xl font-bold mb-3">Generate Leads Automatically</h2>
+            <p className="mb-4">
+              Need more leads? Our AI can generate 100 realistic property buyer contacts with just one click. All contacts are automatically added to your "Review New Lead" pipeline stage.
+            </p>
           </div>
-          
-          {/* Search suggestions */}
-          <div className="mt-3">
-            <p className="text-sm text-gray-600 mb-2">Try these searches:</p>
-            <div className="flex flex-wrap gap-2">
-              {searchSuggestions.map((suggestion, idx) => (
+        </div>
+
+        {/* Main Content */}
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-medium mb-4">Find Properties</h2>
+
+          {/* Search Input and Generate Button */}
+          <div className="mb-6">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-grow">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  className="block w-full rounded-md border-0 py-3 pl-10 pr-4 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
+                  placeholder="Enter property search criteria"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex gap-2">
                 <button
-                  key={idx}
-                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 px-2 py-1 rounded-full"
-                  onClick={() => useSuggestion(suggestion)}
+                  onClick={handleScrapeContacts}
+                  disabled={isScraping}
+                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm text-white font-medium ${
+                    isScraping ? 'bg-gray-500' : 'bg-purple-700 hover:bg-purple-800'
+                  }`}
                 >
-                  {suggestion.length > 40 ? suggestion.substring(0, 40) + '...' : suggestion}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Results */}
-        {error ? (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-md">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        ) : loading ? (
-          <PropertyListingSkeleton />
-        ) : properties.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map((property) => (
-              <div key={property.property_id} className="bg-white rounded-xl shadow-md overflow-hidden transition-transform hover:scale-[1.02] hover:shadow-lg border-b-2 border-[#7c3aed]">
-                <div className="relative h-48 w-full bg-gray-200">
-                  {property.image_url ? (
-                    <Image 
-                      src={property.image_url} 
-                      alt={property.address?.line || 'Property'} 
-                      fill
-                      className="object-cover"
-                      unoptimized={true} // Use this for external images
-                    />
+                  {isScraping ? (
+                    <>
+                      <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                      Generating...
+                    </>
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                      <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
-                    </div>
+                    <>
+                      <UserPlusIcon className="h-5 w-5" />
+                      Generate 100 Leads
+                    </>
                   )}
-                  <div className="absolute top-0 right-0 nextprop-gradient text-white px-3 py-1 m-2 rounded-full text-sm font-medium">
-                    {property.price}
-                  </div>
-                  {property.days_on_zillow && (
-                    <div className="absolute top-0 left-0 bg-white bg-opacity-90 m-2 rounded-full px-2 py-1 text-xs font-medium text-gray-800 flex items-center">
-                      <CalendarIcon className="h-3 w-3 mr-1" />
-                      {parseInt(property.days_on_zillow) === 0 ? 'New Today' : 
-                       parseInt(property.days_on_zillow) === 1 ? '1 day on market' : 
-                       `${property.days_on_zillow} days on market`}
-                    </div>
-                  )}
-                </div>
-                <div className="p-5">
-                  <h3 className="text-lg font-semibold text-[#1e1b4b] mb-1 truncate">
-                    {property.address?.line || 'Property Address'}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-2 truncate">
-                    {property.address?.city}{property.address?.city && property.address?.state_code ? ', ' : ''}{property.address?.state_code} {property.address?.postal_code}
-                  </p>
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex items-center space-x-3 text-sm text-gray-700">
-                      <span>{property.beds} Beds</span>
-                      <span>•</span>
-                      <span>{property.baths} Baths</span>
-                      {property.home_size && (
-                        <>
-                          <span>•</span>
-                          <span>{property.home_size}</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-xs text-[#7c3aed]">
-                      {property.property_type}
-                    </div>
-                  </div>
-                  
-                  {/* Contact Agent Section */}
-                  {property.contact && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <h4 className="font-medium text-[#1e1b4b] mb-2">Contact Agent</h4>
-                      <div className="flex items-center mb-1">
-                        <UserIcon className="h-4 w-4 text-gray-500 mr-2" />
-                        <span className="text-sm">{property.contact.name}</span>
-                      </div>
-                      <div className="flex items-center mb-1">
-                        <EnvelopeIcon className="h-4 w-4 text-gray-500 mr-2" />
-                        <span className="text-sm">{property.contact.email}</span>
-                      </div>
-                      <div className="flex items-center mb-3">
-                        <PhoneIcon className="h-4 w-4 text-gray-500 mr-2" />
-                        <span className="text-sm">{property.contact.phone}</span>
-                      </div>
-                      
-                      <button
-                        onClick={() => handleAddToLeads(property)}
-                        disabled={addedLeads.includes(property.property_id)}
-                        className={`w-full mt-2 py-2 px-4 rounded-md font-medium text-white ${
-                          addedLeads.includes(property.property_id) 
-                            ? 'bg-green-600 cursor-default' 
-                            : 'nextprop-gradient hover:opacity-90'
-                        }`}
-                      >
-                        {addedLeads.includes(property.property_id) ? 'Added to Contacts' : 'Add to Contacts'}
-                      </button>
+                </button>
+                
+                <button
+                  onClick={handleGenerateSingleLead}
+                  disabled={isScraping}
+                  className="flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm bg-white border border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
+                >
+                  Test (1 Lead)
+                </button>
+                
+                <button
+                  onClick={checkAuthentication}
+                  disabled={isScraping}
+                  className="flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm bg-blue-50 border border-blue-300 text-blue-700 font-medium hover:bg-blue-100"
+                >
+                  Check Auth
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Completion Message */}
+          {completionMessage && (
+            <div className="mb-6 p-4 border border-green-200 bg-green-50 rounded-md text-sm text-green-700">
+              <div className="flex items-start">
+                <CheckCircleIcon className="h-5 w-5 mr-2 flex-shrink-0 text-green-500" />
+                <div>
+                  <p className="font-medium mb-1">{completionMessage.title}</p>
+                  <p>{completionMessage.message}</p>
+                  {completionMessage.actions.length > 0 && (
+                    <div className="mt-3 flex gap-3">
+                      {completionMessage.actions.map((action, index) => (
+                        <a 
+                          key={index}
+                          href={action.href}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-green-100 text-green-800 hover:bg-green-200"
+                        >
+                          {action.label} →
+                        </a>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-gray-500 py-10">No properties found. Try refining your search criteria.</p>
-        )}
-        
-        {/* About section */}
-        <div className="mt-16 bg-white rounded-xl shadow-sm p-6 border-t-2 border-[#7c3aed]">
-          <h2 className="text-xl font-bold text-[#1e1b4b] mb-4">About Our Real Estate Search</h2>
-          <p className="text-gray-600 mb-4">
-            Our AI-powered search helps you find properties using natural language. Simply describe what you're looking for,
-            and our system will match you with relevant listings.
-          </p>
-          
-          <h3 className="text-lg font-semibold mt-6 mb-2 text-[#1e1b4b]">Search Tips:</h3>
-          <ul className="list-disc list-inside text-gray-600 space-y-2 pl-4">
-            <li>Include location details (neighborhood, city)</li>
-            <li>Specify price range (under $X, between $X-$Y)</li>
-            <li>Mention important features (pool, ocean view, etc.)</li>
-            <li>Include size requirements (beds, baths, square footage)</li>
-          </ul>
+            </div>
+          )}
         </div>
+        
+        {/* Scraping Status Modal */}
+        {isScraping && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+              <h3 className="text-xl font-semibold mb-4">Generating Contacts</h3>
+              
+              <div className="mb-4">
+                <div className="mb-2 flex justify-between">
+                  <span className="text-sm text-gray-600">
+                    {processedCount} contacts processed
+                  </span>
+                  <span className="text-sm font-medium">
+                    {progressPercentage}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full" 
+                    style={{ width: `${progressPercentage}%` }}
+                  ></div>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="h-5 w-5 text-green-500 mr-1" />
+                    <span>Successful</span>
+                  </div>
+                  <span className="font-medium">{successCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <XCircleIcon className="h-5 w-5 text-red-500 mr-1" />
+                    <span>Failed</span>
+                  </div>
+                  <span className="font-medium">{failureCount}</span>
+                </div>
+              </div>
+              
+              <div className="text-sm text-gray-600 mb-4">
+                <p>{currentStatus}</p>
+              </div>
+              
+              <div className="flex justify-end">
+                <button
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+                  onClick={() => setIsScraping(false)}
+                  disabled={progressPercentage < 100}
+                >
+                  {progressPercentage < 100 ? 'Processing...' : 'Close'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

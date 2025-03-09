@@ -102,11 +102,14 @@ export async function GET(request: NextRequest) {
     const zillowHost = process.env.ZILLOW_RAPIDAPI_HOST || 'zillow-working-api.p.rapidapi.com';
     
     try {
-      console.log(`Attempting to call Zillow API with query: ${queryParams.toString()}`);
+      // Format the AI prompt based on search parameters
+      const aiPrompt = `Houses for sale ${beds > 0 ? `with ${beds} beds` : ''} ${baths > 0 ? `${beds > 0 ? 'and' : 'with'} ${baths} baths` : ''} in ${city} Florida ${price > 0 ? `under $${Math.floor(price).toLocaleString()}` : ''}`.trim();
       
-      // Use property search endpoint for more reliable results with images
+      console.log(`Attempting to call Zillow API with AI prompt: ${aiPrompt}`);
+      
+      // Use the byaiprompt endpoint which is working correctly
       const response = await fetch(
-        `https://${zillowHost}/property/search?${queryParams.toString()}`,
+        `https://${zillowHost}/search/byaiprompt?ai_search_prompt=${encodeURIComponent(aiPrompt)}&page=1&sortOrder=Homes_for_you`,
         {
           method: 'GET',
           headers: {
@@ -127,17 +130,18 @@ export async function GET(request: NextRequest) {
         if (data && data.results && Array.isArray(data.results)) {
           const formattedProperties: FormattedProperty[] = data.results
             .filter((result: any): boolean => 
-              result !== null && typeof result === 'object' && (result.zpid || result.property)
+              result !== null && typeof result === 'object' && result.property
             )
             .map((result: any): FormattedProperty => {
-              // Handle different response formats
-              const property = result.property || result;
-              const zpid = result.zpid || property.zpid;
+              const property = result.property;
+              const zpid = property.zpid;
               
-              // Get the image URL - different properties might have images in different fields
-              let imageUrl = property.imageUrl;
-              if (!imageUrl && property.images && property.images.length > 0) {
-                imageUrl = property.images[0];
+              // Get the image URL from the property photos if available
+              let imageUrl = '';
+              if (property.media?.propertyPhotoLinks?.highResolutionLink) {
+                imageUrl = property.media.propertyPhotoLinks.highResolutionLink;
+              } else if (property.media?.allPropertyPhotos?.highResolution?.length > 0) {
+                imageUrl = property.media.allPropertyPhotos.highResolution[0];
               }
               
               // Fallback Miami property images if no image is available
@@ -154,10 +158,8 @@ export async function GET(request: NextRequest) {
               
               // Get price and ensure it's formatted correctly
               let formattedPrice = '$0';
-              if (typeof property.price === 'number') {
-                formattedPrice = `$${property.price.toLocaleString()}`;
-              } else if (typeof property.price === 'string') {
-                formattedPrice = property.price.startsWith('$') ? property.price : `$${property.price}`;
+              if (property.price && typeof property.price.value === 'number') {
+                formattedPrice = `$${property.price.value.toLocaleString()}`;
               }
               
               // Build the formatted property object
@@ -168,16 +170,14 @@ export async function GET(request: NextRequest) {
                 beds: property.bedrooms || beds,
                 baths: property.bathrooms || baths,
                 address: {
-                  line: property.address?.streetAddress || property.streetAddress || 
-                        `${property.address?.streetNumber || ''} ${property.address?.street || ''}`.trim() || 
-                        '',
-                  city: property.address?.city || property.city || city,
-                  state_code: (property.address?.state || property.state || 'FL').substring(0, 2),
-                  postal_code: property.address?.zipcode || property.zipcode || ''
+                  line: property.address?.streetAddress || '',
+                  city: property.address?.city || city,
+                  state_code: (property.address?.state || 'FL').substring(0, 2),
+                  postal_code: property.address?.zipcode || ''
                 },
                 home_size: property.livingArea ? `${property.livingArea.toLocaleString()} sqft` : undefined,
                 year_built: property.yearBuilt ? String(property.yearBuilt) : undefined,
-                property_type: property.homeType || property.propertyType,
+                property_type: property.propertyType,
                 days_on_zillow: property.daysOnZillow ? String(property.daysOnZillow) : '0',
                 image_url: imageUrl
               };

@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { timezones } from '@/utils/timezones';
 import { ContactListSkeleton } from '@/components/SkeletonLoaders';
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 interface CustomField {
   id: string;
@@ -65,6 +66,13 @@ export default function ContactsPage() {
     customFields: [] as CustomField[],
   });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [contactsPerPage, setContactsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [displayedContacts, setDisplayedContacts] = useState<Contact[]>([]);
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
+  const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
 
   useEffect(() => {
     const validateAndFetch = async () => {
@@ -95,6 +103,7 @@ export default function ContactsPage() {
       }));
 
       setContacts(processedContacts);
+      setFilteredContacts(processedContacts);
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch contacts');
@@ -125,6 +134,23 @@ export default function ContactsPage() {
 
   const handleEdit = (contact: Contact) => {
     setSelectedContact(contact);
+    
+    // Convert contact.customFields object to array if needed
+    let customFieldsArray: CustomField[] = [];
+    
+    if (contact.customFields) {
+      if (Array.isArray(contact.customFields)) {
+        customFieldsArray = contact.customFields as CustomField[];
+      } else {
+        // Convert object to array format
+        customFieldsArray = Object.entries(contact.customFields).map(([key, value]) => ({
+          id: key,
+          key: key,
+          value: value as string | string[] | boolean
+        }));
+      }
+    }
+    
     setEditContact({
       firstName: contact.firstName || '',
       lastName: contact.lastName || '',
@@ -134,7 +160,7 @@ export default function ContactsPage() {
       timezone: contact.timezone || '',
       dnd: contact.dnd || false,
       tags: contact.tags || [],
-      customFields: contact.customFields || [],
+      customFields: customFieldsArray,
     });
     setIsEditModalOpen(true);
   };
@@ -509,6 +535,289 @@ export default function ContactsPage() {
     );
   };
 
+  // New function to filter contacts by tag
+  const filterContactsByTag = (tag: string | null) => {
+    setActiveTagFilter(tag);
+    if (!tag) {
+      setFilteredContacts(contacts);
+    } else {
+      const filtered = contacts.filter(contact => 
+        contact.tags && contact.tags.includes(tag)
+      );
+      setFilteredContacts(filtered);
+    }
+    setCurrentPage(1); // Reset to first page when changing filters
+  };
+
+  // Function to apply pagination
+  useEffect(() => {
+    if (filteredContacts.length > 0) {
+      const totalPageCount = Math.ceil(filteredContacts.length / contactsPerPage);
+      setTotalPages(totalPageCount);
+      
+      const startIndex = (currentPage - 1) * contactsPerPage;
+      const endIndex = startIndex + contactsPerPage;
+      const paginatedContacts = filteredContacts.slice(startIndex, endIndex);
+      
+      setDisplayedContacts(paginatedContacts);
+    } else {
+      setDisplayedContacts([]);
+      setTotalPages(1);
+    }
+  }, [currentPage, contactsPerPage, filteredContacts]);
+
+  // Update filtered contacts when all contacts change
+  useEffect(() => {
+    if (activeTagFilter) {
+      filterContactsByTag(activeTagFilter);
+    } else {
+      setFilteredContacts(contacts);
+    }
+  }, [contacts, activeTagFilter]);
+
+  // Function to handle page change
+  const changePage = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  // Function to change the number of contacts per page
+  const handleContactsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = parseInt(e.target.value, 10);
+    setContactsPerPage(newValue);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  // Tag filters component
+  const TagFilters = () => {
+    // Get unique tags from all contacts
+    const allTags = new Set<string>();
+    contacts.forEach(contact => {
+      if (contact.tags && Array.isArray(contact.tags)) {
+        contact.tags.forEach(tag => allTags.add(tag));
+      }
+    });
+
+    // Convert to array and sort
+    const uniqueTags = Array.from(allTags).sort();
+
+    // Add "scraped-lead" tag at the beginning if it exists
+    const scrapedLeadIndex = uniqueTags.indexOf("scraped-lead");
+    if (scrapedLeadIndex > -1) {
+      uniqueTags.splice(scrapedLeadIndex, 1);
+      uniqueTags.unshift("scraped-lead");
+    }
+
+    return (
+      <div className="mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-2">Filter by Tag</h3>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => filterContactsByTag(null)}
+            className={`px-3 py-1 rounded-full text-sm ${
+              activeTagFilter === null 
+                ? 'bg-purple-600 text-white' 
+                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+            }`}
+          >
+            All Contacts ({contacts.length})
+          </button>
+          
+          {uniqueTags.map(tag => {
+            const count = contacts.filter(c => c.tags && c.tags.includes(tag)).length;
+            let tagLabel = tag;
+            let tagClass = '';
+            
+            // Special formatting for scraped leads to indicate they are in pipeline
+            if (tag === 'scraped-lead') {
+              tagLabel = 'Scraped Leads';
+              tagClass = 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+            }
+            
+            return (
+              <button
+                key={tag}
+                onClick={() => filterContactsByTag(tag)}
+                className={`px-3 py-1 rounded-full text-sm ${
+                  activeTagFilter === tag 
+                    ? 'bg-purple-600 text-white' 
+                    : tagClass || 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                {tagLabel} ({count})
+              </button>
+            );
+          })}
+        </div>
+        
+        {/* Special note for scraped contacts */}
+        {activeTagFilter === 'scraped-lead' && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-700 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              These scraped contacts have been automatically added to your Leads Pipeline in the "Review New Lead" stage.
+              <a href="/opportunities" className="ml-1 font-medium underline">View your Pipeline</a>
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Pagination UI component
+  const PaginationControls = () => {
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust startPage if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+    
+    return (
+      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
+        <div className="flex flex-1 justify-between sm:hidden">
+          <button
+            onClick={() => changePage(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium 
+              ${currentPage === 1 
+                ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => changePage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium 
+              ${currentPage === totalPages 
+                ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing <span className="font-medium">{displayedContacts.length > 0 ? (currentPage - 1) * contactsPerPage + 1 : 0}</span> to{' '}
+              <span className="font-medium">
+                {Math.min(currentPage * contactsPerPage, filteredContacts.length)}
+              </span> of{' '}
+              <span className="font-medium">{filteredContacts.length}</span> results
+            </p>
+          </div>
+          <div className="flex items-center">
+            <div className="mr-4">
+              <label htmlFor="perPage" className="mr-2 text-sm text-gray-700">Show</label>
+              <select
+                id="perPage"
+                value={contactsPerPage}
+                onChange={handleContactsPerPageChange}
+                className="rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <button
+                onClick={() => changePage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`relative inline-flex items-center rounded-l-md px-2 py-2 
+                  ${currentPage === 1 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-white text-gray-500 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+              >
+                <span className="sr-only">Previous</span>
+                <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+              
+              {/* First page for large page counts */}
+              {startPage > 1 && (
+                <>
+                  <button
+                    onClick={() => changePage(1)}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
+                      ${currentPage === 1 
+                        ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600' 
+                        : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                  >
+                    1
+                  </button>
+                  {startPage > 2 && (
+                    <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                      ...
+                    </span>
+                  )}
+                </>
+              )}
+              
+              {/* Page numbers */}
+              {pageNumbers.map(number => (
+                <button
+                  key={number}
+                  onClick={() => changePage(number)}
+                  className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
+                    ${currentPage === number 
+                      ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600' 
+                      : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                >
+                  {number}
+                </button>
+              ))}
+              
+              {/* Last page for large page counts */}
+              {endPage < totalPages && (
+                <>
+                  {endPage < totalPages - 1 && (
+                    <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                      ...
+                    </span>
+                  )}
+                  <button
+                    onClick={() => changePage(totalPages)}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
+                      ${currentPage === totalPages 
+                        ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600' 
+                        : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+              
+              <button
+                onClick={() => changePage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`relative inline-flex items-center rounded-r-md px-2 py-2 
+                  ${currentPage === totalPages 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-white text-gray-500 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+              >
+                <span className="sr-only">Next</span>
+                <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <DashboardLayout title="Contacts">
       <div className="dashboard-card">
@@ -521,6 +830,20 @@ export default function ContactsPage() {
             Add Contact
           </button>
         </div>
+
+        {contacts.length > 0 && <TagFilters />}
+        
+        {activeTagFilter === 'scraped-lead' && (
+          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-700 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              These scraped contacts have been automatically added to your Leads Pipeline in the "Review New Lead" stage.
+              <a href="/opportunities" className="ml-1 font-medium underline">View your Pipeline</a>
+            </p>
+          </div>
+        )}
 
         {isAddModalOpen && <ModalContent />}
         {isEditModalOpen && <ModalContent isEdit />}
@@ -568,54 +891,66 @@ export default function ContactsPage() {
           <div className="bg-red-50 p-4 rounded-md text-red-800">
             <p>{error}</p>
           </div>
-        ) : contacts.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {contacts.map((contact) => (
-                  <tr key={contact.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{contact.firstName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{contact.email || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{contact.phone || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-wrap gap-1">
-                        {contact.tags && contact.tags.map((tag, idx) => (
-                          <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleEdit(contact)}
-                        className="text-purple-600 hover:text-blue-900 mr-3"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(contact)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
-                    </td>
+        ) : filteredContacts.length > 0 ? (
+          <div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {displayedContacts.map((contact) => (
+                    <tr key={contact.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">{contact.firstName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{contact.email || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{contact.phone || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-wrap gap-1">
+                          {contact.tags && contact.tags.map((tag, idx) => (
+                            <span 
+                              key={idx} 
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                tag === 'scraped-lead' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : tag === 'review-new-lead' 
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleEdit(contact)}
+                          className="text-purple-600 hover:text-blue-900 mr-3"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(contact)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls />
           </div>
         ) : (
-          <p className="text-gray-500">No contacts found.</p>
+          <p className="text-gray-500">No contacts found{activeTagFilter ? ` with the tag '${activeTagFilter}'` : ''}.</p>
         )}
       </div>
     </DashboardLayout>

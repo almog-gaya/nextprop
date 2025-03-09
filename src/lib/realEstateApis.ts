@@ -230,12 +230,104 @@ async function searchPropertiesWithZillow(
   params: any = {},
   apiKey = DEFAULT_RAPIDAPI_KEY
 ) {
-  // For Zillow, since the API endpoint we have is primarily for property lookup by address,
-  // we'll implement a city-based search simulation
   try {
+    // Get search parameters
+    const city = params.city || 'Miami';
+    const state = params.state_code || 'FL';
+    const beds = Number(params.beds_min) || 0;
+    const baths = Number(params.baths_min) || 0;
+    const priceMax = Number(params.price_max) || 1000000;
+    
+    // Format the AI prompt based on search parameters
+    const aiPrompt = `Houses for sale ${beds > 0 ? `with ${beds} beds` : ''} ${baths > 0 ? `${beds > 0 ? 'and' : 'with'} ${baths} baths` : ''} in ${city} ${state} ${priceMax > 0 ? `under $${Math.floor(priceMax).toLocaleString()}` : ''}`.trim();
+    
+    console.log(`Searching properties with Zillow API using prompt: ${aiPrompt}`);
+    
+    // Call the Zillow API using the byaiprompt endpoint
+    const response = await fetch(
+      `https://${DEFAULT_ZILLOW_RAPIDAPI_HOST}/search/byaiprompt?ai_search_prompt=${encodeURIComponent(aiPrompt)}&page=1&sortOrder=Homes_for_you`,
+      {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': apiKey,
+          'X-RapidAPI-Host': DEFAULT_ZILLOW_RAPIDAPI_HOST,
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Zillow API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Check if we got valid results
+    if (data && data.results && Array.isArray(data.results)) {
+      // Convert the Zillow API response format to our expected format
+      const properties = data.results
+        .filter((result: any) => result && result.property)
+        .map((result: any) => {
+          const property = result.property;
+          
+          // Get the image URL from the property photos if available
+          let imgSrc = '';
+          if (property.media?.propertyPhotoLinks?.highResolutionLink) {
+            imgSrc = property.media.propertyPhotoLinks.highResolutionLink;
+          } else if (property.media?.allPropertyPhotos?.highResolution?.length > 0) {
+            imgSrc = property.media.allPropertyPhotos.highResolution[0];
+          }
+          
+          // Format price
+          const price = property.price && typeof property.price.value === 'number' 
+            ? property.price.value 
+            : 0;
+          
+          // Format address
+          const address = property.address 
+            ? `${property.address.streetAddress}, ${property.address.city}, ${property.address.state} ${property.address.zipcode}`
+            : '';
+            
+          return {
+            zpid: property.zpid,
+            address: address,
+            price: price,
+            bedrooms: property.bedrooms || 0,
+            bathrooms: property.bathrooms || 0,
+            livingArea: property.livingArea || 0,
+            lotSize: property.lotSizeWithUnit?.lotSize || 0,
+            yearBuilt: property.yearBuilt || 0,
+            imgSrc: imgSrc,
+            detailUrl: property.hdpView?.hdpUrl || `https://www.zillow.com/homes/${city}-${state}`,
+            description: `Property in ${property.address?.city || city}, ${property.address?.state || state}`,
+            listingDate: new Date().toISOString() // Most listings don't include this, so we use current date
+          };
+        });
+        
+      // Apply pagination parameters
+      const limit = Number(params.limit) || 20;
+      const offset = Number(params.offset) || 0;
+      const paginatedProperties = properties.slice(offset, offset + limit);
+      
+      return {
+        properties: paginatedProperties,
+        total_count: properties.length,
+        matching_count: paginatedProperties.length
+      };
+    }
+    
+    // If we get here, something is wrong with the API response format, fall back to mock data
+    throw new Error('Invalid response format from Zillow API');
+  } catch (error) {
+    console.error('Failed to search properties with Zillow:', error);
+    
+    // Fall back to mock data
+    // For Zillow, since the API endpoint we have is primarily for property lookup by address,
+    // we'll implement a city-based search simulation
+    
     // Get city parameter, default to Miami
     const city = params.city || 'Miami';
     const state = params.state_code || 'FL';
+    const priceMax = Number(params.price_max) || 1000000;
     
     // Create a list of properties in the requested city
     // This is a placeholder - in a real implementation, you would use 
@@ -314,7 +406,6 @@ async function searchPropertiesWithZillow(
     ];
     
     // Filter to properties under the price max
-    const priceMax = Number(params.price_max) || 1000000;
     const filteredProperties = cityProperties.filter(prop => prop.price <= priceMax);
     
     // Sort properties based on sort parameter
@@ -342,9 +433,6 @@ async function searchPropertiesWithZillow(
       total_count: filteredProperties.length,
       matching_count: paginatedProperties.length
     };
-  } catch (error) {
-    console.error('Failed to search properties with Zillow:', error);
-    throw error;
   }
 }
 
