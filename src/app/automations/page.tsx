@@ -24,47 +24,15 @@ import {
 import { Toaster, toast } from 'react-hot-toast';
 import { 
   AutomationFlow, 
-  CommunicationChannel, 
+  CommunicationChannel,
   startAutomation, 
   getAutomationStatus,
   cancelAutomation 
 } from '@/lib/automationService';
 import DashboardLayout from '@/components/DashboardLayout';
-
-// Define the types for email and SMS templates
-interface EmailTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  body: string;
-  previewText?: string;
-  sendDelay?: number; // Delay in hours
-  sendTime?: string; // Specific time of day (e.g., "09:00")
-  type: 'introduction' | 'follow-up' | 'property-info' | 'custom';
-}
-
-interface SmsTemplate {
-  id: string;
-  name: string;
-  message: string;
-  sendDelay?: number; // Delay in hours
-  sendTime?: string; // Specific time of day
-  includeLink?: boolean;
-  maxLength?: number;
-  type: 'introduction' | 'follow-up' | 'property-info' | 'custom';
-}
-
-interface VoicemailTemplate {
-  id: string;
-  name: string;
-  audioUrl: string;
-  transcription: string;
-  duration?: number; // Length in seconds
-  voiceType?: 'male' | 'female' | 'ai';
-  sendDelay?: number; // Delay in hours
-  sendTime?: string; // Specific time of day
-  type: 'introduction' | 'follow-up' | 'property-info' | 'custom';
-}
+import TemplateEditor from '@/components/TemplateEditor';
+import { EmailTemplate, SmsTemplate, VoicemailTemplate } from '@/lib/types';
+import TemplateSection from '@/components/TemplateSection';
 
 export default function AutomationsPage() {
   const router = useRouter();
@@ -76,6 +44,10 @@ export default function AutomationsPage() {
   // Wizard step management
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
+  
+  // Template editing state
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | SmsTemplate | VoicemailTemplate | null>(null);
+  const [editingTemplateType, setEditingTemplateType] = useState<'email' | 'sms' | 'voicemail' | null>(null);
   
   // Default mock templates
   const defaultEmailTemplates: EmailTemplate[] = [
@@ -93,39 +65,80 @@ export default function AutomationsPage() {
     { id: '2', name: 'Callback Request', audioUrl: '/audio/callback.mp3', transcription: 'Hi there, I recently sent you information about some properties. Please call me back at...', type: 'follow-up' }
   ];
   
-  // Extended form state for the wizard
+  // Available templates for selection
+  const [availableTemplates, setAvailableTemplates] = useState({
+    email: [
+      {
+        id: 'email1',
+        name: 'Property Introduction',
+        subject: 'New Property Alert: {{propertyAddress}}',
+        body: 'Hi {{firstName}},\n\nI wanted to bring to your attention a property that might interest you at {{propertyAddress}}. It is currently listed at {{propertyPrice}}.\n\nCheck out more details here: {{propertyLink}}\n\nLet me know if you would like to schedule a viewing.\n\nBest regards,\nYour Agent',
+        previewText: 'New property that matches your criteria',
+        type: 'introduction' as const,
+      },
+      {
+        id: 'email2',
+        name: 'Follow-up Email',
+        subject: 'Following up about {{propertyAddress}}',
+        body: 'Hello {{firstName}},\n\nI am just following up on the property at {{propertyAddress}} that I shared with you earlier. Have you had a chance to review it?\n\nI would be happy to answer any questions you might have or schedule a viewing.\n\nBest regards,\nYour Agent',
+        type: 'follow-up' as const,
+      },
+    ],
+    sms: [
+      {
+        id: 'sms1',
+        name: 'Quick Property Alert',
+        message: 'Hi {{firstName}}, new property alert! Check out {{propertyAddress}} - view details at {{propertyLink}}',
+        type: 'introduction' as const,
+        maxLength: 160,
+      },
+      {
+        id: 'sms2',
+        name: 'Viewing Reminder',
+        message: 'Reminder: Your viewing for {{propertyAddress}} is scheduled for tomorrow. Reply to confirm.',
+        type: 'follow-up' as const,
+      },
+    ],
+    voicemail: [
+      {
+        id: 'vm1',
+        name: 'Property Introduction VM',
+        audioUrl: '/sample-voicemails/property-intro.mp3',
+        transcription: 'Hi {{firstName}}, this is {{agentName}} from {{companyName}}. I wanted to let you know about a property at {{propertyAddress}} that matches your criteria. Please call me back when you get a chance to discuss this opportunity.',
+        duration: 22,
+        voiceType: 'ai' as const,
+        type: 'introduction' as const,
+      },
+      {
+        id: 'vm2',
+        name: 'Follow-up Voicemail',
+        audioUrl: '/sample-voicemails/followup.mp3',
+        transcription: 'Hello {{firstName}}, this is {{agentName}} following up about the property at {{propertyAddress}} that I mentioned earlier. Please give me a call if you are interested in learning more.',
+        duration: 15,
+        voiceType: 'female' as const,
+        type: 'follow-up' as const,
+      },
+    ],
+  });
+
+  // State for automation form data
   const [formData, setFormData] = useState({
-    // Step 1: Basic Info
     name: '',
     description: '',
-    
-    // Step 2: Property Scraper
-    searchQuery: 'Properties in Miami under $1M',
-    contactCount: 100,
-    
-    // Step 3: Contact Management
-    checkDuplicates: true,
+    searchQuery: '',
     pipeline: 'leads',
     tags: [] as string[],
-    
-    // Step 4: Communication Channels
     communicationChannels: [] as CommunicationChannel[],
     emailTemplates: [] as string[],
     smsTemplates: [] as string[],
     voicemailTemplates: [] as string[],
-    
-    // Step 5: Schedule
-    frequency: 'daily' as 'daily' | 'weekly' | 'monthly',
-    count: 100,
+    schedule: {
+      count: 20,
+      frequency: 'daily' as 'daily' | 'weekly' | 'monthly',
+    },
+    checkDuplicates: true,
     startDate: new Date().toISOString().split('T')[0],
-    endDate: ''
-  });
-
-  // Available templates for selection
-  const [availableTemplates, setAvailableTemplates] = useState({
-    email: defaultEmailTemplates,
-    sms: defaultSmsTemplates,
-    voicemail: defaultVoicemailTemplates
+    endDate: '',
   });
 
   // Load existing automations from localStorage on mount
@@ -186,28 +199,61 @@ export default function AutomationsPage() {
     }));
   };
 
+  // Handle form field changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Handle nested properties (e.g., schedule.count)
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setFormData(prev => {
+        if (parent === 'schedule') {
+          return {
+            ...prev,
+            schedule: {
+              ...prev.schedule,
+              [child]: child === 'count' ? Number(value) : value
+            }
+          };
+        }
+        
+        // Add other nested objects if needed
+        return prev;
+      });
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleCheckboxChange = (channel: CommunicationChannel) => {
     setFormData(prev => {
-      const channels = [...prev.communicationChannels];
-      if (channels.includes(channel)) {
-        return {
-          ...prev,
-          communicationChannels: channels.filter(c => c !== channel)
-        };
-      } else {
-        return {
-          ...prev,
-          communicationChannels: [...channels, channel]
-        };
+      // Toggle the channel
+      const updatedChannels = prev.communicationChannels.includes(channel)
+        ? prev.communicationChannels.filter(c => c !== channel)
+        : [...prev.communicationChannels, channel];
+      
+      // Clear template selections if channel is disabled
+      let updatedData = {
+        ...prev,
+        communicationChannels: updatedChannels,
+      };
+      
+      if (!updatedChannels.includes('email')) {
+        updatedData.emailTemplates = [];
       }
+      
+      if (!updatedChannels.includes('sms')) {
+        updatedData.smsTemplates = [];
+      }
+      
+      if (!updatedChannels.includes('voicemail')) {
+        updatedData.voicemailTemplates = [];
+      }
+      
+      return updatedData;
     });
   };
 
@@ -286,13 +332,10 @@ export default function AutomationsPage() {
       createdAt: new Date().toISOString(),
       steps: {
         source: 'zillow',
-        contactCount: formData.contactCount,
+        contactCount: formData.schedule.count,
         pipeline: formData.pipeline,
         communicationChannels: formData.communicationChannels,
-        schedule: {
-          frequency: formData.frequency,
-          count: formData.count
-        }
+        schedule: formData.schedule
       }
     };
 
@@ -302,19 +345,20 @@ export default function AutomationsPage() {
     setFormData({
       name: '',
       description: '',
-      searchQuery: 'Properties in Miami under $1M',
-      contactCount: 100,
-      checkDuplicates: true,
+      searchQuery: '',
       pipeline: 'leads',
       tags: [],
       communicationChannels: [],
       emailTemplates: [],
       smsTemplates: [],
       voicemailTemplates: [],
-      frequency: 'daily',
-      count: 100,
+      schedule: {
+        count: 20,
+        frequency: 'daily',
+      },
+      checkDuplicates: true,
       startDate: new Date().toISOString().split('T')[0],
-      endDate: ''
+      endDate: '',
     });
     setCurrentStep(1);
     
@@ -443,6 +487,78 @@ export default function AutomationsPage() {
       toast.error('Failed to cancel job');
     }
   };
+
+  // Reorder communication channels
+  const moveChannel = (channelIndex: number, direction: 'up' | 'down') => {
+    setFormData(prev => {
+      const channels = [...prev.communicationChannels];
+      
+      if (direction === 'up' && channelIndex > 0) {
+        // Swap with previous item
+        [channels[channelIndex], channels[channelIndex - 1]] = [channels[channelIndex - 1], channels[channelIndex]];
+      } else if (direction === 'down' && channelIndex < channels.length - 1) {
+        // Swap with next item
+        [channels[channelIndex], channels[channelIndex + 1]] = [channels[channelIndex + 1], channels[channelIndex]];
+      }
+      
+      return {
+        ...prev,
+        communicationChannels: channels
+      };
+    });
+  };
+
+  // Display communication sequence in the Communication Methods step
+  const renderCommunicationSequence = () => (
+    <div className="mt-4 p-4 border border-gray-200 rounded-md bg-gray-50">
+      <h4 className="text-sm font-medium text-gray-700 mb-2">Communication Sequence</h4>
+      <p className="text-sm text-gray-600 mb-3">
+        Define the order in which communications will be sent:
+      </p>
+      
+      <div className="flex flex-col space-y-2">
+        {formData.communicationChannels.length > 0 ? (
+          formData.communicationChannels.map((channel, index) => (
+            <div key={channel} className="flex items-center justify-between bg-white p-2 rounded-md border border-gray-200">
+              <div className="flex items-center">
+                <span className="h-5 w-5 flex items-center justify-center bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium mr-2">
+                  {index + 1}
+                </span>
+                <span className="capitalize text-gray-700">
+                  {channel === 'voicemail' ? 'Ringless Voicemail' : channel.charAt(0).toUpperCase() + channel.slice(1)}
+                </span>
+              </div>
+              
+              <div className="flex space-x-1">
+                <button
+                  type="button"
+                  onClick={() => moveChannel(index, 'up')}
+                  disabled={index === 0}
+                  className={`p-1 rounded ${index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveChannel(index, 'down')}
+                  disabled={index === formData.communicationChannels.length - 1}
+                  className={`p-1 rounded ${index === formData.communicationChannels.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-100'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-gray-500 italic">No communication channels selected</p>
+        )}
+      </div>
+    </div>
+  );
 
   // Wizard Step Indicator Component
   const WizardStepIndicator = () => {
@@ -581,7 +697,7 @@ export default function AutomationsPage() {
                           Be specific about location, price range, and property type.
                         </p>
                       </div>
-{/*                       
+                      {/*                       
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -662,8 +778,8 @@ export default function AutomationsPage() {
                       </label>
                       <input
                         type="number"
-                        name="contactCount"
-                        value={formData.contactCount}
+                        name="schedule.count"
+                        value={formData.schedule.count}
                         onChange={handleInputChange}
                         className="w-full p-2 border border-gray-300 rounded-md"
                         min="1"
@@ -820,315 +936,96 @@ export default function AutomationsPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Email Configuration */}
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="p-4 bg-indigo-50 border-b border-gray-200 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <EnvelopeIcon className="h-5 w-5 text-indigo-600 mr-2" />
-                        <h4 className="font-medium text-indigo-900">Email Campaigns</h4>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="email"
-                          checked={formData.communicationChannels.includes('email')}
-                          onChange={() => handleCheckboxChange('email')}
-                          className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                        />
-                        <label htmlFor="email" className="ml-2 text-sm text-gray-700">
-                          Enable
-                        </label>
-                      </div>
-                    </div>
-                    
-                    {formData.communicationChannels.includes('email') && (
-                      <div className="p-4">
-                        <div className="mb-4">
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Select Email Templates:</h5>
-                          
-                          <div className="space-y-3 max-h-64 overflow-y-auto p-1">
-                            {availableTemplates.email.map(template => (
-                              <div key={template.id} className="border border-gray-200 rounded-md p-3 hover:bg-gray-50">
-                                <div className="flex items-start mb-2">
-                                  <input
-                                    type="checkbox"
-                                    id={`email-template-${template.id}`}
-                                    checked={formData.emailTemplates.includes(template.id)}
-                                    onChange={(e) => handleTemplateSelection('email', template.id, e.target.checked)}
-                                    className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                                  />
-                                  <div className="ml-3 flex-1">
-                                    <label htmlFor={`email-template-${template.id}`} className="block text-sm font-medium text-gray-900">
-                                      {template.name}
-                                    </label>
-                                    <span className="block text-xs text-gray-500 mt-1">Type: {template.type}</span>
-                                  </div>
-                                  <button 
-                                    type="button"
-                                    className="p-1 text-indigo-600 hover:bg-indigo-50 rounded-full"
-                                    title="Edit Template"
-                                  >
-                                    <PencilIcon className="h-4 w-4" />
-                                  </button>
-                                </div>
-                                
-                                {formData.emailTemplates.includes(template.id) && (
-                                  <div className="mt-2 pl-7">
-                                    <div className="bg-gray-50 p-2 rounded-md">
-                                      <p className="text-xs font-medium text-gray-700">Subject: {template.subject}</p>
-                                      <p className="text-xs text-gray-600 mt-1">{template.body.substring(0, 100)}...</p>
-                                      
-                                      <div className="mt-3 pt-2 border-t border-gray-200">
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-xs text-gray-500">Send Delay:</span>
-                                          <select 
-                                            className="text-xs p-1 border border-gray-300 rounded"
-                                            defaultValue={template.sendDelay || 0}
-                                          >
-                                            <option value="0">Immediately</option>
-                                            <option value="24">After 1 day</option>
-                                            <option value="48">After 2 days</option>
-                                            <option value="72">After 3 days</option>
-                                            <option value="168">After 1 week</option>
-                                          </select>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <button
-                          type="button"
-                          className="mt-2 flex items-center text-indigo-600 text-sm hover:text-indigo-800"
-                        >
-                          <PlusIcon className="h-4 w-4 mr-1" />
-                          Create New Email Template
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <TemplateSection
+                    type="email"
+                    title="Email Campaigns"
+                    icon={<EnvelopeIcon className="h-5 w-5 text-indigo-600 mr-2" />}
+                    enabled={formData.communicationChannels.includes('email')}
+                    onToggle={() => handleCheckboxChange('email')}
+                    templates={availableTemplates.email}
+                    selectedTemplateIds={formData.emailTemplates}
+                    onTemplateSelect={(id, selected) => handleTemplateSelection('email', id, selected)}
+                    highlightColor="indigo"
+                    onSaveTemplate={(template) => {
+                      // Update the email template in the availableTemplates
+                      setAvailableTemplates(prev => {
+                        const updatedTemplates = [...prev.email];
+                        const index = updatedTemplates.findIndex(t => t.id === template.id);
+                        if (index !== -1) {
+                          updatedTemplates[index] = template as EmailTemplate;
+                        } else {
+                          updatedTemplates.push(template as EmailTemplate);
+                        }
+                        return {
+                          ...prev,
+                          email: updatedTemplates
+                        };
+                      });
+                      toast.success('Email template saved successfully');
+                    }}
+                  />
                   
                   {/* SMS Configuration */}
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="p-4 bg-green-50 border-b border-gray-200 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <ChatBubbleLeftRightIcon className="h-5 w-5 text-green-600 mr-2" />
-                        <h4 className="font-medium text-green-900">SMS Campaigns</h4>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="sms"
-                          checked={formData.communicationChannels.includes('sms')}
-                          onChange={() => handleCheckboxChange('sms')}
-                          className="h-4 w-4 text-green-600 border-gray-300 rounded"
-                        />
-                        <label htmlFor="sms" className="ml-2 text-sm text-gray-700">
-                          Enable
-                        </label>
-                      </div>
-                    </div>
-                    
-                    {formData.communicationChannels.includes('sms') && (
-                      <div className="p-4">
-                        <div className="mb-4">
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Select SMS Templates:</h5>
-                          
-                          <div className="space-y-3 max-h-64 overflow-y-auto p-1">
-                            {availableTemplates.sms.map(template => (
-                              <div key={template.id} className="border border-gray-200 rounded-md p-3 hover:bg-gray-50">
-                                <div className="flex items-start mb-2">
-                                  <input
-                                    type="checkbox"
-                                    id={`sms-template-${template.id}`}
-                                    checked={formData.smsTemplates.includes(template.id)}
-                                    onChange={(e) => handleTemplateSelection('sms', template.id, e.target.checked)}
-                                    className="mt-1 h-4 w-4 text-green-600 border-gray-300 rounded"
-                                  />
-                                  <div className="ml-3 flex-1">
-                                    <label htmlFor={`sms-template-${template.id}`} className="block text-sm font-medium text-gray-900">
-                                      {template.name}
-                                    </label>
-                                    <span className="block text-xs text-gray-500 mt-1">Type: {template.type}</span>
-                                  </div>
-                                  <button 
-                                    type="button"
-                                    className="p-1 text-green-600 hover:bg-green-50 rounded-full"
-                                    title="Edit Template"
-                                  >
-                                    <PencilIcon className="h-4 w-4" />
-                                  </button>
-                                </div>
-                                
-                                {formData.smsTemplates.includes(template.id) && (
-                                  <div className="mt-2 pl-7">
-                                    <div className="bg-gray-50 p-2 rounded-md">
-                                      <p className="text-xs text-gray-600">{template.message}</p>
-                                      
-                                      <div className="mt-3 space-y-2 pt-2 border-t border-gray-200">
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-xs text-gray-500">Send Delay:</span>
-                                          <select 
-                                            className="text-xs p-1 border border-gray-300 rounded"
-                                            defaultValue={template.sendDelay || 0}
-                                          >
-                                            <option value="0">Immediately</option>
-                                            <option value="24">After 1 day</option>
-                                            <option value="48">After 2 days</option>
-                                            <option value="72">After 3 days</option>
-                                          </select>
-                                        </div>
-                                        
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-xs text-gray-500">Best Time to Call:</span>
-                                          <select 
-                                            className="text-xs p-1 border border-gray-300 rounded"
-                                            defaultValue={template.sendTime || 'evening'}
-                                          >
-                                            <option value="morning">Morning (9-11 AM)</option>
-                                            <option value="afternoon">Afternoon (1-3 PM)</option>
-                                            <option value="evening">Evening (6-8 PM)</option>
-                                          </select>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <button
-                          type="button"
-                          className="mt-2 flex items-center text-green-600 text-sm hover:text-green-800"
-                        >
-                          <PlusIcon className="h-4 w-4 mr-1" />
-                          Create New SMS Template
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <TemplateSection
+                    type="sms"
+                    title="SMS Campaigns"
+                    icon={<ChatBubbleLeftRightIcon className="h-5 w-5 text-green-600 mr-2" />}
+                    enabled={formData.communicationChannels.includes('sms')}
+                    onToggle={() => handleCheckboxChange('sms')}
+                    templates={availableTemplates.sms}
+                    selectedTemplateIds={formData.smsTemplates}
+                    onTemplateSelect={(id, selected) => handleTemplateSelection('sms', id, selected)}
+                    highlightColor="green"
+                    onSaveTemplate={(template) => {
+                      // Update the SMS template in the availableTemplates
+                      setAvailableTemplates(prev => {
+                        const updatedTemplates = [...prev.sms];
+                        const index = updatedTemplates.findIndex(t => t.id === template.id);
+                        if (index !== -1) {
+                          updatedTemplates[index] = template as SmsTemplate;
+                        } else {
+                          updatedTemplates.push(template as SmsTemplate);
+                        }
+                        return {
+                          ...prev,
+                          sms: updatedTemplates
+                        };
+                      });
+                      toast.success('SMS template saved successfully');
+                    }}
+                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                   {/* Voicemail Configuration */}
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="p-4 bg-amber-50 border-b border-gray-200 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <PhoneIcon className="h-5 w-5 text-amber-600 mr-2" />
-                        <h4 className="font-medium text-amber-900">Ringless Voicemail</h4>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="voicemail"
-                          checked={formData.communicationChannels.includes('voicemail')}
-                          onChange={() => handleCheckboxChange('voicemail')}
-                          className="h-4 w-4 text-amber-600 border-gray-300 rounded"
-                        />
-                        <label htmlFor="voicemail" className="ml-2 text-sm text-gray-700">
-                          Enable
-                        </label>
-                      </div>
-                    </div>
-                    
-                    {formData.communicationChannels.includes('voicemail') && (
-                      <div className="p-4">
-                        <div className="mb-4">
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Select Voicemail Templates:</h5>
-                          
-                          <div className="space-y-3 max-h-64 overflow-y-auto p-1">
-                            {availableTemplates.voicemail.map(template => (
-                              <div key={template.id} className="border border-gray-200 rounded-md p-3 hover:bg-gray-50">
-                                <div className="flex items-start mb-2">
-                                  <input
-                                    type="checkbox"
-                                    id={`voicemail-template-${template.id}`}
-                                    checked={formData.voicemailTemplates.includes(template.id)}
-                                    onChange={(e) => handleTemplateSelection('voicemail', template.id, e.target.checked)}
-                                    className="mt-1 h-4 w-4 text-amber-600 border-gray-300 rounded"
-                                  />
-                                  <div className="ml-3 flex-1">
-                                    <label htmlFor={`voicemail-template-${template.id}`} className="block text-sm font-medium text-gray-900">
-                                      {template.name}
-                                    </label>
-                                    <span className="block text-xs text-gray-500 mt-1">
-                                      Duration: {template.duration || '30'}s | Voice: {template.voiceType || 'male'}
-                                    </span>
-                                  </div>
-                                  <button 
-                                    type="button"
-                                    className="p-1 text-amber-600 hover:bg-amber-50 rounded-full"
-                                    title="Edit Template"
-                                  >
-                                    <PencilIcon className="h-4 w-4" />
-                                  </button>
-                                </div>
-                                
-                                {formData.voicemailTemplates.includes(template.id) && (
-                                  <div className="mt-2 pl-7">
-                                    <div className="bg-gray-50 p-2 rounded-md">
-                                      <div className="flex items-center mb-2">
-                                        <button
-                                          type="button"
-                                          className="p-1 bg-amber-100 rounded-full text-amber-700"
-                                          title="Play Voicemail"
-                                        >
-                                          <PlayIcon className="h-4 w-4" />
-                                        </button>
-                                        <span className="ml-2 text-xs text-gray-600">Preview audio</span>
-                                      </div>
-                                      
-                                      <p className="text-xs text-gray-600 italic">"{template.transcription.substring(0, 100)}..."</p>
-                                      
-                                      <div className="mt-3 space-y-2 pt-2 border-t border-gray-200">
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-xs text-gray-500">Send Delay:</span>
-                                          <select 
-                                            className="text-xs p-1 border border-gray-300 rounded"
-                                            defaultValue={template.sendDelay || 48}
-                                          >
-                                            <option value="24">After 1 day</option>
-                                            <option value="48">After 2 days</option>
-                                            <option value="72">After 3 days</option>
-                                            <option value="120">After 5 days</option>
-                                          </select>
-                                        </div>
-                                        
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-xs text-gray-500">Best Time to Call:</span>
-                                          <select 
-                                            className="text-xs p-1 border border-gray-300 rounded"
-                                            defaultValue={template.sendTime || 'evening'}
-                                          >
-                                            <option value="morning">Morning (9 AM - 11 AM)</option>
-                                            <option value="afternoon">Afternoon (1 PM - 3 PM)</option>
-                                            <option value="evening">Evening (6 PM - 8 PM)</option>
-                                          </select>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <button
-                          type="button"
-                          className="mt-2 flex items-center text-amber-600 text-sm hover:text-amber-800"
-                        >
-                          <PlusIcon className="h-4 w-4 mr-1" />
-                          Create New Voicemail Template
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <TemplateSection
+                    type="voicemail"
+                    title="Ringless Voicemail"
+                    icon={<PhoneIcon className="h-5 w-5 text-amber-600 mr-2" />}
+                    enabled={formData.communicationChannels.includes('voicemail')}
+                    onToggle={() => handleCheckboxChange('voicemail')}
+                    templates={availableTemplates.voicemail}
+                    selectedTemplateIds={formData.voicemailTemplates}
+                    onTemplateSelect={(id, selected) => handleTemplateSelection('voicemail', id, selected)}
+                    highlightColor="amber"
+                    onSaveTemplate={(template) => {
+                      // Update the voicemail template in the availableTemplates
+                      setAvailableTemplates(prev => {
+                        const updatedTemplates = [...prev.voicemail];
+                        const index = updatedTemplates.findIndex(t => t.id === template.id);
+                        if (index !== -1) {
+                          updatedTemplates[index] = template as VoicemailTemplate;
+                        } else {
+                          updatedTemplates.push(template as VoicemailTemplate);
+                        }
+                        return {
+                          ...prev,
+                          voicemail: updatedTemplates
+                        };
+                      });
+                      toast.success('Voicemail script saved successfully');
+                    }}
+                  />
                   
                   {/* Call Configuration */}
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
@@ -1213,30 +1110,7 @@ export default function AutomationsPage() {
                   </div>
                 </div>
                 
-                <div className="mt-4 p-4 border border-gray-200 rounded-md bg-gray-50">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Communication Sequence</h4>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Define the order in which communications will be sent:
-                  </p>
-                  
-                  <div className="flex flex-col space-y-2">
-                    {formData.communicationChannels.length > 0 ? (
-                      formData.communicationChannels.map((channel, index) => (
-                        <div key={channel} className="flex items-center bg-white p-2 rounded-md border border-gray-200">
-                          <span className="h-5 w-5 flex items-center justify-center bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium mr-2">
-                            {index + 1}
-                          </span>
-                          <span className="capitalize text-gray-700">{channel}</span>
-                          {index < formData.communicationChannels.length - 1 && (
-                            <span className="text-gray-400 mx-2">→</span>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500 italic">No communication channels selected</p>
-                    )}
-                  </div>
-                </div>
+                {renderCommunicationSequence()}
               </div>
             )}
             
@@ -1266,7 +1140,7 @@ export default function AutomationsPage() {
                     
                     <div className="flex">
                       <span className="font-medium text-gray-700 w-40">Contacts to Process:</span>
-                      <span className="text-gray-800">{formData.contactCount}</span>
+                      <span className="text-gray-800">{formData.schedule.count}</span>
                     </div>
                     
                     <div className="flex">
@@ -1338,8 +1212,8 @@ export default function AutomationsPage() {
                         Frequency
                       </label>
                       <select
-                        name="frequency"
-                        value={formData.frequency}
+                        name="schedule.frequency"
+                        value={formData.schedule.frequency}
                         onChange={handleInputChange}
                         className="w-full p-2 border border-gray-300 rounded-md"
                       >
@@ -1355,8 +1229,8 @@ export default function AutomationsPage() {
                       </label>
                       <input
                         type="number"
-                        name="count"
-                        value={formData.count}
+                        name="schedule.count"
+                        value={formData.schedule.count}
                         onChange={handleInputChange}
                         className="w-full p-2 border border-gray-300 rounded-md"
                         min="1"
@@ -1552,10 +1426,11 @@ export default function AutomationsPage() {
                         <li>Add as contacts (with duplicate checking)</li>
                         <li>Add to {automation.steps.pipeline} pipeline</li>
                         <li>
-                          Send via: {automation.steps.communicationChannels.map(c => 
-                            c === 'voicemail' ? 'Ringless Voicemail' : 
-                            c.charAt(0).toUpperCase() + c.slice(1)
-                          ).join(', ')}
+                          Send via: {automation.steps.communicationChannels.map((c, i) => (
+                            i === automation.steps.communicationChannels.length - 1 
+                              ? c === 'voicemail' ? 'Ringless Voicemail' : c.charAt(0).toUpperCase() + c.slice(1)
+                              : `${c === 'voicemail' ? 'Ringless Voicemail' : c.charAt(0).toUpperCase() + c.slice(1)}, `
+                          ))}
                         </li>
                         <li>Schedule: {automation.steps.schedule.count} contacts {automation.steps.schedule.frequency}</li>
                       </ol>
