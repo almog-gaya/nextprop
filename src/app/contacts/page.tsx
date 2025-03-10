@@ -70,7 +70,7 @@ export default function ContactsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [contactsPerPage, setContactsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalContacts, setTotalContacts] = useState(0); // New state for total contacts
+  const [totalContacts, setTotalContacts] = useState(0);
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,14 +86,13 @@ export default function ContactsPage() {
   }, [router]);
 
   useEffect(() => {
-    fetchContacts(); // Re-fetch contacts when page or per-page settings change
+    fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
 
   const fetchContacts = async (forceRefresh = false) => {
     try {
       setIsLoading(true);
 
-      // Construct query parameters
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: contactsPerPage.toString(),
@@ -113,7 +112,7 @@ export default function ContactsPage() {
       }));
 
       setContacts(processedContacts);
-      setTotalContacts(response.data.total || processedContacts.length); // Assuming API returns total count
+      setTotalContacts(response.data.total || processedContacts.length);
       setTotalPages(Math.ceil(response.data.total / contactsPerPage) || 1);
       setIsLoading(false);
     } catch (err: any) {
@@ -363,8 +362,20 @@ export default function ContactsPage() {
     };
 
     return (
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 sm:p-6">
-        <div className="bg-white/95 backdrop-blur-sm border border-transparent rounded-xl shadow-xl w-full max-w-md sm:max-w-lg mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative">
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 sm:p-6 z-50"
+        onClick={() => {
+          if (isEdit) {
+            setIsEditModalOpen(false);
+          } else {
+            setIsAddModalOpen(false);
+          }
+        }}
+      >
+        <div 
+          className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md sm:max-w-lg mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={() => {
               if (isEdit) {
@@ -536,7 +547,7 @@ export default function ContactsPage() {
 
   const filterContactsByTag = (tag: string | null) => {
     setActiveTagFilter(tag);
-    setCurrentPage(1); // Reset to first page when changing filters
+    setCurrentPage(1);
   };
 
   const changePage = (newPage: number) => {
@@ -548,7 +559,7 @@ export default function ContactsPage() {
   const handleContactsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = parseInt(e.target.value, 10);
     setContactsPerPage(newValue);
-    setCurrentPage(1); // Reset to first page when changing items per page
+    setCurrentPage(1);
   };
 
   const TagFilters = () => {
@@ -799,8 +810,14 @@ export default function ContactsPage() {
         {isEditModalOpen && <ModalContent isEdit />}
 
         {isDeleteModalOpen && selectedContact && (
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
-            <div className="bg-white/95 backdrop-blur-sm border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6">
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
+            onClick={() => setIsDeleteModalOpen(false)}
+          >
+            <div 
+              className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-900">Delete Contact</h3>
               <p className="text-sm text-gray-600 mb-6">
                 Are you sure you want to delete "{selectedContact.firstName}"? This action cannot be undone.
