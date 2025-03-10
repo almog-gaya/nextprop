@@ -104,13 +104,6 @@ export default function DashboardHeader({
 
         <div className="flex items-center space-x-3">
           <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-          <button
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-blue-700"
-            onClick={handleAddOpportunity}
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Add opportunity
-          </button>
         </div>
       </div>
     </div>

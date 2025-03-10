@@ -113,7 +113,7 @@ export default function OpportunityList({
                     >
                       <EnvelopeIcon className="h-4 w-4" />
                     </button>
-                    <button
+                    {/* <button
                       className="text-gray-500 hover:text-purple-600 p-1"
                       onClick={() => handleEditOpportunity(opportunity)}
                       title="Edit opportunity"
@@ -126,7 +126,7 @@ export default function OpportunityList({
                       title="Mark as opted out"
                     >
                       <XMarkIcon className="h-4 w-4" />
-                    </button>
+                    </button> */}
                   </div>
                 </td>
               </tr>

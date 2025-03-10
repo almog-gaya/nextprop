@@ -7,6 +7,7 @@ export interface Opportunity {
     stage: string;
     source?: string;
     lastActivity?: string;
+    contact?: GHLContact;
     lastActivityType?: 'voicemail' | 'sms' | 'call' | 'email' | 'optout';
 }
 

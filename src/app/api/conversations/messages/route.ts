@@ -1,123 +1,127 @@
-
-
 import { NextRequest, NextResponse } from 'next/server';
-import {  fetchWithErrorHandling } from '@/lib/enhancedApi';
+import { fetchWithErrorHandling, getAuthHeaders } from '@/lib/enhancedApi';
 
 export async function POST(request: NextRequest) {
-    const {
-        type,
-        contactId,
-        appointmentId,
-        attachments,
-        emailFrom,
-        emailCc,
-        emailBcc,
-        html,
-        message,
-        subject,
-        replyMessageId,
-        templateId,
-        threadId,
-        scheduledTimestamp,
-        conversationProviderId,
-        emailTo,
-        emailReplyMode,
-        fromNumber,
-        toNumber
-    } = await request.json();
-    const data = await fetchWithErrorHandling(() => SendMessage(
-        type,
-        contactId,
-        appointmentId,
-        attachments,
-        emailFrom,
-        emailCc,
-        emailBcc,
-        html,
-        message,
-        subject,
-        replyMessageId,
-        templateId,
-        threadId,
-        scheduledTimestamp,
-        conversationProviderId,
-        emailTo,
-        emailReplyMode,
-        fromNumber,
-        toNumber
-    ));
+  const body = await request.json();
 
-    return NextResponse.json(data);
+  const {
+    type,
+    contactId,
+    appointmentId,
+    attachments,
+    emailFrom,
+    emailCc,
+    emailBcc,
+    html,
+    message,
+    subject,
+    replyMessageId,
+    templateId,
+    threadId,
+    scheduledTimestamp,
+    conversationProviderId,
+    emailTo,
+    emailReplyMode,
+    fromNumber,
+    toNumber,
+  } = body;
+
+  const data = await fetchWithErrorHandling(() =>
+    SendMessage(
+      type,
+      contactId,
+      appointmentId,
+      attachments,
+      emailFrom,
+      emailCc,
+      emailBcc,
+      html,
+      message,
+      subject,
+      replyMessageId,
+      templateId,
+      threadId,
+      scheduledTimestamp,
+      conversationProviderId,
+      emailTo,
+      emailReplyMode,
+      fromNumber,
+      toNumber
+    )
+  );
+
+
+  // If the external API returns an error status, reflect that in the response
+  if (data.status && data.status >= 400) {
+    return NextResponse.json(data, { status: data.status });
+  }
+
+  return NextResponse.json(data);
 }
 
 const SendMessage = async (
-    type: string,
-    contactId: string,
-    appointmentId: string,
-    attachments: string[],
-    emailFrom: string,
-    emailCc: string[],
-    emailBcc: string[],
-    html: string,
-    message: string,
-    subject: string,
-    replyMessageId: string,
-    templateId: string,
-    threadId: string,
-    scheduledTimestamp: number,
-    conversationProviderId: string,
-    emailTo: string,
-    emailReplyMode: string,
-    fromNumber: string,
-    toNumber: string
+  type: string,
+  contactId: string,
+  appointmentId: string,
+  attachments: string[],
+  emailFrom: string,
+  emailCc: string[],
+  emailBcc: string[],
+  html: string,
+  message: string,
+  subject: string,
+  replyMessageId: string,
+  templateId: string,
+  threadId: string,
+  scheduledTimestamp: number,
+  conversationProviderId: string,
+  emailTo: string,
+  emailReplyMode: string,
+  fromNumber: string,
+  toNumber: string
 ) => {
-  
-    const url = 'https://services.leadconnectorhq.com/conversations/messages';
-    const options = {
-        method: 'POST',
-        headers: {
-            Authorization: 'Bearer 123',
-            Version: '2021-04-15',
-            Prefer: 'code=200',
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-        },
-        body: JSON.stringify({
-            type,
-            contactId,
-            appointmentId,
-            attachments,
-            emailFrom,
-            emailCc,
-            emailBcc,
-            html,
-            message,
-            subject,
-            replyMessageId,
-            templateId,
-            threadId,
-            scheduledTimestamp,
-            conversationProviderId,
-            emailTo,
-            emailReplyMode,
-            fromNumber,
-            toNumber
-        })
-    };
-    const response = await fetch(url, options);
-    const data = await response.json();
-    return data;
-}
+  const { locationId, token } = await getAuthHeaders();
+
+  const url = 'https://services.leadconnectorhq.com/conversations/messages';
+  const payload = {
+    type,
+    contactId,
+    appointmentId,
+    attachments,
+    emailFrom,
+    emailCc,
+    emailBcc,
+    html,
+    message,
+    subject,
+    replyMessageId,
+    templateId,
+    threadId,
+    scheduledTimestamp,
+    conversationProviderId,
+    emailTo,
+    emailReplyMode,
+    // fromNumber,
+    // toNumber,
+  };
+
+  const cleanedPayload = Object.fromEntries(
+    Object.entries(payload).filter(([_, value]) => value !== undefined)
+  );
 
 
-/**
- {
-  "conversationId": "ABC12h2F6uBrIkfXYazb",
-  "emailMessageId": "rnGyqh2F6uBrIkfhFo9A",
-  "messageId": "t22c6DQcTDf3MjRhwf77",
-  "messageIds": [
-    "string"
-  ],
-  "msg": "Message queued successfully."
-}
- */
+  const options = {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Version: '2021-04-15',
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(cleanedPayload),
+  };
+
+  const response = await fetch(url, options);
+  const data = await response.json();
+  return data;
+};

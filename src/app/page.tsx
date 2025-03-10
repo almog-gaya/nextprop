@@ -15,8 +15,7 @@ import OpportunityList from '@/components/dashboard/OpportunityList';
 import FilterModal from '@/components/dashboard/FilterModal';
 import SortModal from '@/components/dashboard/SortModal';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { GHLOpportunity, GHLOpportunityResponse, GHLPipeline, GHLPipelineResponse, GHLStage, Opportunity, PipelineData, PipelineStage } from '@/types/dashboard';
-
+import { GHLContact, GHLOpportunity, GHLOpportunityResponse, GHLPipeline, GHLPipelineResponse, GHLStage, Opportunity, PipelineData, PipelineStage } from '@/types/dashboard';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -48,6 +47,22 @@ export default function DashboardPage() {
     direction: 'asc' | 'desc';
   } | null>(null);
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
+  const [messageModal, setMessageModal] = useState<{
+    isOpen: boolean;
+    actionType: 'sms' | 'email' | null;
+    opportunityId: string | null;
+    contact: GHLContact | null;
+  }>({
+    isOpen: false,
+    actionType: null,
+    opportunityId: null,
+    contact: null
+  });
+  const [messageContent, setMessageContent] = useState({
+    sms: '',
+    emailSubject: '',
+    emailBody: ''
+  });
 
   // Fetch pipeline data effect
   useEffect(() => {
@@ -59,117 +74,95 @@ export default function DashboardPage() {
       setApiConfigured(true);
 
       try {
-        console.log('Fetching pipeline data...');
         const response = await fetch('/api/pipelines');
-        console.log('Pipeline API response status:', response.status);
-
         if (!response.ok) {
-          console.error('Failed to fetch pipelines:', response.statusText);
           if (response.status === 404) {
             setApiConfigured(false);
             setError('API endpoint not found. Please configure your API integration.');
-            console.error('API endpoint not found:', response.statusText);
           } else {
-            try {
-              const errorData = await response.json();
-              setError(`Error fetching pipeline data: ${errorData.error || response.statusText}`);
-              console.error('Detailed error:', errorData);
-            } catch (parseError) {
-              setError(`Error fetching pipeline data: ${response.statusText}`);
-            }
+            const errorData = await response.json();
+            setError(`Error fetching pipeline data: ${errorData.error || response.statusText}`);
           }
           setIsLoading(false);
           return;
         }
 
         const pipelineData: GHLPipelineResponse = await response.json();
-        console.log('Received pipeline data:', pipelineData?.pipelines?.length || 0, 'pipelines');
+        if (!pipelineData?.pipelines?.length) {
+          setError('No pipeline data available');
+          setIsLoading(false);
+          return;
+        }
 
-        if (pipelineData && pipelineData.pipelines && pipelineData.pipelines.length > 0) {
-          const mappedPipelines: PipelineData[] = await Promise.all(
-            pipelineData.pipelines.map(async (pipeline: GHLPipeline) => {
-              try {
-                const opportunitiesResponse = await fetch(`/api/pipelines/${pipeline.id}/opportunities`);
-                if (!opportunitiesResponse.ok) {
-                  throw new Error(`Error fetching opportunities: ${opportunitiesResponse.statusText}`);
+        const mappedPipelines: PipelineData[] = await Promise.all(
+          pipelineData.pipelines.map(async (pipeline: GHLPipeline) => {
+            try {
+              const opportunitiesResponse = await fetch(`/api/pipelines/${pipeline.id}/opportunities`);
+              if (!opportunitiesResponse.ok) {
+                throw new Error(`Error fetching opportunities: ${opportunitiesResponse.statusText}`);
+              }
+
+              const opportunitiesData: GHLOpportunityResponse = await opportunitiesResponse.json();
+              const opportunitiesByStage: Record<string, Opportunity[]> = {};
+
+              (opportunitiesData.opportunities || []).forEach((opp: GHLOpportunity) => {
+                if (!opportunitiesByStage[opp.pipelineStageId]) {
+                  opportunitiesByStage[opp.pipelineStageId] = [];
                 }
-
-                const opportunitiesData: GHLOpportunityResponse = await opportunitiesResponse.json();
-
-                console.log(
-                  `Pipeline ${pipeline.id} (${pipeline.name}) opportunities response:`,
-                  opportunitiesData?.opportunities?.length || 0,
-                  'opportunities found'
-                );
-                if (opportunitiesData?.opportunities?.length === 0) {
-                  console.log('Empty opportunities array for pipeline:', pipeline.id, pipeline.name);
-                }
-
-                const opportunitiesByStage: Record<string, Opportunity[]> = {};
-                const opportunities = opportunitiesData.opportunities || [];
-
-                opportunities.forEach((opp: GHLOpportunity) => {
-                  if (!opportunitiesByStage[opp.pipelineStageId]) {
-                    opportunitiesByStage[opp.pipelineStageId] = [];
-                  }
-                  opportunitiesByStage[opp.pipelineStageId].push({
-                    id: opp.id,
-                    name: opp.name,
-                    value: `$${opp.monetaryValue || 0}`,
-                    businessName: opp.contact?.company || '',
-                    stage: opp.pipelineStageId,
-                    source: opp.source || '',
-                    lastActivity: opp.updatedAt || '',
-                  });
+                opportunitiesByStage[opp.pipelineStageId].push({
+                  id: opp.id,
+                  name: opp.name,
+                  value: `$${opp.monetaryValue || 0}`,
+                  businessName: opp.contact?.company || '',
+                  stage: opp.pipelineStageId,
+                  source: opp.source || '',
+                  lastActivity: opp.updatedAt || '',
+                  contact: opp.contact
                 });
+              });
 
-                const stagesWithOpps: PipelineStage[] = pipeline.stages.map((stage: GHLStage) => ({
+              const stagesWithOpps: PipelineStage[] = pipeline.stages.map((stage: GHLStage) => ({
+                id: stage.id,
+                name: stage.name,
+                opportunities: opportunitiesByStage[stage.id] || [],
+                count: (opportunitiesByStage[stage.id] || []).length,
+                total: `$${(opportunitiesByStage[stage.id] || []).reduce(
+                  (sum: number, opp: Opportunity) => 
+                    sum + (parseFloat(opp.value.replace('$', '')) || 0),
+                  0
+                )}`
+              }));
+
+              return {
+                id: pipeline.id,
+                name: pipeline.name,
+                stages: stagesWithOpps,
+                totalOpportunities: (opportunitiesData.opportunities || []).length
+              };
+            } catch (error) {
+              console.error(`Error fetching opportunities for pipeline ${pipeline.id}:`, error);
+              return {
+                id: pipeline.id,
+                name: pipeline.name,
+                stages: pipeline.stages.map((stage) => ({
                   id: stage.id,
                   name: stage.name,
-                  opportunities: opportunitiesByStage[stage.id] || [],
-                  count: (opportunitiesByStage[stage.id] || []).length,
-                  total: `$${(opportunitiesByStage[stage.id] || []).reduce(
-                    (sum: number, opp: Opportunity) =>
-                      sum + (parseFloat(opp.value.replace('$', '')) || 0),
-                    0
-                  )
-                    }`,
-                }));
+                  opportunities: [],
+                  count: 0,
+                  total: '$0'
+                })),
+                totalOpportunities: 0
+              };
+            }
+          })
+        );
 
-                return {
-                  id: pipeline.id,
-                  name: pipeline.name,
-                  stages: stagesWithOpps,
-                  totalOpportunities: opportunities.length,
-                };
-              } catch (error) {
-                console.error(`Error fetching opportunities for pipeline ${pipeline.id}:`, error);
-                return {
-                  id: pipeline.id,
-                  name: pipeline.name,
-                  stages: pipeline.stages.map((stage) => ({
-                    id: stage.id,
-                    name: stage.name,
-                    opportunities: [],
-                    count: 0,
-                    total: '$0',
-                  })),
-                  totalOpportunities: 0,
-                };
-              }
-            })
-          );
-
-          setPipelines(mappedPipelines);
-          if (mappedPipelines.length > 0) {
-            setSelectedPipeline(mappedPipelines[0].id);
-            setOpportunities(mappedPipelines[0].stages);
-          }
-        } else {
-          setError('No pipeline data available');
+        setPipelines(mappedPipelines);
+        if (mappedPipelines.length > 0) {
+          setSelectedPipeline(mappedPipelines[0].id);
+          setOpportunities(mappedPipelines[0].stages);
         }
       } catch (error) {
-        console.error('Error fetching pipeline data:', error);
         setError('Failed to fetch pipeline data: ' + (error as Error).message);
       } finally {
         setIsLoading(false);
@@ -196,34 +189,21 @@ export default function DashboardPage() {
 
   const filterOpportunities = (opportunities: Opportunity[]): Opportunity[] => {
     return opportunities.filter((opp) => {
-      if (
-        searchTerm &&
-        !opp.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !(opp.businessName && opp.businessName.toLowerCase().includes(searchTerm.toLowerCase()))
-      ) {
-        return false;
-      }
+      const matchesSearch = !searchTerm || 
+        opp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (opp.businessName && opp.businessName.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      if (filters.value.min && parseFloat(opp.value.replace('$', '')) < parseFloat(filters.value.min)) {
-        return false;
-      }
-      if (filters.value.max && parseFloat(opp.value.replace('$', '')) > parseFloat(filters.value.max)) {
-        return false;
-      }
+      const value = parseFloat(opp.value.replace('$', ''));
+      const matchesValue = (!filters.value.min || value >= parseFloat(filters.value.min)) &&
+        (!filters.value.max || value <= parseFloat(filters.value.max));
 
-      if (filters.source.length > 0 && opp.source && !filters.source.includes(opp.source)) {
-        return false;
-      }
+      const matchesSource = filters.source.length === 0 || 
+        (opp.source && filters.source.includes(opp.source));
 
-      if (
-        filters.lastActivityType.length > 0 &&
-        opp.lastActivityType &&
-        !filters.lastActivityType.includes(opp.lastActivityType)
-      ) {
-        return false;
-      }
+      const matchesActivity = filters.lastActivityType.length === 0 || 
+        (opp.lastActivityType && filters.lastActivityType.includes(opp.lastActivityType));
 
-      return true;
+      return matchesSearch && matchesValue && matchesSource && matchesActivity;
     });
   };
 
@@ -237,14 +217,11 @@ export default function DashboardPage() {
         return sortConfig.direction === 'asc' ? valueA - valueB : valueB - valueA;
       }
 
-      const valueA = a[sortConfig.key] || '';
-      const valueB = b[sortConfig.key] || '';
-
-      if (sortConfig.direction === 'asc') {
-        return valueA.localeCompare(valueB);
-      } else {
-        return valueB.localeCompare(valueA);
-      }
+      const valueA = a[sortConfig.key]?.toString() || '';
+      const valueB = b[sortConfig.key]?.toString() || '';
+      return sortConfig.direction === 'asc' ? 
+        valueA.localeCompare(valueB) : 
+        valueB.localeCompare(valueA);
     });
   };
 
@@ -254,114 +231,249 @@ export default function DashboardPage() {
     return sortOpportunities(filteredOpportunities);
   };
 
+  const handleSMS = async (contact: GHLContact, message: string) => {
+    try {
+      const response = await fetch('/api/conversations/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'SMS',
+          message,
+          fromNumber: user?.lcPhone?.locationId,
+          toNumber: contact.phone,
+          contactId: contact.id
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send SMS');
+      }
+      return true;
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      return false;
+    }
+  };
+
+  const handleEmail = async (contact: GHLContact, subject: string, body: string) => {
+    try {
+      const response = await fetch('/api/conversations/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'EMAIL',
+          html: body,
+          emailTo: contact.email,
+          subject,
+          emailFrom: user?.email || 'no-reply@yourdomain.com'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
+      return true;
+    } catch (error) {
+      console.error('Error sending email:', error);
+      return false;
+    }
+  };
+
+  const handleCall = async (contact: GHLContact) => {
+    // Implement call functionality
+    console.log('Initiating call to:', contact);
+    return true;
+  };
+
   const handleCommunication = async (
     opportunityId: string,
     actionType: 'voicemail' | 'sms' | 'call' | 'email' | 'optout'
   ) => {
-    console.log(`${actionType} action initiated for opportunity: ${opportunityId}`);
-    if (!selectedPipeline) return;
+    try {
+      const selectedPipelineData = pipelines.find((pipeline) => pipeline.id === selectedPipeline);
+      if (!selectedPipelineData) return;
 
-    const updatedPipeline = JSON.parse(JSON.stringify(selectedPipeline)) as PipelineData;
+      const updatedPipeline = JSON.parse(JSON.stringify(selectedPipelineData)) as PipelineData;
+      let foundOpportunity: Opportunity | null = null;
+      let currentStageId = '';
 
+      for (const stage of updatedPipeline.stages) {
+        const opportunityIndex = stage.opportunities.findIndex((opp) => opp.id === opportunityId);
+        if (opportunityIndex !== -1) {
+          foundOpportunity = stage.opportunities[opportunityIndex];
+          currentStageId = stage.id;
+          stage.opportunities.splice(opportunityIndex, 1);
+          stage.count = stage.opportunities.length;
+          break;
+        }
+      }
+
+      if (!foundOpportunity || !foundOpportunity.contact) return;
+
+      if (actionType === 'sms' || actionType === 'email') {
+        setMessageModal({
+          isOpen: true,
+          actionType,
+          opportunityId,
+          contact: foundOpportunity.contact
+        });
+        return;
+      }
+
+      foundOpportunity.lastActivityType = actionType;
+      foundOpportunity.lastActivity = new Date().toISOString();
+
+      let targetStageId = currentStageId;
+      let notificationMsg = '';
+      let success = true;
+
+      switch (actionType) {
+        case 'call':
+          targetStageId = 'returned-call';
+          notificationMsg = `${foundOpportunity.name || 'Contact'} moved to Returned Call stage`;
+          success = await handleCall(foundOpportunity.contact);
+          break;
+        case 'optout':
+          targetStageId = 'lead-opted-out';
+          notificationMsg = `${foundOpportunity.name || 'Contact'} moved to Lead Opted Out stage`;
+          break;
+        case 'voicemail':
+          if (currentStageId !== 'voice-drop-sent') {
+            targetStageId = 'voice-drop-sent';
+            notificationMsg = `New voicemail sent to ${foundOpportunity.name || 'Contact'}`;
+          }
+          break;
+      }
+
+      if (success && targetStageId !== currentStageId) {
+        const targetStage = updatedPipeline.stages.find((stage) => stage.id === targetStageId);
+        if (targetStage) {
+          foundOpportunity.stage = targetStageId;
+          targetStage.opportunities.push(foundOpportunity);
+          targetStage.count = targetStage.opportunities.length;
+
+          setPipelines(pipelines.map(p => 
+            p.id === selectedPipeline ? updatedPipeline : p
+          ));
+          setOpportunities(updatedPipeline.stages);
+
+          setNotification({ message: notificationMsg, type: 'success' });
+          setNotificationActive(true);
+          setTimeout(() => setNotificationActive(false), 3000);
+
+          if (apiConfigured) {
+            try {
+              const response = await fetch(`/api/opportunities/${opportunityId}/move`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stageId: targetStageId, actionType })
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to update opportunity stage');
+              }
+            } catch (err) {
+              console.error('Error updating opportunity:', err);
+              setNotification({
+                message: 'Failed to update opportunity. Please try again.',
+                type: 'error'
+              });
+              setNotificationActive(true);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error handling ${actionType}:`, error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageModal.opportunityId || !messageModal.contact) return;
+
+    const selectedPipelineData = pipelines.find((pipeline) => pipeline.id === selectedPipeline);
+    if (!selectedPipelineData) return;
+
+    const updatedPipeline = JSON.parse(JSON.stringify(selectedPipelineData)) as PipelineData;
     let foundOpportunity: Opportunity | null = null;
     let currentStageId = '';
 
     for (const stage of updatedPipeline.stages) {
-      const opportunityIndex = stage.opportunities.findIndex((opp) => opp.id === opportunityId);
-
+      const opportunityIndex = stage.opportunities.findIndex((opp) => opp.id === messageModal.opportunityId);
       if (opportunityIndex !== -1) {
         foundOpportunity = stage.opportunities[opportunityIndex];
         currentStageId = stage.id;
-
-        stage.opportunities.splice(opportunityIndex, 1);
-        stage.count = stage.opportunities.length;
         break;
       }
     }
 
     if (!foundOpportunity) return;
 
-    foundOpportunity.lastActivityType = actionType;
-    foundOpportunity.lastActivity = new Date().toLocaleTimeString();
+    foundOpportunity.lastActivityType = messageModal.actionType!;
+    foundOpportunity.lastActivity = new Date().toISOString();
 
     let targetStageId = currentStageId;
     let notificationMsg = '';
+    let success = false;
 
-    switch (actionType) {
-      case 'sms':
-        targetStageId = 'returned-sms';
-        notificationMsg = `${foundOpportunity.name || 'Contact'} moved to Returned SMS stage`;
-        break;
-      case 'call':
-        targetStageId = 'returned-call';
-        notificationMsg = `${foundOpportunity.name || 'Contact'} moved to Returned Call stage`;
-        break;
-      case 'optout':
-        targetStageId = 'lead-opted-out';
-        notificationMsg = `${foundOpportunity.name || 'Contact'} moved to Lead Opted Out stage`;
-        break;
-      case 'voicemail':
-        if (currentStageId !== 'voice-drop-sent') {
-          targetStageId = 'voice-drop-sent';
-          notificationMsg = `New voicemail sent to ${foundOpportunity.name || 'contact'}`;
-        }
-        break;
-      default:
-        break;
+    if (messageModal.actionType === 'sms') {
+      targetStageId = 'returned-sms';
+      notificationMsg = `${foundOpportunity.name || 'Contact'} moved to Returned SMS stage`;
+      success = await handleSMS(messageModal.contact, messageContent.sms);
+    } else if (messageModal.actionType === 'email') {
+      targetStageId = currentStageId;
+      notificationMsg = `Email sent to ${foundOpportunity.name || 'Contact'}`;
+      success = await handleEmail(messageModal.contact, messageContent.emailSubject, messageContent.emailBody);
     }
 
-    if (targetStageId !== currentStageId) {
+    if (success) {
       const targetStage = updatedPipeline.stages.find((stage) => stage.id === targetStageId);
-
-      if (targetStage) {
-        foundOpportunity.stage = targetStage.name;
+      if (targetStage && targetStageId !== currentStageId) {
         targetStage.opportunities.push(foundOpportunity);
         targetStage.count = targetStage.opportunities.length;
+      }
 
-        setNotification({
-          message: notificationMsg,
-          type: 'success',
-        });
-        setNotificationActive(true);
+      setPipelines(pipelines.map(p => 
+        p.id === selectedPipeline ? updatedPipeline : p
+      ));
+      setOpportunities(updatedPipeline.stages);
 
-        setTimeout(() => {
-          setNotificationActive(false);
-        }, 3000);
+      setNotification({ message: notificationMsg, type: 'success' });
+      setNotificationActive(true);
+      setTimeout(() => setNotificationActive(false), 3000);
 
-        if (apiConfigured) {
-          try {
-            const response = await fetch(`/api/opportunities/${opportunityId}/move`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                stageId: targetStageId,
-                actionType,
-              }),
-            });
+      if (apiConfigured && targetStageId !== currentStageId) {
+        try {
+          const response = await fetch(`/api/opportunities/${messageModal.opportunityId}/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              stageId: targetStageId, 
+              actionType: messageModal.actionType 
+            })
+          });
 
-            if (!response.ok) {
-              console.error('Failed to update opportunity stage on server');
-              setNotification({
-                message: 'Failed to update opportunity. Please try again.',
-                type: 'error',
-              });
-              setNotificationActive(true);
-            }
-          } catch (err) {
-            console.error('Error updating opportunity:', err);
+          if (!response.ok) {
+            throw new Error('Failed to update opportunity stage');
           }
+        } catch (err) {
+          console.error('Error updating opportunity:', err);
+          setNotification({
+            message: 'Failed to update opportunity. Please try again.',
+            type: 'error'
+          });
+          setNotificationActive(true);
         }
       }
     }
 
-    setSelectedPipeline(updatedPipeline.id);
+    setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null });
+    setMessageContent({ sms: '', emailSubject: '', emailBody: '' });
   };
 
   const handleEditOpportunity = (opportunity: Opportunity) => {
     console.log(`Edit opportunity initiated: ${opportunity.name}`);
-    // Implement logic to edit the opportunity
+    // Implement edit logic here
   };
 
   if (isLoading || loading) {
@@ -372,15 +484,11 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-semibold text-gray-800 mb-2">Welcome to Your Dashboard</h1>
             <p className="text-gray-600">Here's what's happening with your pipelines and opportunities.</p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {Array(4)
-              .fill(0)
-              .map((_, i) => (
-                <StatsCardSkeleton key={i} />
-              ))}
+            {Array(4).fill(0).map((_, i) => (
+              <StatsCardSkeleton key={i} />
+            ))}
           </div>
-
           <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-800">Current Opportunities</h2>
@@ -450,7 +558,6 @@ export default function DashboardPage() {
             setNotificationActive={setNotificationActive}
             handleCommunication={handleCommunication}
           />
-
           <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center">
               <FilterControls
@@ -462,7 +569,6 @@ export default function DashboardPage() {
               <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
             </div>
           </div>
-
           <ActiveFilters
             filters={filters}
             searchTerm={searchTerm}
@@ -470,7 +576,6 @@ export default function DashboardPage() {
             setFilters={setFilters}
             setSortConfig={setSortConfig}
           />
-
           <div className="flex-1 overflow-auto">
             <div className="px-4 py-6 sm:px-6 lg:px-8">
               <AutomationPreview className="mb-6" />
@@ -491,9 +596,74 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-
-          {isFilterModalOpen && <FilterModal filters={filters} setFilters={setFilters} setIsFilterModalOpen={setIsFilterModalOpen} />}
-          {isSortModalOpen && <SortModal sortConfig={sortConfig} setSortConfig={setSortConfig} setIsSortModalOpen={setIsSortModalOpen} />}
+          {isFilterModalOpen && (
+            <FilterModal 
+              filters={filters} 
+              setFilters={setFilters} 
+              setIsFilterModalOpen={setIsFilterModalOpen} 
+            />
+          )}
+          {isSortModalOpen && (
+            <SortModal 
+              sortConfig={sortConfig} 
+              setSortConfig={setSortConfig} 
+              setIsSortModalOpen={setIsSortModalOpen} 
+            />
+          )}
+          {messageModal.isOpen && (
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+              <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <h3 className="text-lg font-medium mb-4">
+                  {messageModal.actionType === 'sms' ? 'Send SMS' : 'Send Email'}
+                </h3>
+                {messageModal.actionType === 'sms' ? (
+                  <textarea
+                    className="w-full p-2 border rounded mb-4"
+                    value={messageContent.sms}
+                    onChange={(e) => setMessageContent({ ...messageContent, sms: e.target.value })}
+                    placeholder="Enter your SMS message"
+                    rows={4}
+                  />
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      className="w-full p-2 border rounded mb-4"
+                      value={messageContent.emailSubject}
+                      onChange={(e) => setMessageContent({ ...messageContent, emailSubject: e.target.value })}
+                      placeholder="Email Subject"
+                    />
+                    <textarea
+                      className="w-full p-2 border rounded mb-4"
+                      value={messageContent.emailBody}
+                      onChange={(e) => setMessageContent({ ...messageContent, emailBody: e.target.value })}
+                      placeholder="Enter your email message"
+                      rows={4}
+                    />
+                  </>
+                )}
+                <div className="flex justify-end gap-2">
+                  <button
+                    className="px-4 py-2 bg-gray-200 rounded"
+                    onClick={() => setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null })}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-blue-500 text-white rounded"
+                    onClick={handleSendMessage}
+                    disabled={
+                      messageModal.actionType === 'sms' 
+                        ? !messageContent.sms 
+                        : !messageContent.emailSubject || !messageContent.emailBody
+                    }
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

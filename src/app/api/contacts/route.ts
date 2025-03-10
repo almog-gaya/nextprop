@@ -122,7 +122,8 @@ const createContact = async (contactData: any) => {
 
 
    if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    
+    throw new Error(data.message ?? `HTTP error! status: ${response.status}`);
   }
   return data;
 };

@@ -684,10 +684,8 @@ const OpportunitiesTab: React.FC<{
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {console.log("Rendering opportunities table with count:", opportunities.length)}
-                                {opportunities.map((opportunity, index) => {
-                                    console.log(`Rendering opportunity ${index}:`, opportunity);
-                                    return opportunity ? (
+                                 {opportunities.map((opportunity, index) => {
+                                     return opportunity ? (
                                         <tr key={opportunity.id || `unknown-${index}`}>
                                             <td className="px-6 py-4 whitespace-nowrap">{opportunity?.name || 'Unnamed'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
