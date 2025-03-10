@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     // Construct the response with total count
     // Note: The LeadConnectorHQ API might not return a total count directly.
     // If it doesn't, you may need to make an additional request to get the total or fetch all contacts initially to count them (not recommended for large datasets).
-    const total = data.total || 120; // Replace 120 with actual total if API provides it; otherwise, implement a separate count endpoint or fetch all contacts initially
+    const total = data.total || 10; // Replace 120 with actual total if API provides it; otherwise, implement a separate count endpoint or fetch all contacts initially
 
     const processedData = {
       contacts: processedContacts,

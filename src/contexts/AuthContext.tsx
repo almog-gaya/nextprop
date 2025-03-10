@@ -14,6 +14,11 @@ interface User {
   firstName?: string;
   lastName?: string;
   id: string;
+  lcPhone?: LCPhone;
+}
+
+interface LCPhone {
+  locationId: string,
 }
 
 interface AuthContextType {
@@ -44,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
           return;
         }
-
+ 
         // Transform the API response to match User interface
         const userData: User = {
           id: data.user.id,
@@ -56,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           phone: data.user.phone,
           companyId: data.user.companyId,
           dateAdded: data.user.dateAdded,
+          lcPhone: data.user?.lcPhone
         };
 
         console.log('Setting User as:', userData);

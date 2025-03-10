@@ -95,11 +95,13 @@ const getOpportunitiesById = async (id: string, pagination: PaginationParams) =>
   }
 
   const url = `https://services.leadconnectorhq.com/opportunities/search?${queryParams.toString()}`;
+  const mockURL = `https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/search?${queryParams.toString()}`;
   const options = {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
       Version: '2021-07-28',
+      // Prefer: 'code=200, dynamic=true',
       Accept: 'application/json'
     }
   };

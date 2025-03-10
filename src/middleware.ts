@@ -23,8 +23,10 @@ export async function middleware(request: NextRequest) {
   const accessToken = cookieStore.get('ghl_access_token')?.value;
   const refreshToken = cookieStore.get('ghl_refresh_token')?.value;
   const tokenTimestamp = cookieStore.get('ghl_token_timestamp')?.value;
+  const userId = cookieStore.get('ghl_user_id')?.value;
 
-  // console.log('[Middleware] Cookies - Access Token:', accessToken ? 'exists' : 'missing');
+  // console.log('[Middleware] Cookies - Access Token:', accessToken);
+  console.log('[Middleware] Cookies - User ID:', userId);
   // console.log('[Middleware] Cookies - Refresh Token:', refreshToken ? 'exists' : 'missing');
   // console.log('[Middleware] Cookies - Timestamp:', tokenTimestamp);
 

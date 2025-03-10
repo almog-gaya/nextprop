@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserDataAPI } from '@/app/api/locations/route';
 import { isTokenExpired, refreshAccessToken, setAuthCookies } from '@/utils/authUtils';
- 
+
 
 interface UserData {
   id: string;
@@ -20,18 +20,6 @@ const log = (message: string) => {
 
 const logError = (message: string) => {
   if (process.env.NODE_ENV !== 'production') console.error(`[Auth] ${message}`);
-};
- 
-const fetchUserData = async (): Promise<UserData | undefined> => {
-  try {
-    const userData = getUserDataAPI();
-    return userData;
-  } catch (err) {
-    logError(`Failed to fetch user data: ${err instanceof Error ? err.message : String(err)}`);
-  }
-
-  return undefined;
-
 };
 
 export async function GET() {
@@ -66,7 +54,7 @@ export async function GET() {
         maxAge: 60 * 60 * 12,
       };
 
-      const userData = await fetchUserData();
+      const userData = await getUserData();
       const response = NextResponse.json({
         authenticated: true,
         user: userData
@@ -85,10 +73,43 @@ export async function GET() {
     }
   }
 
-  const userData = await fetchUserData();
+  const userData = await getUserData();
   return NextResponse.json({
     authenticated: true,
     user: userData,
     locationData: { locationId: locationId?.value },
   });
+}
+
+
+const getUserData = async () => {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('ghl_access_token')?.value;
+  const userId = cookieStore.get('ghl_user_id')?.value;
+
+  if (!accessToken) {
+    logError('No access token found');
+    return null;
+  }
+
+  try {
+
+    const response = await fetch(`https://services.leadconnectorhq.com/users/${userId}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Version: '2021-07-28',
+        Accept: 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user data: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    logError(`Failed to fetch user data: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+
 }
