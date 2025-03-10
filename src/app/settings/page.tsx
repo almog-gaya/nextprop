@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 export default function SettingsPage() {
-  const { logout } = useAuth();
-  
+   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [locationData, setLocationData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +46,7 @@ export default function SettingsPage() {
   };
 
   // Function to format field names (e.g., camelCase to Title Case)
-  const formatFieldName = (key) => {
+  const formatFieldName = (key:any) => {
     return key
       .replace(/([A-Z])/g, ' $1') // Add space before capital letters
       .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
@@ -58,7 +57,7 @@ export default function SettingsPage() {
   const excludedFields = ['id', 'companyId', 'settings', 'social', 'business', 'dateAdded', 'automaticMobileAppInvite'];
 
   // Separate account and business fields dynamically
-  const renderFields = (data, isBusiness = false) => {
+  const renderFields = (data: any, isBusiness = false) => {
     if (!data) return null;
     
     const fields = Object.entries(data)
@@ -76,7 +75,7 @@ export default function SettingsPage() {
           </div>
         );
       })
-      .filter(Boolean); // Remove null entries
+      .filter(Boolean);
 
     return fields.length > 0 ? fields : <p className="text-gray-500">No {isBusiness ? 'business' : 'account'} data available</p>;
   };
@@ -94,12 +93,12 @@ export default function SettingsPage() {
             </div>
             <div>
               <p className="text-lg font-medium text-gray-900">
-                {locationData && locationData.firstName && locationData.lastName 
-                  ? `${locationData.firstName} ${locationData.lastName}` 
-                  : 'Loading...'}
+                {user?.name || (locationData && locationData.firstName && locationData.lastName) 
+                  ? user?.name ?? `${locationData.firstName} ${locationData.lastName}`
+                   : 'Loading...'}
               </p>
               <p className="text-gray-500">
-                {locationData?.email || 'Loading...'}
+                {((user?.email ?? locationData?.email)) || 'Loading...'}
               </p>
             </div>
           </div>

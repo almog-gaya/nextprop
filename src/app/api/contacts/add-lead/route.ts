@@ -120,12 +120,19 @@ const extractContactData = (data: ContactData): GhlContactData => {
   };
 };
 
-const createContact = async (contactData: GhlContactData): Promise<GhlContactResponse> => {
+const createContact = async (contactData: any): Promise<GhlContactResponse> => {
   const { token, locationId } = await getAuthHeaders();
   const url = 'https://services.leadconnectorhq.com/contacts/';
 
   contactData.locationId = locationId!;
 
+  /// delete all keys with null values or empty strings
+  for (const key in contactData) {
+    if (contactData[key] === null || contactData[key] === '') {
+      delete contactData[key];
+    }
+  }
+  
   const options = {
     method: 'POST',
     headers: {

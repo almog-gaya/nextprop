@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthHeaders } from '@/lib/enhancedApi';
 import { cookies } from 'next/headers';
+import { log } from '@/middleware';
 
 export async function GET(request: Request) {
   const {locationId, token} = await getAuthHeaders()
@@ -73,6 +74,13 @@ const createContact = async (contactData: any) => {
   const { token, locationId } = await getAuthHeaders();
   const url = 'https://services.leadconnectorhq.com/contacts/';
   contactData.locationId = locationId;
+
+  /// delete all keys with null values or empty strings
+  for (const key in contactData) {
+    if (contactData[key] === null || contactData[key] === '') {
+      delete contactData[key];
+    }
+  }
   const options = {
     method: 'POST',
     headers: {
@@ -83,14 +91,15 @@ const createContact = async (contactData: any) => {
     },
     body: JSON.stringify(contactData)
   };
-
- 
+  log(`[Create-Contact]: ${JSON.stringify(contactData)}`);
   const response = await fetch(url, options);
+  const data = await response.json();
+  console.log(`[Create-Contact]: Data Response: `, JSON.stringify(data));
+
+
    if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  const data = await response.json();
-  console.log(`[Create]: Data Response: `, JSON.stringify(data));
   return data;
 };
 

@@ -86,12 +86,12 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-const log = (mesage: any) => {
+export const log = (mesage: any) => {
   if (process.env.NODE_ENV !== 'production') {
     console.log(`[Middleware] ${mesage}`)
   }
 }
-const logError = (mesage: any) => {
+export const logError = (mesage: any) => {
   if (process.env.NODE_ENV !== 'production') {
     console.error(`[Middleware] ${mesage}`)
   }

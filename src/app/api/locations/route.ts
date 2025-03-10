@@ -3,7 +3,7 @@ import { fetchWithErrorHandling, getAuthHeaders } from '@/lib/enhancedApi';
 
 export async function GET() {
     try {
-        const data = await fetchWithErrorHandling(() => getLocation());
+        const data = await fetchWithErrorHandling(() => getUserDataAPI());
          return NextResponse.json({
             success: true,
             message: 'User profile fetched successfully',
@@ -18,7 +18,7 @@ export async function GET() {
     }
 }
 
-const getLocation = async () => {
+export const getUserDataAPI = async () => {
     const { locationId, token } = await getAuthHeaders();
 
     const url = `https://services.leadconnectorhq.com/locations/${locationId}`;

@@ -2,16 +2,15 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
-import { LoginCredentials } from '@/types/auth';
+ import { LoginCredentials } from '@/types/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { flushAllAuthData, setAllAuthData } from '@/lib/authUtils';
 import { getAuthUrl } from '@/lib/ghlAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 function LoginForm() {
-  const { authState, login } = useAuth();
-  const { error: contextError, isLoading } = authState;
-  const router = useRouter();
+  const { user, } = useAuth();
+   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -30,15 +29,10 @@ function LoginForm() {
       redirectToGHL();
     }
   }, [searchParams]);
-
-  const from = searchParams.get('from') || '/';
-  
-  const [email, setEmail] = useState('');
-  const [apiKey, setApiKey] = useState('');
+ 
+   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<'email' | 'apiKey' | 'general' | null>(null);
-  const [showAdminOptions, setShowAdminOptions] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null); 
   
   useEffect(() => {
     setIsSubmitting(false);
@@ -49,106 +43,7 @@ function LoginForm() {
       setLocalError(decodeURIComponent(message));
     }
   }, [searchParams]);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
     
-    if (isSubmitting) return;
-    
-    setIsSubmitting(true);
-    setLocalError(null);
-    setErrorType(null);
-    console.log("Form submitted, setting isSubmitting to true");
-    
-    if (!email) {
-      setLocalError('Email address is required');
-      setErrorType('email');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    if (!apiKey) {
-      setLocalError('API key is required');
-      setErrorType('apiKey');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setLocalError('Please enter a valid email address');
-      setErrorType('email');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    if (apiKey.length < 20) {
-      setLocalError('Please enter a valid API key (min 20 characters)');
-      setErrorType('apiKey');
-      setIsSubmitting(false);
-      return;
-    }
-    
-    try {
-      await login({ email, password: apiKey });
-      
-      // In case login succeeded but redirection is delayed, ensure tokens are properly set
-      // This helps ensure consistent authentication state
-      const userData = {
-        email,
-        name: email.split('@')[0],
-        apiKey: apiKey
-      };
-      
-      setAllAuthData(userData, apiKey);
-    } catch (err) {
-      console.error('Login failed:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      
-      // Determine error type for better visual feedback
-      if (errorMessage.toLowerCase().includes('credentials') || 
-          errorMessage.toLowerCase().includes('invalid') || 
-          errorMessage.toLowerCase().includes('not found')) {
-        if (errorMessage.toLowerCase().includes('api key')) {
-          setErrorType('apiKey');
-        } else if (errorMessage.toLowerCase().includes('email')) {
-          setErrorType('email');
-        } else {
-          setErrorType('general');
-        }
-      }
-      
-      // Custom error messages for better user experience
-      if (errorMessage.includes('Invalid credentials')) {
-        setLocalError('Email or API key is incorrect');
-      } else if (errorMessage.includes('Invalid API key format')) {
-        setLocalError('The API key format is invalid');
-        setErrorType('apiKey');
-      } else {
-        setLocalError(errorMessage);
-      }
-    } finally {
-      console.log("Login attempt completed, setting isSubmitting to false");
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleFlushAuth = () => {
-    flushAllAuthData();
-    // Reset form fields
-    setEmail('');
-    setApiKey('');
-    // Show confirmation
-    setLocalError('All authentication data has been cleared.');
-    setErrorType('general');
-  };
-
-  const toggleAdminOptions = () => {
-    setShowAdminOptions(!showAdminOptions);
-  };
-  
-  const buttonText = isSubmitting ? 'Signing in...' : 'Sign in';
-  
   const handleOAuthLogin = () => {
     setIsSubmitting(true);
     window.location.href = getAuthUrl();
