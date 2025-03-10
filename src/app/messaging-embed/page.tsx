@@ -5,6 +5,7 @@ import { Send, Search, Phone, Video, MoreVertical, ArrowLeft, AlertCircle, Check
 import DashboardLayout from '@/components/DashboardLayout';
 import { toast } from 'sonner';
 import { MessagingSkeleton } from '@/components/SkeletonLoaders';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Add logging control to reduce console noise
 const ENABLE_VERBOSE_LOGGING = false;
@@ -152,6 +153,7 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
   const [sendingStatus, setSendingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const {user} = useAuth();
   
   // Helper function to get initials from name
   const getInitials = (name: string) => {
@@ -206,6 +208,10 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
 
   const handleCall = async () => {
      
+    if(!user?.phone){
+      /// show alert that you dont have any active phone number yet
+      toast.error('You dont have any active phone number yet');
+    }
     const response = await fetch(`/api/conversations/messages/outbound`, {
       method: 'POST',
       headers: {
@@ -215,12 +221,12 @@ function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore
         type: 'call',
         conversationId: activeConversation.id,
         // TODO: Need to figure out, what is the `conversationProviderId`
-        conversationProviderId: messages[0].conversationProviderId,
+        conversationProviderId: 'twilio_provider',
         date: new Date().toISOString(),
         // TODO: need to figure out, from where can get the to/from phone numbers
         call: {
             to: "+15037081210",
-            from: "+15037081210",
+            from: user?.phone,
             status: "completed"
           }
       }),
