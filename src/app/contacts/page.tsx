@@ -70,9 +70,8 @@ export default function ContactsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [contactsPerPage, setContactsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
-  const [displayedContacts, setDisplayedContacts] = useState<Contact[]>([]);
+  const [totalContacts, setTotalContacts] = useState(0); // New state for total contacts
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
-  const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
 
   useEffect(() => {
     const validateAndFetch = async () => {
@@ -86,12 +85,23 @@ export default function ContactsPage() {
     validateAndFetch();
   }, [router]);
 
+  useEffect(() => {
+    fetchContacts(); // Re-fetch contacts when page or per-page settings change
+  }, [currentPage, contactsPerPage, activeTagFilter]);
+
   const fetchContacts = async (forceRefresh = false) => {
     try {
       setIsLoading(true);
 
-      const response = await axios.get(`/api/contacts${forceRefresh ? '?forceRefresh=true' : ''}`, {
+      // Construct query parameters
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: contactsPerPage.toString(),
+        ...(forceRefresh && { forceRefresh: 'true' }),
+        ...(activeTagFilter && { tag: activeTagFilter }),
       });
+
+      const response = await axios.get(`/api/contacts?${params.toString()}`);
 
       if (!response.data || !Array.isArray(response.data.contacts)) {
         throw new Error('Invalid contacts data received');
@@ -103,7 +113,8 @@ export default function ContactsPage() {
       }));
 
       setContacts(processedContacts);
-      setFilteredContacts(processedContacts);
+      setTotalContacts(response.data.total || processedContacts.length); // Assuming API returns total count
+      setTotalPages(Math.ceil(response.data.total / contactsPerPage) || 1);
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch contacts');
@@ -134,15 +145,12 @@ export default function ContactsPage() {
 
   const handleEdit = (contact: Contact) => {
     setSelectedContact(contact);
-    
-    // Convert contact.customFields object to array if needed
     let customFieldsArray: CustomField[] = [];
     
     if (contact.customFields) {
       if (Array.isArray(contact.customFields)) {
         customFieldsArray = contact.customFields as CustomField[];
       } else {
-        // Convert object to array format
         customFieldsArray = Object.entries(contact.customFields).map(([key, value]) => ({
           id: key,
           key: key,
@@ -170,8 +178,7 @@ export default function ContactsPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await axios.put(`/api/contacts/${selectedContact.id}`, formData, {
-      });
+      const response = await axios.put(`/api/contacts/${selectedContact.id}`, formData);
 
       if (response.data) {
         setContacts(prevContacts =>
@@ -198,10 +205,11 @@ export default function ContactsPage() {
 
     setIsSubmitting(true);
     try {
-      await axios.delete(`/api/contacts/${selectedContact.id}`, {
-      });
+      await axios.delete(`/api/contacts/${selectedContact.id}`);
 
       setContacts(prevContacts => prevContacts.filter(c => c.id !== selectedContact.id));
+      setTotalContacts(prev => prev - 1);
+      setTotalPages(Math.ceil((totalContacts - 1) / contactsPerPage));
       setIsDeleteModalOpen(false);
       toast.success('Contact deleted successfully');
     } catch (err: any) {
@@ -222,23 +230,18 @@ export default function ContactsPage() {
     }
   
     try {
-      const response = await axios.post('/api/contacts', formData, {});
-      console.log('API Response:', response.data); // Debug the response
-  
-      // Check for nested contact object
-      const contactData = response.data.contact; // Extract the contact object
+      const response = await axios.post('/api/contacts', formData);
+      const contactData = response.data.contact;
+
       if (contactData && contactData.id) {
         const processedContact = {
           ...contactData,
           name: contactData.firstName || (contactData.phone ? `Contact ${contactData.phone.slice(-4)}` : 'Unknown Contact'),
         };
-  
-        setContacts(prevContacts => {
-          const newContacts = [processedContact, ...prevContacts];
-          console.log('Updated contacts:', newContacts);
-          return newContacts;
-        });
-  
+
+        setContacts(prev => [processedContact, ...prev]);
+        setTotalContacts(prev => prev + 1);
+        setTotalPages(Math.ceil((totalContacts + 1) / contactsPerPage));
         toast.success('Contact added successfully');
         setIsAddModalOpen(false);
         setNewContact({
@@ -254,11 +257,9 @@ export default function ContactsPage() {
           country: 'US',
         });
       } else {
-        console.error('Invalid response: missing contact.id', response.data);
         toast.error('Invalid response from server');
       }
     } catch (err: any) {
-      console.error('Add Contact Error:', err);
       toast.error(err.response?.data?.error || 'Failed to add contact');
     } finally {
       setIsSubmitting(false);
@@ -348,7 +349,6 @@ export default function ContactsPage() {
   const ModalContent = ({ isEdit = false }) => {
     const [formData, setFormData] = useState(isEdit ? editContact : newContact);
 
-    // Sync formData when editContact or newContact changes (e.g., when modal opens)
     useEffect(() => {
       setFormData(isEdit ? editContact : newContact);
     }, [isEdit, editContact, newContact]);
@@ -468,7 +468,6 @@ export default function ContactsPage() {
                 </label>
               </div>
 
-              {/* Dynamic Custom Fields */}
               {customFields.map(field => {
                 const customFieldValue = formData.customFields.find(cf => cf.id === field.id)?.value ||
                   (field.dataType === 'CHECKBOX' ? [] : '');
@@ -535,63 +534,24 @@ export default function ContactsPage() {
     );
   };
 
-  // New function to filter contacts by tag
   const filterContactsByTag = (tag: string | null) => {
     setActiveTagFilter(tag);
-    if (!tag) {
-      setFilteredContacts(contacts);
-    } else {
-      const filtered = contacts.filter(contact => 
-        contact.tags && contact.tags.includes(tag)
-      );
-      setFilteredContacts(filtered);
-    }
     setCurrentPage(1); // Reset to first page when changing filters
   };
 
-  // Function to apply pagination
-  useEffect(() => {
-    if (filteredContacts.length > 0) {
-      const totalPageCount = Math.ceil(filteredContacts.length / contactsPerPage);
-      setTotalPages(totalPageCount);
-      
-      const startIndex = (currentPage - 1) * contactsPerPage;
-      const endIndex = startIndex + contactsPerPage;
-      const paginatedContacts = filteredContacts.slice(startIndex, endIndex);
-      
-      setDisplayedContacts(paginatedContacts);
-    } else {
-      setDisplayedContacts([]);
-      setTotalPages(1);
-    }
-  }, [currentPage, contactsPerPage, filteredContacts]);
-
-  // Update filtered contacts when all contacts change
-  useEffect(() => {
-    if (activeTagFilter) {
-      filterContactsByTag(activeTagFilter);
-    } else {
-      setFilteredContacts(contacts);
-    }
-  }, [contacts, activeTagFilter]);
-
-  // Function to handle page change
   const changePage = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
   };
 
-  // Function to change the number of contacts per page
   const handleContactsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = parseInt(e.target.value, 10);
     setContactsPerPage(newValue);
     setCurrentPage(1); // Reset to first page when changing items per page
   };
 
-  // Tag filters component
   const TagFilters = () => {
-    // Get unique tags from all contacts
     const allTags = new Set<string>();
     contacts.forEach(contact => {
       if (contact.tags && Array.isArray(contact.tags)) {
@@ -599,10 +559,7 @@ export default function ContactsPage() {
       }
     });
 
-    // Convert to array and sort
     const uniqueTags = Array.from(allTags).sort();
-
-    // Add "scraped-lead" tag at the beginning if it exists
     const scrapedLeadIndex = uniqueTags.indexOf("scraped-lead");
     if (scrapedLeadIndex > -1) {
       uniqueTags.splice(scrapedLeadIndex, 1);
@@ -621,7 +578,7 @@ export default function ContactsPage() {
                 : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
             }`}
           >
-            All Contacts ({contacts.length})
+            All Contacts ({totalContacts})
           </button>
           
           {uniqueTags.map(tag => {
@@ -629,7 +586,6 @@ export default function ContactsPage() {
             let tagLabel = tag;
             let tagClass = '';
             
-            // Special formatting for scraped leads to indicate they are in pipeline
             if (tag === 'scraped-lead') {
               tagLabel = 'Scraped Leads';
               tagClass = 'bg-blue-100 text-blue-800 hover:bg-blue-200';
@@ -651,7 +607,6 @@ export default function ContactsPage() {
           })}
         </div>
         
-        {/* Special note for scraped contacts */}
         {activeTagFilter === 'scraped-lead' && (
           <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-700 flex items-center">
@@ -667,7 +622,6 @@ export default function ContactsPage() {
     );
   };
 
-  // Pagination UI component
   const PaginationControls = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
@@ -675,7 +629,6 @@ export default function ContactsPage() {
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
     
-    // Adjust startPage if we're near the end
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
@@ -711,11 +664,11 @@ export default function ContactsPage() {
         <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{displayedContacts.length > 0 ? (currentPage - 1) * contactsPerPage + 1 : 0}</span> to{' '}
+              Showing <span className="font-medium">{contacts.length > 0 ? (currentPage - 1) * contactsPerPage + 1 : 0}</span> to{' '}
               <span className="font-medium">
-                {Math.min(currentPage * contactsPerPage, filteredContacts.length)}
+                {Math.min(currentPage * contactsPerPage, totalContacts)}
               </span> of{' '}
-              <span className="font-medium">{filteredContacts.length}</span> results
+              <span className="font-medium">{totalContacts}</span> results
             </p>
           </div>
           <div className="flex items-center">
@@ -746,7 +699,6 @@ export default function ContactsPage() {
                 <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
               </button>
               
-              {/* First page for large page counts */}
               {startPage > 1 && (
                 <>
                   <button
@@ -766,7 +718,6 @@ export default function ContactsPage() {
                 </>
               )}
               
-              {/* Page numbers */}
               {pageNumbers.map(number => (
                 <button
                   key={number}
@@ -780,7 +731,6 @@ export default function ContactsPage() {
                 </button>
               ))}
               
-              {/* Last page for large page counts */}
               {endPage < totalPages && (
                 <>
                   {endPage < totalPages - 1 && (
@@ -891,61 +841,63 @@ export default function ContactsPage() {
           <div className="bg-red-50 p-4 rounded-md text-red-800">
             <p>{error}</p>
           </div>
-        ) : filteredContacts.length > 0 ? (
+        ) : contacts.length > 0 ? (
           <div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {displayedContacts.map((contact) => (
-                    <tr key={contact.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">{contact.firstName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{contact.email || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{contact.phone || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-wrap gap-1">
-                          {contact.tags && contact.tags.map((tag, idx) => (
-                            <span 
-                              key={idx} 
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                tag === 'scraped-lead' 
-                                  ? 'bg-blue-100 text-blue-800' 
-                                  : tag === 'review-new-lead' 
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
-                              }`}
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => handleEdit(contact)}
-                          className="text-purple-600 hover:text-blue-900 mr-3"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(contact)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      </td>
+            <div className="relative max-w-full overflow-x-hidden">
+              <div className="max-h-[60vh] overflow-y-auto">
+                <table className="w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {contacts.map((contact) => (
+                      <tr key={contact.id}>
+                        <td className="px-4 py-4 truncate max-w-[150px]">{contact.firstName}</td>
+                        <td className="px-4 py-4 truncate max-w-[200px]">{contact.email || 'N/A'}</td>
+                        <td className="px-4 py-4 truncate max-w-[150px]">{contact.phone || 'N/A'}</td>
+                        <td className="px-4 py-4 max-w-[200px]">
+                          <div className="flex flex-wrap gap-1 overflow-hidden">
+                            {contact.tags && contact.tags.map((tag, idx) => (
+                              <span 
+                                key={idx} 
+                                className={`px-2 py-1 text-xs rounded-full truncate ${
+                                  tag === 'scraped-lead' 
+                                    ? 'bg-blue-100 text-blue-800' 
+                                    : tag === 'review-new-lead' 
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                }`}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => handleEdit(contact)}
+                            className="text-purple-600 hover:text-blue-900 mr-2"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(contact)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
             <PaginationControls />
           </div>
