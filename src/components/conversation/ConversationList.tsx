@@ -1,9 +1,9 @@
-import { Search } from "lucide-react";
-import { useState, useMemo, useCallback, useRef, memo } from "react";
-import Avatar from "./Avatar";
-import axios from "axios";
-import { toast } from "react-hot-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { Search } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
+import Avatar from './Avatar';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Conversation {
   id: string;
@@ -46,7 +46,7 @@ const NewConversationModal = memo(
     newConversation: {
       contactId: string;
       message: string;
-      type: "SMS" | "Email";
+      type: 'SMS' | 'Email';
       fromNumber: string;
       subject: string;
       scheduledTimestamp: string;
@@ -55,7 +55,7 @@ const NewConversationModal = memo(
       React.SetStateAction<{
         contactId: string;
         message: string;
-        type: "SMS" | "Email";
+        type: 'SMS' | 'Email';
         fromNumber: string;
         subject: string;
         scheduledTimestamp: string;
@@ -67,10 +67,7 @@ const NewConversationModal = memo(
     if (!isOpen) return null;
 
     const filteredContacts = useMemo(
-      () =>
-        contacts.filter((contact) =>
-          newConversation.type === "SMS" ? !!contact.phone : !!contact.email
-        ),
+      () => contacts.filter((contact) => newConversation.type === 'SMS' ? !!contact.phone : !!contact.email),
       [contacts, newConversation.type]
     );
 
@@ -92,8 +89,8 @@ const NewConversationModal = memo(
                 onChange={(e) =>
                   setNewConversation((prev) => ({
                     ...prev,
-                    type: e.target.value as "SMS" | "Email",
-                    contactId: "",
+                    type: e.target.value as 'SMS' | 'Email',
+                    contactId: '',
                   }))
                 }
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
@@ -109,10 +106,7 @@ const NewConversationModal = memo(
               <select
                 value={newConversation.contactId}
                 onChange={(e) =>
-                  setNewConversation((prev) => ({
-                    ...prev,
-                    contactId: e.target.value,
-                  }))
+                  setNewConversation((prev) => ({ ...prev, contactId: e.target.value }))
                 }
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
                 required
@@ -121,33 +115,25 @@ const NewConversationModal = memo(
                 <option value="">Select a contact</option>
                 {filteredContacts.map((contact) => (
                   <option key={contact.id} value={contact.id}>
-                    {contact.firstName} {contact.lastName}{" "}
-                    {newConversation.type === "SMS"
-                      ? `(${contact.phone || "No phone"})`
-                      : `(${contact.email || "No email"})`}
+                    {contact.firstName} {contact.lastName}{' '}
+                    {newConversation.type === 'SMS' ? `(${contact.phone || 'No phone'})` : `(${contact.email || 'No email'})`}
                   </option>
                 ))}
               </select>
               {filteredContacts.length === 0 && (
                 <p className="mt-1 text-sm text-red-600">
-                  No contacts available with{" "}
-                  {newConversation.type === "SMS" ? "phone numbers" : "email addresses"}
+                  No contacts available with {newConversation.type === 'SMS' ? 'phone numbers' : 'email addresses'}
                 </p>
               )}
             </div>
 
-            {newConversation.type === "Email" && (
+            {newConversation.type === 'Email' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
                 <input
                   type="text"
                   value={newConversation.subject}
-                  onChange={(e) =>
-                    setNewConversation((prev) => ({
-                      ...prev,
-                      subject: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setNewConversation((prev) => ({ ...prev, subject: e.target.value }))}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
                   required
                   disabled={isSubmitting}
@@ -160,17 +146,12 @@ const NewConversationModal = memo(
               <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
               <textarea
                 value={newConversation.message}
-                onChange={(e) =>
-                  setNewConversation((prev) => ({
-                    ...prev,
-                    message: e.target.value,
-                  }))
-                }
+                onChange={(e) => setNewConversation((prev) => ({ ...prev, message: e.target.value }))}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
                 rows={4}
                 required
                 disabled={isSubmitting}
-                placeholder={`Enter your ${newConversation.type === "SMS" ? "SMS message" : "email body"}`}
+                placeholder={`Enter your ${newConversation.type === 'SMS' ? 'SMS message' : 'email body'}`}
               />
             </div>
 
@@ -180,10 +161,7 @@ const NewConversationModal = memo(
                 type="datetime-local"
                 value={newConversation.scheduledTimestamp}
                 onChange={(e) =>
-                  setNewConversation((prev) => ({
-                    ...prev,
-                    scheduledTimestamp: e.target.value,
-                  }))
+                  setNewConversation((prev) => ({ ...prev, scheduledTimestamp: e.target.value }))
                 }
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
                 disabled={isSubmitting}
@@ -207,10 +185,14 @@ const NewConversationModal = memo(
                 {isSubmitting && (
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z"
+                    />
                   </svg>
                 )}
-                {isSubmitting ? "Processing..." : "Send Message"}
+                {isSubmitting ? 'Processing...' : 'Send Message'}
               </button>
             </div>
           </form>
@@ -225,30 +207,46 @@ const NewConversationModal = memo(
     prevProps.newConversation === nextProps.newConversation
 );
 
-function ConversationList({
+const ConversationList = memo(function ConversationList({
   conversations,
   activeId,
   onSelect,
   contacts,
   onConversationStarted,
 }: ConversationListProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [isNewConversationModalOpen, setIsNewConversationModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const conversationRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const conversationsPerPage = 15;
   const totalPages = Math.ceil((conversations?.length || 0) / conversationsPerPage);
 
   const [newConversation, setNewConversation] = useState({
-    contactId: "",
-    message: "",
-    type: "SMS" as "SMS" | "Email",
-    fromNumber: user?.lcPhone?.locationId || "+12543585931",
-    subject: "",
-    scheduledTimestamp: "",
+    contactId: '',
+    message: '',
+    type: 'SMS' as 'SMS' | 'Email',
+    fromNumber: user?.lcPhone?.locationId || '+12543585931',
+    subject: '',
+    scheduledTimestamp: '',
   });
+
+  // Debugging re-renders
+  useEffect(() => {
+    console.log('ConversationList rendered');
+  });
+
+  // Scroll to active conversation when it changes
+  useEffect(() => {
+    if (activeId && conversationRefs.current[activeId]) {
+      conversationRefs.current[activeId]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [activeId]);
 
   const filteredConversations = useMemo(
     () =>
@@ -263,11 +261,7 @@ function ConversationList({
   );
 
   const displayedConversations = useMemo(
-    () =>
-      filteredConversations.slice(
-        (page - 1) * conversationsPerPage,
-        page * conversationsPerPage
-      ),
+    () => filteredConversations.slice((page - 1) * conversationsPerPage, page * conversationsPerPage),
     [filteredConversations, page]
   );
 
@@ -286,7 +280,7 @@ function ConversationList({
   }, [page]);
 
   const truncateMessage = useCallback((message: string) => {
-    return message?.length > 50 ? message.substring(0, 50) + "..." : message || "No messages yet";
+    return message?.length > 50 ? message.substring(0, 50) + '...' : message || 'No messages yet';
   }, []);
 
   const handleStartConversation = useCallback(
@@ -296,30 +290,30 @@ function ConversationList({
 
       try {
         if (!newConversation.contactId) {
-          toast.error("Please select a contact");
+          toast.error('Please select a contact');
           return;
         }
         if (!newConversation.message.trim()) {
-          toast.error("Please enter a message");
+          toast.error('Please enter a message');
           return;
         }
-        if (newConversation.type === "Email" && !newConversation.subject.trim()) {
-          toast.error("Please enter a subject for the email");
+        if (newConversation.type === 'Email' && !newConversation.subject.trim()) {
+          toast.error('Please enter a subject for the email');
           return;
         }
 
         const selectedContact = contacts.find((c) => c.id === newConversation.contactId);
         if (!selectedContact) {
-          toast.error("Invalid contact selected");
+          toast.error('Invalid contact selected');
           return;
         }
 
-        if (newConversation.type === "SMS" && !selectedContact.phone) {
-          toast.error("Selected contact has no phone number for SMS");
+        if (newConversation.type === 'SMS' && !selectedContact.phone) {
+          toast.error('Selected contact has no phone number for SMS');
           return;
         }
-        if (newConversation.type === "Email" && !selectedContact.email) {
-          toast.error("Selected contact has no email address");
+        if (newConversation.type === 'Email' && !selectedContact.email) {
+          toast.error('Selected contact has no email address');
           return;
         }
 
@@ -329,45 +323,49 @@ function ConversationList({
 
         const payload = {
           type: newConversation.type,
+          body: newConversation.message.trim(),
+           message: newConversation.message.trim(),
           contactId: newConversation.contactId,
-          ...(newConversation.type === "SMS" && {
+          ...(newConversation.type === 'SMS' && {
             message: newConversation.message.trim(),
             fromNumber: newConversation.fromNumber,
             toNumber: selectedContact.phone,
           }),
-          ...(newConversation.type === "Email" && {
+          ...(newConversation.type === 'Email' && {
             html: newConversation.message.trim(),
             emailTo: selectedContact.email,
             subject: newConversation.subject,
-            emailFrom: user?.email || "no-reply@yourdomain.com",
+            emailFrom: 'bahadurhere@gmail.com',
           }),
           ...(scheduledTimestamp && { scheduledTimestamp }),
         };
 
-        console.log("Sending payload to /api/conversations/messages:", payload);
+        console.log('Sending payload to /api/conversations/messages:', payload);
 
-        const response = await axios.post("/api/conversations/messages", payload);
+        const response = await axios.post('/api/conversations/messages', payload);
 
-        if (response.data && response.data.msg === "Message queued successfully") {
-          toast.success(`Conversation ${scheduledTimestamp ? "scheduled" : "started"} successfully`);
+        if (response.data && response.data.msg === 'Message queued successfully') {
+          toast.success(
+            `Conversation ${scheduledTimestamp ? 'scheduled' : 'started'} successfully`
+          );
           setIsNewConversationModalOpen(false);
           setNewConversation({
-            contactId: "",
-            message: "",
-            type: "SMS",
-            fromNumber: user?.lcPhone?.locationId || "+12543585931",
-            subject: "",
-            scheduledTimestamp: "",
+            contactId: '',
+            message: '',
+            type: 'SMS',
+            fromNumber: user?.lcPhone?.locationId || '+12543585931',
+            subject: '',
+            scheduledTimestamp: '',
           });
           if (response.data.conversationId) {
             onSelect(response.data.conversationId);
           }
           onConversationStarted?.();
         } else {
-          toast.error(response.data?.message || "Unexpected response from server");
+          toast.error(response.data?.message || response.data?.msg || 'Unexpected response from server');
         }
       } catch (err: any) {
-        const errorMessage = err.response?.data?.message || "Failed to start conversation";
+        const errorMessage = err.response?.data?.message || 'Failed to start conversation';
         toast.error(errorMessage);
       } finally {
         setIsSubmitting(false);
@@ -400,13 +398,14 @@ function ConversationList({
         </div>
       </div>
 
-      <div className="overflow-y-auto flex-grow" style={{ maxHeight: "calc(100vh - 170px)" }}>
+      <div className="overflow-y-auto flex-grow" style={{ maxHeight: 'calc(100vh - 170px)' }}>
         {displayedConversations.length > 0 ? (
           displayedConversations.map((conversation: Conversation) => (
             <div
               key={conversation.id}
+              ref={(el) => (conversationRefs.current[conversation.id] = el)}
               className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
-                activeId === conversation.id ? "bg-gray-100" : ""
+                activeId === conversation.id ? 'bg-gray-100' : ''
               }`}
               onClick={() => onSelect(conversation.id)}
             >
@@ -421,7 +420,7 @@ function ConversationList({
                   </div>
                   <p
                     className={`text-sm truncate ${
-                      conversation.unread ? "font-medium text-gray-900" : "text-gray-500"
+                      conversation.unread ? 'font-medium text-gray-900' : 'text-gray-500'
                     }`}
                   >
                     {truncateMessage(conversation.lastMessage)}
@@ -435,7 +434,7 @@ function ConversationList({
           ))
         ) : (
           <div className="p-4 text-center text-gray-500">
-            {searchTerm ? "No conversations match your search" : "No conversations found"}
+            {searchTerm ? 'No conversations match your search' : 'No conversations found'}
           </div>
         )}
       </div>
@@ -446,7 +445,7 @@ function ConversationList({
             onClick={handlePrevPage}
             disabled={page === 1}
             className={`px-3 py-1 text-sm rounded ${
-              page === 1 ? "text-gray-400 cursor-not-allowed" : "text-purple-600 hover:bg-purple-50"
+              page === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'
             }`}
           >
             Previous
@@ -458,9 +457,7 @@ function ConversationList({
             onClick={handleNextPage}
             disabled={page === totalPages}
             className={`px-3 py-1 text-sm rounded ${
-              page === totalPages
-                ? "text-gray-400 cursor-not-allowed"
-                : "text-purple-600 hover:bg-purple-50"
+              page === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'
             }`}
           >
             Next
@@ -479,14 +476,21 @@ function ConversationList({
       />
     </div>
   );
-}
-
-export default memo(ConversationList, (prevProps, nextProps) => {
+}, (prevProps, nextProps) => {
+  const conversationsEqual = prevProps.conversations === nextProps.conversations ||
+    (prevProps.conversations.length === nextProps.conversations.length &&
+     prevProps.conversations.every((prevConv, index) =>
+       prevConv.id === nextProps.conversations[index].id &&
+       prevConv.lastMessage === nextProps.conversations[index].lastMessage &&
+       prevConv.unread === nextProps.conversations[index].unread
+     ));
   return (
-    prevProps.conversations === nextProps.conversations &&
+    conversationsEqual &&
     prevProps.activeId === nextProps.activeId &&
     prevProps.contacts === nextProps.contacts &&
     prevProps.onSelect === nextProps.onSelect &&
     prevProps.onConversationStarted === nextProps.onConversationStarted
   );
 });
+
+export default ConversationList;

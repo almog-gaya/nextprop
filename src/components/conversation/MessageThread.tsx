@@ -6,7 +6,9 @@ import Avatar from "./Avatar";
 
 export default function MessageThread({ activeConversation, onSendMessage, messages, onLoadMore, hasMore, loading }: any) {
     const [newMessage, setNewMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
     const [sendingStatus, setSendingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [refreshing, setRefreshing] = useState(false);
     const { user } = useAuth();
@@ -37,11 +39,15 @@ export default function MessageThread({ activeConversation, onSendMessage, messa
     }, [sendingStatus]);
 
     const handleSend = () => {
+        setErrorMessage('');
         if (newMessage.trim()) {
             setSendingStatus('sending');
-            onSendMessage(newMessage, (success: boolean) => {
+            onSendMessage(newMessage, (success: boolean, error: string) => {
                 setSendingStatus(success ? 'success' : 'error');
-                setTimeout(() => setSendingStatus('idle'), 3000);
+                setErrorMessage(error);
+                setTimeout(() => {
+                    return setSendingStatus('idle');
+                }, 3000);
             });
             setNewMessage('');
         }
@@ -79,12 +85,11 @@ export default function MessageThread({ activeConversation, onSendMessage, messa
                 conversationId: activeConversation.id,
                 conversationProviderId: 'twilio_provider',
                 date: new Date().toISOString(),
-                // TODO: need to figure out, from where can get the to/from phone numbers
-                call: {
-                    to: "+15037081210",
-                    from: user?.phone,
-                    status: "completed"
-                }
+                // call: {
+                //     to: activeConversation.contactId,
+                //     from: user?.phone,
+                //     status: "completed"
+                // }
             }),
         });
         const data = await response.json();
@@ -186,23 +191,23 @@ export default function MessageThread({ activeConversation, onSendMessage, messa
                     messages.map((message: any) => (
                         <div
                             key={message.id}
-                            className={`flex ${message.senderId === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
+                            className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'} mb-4`}
                         >
                             <div
-                                className={`max-w-[85%] rounded-lg px-4 py-2 ${message.senderId === 'user'
-                                        ? message.sendFailed ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-purple-600 text-white'
-                                        : 'bg-gray-200 text-gray-900'
+                                className={`max-w-[85%] rounded-lg px-4 py-2 ${message.direction === 'outbound'
+                                    ? message.status === 'failed' ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-purple-600 text-white'
+                                    : 'bg-gray-200 text-gray-900'
                                     }`}
                             >
                                 <p className="break-words whitespace-pre-wrap text-sm">{message.text}</p>
                                 <div
-                                    className={`text-xs mt-1 flex items-center ${message.senderId === 'user'
-                                            ? message.sendFailed ? 'text-red-500' : 'text-blue-100'
-                                            : 'text-gray-500'
+                                    className={`text-xs mt-1 flex items-center ${message.direction === 'outbound'
+                                        ? message.status === 'failed' ? 'text-red-500' : 'text-blue-100'
+                                        : 'text-gray-500'
                                         }`}
                                 >
                                     {message.timestamp}
-                                    {message.sendFailed && (
+                                    {message.status === 'failed' && (
                                         <span className="ml-2 text-red-500 flex items-center">
                                             <AlertCircle size={12} className="mr-1" /> Failed to send
                                         </span>
@@ -243,8 +248,8 @@ export default function MessageThread({ activeConversation, onSendMessage, messa
                         onClick={handleSend}
                         disabled={!newMessage.trim() || sendingStatus === 'sending'}
                         className={`ml-2 p-3 rounded-full flex items-center justify-center ${!newMessage.trim() || sendingStatus === 'sending'
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : 'bg-purple-600 text-white hover:bg-blue-700'
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-purple-600 text-white hover:bg-blue-700'
                             }`}
                     >
                         {sendingStatus === 'sending' ? (
@@ -261,9 +266,10 @@ export default function MessageThread({ activeConversation, onSendMessage, messa
                         <CheckCircle size={12} className="mr-1" /> Message sent successfully
                     </div>
                 )}
-                {sendingStatus === 'error' && (
+                {((sendingStatus === 'error') || errorMessage) && (
                     <div className="mt-1 text-xs text-red-600 flex items-center">
-                        <AlertCircle size={12} className="mr-1" /> Failed to send message. Please try again.
+                        <AlertCircle size={12} className="mr-1" />
+                        {errorMessage || 'Failed to send message. Please try again.'}
                     </div>
                 )}
             </div>

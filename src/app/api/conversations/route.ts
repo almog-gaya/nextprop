@@ -38,18 +38,20 @@ export async function GET(request: NextRequest) {
     // Try to get real data
     let data = await getConversations(status, sort, sortBy);
     
-    // Check if there's an error and fall back to mock data
-    if (data.statusCode === 401 || data.error) {
-      log("Falling back to mock data due to API error:", data);
-      data = await getMockConversations(status, sort, sortBy);
-    }
+    // // Check if there's an error and fall back to mock data
+    // if (data.statusCode === 401 || data.error) {
+    //   log("Falling back to mock data due to API error:", data);
+    //   data = await getMockConversations(status, sort, sortBy);
+    // }
     
     return NextResponse.json(data);
   } catch (error) {
     logError("Error fetching conversations:", error);
     // Fallback to mock data
-    const mockData = await getMockConversations('all', 'desc', 'last_message_date');
-    return NextResponse.json(mockData);
+    // const mockData = await getMockConversations('all', 'desc', 'last_message_date');
+    return NextResponse.json({
+      "data" : [],
+    })
   }
 }
 

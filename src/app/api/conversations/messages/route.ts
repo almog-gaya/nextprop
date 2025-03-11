@@ -109,7 +109,6 @@ const SendMessage = async (
     Object.entries(payload).filter(([_, value]) => value !== undefined)
   );
 
-
   const options = {
     method: 'POST',
     headers: {
