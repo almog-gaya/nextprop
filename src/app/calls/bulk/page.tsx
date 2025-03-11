@@ -176,7 +176,7 @@ export default function BulkCallsPage() {
   
   return (
     <DashboardLayout title="Bulk Voicemail Sending">
-      <div className="mb-6">
+      <div className="m-6">
         <Link 
           href="/calls" 
           className="inline-flex items-center text-sm text-[#7c3aed] hover:text-[#6d28d9]"
