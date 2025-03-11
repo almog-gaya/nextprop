@@ -39,7 +39,12 @@ export default function OpportunityCard({
       <div className="p-3 flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-800 truncate">{opportunity.name || '-'}</span>
+            <button 
+              onClick={() => handleEditOpportunity(opportunity)}
+              className="font-medium text-gray-800 truncate text-left hover:text-blue-600 hover:underline focus:outline-none"
+            >
+              {opportunity.name || '-'}
+            </button>
             <button className="text-gray-400 hover:text-gray-600 ml-2">
               <EllipsisHorizontalIcon className="h-5 w-5" />
             </button>
@@ -61,7 +66,12 @@ export default function OpportunityCard({
 
           <div className="text-sm mt-1">
             <span className="text-gray-500">Value:</span>
-            <span className="ml-1 text-gray-700">{opportunity.value}</span>
+            <button 
+              onClick={() => handleEditOpportunity(opportunity)}
+              className="ml-1 text-gray-700 hover:text-blue-600 hover:underline focus:outline-none"
+            >
+              {opportunity.value}
+            </button>
           </div>
         </div>
       </div>
@@ -88,14 +98,14 @@ export default function OpportunityCard({
         >
           <EnvelopeIcon className="h-4 w-4" />
         </button>
-        {/* <button
+        <button
           className="text-gray-500 hover:text-purple-600 p-1"
           onClick={() => handleEditOpportunity(opportunity)}
           title="Edit opportunity"
         >
           <PencilIcon className="h-4 w-4" />
         </button>
-        <button
+        {/* <button
           className="text-gray-500 hover:text-red-600 p-1"
           onClick={() => handleCommunication(opportunity.id, 'optout')}
           title="Mark as opted out"

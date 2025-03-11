@@ -30,10 +30,16 @@ export interface PipelineData {
 export interface GHLContact {
     id: string;
     name: string;
+    firstName?: string;
+    lastName?: string;
     phone?: string;
     email?: string;
     company?: string;
     tags?: string[];
+    customFields?: any; // This can be an array or object depending on the API
+    timezone?: string;
+    locationId?: string;
+    dnd?: boolean;
 }
 
 export interface GHLOpportunity {
