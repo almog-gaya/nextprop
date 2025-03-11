@@ -63,6 +63,10 @@ export default function LeadsPage() {
     emailSubject: '',
     emailBody: ''
   });
+  const [loadingOperation, setLoadingOperation] = useState<{
+    id: string | null;
+    type: 'move' | 'delete' | 'edit' | null;
+  }>({ id: null, type: null });
 
   // Fetch pipeline data effect
   useEffect(() => {
@@ -389,6 +393,94 @@ export default function LeadsPage() {
     }
   };
 
+  const handleMoveOpportunity = async (opportunityId: string, targetStageId: string) => {
+    try {
+      // First update UI optimistically
+      setLoadingOperation({ id: opportunityId, type: 'move' });
+      
+      // Find the opportunity and current stage
+      const selectedPipelineData = pipelines.find((pipeline) => pipeline.id === selectedPipeline);
+      if (!selectedPipelineData) return;
+      
+      const updatedPipeline = JSON.parse(JSON.stringify(selectedPipelineData)) as PipelineData;
+      let foundOpportunity: Opportunity | null = null;
+      let currentStageId = '';
+
+      // Find and remove the opportunity from its current stage
+      for (const stage of updatedPipeline.stages) {
+        const opportunityIndex = stage.opportunities.findIndex((opp) => opp.id === opportunityId);
+        if (opportunityIndex !== -1) {
+          foundOpportunity = stage.opportunities[opportunityIndex];
+          currentStageId = stage.id;
+          stage.opportunities.splice(opportunityIndex, 1);
+          stage.count = stage.opportunities.length;
+          break;
+        }
+      }
+
+      if (!foundOpportunity) {
+        setLoadingOperation({ id: null, type: null });
+        return;
+      }
+
+      // Find the target stage and add the opportunity to it
+      const targetStage = updatedPipeline.stages.find((stage) => stage.id === targetStageId);
+      if (targetStage) {
+        foundOpportunity.stage = targetStageId;
+        targetStage.opportunities.push(foundOpportunity);
+        targetStage.count = targetStage.opportunities.length;
+
+        // Update the pipelines state with the moved opportunity
+        setPipelines(pipelines.map(p => 
+          p.id === selectedPipeline ? updatedPipeline : p
+        ));
+        setOpportunities(updatedPipeline.stages);
+
+        // Notify the user about the move
+        setNotification({ 
+          message: `Opportunity moved to ${targetStage.name}`, 
+          type: 'success' 
+        });
+        setNotificationActive(true);
+        setTimeout(() => setNotificationActive(false), 3000);
+
+        // Call the API to persist the change
+        if (apiConfigured) {
+          const response = await fetch(`/api/opportunities/${opportunityId}/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stageId: targetStageId })
+          });
+
+          if (!response.ok) {
+            // If the API call fails, revert the change
+            setNotification({
+              message: 'Failed to update opportunity. Reverting changes.',
+              type: 'error'
+            });
+            setNotificationActive(true);
+            
+            // Revert to original state
+            const originalPipeline = JSON.parse(JSON.stringify(selectedPipelineData)) as PipelineData;
+            setPipelines(pipelines.map(p => 
+              p.id === selectedPipeline ? originalPipeline : p
+            ));
+            setOpportunities(originalPipeline.stages);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error moving opportunity:', error);
+      setNotification({
+        message: 'An error occurred while moving the opportunity.',
+        type: 'error'
+      });
+      setNotificationActive(true);
+    } finally {
+      setLoadingOperation({ id: null, type: null });
+    }
+  };
+
   return (
     <DashboardLayout title="Leads">
       {isLoading || loading ? (
@@ -485,6 +577,8 @@ export default function LeadsPage() {
                     getProcessedOpportunities={getProcessedOpportunities}
                     handleCommunication={handleCommunication}
                     handleEditOpportunity={() => {}}
+                    handleMoveOpportunity={handleMoveOpportunity}
+                    loadingOpportunityId={loadingOperation.id}
                   />
                 ) : (
                   <OpportunityList
@@ -492,6 +586,8 @@ export default function LeadsPage() {
                     getProcessedOpportunities={getProcessedOpportunities}
                     handleCommunication={handleCommunication}
                     handleEditOpportunity={() => {}}
+                    handleMoveOpportunity={handleMoveOpportunity}
+                    loadingOpportunityId={loadingOperation.id}
                   />
                 )}
               </div>

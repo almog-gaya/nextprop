@@ -25,15 +25,17 @@ interface OpportunityCardProps {
   opportunity: Opportunity;
   handleCommunication: (opportunityId: string, actionType: 'voicemail' | 'sms' | 'call' | 'email' | 'optout') => void;
   handleEditOpportunity: (opportunity: Opportunity) => void;
+  isDragging?: boolean;
 }
 
 export default function OpportunityCard({
   opportunity,
   handleCommunication,
   handleEditOpportunity,
+  isDragging = false,
 }: OpportunityCardProps) {
   return (
-    <div className="bg-white mb-3 rounded-md border border-gray-200 hover:shadow-sm transition-shadow">
+    <div className={`bg-white mb-3 rounded-md border ${isDragging ? 'border-blue-400 shadow-md' : 'border-gray-200'} hover:shadow-sm transition-shadow`}>
       <div className="p-3 flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center">
