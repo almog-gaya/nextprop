@@ -9,6 +9,13 @@ import { useRouter } from 'next/navigation';
 import { timezones } from '@/utils/timezones';
 import { ContactListSkeleton } from '@/components/SkeletonLoaders';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { 
+  EyeIcon, 
+  EyeSlashIcon, 
+  AdjustmentsHorizontalIcon, 
+  PlusCircleIcon,
+  ChatBubbleLeftRightIcon
+} from '@heroicons/react/24/outline';
 
 interface CustomField {
   id: string;
@@ -29,6 +36,14 @@ interface CustomFieldDefinition {
   picklistOptions?: PicklistOption[];
 }
 
+// Define column interface
+interface TableColumn {
+  id: string;
+  label: string;
+  key: string;
+  visible: boolean;
+}
+
 export default function ContactsPage() {
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -37,9 +52,24 @@ export default function ContactsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
+  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+  const [isAllSelected, setIsAllSelected] = useState(false);
+  const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
+  const [hiddenColumns, setHiddenColumns] = useState<TableColumn[]>([]);
+
+  // Define available columns
+  const [columns, setColumns] = useState<TableColumn[]>([
+    { id: 'name', label: 'Name', key: 'firstName', visible: true },
+    { id: 'email', label: 'Email', key: 'email', visible: true },
+    { id: 'phone', label: 'Phone', key: 'phone', visible: true },
+    { id: 'tags', label: 'Tags', key: 'tags', visible: true },
+    { id: 'timezone', label: 'Timezone', key: 'timezone', visible: false },
+    { id: 'dnd', label: 'DND Status', key: 'dnd', visible: false },
+  ]);
 
   const [newContact, setNewContact] = useState({
     firstName: '',
@@ -779,17 +809,167 @@ export default function ContactsPage() {
     );
   };
 
+  // Toggle column visibility
+  const hideColumn = (columnId: string) => {
+    setColumns(prevColumns => {
+      const updatedColumns = prevColumns.map(column => 
+        column.id === columnId ? { ...column, visible: false } : column
+      );
+      
+      const hiddenColumn = prevColumns.find(col => col.id === columnId);
+      if (hiddenColumn) {
+        setHiddenColumns(prev => [...prev, { ...hiddenColumn, visible: false }]);
+      }
+      
+      return updatedColumns;
+    });
+  };
+  
+  // Show a hidden column
+  const showColumn = (columnId: string) => {
+    setColumns(prevColumns => 
+      prevColumns.map(column => 
+        column.id === columnId ? { ...column, visible: true } : column
+      )
+    );
+    
+    setHiddenColumns(prev => prev.filter(col => col.id !== columnId));
+  };
+
+  // Toggle select all contacts
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedContactIds([]);
+    } else {
+      setSelectedContactIds(contacts.map(contact => contact.id));
+    }
+    setIsAllSelected(!isAllSelected);
+  };
+
+  // Toggle select single contact
+  const toggleSelectContact = (contactId: string) => {
+    setSelectedContactIds(prevSelected => {
+      if (prevSelected.includes(contactId)) {
+        return prevSelected.filter(id => id !== contactId);
+      } else {
+        return [...prevSelected, contactId];
+      }
+    });
+  };
+
+  // Check if all contacts are selected
+  useEffect(() => {
+    if (contacts.length > 0 && selectedContactIds.length === contacts.length) {
+      setIsAllSelected(true);
+    } else {
+      setIsAllSelected(false);
+    }
+  }, [selectedContactIds, contacts]);
+
+  // Handle bulk delete
+  const confirmBulkDelete = async () => {
+    setIsSubmitting(true);
+    try {
+      // In a real app, you might want to perform a batch delete operation
+      await Promise.all(
+        selectedContactIds.map(id => axios.delete(`/api/contacts/${id}`))
+      );
+
+      setContacts(prevContacts => 
+        prevContacts.filter(contact => !selectedContactIds.includes(contact.id))
+      );
+      setTotalContacts(prev => prev - selectedContactIds.length);
+      setTotalPages(Math.ceil((totalContacts - selectedContactIds.length) / contactsPerPage) || 1);
+      setIsBulkDeleteModalOpen(false);
+      setSelectedContactIds([]);
+      toast.success(`${selectedContactIds.length} contacts deleted successfully`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete contacts');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Render column manager
+  const ColumnManager = () => {
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setIsColumnSelectorOpen(!isColumnSelectorOpen)}
+          className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center"
+        >
+          <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
+          Manage Columns
+        </button>
+        
+        {isColumnSelectorOpen && (
+          <div 
+            className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-2 border-b border-gray-100">
+              <h3 className="text-xs font-medium text-gray-500 uppercase">Hidden Columns</h3>
+            </div>
+            <div className="py-1" role="menu" aria-orientation="vertical">
+              {hiddenColumns.length > 0 ? (
+                hiddenColumns.map(column => (
+                  <button
+                    key={column.id}
+                    onClick={() => showColumn(column.id)}
+                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <PlusCircleIcon className="h-4 w-4 mr-2 text-green-500" />
+                    {column.label}
+                  </button>
+                ))
+              ) : (
+                <p className="px-4 py-2 text-sm text-gray-500 italic">No hidden columns</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Close column selector when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (isColumnSelectorOpen) {
+        setIsColumnSelectorOpen(false);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isColumnSelectorOpen]);
+
+  // Initialize hidden columns on component mount
+  useEffect(() => {
+    setHiddenColumns(columns.filter(col => !col.visible));
+  }, []);
+
+  // Navigate to messaging page with the specified contact
+  const navigateToMessaging = (contactId: string) => {
+    router.push(`/messaging?contactId=${contactId}`);
+  };
+
   return (
     <DashboardLayout title="Contacts">
       <div className="dashboard-card">
         <div className="flex justify-between items-center mb-6">
           <h2 className="dashboard-card-title">All Contacts</h2>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="btn-primary"
-          >
-            Add Contact
-          </button>
+          <div className="flex space-x-3">
+            <ColumnManager />
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="btn-primary"
+            >
+              Add Contact
+            </button>
+          </div>
         </div>
 
         {contacts.length > 0 && <TagFilters />}
@@ -852,6 +1032,50 @@ export default function ContactsPage() {
           </div>
         )}
 
+        {/* Bulk Delete Modal */}
+        {isBulkDeleteModalOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
+            onClick={() => setIsBulkDeleteModalOpen(false)}
+          >
+            <div 
+              className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-900">Delete Selected Contacts</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Are you sure you want to delete {selectedContactIds.length} selected contacts? This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setIsBulkDeleteModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100/80 text-gray-700 rounded-md hover:bg-gray-200/80 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBulkDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm transition-colors disabled:opacity-50"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Selected'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <ContactListSkeleton />
         ) : error ? (
@@ -860,51 +1084,129 @@ export default function ContactsPage() {
           </div>
         ) : contacts.length > 0 ? (
           <div>
+            {selectedContactIds.length > 0 && (
+              <div className="mb-4 flex items-center justify-between bg-purple-50 p-3 rounded-md border border-purple-100">
+                <span className="text-sm text-purple-800">
+                  <span className="font-medium">{selectedContactIds.length}</span> contacts selected
+                </span>
+                <button
+                  onClick={() => setIsBulkDeleteModalOpen(true)}
+                  className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors"
+                >
+                  Delete Selected
+                </button>
+              </div>
+            )}
             <div className="relative max-w-full overflow-x-hidden">
               <div className="max-h-[60vh] overflow-y-auto">
                 <table className="w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
+                      <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+                        <input
+                          type="checkbox"
+                          checked={isAllSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        />
+                      </th>
+                      {columns.filter(column => column.visible).map(column => (
+                        <th 
+                          key={column.id}
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative"
+                        >
+                          <div className="flex items-center">
+                            <span>{column.label}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                hideColumn(column.id);
+                              }}
+                              className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+                              title={`Hide ${column.label} column`}
+                            >
+                              <EyeSlashIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                            </button>
+                          </div>
+                        </th>
+                      ))}
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {contacts.map((contact) => (
-                      <tr key={contact.id}>
-                        <td className="px-4 py-4 truncate max-w-[150px]">{contact.firstName}</td>
-                        <td className="px-4 py-4 truncate max-w-[200px]">{contact.email || 'N/A'}</td>
-                        <td className="px-4 py-4 truncate max-w-[150px]">{contact.phone || 'N/A'}</td>
-                        <td className="px-4 py-4 max-w-[200px]">
-                          <div className="flex flex-wrap gap-1 overflow-hidden">
-                            {contact.tags && contact.tags.map((tag, idx) => (
-                              <span 
-                                key={idx} 
-                                className={`px-2 py-1 text-xs rounded-full truncate ${
-                                  tag === 'scraped-lead' 
-                                    ? 'bg-blue-100 text-blue-800' 
-                                    : tag === 'review-new-lead' 
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-gray-100 text-gray-800'
-                                }`}
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
+                      <tr 
+                        key={contact.id} 
+                        className="transition-colors"
+                      >
+                        <td className="pl-4 pr-3 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedContactIds.includes(contact.id)}
+                            onChange={() => toggleSelectContact(contact.id)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
                         </td>
+                        {columns.filter(col => col.visible).map(column => (
+                          <td key={column.id} className="px-4 py-4 truncate max-w-[200px]">
+                            {column.id === 'name' ? (
+                              <button
+                                onClick={() => navigateToMessaging(contact.id)}
+                                className="text-left font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:underline"
+                              >
+                                {contact[column.key as keyof Contact]?.toString() || 'N/A'}
+                              </button>
+                            ) : column.id === 'tags' ? (
+                              <div className="flex flex-wrap gap-1 overflow-hidden">
+                                {contact.tags && contact.tags.map((tag, idx) => (
+                                  <span 
+                                    key={idx} 
+                                    className={`px-2 py-1 text-xs rounded-full truncate ${
+                                      tag === 'scraped-lead' 
+                                        ? 'bg-blue-100 text-blue-800' 
+                                        : tag === 'review-new-lead' 
+                                          ? 'bg-green-100 text-green-800'
+                                          : 'bg-gray-100 text-gray-800'
+                                    }`}
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : column.id === 'dnd' ? (
+                              contact.dnd ? 'Do Not Disturb' : 'Available'
+                            ) : (
+                              typeof contact[column.key as keyof Contact] === 'object' 
+                                ? 'Complex data' 
+                                : (contact[column.key as keyof Contact]?.toString() || 'N/A')
+                            )}
+                          </td>
+                        ))}
                         <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                           <button
-                            onClick={() => handleEdit(contact)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigateToMessaging(contact.id);
+                            }}
+                            className="text-blue-600 hover:text-blue-800 mr-2"
+                            title="Message this contact"
+                          >
+                            <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(contact);
+                            }}
                             className="text-purple-600 hover:text-blue-900 mr-2"
                           >
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(contact)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(contact);
+                            }}
                             className="text-red-600 hover:text-red-900"
                           >
                             Delete
