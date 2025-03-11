@@ -395,7 +395,7 @@ export default function MessagingEmbedPage() {
 
       /// get active conversation
       const currentContact = state.conversations.find((conv) => conv.id === state.activeConversationId);
-        console.log(`[handleSendMessage] currentContact: ${JSON.stringify(currentContact)}`)
+      console.log(`[handleSendMessage] currentContact: ${JSON.stringify(currentContact)}`)
       const payload = {
         conversationId: state.activeConversationId,
         type: messageType,

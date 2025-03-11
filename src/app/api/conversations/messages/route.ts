@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     emailReplyMode,
     fromNumber,
     toNumber,
+    conversationId,
   } = body;
 
   const data = await fetchWithErrorHandling(() =>
@@ -46,7 +47,8 @@ export async function POST(request: NextRequest) {
       emailTo,
       emailReplyMode,
       fromNumber,
-      toNumber
+      toNumber,
+      conversationId,
     )
   );
 
@@ -78,7 +80,8 @@ const SendMessage = async (
   emailTo: string,
   emailReplyMode: string,
   fromNumber: string,
-  toNumber: string
+  toNumber: string,
+  conversationId: string,
 ) => {
   const { locationId, token } = await getAuthHeaders();
 
@@ -101,6 +104,7 @@ const SendMessage = async (
     conversationProviderId,
     emailTo,
     emailReplyMode,
+    conversationId,
     // fromNumber,
     // toNumber,
   };
@@ -108,6 +112,8 @@ const SendMessage = async (
   const cleanedPayload = Object.fromEntries(
     Object.entries(payload).filter(([_, value]) => value !== undefined)
   );
+
+
 
   const options = {
     method: 'POST',
@@ -122,5 +128,23 @@ const SendMessage = async (
 
   const response = await fetch(url, options);
   const data = await response.json();
+  if(response.ok){
+    // const _options = {
+    //   method: 'POST',
+    //   headers: {
+    //     Authorization: `Bearer ${token}`,
+    //     Version: '2021-04-15',
+    //     'Content-Type': 'application/json',
+    //     Accept: 'application/json',
+    //   },
+    //   body: JSON.stringify({
+    //     ...cleanedPayload,
+    //     direction: 'inbound'
+    //   }),
+    // };
+    // const response = await fetch('https://services.leadconnectorhq.com/conversations/messages/inbound', _options);
+    // const data = await response.json();
+    // console.log('data>', data);
+  }
   return data;
 };
