@@ -161,12 +161,20 @@ export default function DashboardPage() {
                     messagesReceived++;
                   }
                   
-                  // Count by type
-                  const type = message.type?.toLowerCase() || 'sms';
-                  if (type.includes('sms')) messageTypes.sms++;
-                  else if (type.includes('email')) messageTypes.email++;
-                  else if (type.includes('call')) messageTypes.call++;
-                  else if (type.includes('voicemail')) messageTypes.voicemail++;
+                  // Count by type - Fix the type error with proper type checking
+                  let messageType = 'sms'; // Default type
+                  if (typeof message.type === 'string') {
+                    messageType = message.type.toLowerCase();
+                  } else if (message.type) {
+                    // If type exists but isn't a string, try to convert it
+                    messageType = String(message.type).toLowerCase();
+                  }
+                  
+                  // Now use messageType which should always be a string
+                  if (messageType.includes('sms')) messageTypes.sms++;
+                  else if (messageType.includes('email')) messageTypes.email++;
+                  else if (messageType.includes('call')) messageTypes.call++;
+                  else if (messageType.includes('voicemail')) messageTypes.voicemail++;
                 });
               }
             } catch (error) {
