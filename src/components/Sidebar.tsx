@@ -16,7 +16,8 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   EnvelopeIcon,
-  ClockIcon
+  ClockIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarLinkProps {
@@ -113,11 +114,13 @@ export default function Sidebar() {
 
   const links = [
     { icon: <HomeIcon className="w-5 h-5" />, text: 'Dashboard', href: '/' },
+    { icon: <UserIcon className="w-5 h-5" />, text: 'Leads', href: '/leads' },
     { icon: <UserGroupIcon className="w-5 h-5" />, text: 'Contacts', href: '/contacts' },
     { icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, text: 'Messaging', href: '/messaging-embed' },
     { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/calls' },
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
-    { icon: <CurrencyDollarIcon className="w-5 h-5" />, text: 'Opportunities', href: '/opportunities' },
+    // killed that for now , no need atm
+    // { icon: <CurrencyDollarIcon className="w-5 h-5" />, text: 'Opportunities', href: '/opportunities' },
     { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' },
   ];
 
