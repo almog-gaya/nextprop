@@ -71,32 +71,118 @@ export default function CallsPage() {
     <DashboardLayout title="Ringless Voicemails">
       {renderError()}
       
-      <div className="flex justify-end mb-4 space-x-4">
-        <a 
-          href="/calls/bulk" 
-          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-        >
-          Bulk Upload Contacts
-        </a>
-        <a 
-          href="/webhooks" 
-          className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          View Webhook Responses
-        </a>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Call Form */}
-        <div className="lg:col-span-1">
-          <AutomatedCallForm 
-            onCallSubmit={handleCallSubmit} 
-            isLoading={isSubmitting} 
-          />
+      <div className="space-y-6">
+        {/* Header section */}
+        <div className="nextprop-card p-6">
+          <h2 className="text-xl font-semibold text-[#1e1b4b] mb-2">Voicemail Campaigns</h2>
+          <p className="text-gray-600 mb-6">Send personalized voicemails to multiple contacts with controlled delivery schedules.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-l-4 border-[#7c3aed] rounded-lg p-5">
+              <h3 className="font-medium text-[#1e1b4b]">Total Contacts</h3>
+              <p className="text-2xl font-bold text-[#7c3aed] mt-1">{totalCalls}</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-green-50 to-teal-50 border-l-4 border-green-500 rounded-lg p-5">
+              <h3 className="font-medium text-[#1e1b4b]">Delivered</h3>
+              <p className="text-2xl font-bold text-green-600 mt-1">{callLogs.filter(log => log.status === 'completed').length}</p>
+            </div>
+            
+            <div className="bg-gradient-to-br from-blue-50 to-sky-50 border-l-4 border-blue-500 rounded-lg p-5">
+              <h3 className="font-medium text-[#1e1b4b]">Pending</h3>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{callLogs.filter(log => log.status === 'pending').length}</p>
+            </div>
+          </div>
+          
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-4 mt-6 justify-between items-center">
+            <a 
+              href="/calls/bulk" 
+              className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-[#7c3aed] border border-transparent rounded-md shadow-sm hover:bg-[#6d28d9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed]"
+            >
+              Create New Campaign
+            </a>
+            
+            <button
+              type="button"
+              onClick={() => document.getElementById('manual-voicemail-section')?.classList.toggle('hidden')}
+              className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-[#7c3aed] bg-white border border-[#7c3aed] rounded-md shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed]"
+            >
+              Manual Voicemail
+            </button>
+          </div>
+        </div>
+        
+        {/* Campaign Delivery Settings */}
+        <div className="nextprop-card p-6">
+          <h3 className="text-lg font-semibold text-[#1e1b4b] mb-4">Campaign Delivery Settings</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="delay-between-calls" className="block text-sm font-medium text-gray-700 mb-2">
+                Delay Between Voicemails
+              </label>
+              <select
+                id="delay-between-calls"
+                className="nextprop-input w-full rounded-md shadow-sm"
+                defaultValue="5"
+              >
+                <option value="1">1 minute</option>
+                <option value="5">5 minutes</option>
+                <option value="10">10 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-2">
+                Space out your voicemails to avoid carrier spam detection
+              </p>
+            </div>
+            
+            <div>
+              <label htmlFor="daily-limit" className="block text-sm font-medium text-gray-700 mb-2">
+                Daily Sending Limit
+              </label>
+              <select
+                id="daily-limit"
+                className="nextprop-input w-full rounded-md shadow-sm"
+                defaultValue="50"
+              >
+                <option value="10">10 voicemails</option>
+                <option value="25">25 voicemails</option>
+                <option value="50">50 voicemails</option>
+                <option value="100">100 voicemails</option>
+                <option value="250">250 voicemails</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-2">
+                Limit how many voicemails are sent each day
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-6">
+            <button
+              type="button"
+              className="px-5 py-2.5 bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              Save Settings
+            </button>
+          </div>
+        </div>
+        
+        {/* Manual Call Form - Hidden by default */}
+        <div id="manual-voicemail-section" className="hidden">
+          <div className="nextprop-card p-6">
+            <AutomatedCallForm 
+              onCallSubmit={handleCallSubmit} 
+              isLoading={isSubmitting} 
+            />
+          </div>
         </div>
         
         {/* Call Logs */}
-        <div className="lg:col-span-2">
+        <div className="nextprop-card p-6">
+          <h3 className="text-lg font-semibold text-[#1e1b4b] mb-4">Voicemail History</h3>
+          
           {isLoading ? (
             <CallLogsSkeleton />
           ) : (
@@ -108,11 +194,11 @@ export default function CallsPage() {
           
           {/* Pagination - only show if we have more than 10 calls */}
           {!isLoading && totalCalls > 10 && (
-            <div className="mt-4 flex justify-between items-center">
+            <div className="mt-6 flex justify-between items-center">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 border rounded-md text-sm text-gray-600 disabled:opacity-50"
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
                 Previous
               </button>
@@ -124,7 +210,7 @@ export default function CallsPage() {
               <button
                 onClick={() => setCurrentPage(p => p + 1)}
                 disabled={currentPage >= Math.ceil(totalCalls / 10)}
-                className="px-3 py-1 border rounded-md text-sm text-gray-600 disabled:opacity-50"
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
                 Next
               </button>
