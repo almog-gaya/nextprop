@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { toast } from 'sonner';
 import { MessagingSkeleton } from '@/components/SkeletonLoaders';
@@ -23,7 +23,8 @@ const log = (message: string, data?: any) => {
   }
 };
 
-export default function MessagingEmbedPage() {
+// Create a client component that uses useSearchParams
+function MessagingContent() {
   const searchParams = useSearchParams();
   const contactIdParam = searchParams.get('contactId');
   
@@ -768,5 +769,14 @@ export default function MessagingEmbedPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+// Export a wrapper component that provides the Suspense boundary
+export default function MessagingEmbedPage() {
+  return (
+    <Suspense fallback={<MessagingSkeleton />}>
+      <MessagingContent />
+    </Suspense>
   );
 }

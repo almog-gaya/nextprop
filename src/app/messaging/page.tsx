@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function MessagingPage() {
+// Client component that uses useSearchParams
+function MessagingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -25,5 +26,21 @@ export default function MessagingPage() {
         <h2 className="text-lg font-medium text-gray-700">Redirecting to messages...</h2>
       </div>
     </div>
+  );
+}
+
+// Page component with Suspense boundary
+export default function MessagingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <h2 className="text-lg font-medium text-gray-700">Loading...</h2>
+        </div>
+      </div>
+    }>
+      <MessagingContent />
+    </Suspense>
   );
 } 
