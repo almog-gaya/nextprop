@@ -83,7 +83,7 @@ function MessagingContent() {
                 {
                   id: msg.id || `msg-${Date.now()}-${Math.random()}`,
                   senderId: msg.direction === 'inbound' ? 'client' : 'user',
-                  text: msg.body || msg.text || '[No message content]',
+                  text: msg.body || msg.text || msg.meta?.email.subject || msg.activity?.data.name || '[No message content]',
                   timestamp: msg.dateAdded
                     ? new Date(msg.dateAdded).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     : 'Recent',
@@ -240,7 +240,7 @@ function MessagingContent() {
         ...(messageType === 'Email' && {
           html: text,
           emailTo: currentContact!.email,
-          subject: "Email from " + currentContact?.email,
+          subject: "",
           emailFrom: 'no-reply@gmail.com',
         }),
       };

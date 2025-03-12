@@ -5,7 +5,7 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { StatsCardSkeleton, TableSkeleton } from '@/components/SkeletonLoaders';
 import AutomationPreview from '@/components/AutomationPreview';
-import { useAuth } from '@/contexts/AuthContext';
+import { PhoneNumber, useAuth } from '@/contexts/AuthContext';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import FilterControls from '@/components/dashboard/FilterControls';
 import SearchBar from '@/components/dashboard/SearchBar';
@@ -70,7 +70,7 @@ export default function LeadsPage() {
     id: string | null;
     type: 'move' | 'delete' | 'edit' | null;
   }>({ id: null, type: null });
-  
+
   // Add state for contact edit modal
   const [isEditContactModalOpen, setIsEditContactModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<GHLContact | null>(null);
@@ -150,7 +150,7 @@ export default function LeadsPage() {
                 opportunities: opportunitiesByStage[stage.id] || [],
                 count: (opportunitiesByStage[stage.id] || []).length,
                 total: `$${(opportunitiesByStage[stage.id] || []).reduce(
-                  (sum: number, opp: Opportunity) => 
+                  (sum: number, opp: Opportunity) =>
                     sum + (parseFloat(opp.value.replace('$', '')) || 0),
                   0
                 )}`
@@ -212,7 +212,7 @@ export default function LeadsPage() {
 
   const filterOpportunities = (opportunities: Opportunity[]): Opportunity[] => {
     return opportunities.filter((opp) => {
-      const matchesSearch = !searchTerm || 
+      const matchesSearch = !searchTerm ||
         opp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (opp.businessName && opp.businessName.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -220,11 +220,11 @@ export default function LeadsPage() {
       const matchesValue = (!filters.value.min || value >= parseFloat(filters.value.min)) &&
         (!filters.value.max || value <= parseFloat(filters.value.max));
 
-      const matchesSource = filters.source.length === 0 || 
+      const matchesSource = filters.source.length === 0 ||
         (opp.source && filters.source.includes(opp.source));
 
       // Check for lastActivityType if it exists on the opportunity
-      const matchesActivity = filters.lastActivityType.length === 0 || 
+      const matchesActivity = filters.lastActivityType.length === 0 ||
         (opp.lastActivityType && filters.lastActivityType.includes(opp.lastActivityType));
 
       return matchesSearch && matchesValue && matchesSource && matchesActivity;
@@ -243,8 +243,8 @@ export default function LeadsPage() {
 
       const valueA = a[sortConfig.key]?.toString() || '';
       const valueB = b[sortConfig.key]?.toString() || '';
-      return sortConfig.direction === 'asc' ? 
-        valueA.localeCompare(valueB) : 
+      return sortConfig.direction === 'asc' ?
+        valueA.localeCompare(valueB) :
         valueB.localeCompare(valueA);
     });
   };
@@ -265,13 +265,13 @@ export default function LeadsPage() {
       setTimeout(() => setNotificationActive(false), 3000);
       return;
     }
-    
+
     // Log the opportunity data for debugging
     console.log('Opportunity being edited:', opportunity);
-    
+
     setSelectedContact(opportunity.contact);
     let customFieldsArray: any[] = [];
-    
+
     if (opportunity.contact.customFields) {
       if (Array.isArray(opportunity.contact.customFields)) {
         customFieldsArray = opportunity.contact.customFields;
@@ -283,13 +283,13 @@ export default function LeadsPage() {
         }));
       }
     }
-    
+
     // Extract name from opportunity or contact - opportunity name takes precedence
     const contactFirstName = opportunity.name?.split(' ')[0] || opportunity.contact.firstName || '';
-    const contactLastName = opportunity.name?.includes(' ') ? 
-                         opportunity.name.substring(opportunity.name.indexOf(' ')+1) : 
-                         opportunity.contact.lastName || '';
-    
+    const contactLastName = opportunity.name?.includes(' ') ?
+      opportunity.name.substring(opportunity.name.indexOf(' ') + 1) :
+      opportunity.contact.lastName || '';
+
     setEditContactData({
       firstName: contactFirstName,
       lastName: contactLastName,
@@ -301,7 +301,7 @@ export default function LeadsPage() {
       tags: opportunity.contact.tags || [],
       customFields: customFieldsArray
     });
-    
+
     setIsEditContactModalOpen(true);
   };
 
@@ -325,22 +325,22 @@ export default function LeadsPage() {
               }
               return opp;
             });
-            
+
             return {
               ...stage,
               opportunities: updatedOpportunities
             };
           });
-          
+
           return {
             ...pipeline,
             stages: updatedStages
           };
         });
-        
+
         setPipelines(updatedPipelines);
         setOpportunities(updatedPipelines.find(p => p.id === selectedPipeline)?.stages || []);
-        
+
         toast.success('Contact updated successfully');
         setIsEditContactModalOpen(false);
         setSelectedContact(null);
@@ -352,7 +352,7 @@ export default function LeadsPage() {
     }
   };
 
-  const handleSMS = async (contact: GHLContact, message: string) => {
+  const handleSMS = async (contact: GHLContact, message: string, fromNumber: string) => {
     try {
       const response = await fetch('/api/conversations/messages', {
         method: 'POST',
@@ -360,7 +360,7 @@ export default function LeadsPage() {
         body: JSON.stringify({
           type: 'SMS',
           message,
-          fromNumber: user?.lcPhone?.locationId,
+          fromNumber: fromNumber,
           toNumber: contact.phone,
           contactId: contact.id
         })
@@ -382,7 +382,8 @@ export default function LeadsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'EMAIL',
+          contactId: contact.id,
+          type: 'Email',
           html: body,
           emailTo: contact.email,
           subject,
@@ -401,9 +402,33 @@ export default function LeadsPage() {
   };
 
   const handleCall = async (contact: GHLContact) => {
+    if ((user?.phoneNumbers?.length ?? 0) <= 0) {
+      // show alert 
+      alert('You dont have any numbers')
+      return false;
+    }
     // Implement call functionality
     console.log('Initiating call to:', contact);
-    return true;
+    try {
+      const response = await fetch('/api/conversations/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'Call',
+          fromNumber: user?.phoneNumbers![0].phoneNumber,
+          toNumber: contact.phone,
+          contactId: contact.id
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send SMS');
+      }
+      return true;
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      return false;
+    }
   };
 
   const handleCommunication = async (
@@ -473,7 +498,7 @@ export default function LeadsPage() {
           targetStage.opportunities.push(foundOpportunity);
           targetStage.count = targetStage.opportunities.length;
 
-          setPipelines(pipelines.map(p => 
+          setPipelines(pipelines.map(p =>
             p.id === selectedPipeline ? updatedPipeline : p
           ));
           setOpportunities(updatedPipeline.stages);
@@ -513,11 +538,11 @@ export default function LeadsPage() {
     try {
       // First update UI optimistically
       setLoadingOperation({ id: opportunityId, type: 'move' });
-      
+
       // Find the opportunity and current stage
       const selectedPipelineData = pipelines.find((pipeline) => pipeline.id === selectedPipeline);
       if (!selectedPipelineData) return;
-      
+
       const updatedPipeline = JSON.parse(JSON.stringify(selectedPipelineData)) as PipelineData;
       let foundOpportunity: Opportunity | null = null;
       let currentStageId = '';
@@ -547,15 +572,15 @@ export default function LeadsPage() {
         targetStage.count = targetStage.opportunities.length;
 
         // Update the pipelines state with the moved opportunity
-        setPipelines(pipelines.map(p => 
+        setPipelines(pipelines.map(p =>
           p.id === selectedPipeline ? updatedPipeline : p
         ));
         setOpportunities(updatedPipeline.stages);
 
         // Notify the user about the move
-        setNotification({ 
-          message: `Opportunity moved to ${targetStage.name}`, 
-          type: 'success' 
+        setNotification({
+          message: `Opportunity moved to ${targetStage.name}`,
+          type: 'success'
         });
         setNotificationActive(true);
         setTimeout(() => setNotificationActive(false), 3000);
@@ -575,10 +600,10 @@ export default function LeadsPage() {
               type: 'error'
             });
             setNotificationActive(true);
-            
+
             // Revert to original state
             const originalPipeline = JSON.parse(JSON.stringify(selectedPipelineData)) as PipelineData;
-            setPipelines(pipelines.map(p => 
+            setPipelines(pipelines.map(p =>
               p.id === selectedPipeline ? originalPipeline : p
             ));
             setOpportunities(originalPipeline.stages);
@@ -612,7 +637,7 @@ export default function LeadsPage() {
     // Display name for the contact - use opportunity name if available
     // This should match what is shown in the leads board
     const displayName = selectedContact?.name || formData.firstName || "Contact";
-    
+
     // Log for debugging
     console.log("Contact data for modal:", selectedContact);
     console.log("Form data for modal:", formData);
@@ -703,11 +728,11 @@ export default function LeadsPage() {
     ];
 
     return (
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 sm:p-6 z-50"
         onClick={() => setIsEditContactModalOpen(false)}
       >
-        <div 
+        <div
           className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md sm:max-w-lg mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative"
           onClick={(e) => e.stopPropagation()}
         >
@@ -724,7 +749,7 @@ export default function LeadsPage() {
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 sm:space-y-5">
 
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
@@ -804,8 +829,8 @@ export default function LeadsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {formData.tags && formData.tags.map((tag, index) => (
-                    <span 
-                      key={index} 
+                    <span
+                      key={index}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
                     >
                       {tag}
@@ -1009,68 +1034,163 @@ export default function LeadsPage() {
               </div>
             </div>
             {isFilterModalOpen && (
-              <FilterModal 
-                filters={filters} 
-                setFilters={setFilters} 
-                setIsFilterModalOpen={setIsFilterModalOpen} 
+              <FilterModal
+                filters={filters}
+                setFilters={setFilters}
+                setIsFilterModalOpen={setIsFilterModalOpen}
               />
             )}
             {isSortModalOpen && (
-              <SortModal 
-                sortConfig={sortConfig} 
-                setSortConfig={setSortConfig} 
-                setIsSortModalOpen={setIsSortModalOpen} 
+              <SortModal
+                sortConfig={sortConfig}
+                setSortConfig={setSortConfig}
+                setIsSortModalOpen={setIsSortModalOpen}
               />
             )}
             {messageModal.isOpen && (
-              <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-                <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                  <h3 className="text-lg font-medium mb-4">
+              <div
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 sm:p-6 z-50"
+                onClick={() => setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null })}
+              >
+                <div
+                  className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md sm:max-w-lg mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null })}
+                    className="absolute top-3 right-3 sm:top-4 sm:right-4 w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200/50 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-900">
                     {messageModal.actionType === 'sms' ? 'Send SMS' : 'Send Email'}
                   </h3>
+                  <p className="text-sm text-gray-600 mb-4 sm:mb-6">
+                    {messageModal.actionType === 'sms'
+                      ? 'Send an SMS message to this contact'
+                      : 'Compose and send an email to this contact'}
+                  </p>
+
                   {messageModal.actionType === 'sms' ? (
-                    <textarea
-                      className="w-full p-2 border rounded mb-4"
-                      value={messageContent.sms}
-                      onChange={(e) => setMessageContent({ ...messageContent, sms: e.target.value })}
-                      placeholder="Enter your SMS message"
-                      rows={4}
-                    />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                        <select
+                          className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+                          value={user?.phoneNumbers?.[0]?.phoneNumber || ''}
+                        >
+                          {(user?.phoneNumbers || []).length > 0 ? (
+                            user!.phoneNumbers!.map((number: PhoneNumber) => (
+                              <option key={number.phoneNumber} value={number.phoneNumber}>
+                                {number.phoneNumber}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="">No number available</option>
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                        <input
+                          type="text"
+                          className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-gray-50 text-gray-700"
+                          value={messageModal.contact?.phone || ''}
+                          disabled
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                        <textarea
+                          className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+                          value={messageContent.sms}
+                          onChange={(e) => setMessageContent({ ...messageContent, sms: e.target.value })}
+                          placeholder="Enter your SMS message"
+                          rows={4}
+                        />
+                      </div>
+                    </div>
                   ) : (
-                    <>
-                      <input
-                        type="text"
-                        className="w-full p-2 border rounded mb-4"
-                        value={messageContent.emailSubject}
-                        onChange={(e) => setMessageContent({ ...messageContent, emailSubject: e.target.value })}
-                        placeholder="Email Subject"
-                      />
-                      <textarea
-                        className="w-full p-2 border rounded mb-4"
-                        value={messageContent.emailBody}
-                        onChange={(e) => setMessageContent({ ...messageContent, emailBody: e.target.value })}
-                        placeholder="Enter your email message"
-                        rows={4}
-                      />
-                    </>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                        <input
+                          type="email"
+                          className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-gray-50 text-gray-700"
+                          value={user?.email || 'no-reply@yourdomain.com'}
+                          disabled
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                        <input
+                          type="email"
+                          className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-gray-50 text-gray-700"
+                          value={messageModal.contact?.email || ''}
+                          disabled
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                        <input
+                          type="text"
+                          className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+                          value={messageContent.emailSubject}
+                          onChange={(e) => setMessageContent({ ...messageContent, emailSubject: e.target.value })}
+                          placeholder="Enter email subject"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                        <textarea
+                          className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+                          value={messageContent.emailBody}
+                          onChange={(e) => setMessageContent({ ...messageContent, emailBody: e.target.value })}
+                          placeholder="Enter your email message"
+                          rows={6}
+                        />
+                      </div>
+                    </div>
                   )}
-                  <div className="flex justify-end gap-2">
+
+                  <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 sm:pt-6 border-t border-gray-200">
                     <button
-                      className="px-4 py-2 bg-gray-200 rounded"
+                      type="button"
                       onClick={() => setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null })}
+                      className="px-4 py-2 bg-gray-100/80 text-gray-700 rounded-md hover:bg-gray-200/80 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm transition-colors w-full sm:w-auto"
                     >
                       Cancel
                     </button>
                     <button
-                      className="px-4 py-2 bg-blue-500 text-white rounded"
-                      onClick={() => {}}
+                      className="btn-primary px-4 py-2 text-white rounded-md bg-blue-500 hover:bg-blue-600 text-sm transition-colors disabled:opacity-50 w-full sm:w-auto"
+                      onClick={async () => {
+                        if (!messageModal.opportunityId || !messageModal.contact || !messageModal.actionType) return;
+
+                        let success = false;
+                        if (messageModal.actionType === 'sms') {
+                          const selectedNumber = user?.phoneNumbers?.[0]?.phoneNumber;
+                          if (selectedNumber) {
+                            success = await handleSMS(messageModal.contact, messageContent.sms, selectedNumber);
+                          }
+                        } else {
+                          success = await handleEmail(messageModal.contact, messageContent.emailSubject, messageContent.emailBody);
+                        }
+
+
+                        setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null });
+                        setMessageContent({ sms: '', emailSubject: '', emailBody: '' });
+                        await handleCommunication(messageModal.opportunityId, messageModal.actionType);
+
+                      }}
                       disabled={
-                        messageModal.actionType === 'sms' 
-                          ? !messageContent.sms 
-                          : !messageContent.emailSubject || !messageContent.emailBody
+                        messageModal.actionType === 'sms'
+                          ? !messageContent.sms || !((user?.phoneNumbers?.length ?? 0) > 0)
+                          : !messageContent.emailBody
                       }
                     >
-                      Send
+                      Send {messageModal.actionType === 'sms' ? 'SMS' : 'Email'}
                     </button>
                   </div>
                 </div>

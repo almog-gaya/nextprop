@@ -35,7 +35,6 @@ interface MessageThreadProps {
 }
 
 const getConversationAppropriateType = (type: string) => {
-    console.log(`TYPE Convo:`, type);
     switch (type) {
         case 'TYPE_EMAIL':
         case 'TYPE_CUSTOM_EMAIL':
