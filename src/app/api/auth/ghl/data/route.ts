@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserDataAPI } from '@/app/api/locations/route';
-import { isTokenExpired, refreshAccessToken, setAuthCookies } from '@/utils/authUtils';
+import { isTokenExpired, refreshAccessToken, refreshTokenIdBackend, setAuthCookies } from '@/utils/authUtils';
 import { getAuthHeaders } from '@/lib/enhancedApi';
 
 
@@ -102,7 +102,7 @@ const getUserData = async () => {
 
 /// returns list of numbers!
 const loadPhoneNumbers = async (locationId: string) => {
-  const responseTokenId = (await _refreshTokenId()).id_token;
+  const responseTokenId = (await refreshTokenIdBackend()).id_token;
   const loadPhoneURL = `https://backend.leadconnectorhq.com/phone-system/numbers/location/${locationId}`;
   const response = await fetch(
     loadPhoneURL,
@@ -133,7 +133,7 @@ const loadPhoneNumbers = async (locationId: string) => {
 // not in use
 const _makeRefreshOAuth = async (locationId: string) => {
   try {
-    const responseTokenId = await _refreshTokenId();
+    const responseTokenId = await refreshTokenIdBackend();
     await fetch(`https://services.leadconnectorhq.com/oauth/2/login/signin/refresh?version=2&location_id=${locationId}`, {
       "headers": {
         "accept": "application/json, text/plain, */*",
@@ -158,136 +158,4 @@ const _makeRefreshOAuth = async (locationId: string) => {
       "method": "POST"
     });
   } catch (e) { }
-};
-
-
-/**
- returns:
-    {
-        access_token,
-        expires_in,
-        token_type,
-        refresh_token,
-        id_token,
-        user_id,
-        project_id, 
-    }
- */
-/**
- * Refreshes the authentication token only if the current token is older than 40 minutes
- * @returns {Promise<Object>} The token response data containing:
- *   - access_token
- *   - expires_in
- *   - token_type
- *   - refresh_token
- *   - id_token
- *   - user_id
- *   - project_id
- */
-const _refreshTokenId = async () => {
-  try {
-    const cookieStore = await cookies();
-    const currentToken = cookieStore.get('token_id')?.value;
-    const refreshToken = cookieStore.get('token_id_refresh')?.value || 'AMf-vBwVv8zF2qFKjAxaeNX8hffkiGsLenYQQyzfaMCD5ZgldF0elrHBjwk_LPiJDSdEMRofwmR8l6FXjU2QpcZlPZqQXlzPpTbpFgqDcsKN_i17EwNGgqC3L0ZvVjHLjJ6CT-k5bdpqfrH3b0IilK1tXH0fjtHwpajPtc6bHPk5hXYBOWuX2fv3zUKRYV9pRjTeMEH8LPQuQ6776u8t1tJZ13Aj87xZfFF4kfUnmydUTWrt38Rmc5FFHzt79b_vNpX5fFOnRxGFIAWzbi-MPbksrFHANZx508VN0LYFrUYdKz_6siHJMIJgGBBgWDsBpTjnLZ7_9ueJ1KZDdR9rj7c05QKfvYESfp-5YUdXZy1nHLpWLKRbN-gjwXawLVE9nNKHxJsZKuOI2CH4C9a0F6ZnmFRrQ27jia55MDU4TuL7tW-VMn95gtIGfTIzqZVoxZGpFrEsGg9_JRcpcK-nyUUhCA1BPBuTQLJDoNXcJ0ouGzgU7Mh3x4uvkBiKsf81AZoKKl3XNA_i';
-    const tokenTimestamp = cookieStore.get('token_id_timestamp')?.value;
-
-    // Check if we have a valid refresh token
-    if (!refreshToken || typeof refreshToken !== 'string' || refreshToken.trim() === '') {
-      throw new Error('No valid refresh token found');
-    }
-
-    // Check if current token is still valid (less than 40 minutes old)
-    const now = Date.now();
-    const tokenAge = tokenTimestamp ? now - parseInt(tokenTimestamp, 10) : Infinity;
-    const TOKEN_MAX_AGE = 40 * 60 * 1000; // 40 minutes in milliseconds
-
-    // If token exists and is less than 40 minutes old, return cached token info
-    if (currentToken && tokenAge < TOKEN_MAX_AGE) {
-      console.log('[RefreshTokenId] Using cached token (age: ' + Math.round(tokenAge / 60000) + ' minutes)');
-
-      // Return the cached complete token data if available
-      const cachedTokenData = cookieStore.get('token_data')?.value;
-      if (cachedTokenData) {
-        try {
-          const parsedData = JSON.parse(cachedTokenData);
-          return { ...parsedData, cached: true };
-        } catch (e) {
-          console.log('[RefreshTokenId] Could not parse cached token data, will refresh');
-          // If parsing fails, continue to refresh the token
-        }
-      }
-    }
-
-    // Token doesn't exist, is expired, or cache parsing failed - refresh it
-    console.log('[RefreshTokenId] Token expired or missing, refreshing...');
-
-    // Create form data (application/x-www-form-urlencoded format)
-    const myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/x-www-form-urlencoded');
-
-    const urlencoded = new URLSearchParams();
-    urlencoded.append('grant_type', 'refresh_token');
-    urlencoded.append('refresh_token', refreshToken);
-
-    // Set up request with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    const response = await fetch(
-      'https://securetoken.googleapis.com/v1/token?key=AIzaSyB_w3vXmsI7WeQtrIOkjR6xTRVN5uOieiE',
-      {
-        method: 'POST',
-        headers: myHeaders,
-        body: urlencoded,
-        redirect: 'follow',
-      }
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Token refresh failed with status ${response.status}: ${errorText}`);
-    }
-
-    const responseBody = await response.json();
-
-    // Validate the response contains the expected fields
-    const requiredFields = ['access_token', 'expires_in', 'refresh_token', 'id_token', 'user_id', 'project_id'];
-    const missingFields = requiredFields.filter(field => !responseBody[field]);
-
-    if (missingFields.length > 0) {
-      console.warn(`[RefreshTokenId] Response missing fields: ${missingFields.join(', ')}`);
-    }
-
-    // Store all tokens and metadata
-    cookieStore.set('token_id', responseBody.id_token);
-    cookieStore.set('token_id_refresh', responseBody.refresh_token);
-    cookieStore.set('token_id_timestamp', now.toString());
-
-    // Store the complete token data as JSON for later use
-    cookieStore.set('token_data', JSON.stringify({
-      access_token: responseBody.access_token,
-      expires_in: responseBody.expires_in,
-      token_type: responseBody.token_type,
-      refresh_token: responseBody.refresh_token,
-      id_token: responseBody.id_token,
-      user_id: responseBody.user_id,
-      project_id: responseBody.project_id
-    }));
-
-    console.log('[RefreshTokenId] Token refreshed successfully');
-    return {
-      ...responseBody,
-      cached: false
-    };
-  } catch (error) {
-    console.error(`[RefreshTokenId] Error: ${error.message}`);
-
-    if (error.name === 'AbortError') {
-      throw new Error('Token refresh request timed out');
-    }
-
-    throw error;
-  }
 };

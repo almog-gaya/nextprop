@@ -72,21 +72,30 @@ function MessagingContent() {
       const data = await response.json();
 
       if (Array.isArray(data?.messages)) {
-        const formattedMessages = data.messages
-          .filter((msg: any) => msg && (msg.body || msg.text))
-          .map((msg: Message) => ({
-            id: msg.id || `msg-${Date.now()}-${Math.random()}`,
-            senderId: msg.direction === 'inbound' ? 'client' : 'user',
-            text: msg.body || msg.text || '[No message content]',
-            timestamp: msg.dateAdded
-              ? new Date(msg.dateAdded).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : 'Recent',
-            dateAdded: msg.dateAdded || new Date().toISOString(),
-            status: msg.status,
-            direction: msg.direction,
-            messageType: msg.messageType,
-          }))
-          .sort((a: any, b: any) => new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime());
+        const formattedMessages =
+
+
+          data.messages
+            .map((msg: Message) => {
+              console.log(`'Message': `, msg);
+              return (
+
+                {
+                  id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+                  senderId: msg.direction === 'inbound' ? 'client' : 'user',
+                  text: msg.body || msg.text || '[No message content]',
+                  timestamp: msg.dateAdded
+                    ? new Date(msg.dateAdded).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : 'Recent',
+                  dateAdded: msg.dateAdded || new Date().toISOString(),
+                  status: msg.status,
+                  direction: msg.direction,
+                  messageType: msg.messageType,
+                  activity: msg.activity,
+                  meta: msg.meta,
+                });
+            })
+            .sort((a: any, b: any) => new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime());
 
         setState((prev) => {
           const newMessages = append ? [...formattedMessages, ...prev.messages] : formattedMessages;
@@ -213,7 +222,7 @@ function MessagingContent() {
           return 'TYPE_PHONE'
         }
 
-      } 
+      }
       const currentContact = state.conversations.find((conv) => conv.id === state.activeConversationId);
       const messageType = getAppropriateType(getConvoType(currentContact!)!);
 

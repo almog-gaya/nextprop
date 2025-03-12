@@ -23,6 +23,32 @@ export interface Message {
   dateAdded: string;
   messageType: string;
   status?: string,
+  meta?: MetaDataMessage;
+  activity?: Activity,
+}
+
+interface MetaDataMessage {
+  email: MetaEmail
+}
+interface MetaEmail {
+  subject?: string,
+  firstMessageTimestamp: string,
+  lastMessageTimestamp: string,
+  direction: string,
+  messageIds: string[],
+}
+
+export interface Activity {
+  data: ActivityData,
+  title: string,
+  type: string, // opportunity_created || 
+}
+export interface ActivityData {
+  id: string,
+  name: string,
+  status: string,
+  pipeline: string,
+  stage: any
 }
 
 // Define a type for our extended conversation object

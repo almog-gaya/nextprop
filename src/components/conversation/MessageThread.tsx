@@ -1,14 +1,29 @@
-import { PhoneNumber, useAuth } from "@/contexts/AuthContext";
+import { PhoneNumber } from "@/contexts/AuthContext";
 import { ArrowLeft, RefreshCw, Phone, MoreVertical, AlertCircle, Send, CheckCircle, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import Avatar from "./Avatar";
-import { ConversationDisplay } from "@/types/messageThread";
+import { ConversationDisplay, Message } from "@/types/messageThread";
+import { ActivityMessageRenderer, EmailMessageRenderer, NormalMessageRenderer } from "./MessageRenderer";
+const getMessageRenderer = (message: Message) => {
+    const isMe = message.direction
+        ? message.direction === 'outbound'
+        : message.meta?.email?.direction === 'outbound';
 
+    if (message.activity?.title) {
+        console.log(`Rendering activity`);
+        return <ActivityMessageRenderer message={message} />;
+    } else if (message.meta?.email) {
+        return <EmailMessageRenderer message={message} isMe={isMe} />;
+    } else if (message.text) {
+        return <NormalMessageRenderer message={message} isMe={isMe} />;
+    }
+    return null;
+};
 interface MessageThreadProps {
     activeConversation: ConversationDisplay;
     onSendMessage: (message: string, fromNumber?: string) => void;
-    messages: any[];
+    messages: Message[];
     onLoadMore: (isRefresh?: boolean) => void;
     hasMore: boolean;
     loading: boolean;
@@ -53,9 +68,9 @@ export default function MessageThread({
     const [errorMessage, setErrorMessage] = useState('');
     const [sendingStatus, setSendingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         if (messagesEndRef.current && !loading) {
@@ -164,7 +179,7 @@ export default function MessageThread({
                 {[1, 2, 3, 4].map((i) => (
                     <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'} mb-4`}>
                         <div
-                            className={`max-w-[65%] rounded-lg px-4 py-2 ${i % 2 === 0 ? 'bg-blue-400 text-white' : 'bg-gray-200 text-gray-900'}`}
+                            className={`max-w-[65%] rounded-lg px-4 py-2 ${i % 2 === 0 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-900'}`}
                         >
                             <div className="h-4 w-24 bg-gray-300 rounded mb-2"></div>
                             <div className="h-3 w-12 bg-gray-300 rounded"></div>
@@ -237,32 +252,19 @@ export default function MessageThread({
                 {loading && messages.length === 0 ? (
                     renderSkeletonLoader()
                 ) : messages && messages.length > 0 ? (
-                    messages.map((message: any) => (
+                    messages.map((message: Message) => (
                         <div
                             key={message.id}
-                            className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'} mb-4`}
+                            className={`flex mb-4 ${message.activity
+                                    ? 'justify-center'
+                                    : (message.direction
+                                        ? message.direction === 'outbound'
+                                        : message.meta?.email?.direction === 'outbound')
+                                        ? 'justify-end'
+                                        : 'justify-start'
+                                }`}
                         >
-                            <div
-                                className={`max-w-[85%] rounded-lg px-4 py-2 ${message.direction === 'outbound'
-                                    ? message.status === 'failed' ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-purple-600 text-white'
-                                    : 'bg-gray-200 text-gray-900'
-                                    }`}
-                            >
-                                <p className="break-words whitespace-pre-wrap text-sm">{message.text}</p>
-                                <div
-                                    className={`text-xs mt-1 flex items-center ${message.direction === 'outbound'
-                                        ? message.status === 'failed' ? 'text-red-500' : 'text-blue-100'
-                                        : 'text-gray-500'
-                                        }`}
-                                >
-                                    {message.timestamp}
-                                    {message.status === 'failed' && (
-                                        <span className="ml-2 text-red-500 flex items-center">
-                                            <AlertCircle size={12} className="mr-1" /> Failed to send
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
+                            {getMessageRenderer(message)}
                         </div>
                     ))
                 ) : (
@@ -271,7 +273,7 @@ export default function MessageThread({
                             {loading ? (
                                 <p>Loading messages...</p>
                             ) : activeConversation ? (
-                                <p>No messages in this conversation yet. Send a message to start the conversation.</p>
+                                <p>No messages in this conversation yet. Send a message to start olas.</p>
                             ) : (
                                 <p>Select a conversation to view messages.</p>
                             )}
@@ -341,11 +343,10 @@ export default function MessageThread({
                         <button
                             onClick={handleSend}
                             disabled={!newMessage.trim() || sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)}
-                            className={`ml-2 p-3 rounded-full flex items-center justify-center ${
-                                !newMessage.trim() || sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    : 'bg-purple-600 text-white hover:bg-blue-700'
-                            }`}
+                            className={`ml-2 p-3 rounded-full flex items-center justify-center ${!newMessage.trim() || sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-purple-600 text-white hover:bg-blue-700'
+                                }`}
                         >
                             {sendingStatus === 'sending' ? (
                                 <div className="w-5 h-5 border-2 border-t-2 border-white border-t-transparent rounded-full animate-spin" />
