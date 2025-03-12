@@ -40,7 +40,7 @@ function MessagingContent() {
     messagesPage: null as string | null,
     hasMoreMessages: false,
     hasPendingNewMessage: false,
-    activeTab: 'unread' as 'unread' | 'recents' | 'all',
+    activeTab: 'all' as 'unread' | 'recents' | 'all',
     sortOrder: 'desc' as 'asc' | 'desc',
     showSortDropdown: false,
     pendingNewContactId: contactIdParam,
@@ -593,7 +593,7 @@ function MessagingContent() {
   const ConversationFilters = () => (
     <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
       <div className="flex space-x-1">
-        {['Unread', 'Recents', 'All'].map((tab) => {
+        {['All', 'Unread', 'Recents'].map((tab) => {
           const tabValue = tab.toLowerCase() as 'unread' | 'recents' | 'all';
           return (
             <button
@@ -658,7 +658,7 @@ function MessagingContent() {
       if (state.loading || state.loadingConversations) return;
 
       try {
-        const response = await fetch('/api/conversations');
+        const response = await fetch('/api/conversations?status=all&sort=desc&sortBy=last_message_date');
         const data = await response.json();
 
         if (Array.isArray(data.conversations)) {
