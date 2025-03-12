@@ -1,6 +1,7 @@
 import { OpportunityPopup } from "@/components/OpportunityPopup";
 import { Message } from "@/types/messageThread";
 import { useState } from "react";
+import { Link } from "lucide-react";
 
 export const ActivityMessageRenderer = ({ message }: { message: Message }) => {
     const [showPopup, setShowPopup] = useState(false);
@@ -18,45 +19,44 @@ export const ActivityMessageRenderer = ({ message }: { message: Message }) => {
     };
 
     return (
-        <>
-            <div className="max-w-[85%] rounded-lg px-4 py-2 bg-gray-200 text-gray-900 border border-gray-200 mx-auto">
-                <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-gray-600 text-sm">🔗</span>
+        <div className="w-full">
+            <div className="bg-[#eeeef0] rounded-xl border border-gray-200 py-3 px-4">
+                <div className="flex items-start gap-2">
+                    <div className="mt-0.5 flex-shrink-0">
+                        <Link size={18} className="text-gray-500" />
                     </div>
-                    <div className="flex-1">
-                        <p className="text-sm font-medium">
-                            {message.activity?.title || 'Activity Update'}
-                        </p>
-                        {message.activity?.data && (
-                            <p className="text-sm text-gray-800">
-                                {message.activity.data.name} created in stage{' '}
-                                {getStageName(message.activity.data.stage)}
-                            </p>
-                        )}
+                    <div className="flex-grow min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                            <div className="min-w-0 pr-2">
+                                <p className="text-sm font-semibold text-gray-900">
+                                    {message.activity?.title || 'Activity Update'}
+                                </p>
+                                {message.activity?.data && (
+                                    <p className="text-sm text-gray-700 mt-0.5 truncate">
+                                        {message.activity.data.name} - created in stage {message.activity?.title?.toLowerCase().includes('updated') ? 'Tested Sabrina SMS' : 'New Lead'}
+                                    </p>
+                                )}
+                            </div>
+                            <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded-md border border-gray-200 flex-shrink-0 whitespace-nowrap">
+                                Sabrina SMS
+                            </span>
+                        </div>
+                        
+                        <button
+                            onClick={() => setShowPopup(true)}
+                            className="text-sm text-[#9333ea] hover:text-purple-700 font-medium"
+                        >
+                            View opportunity
+                        </button>
+
+                        <div className="text-sm mt-1 text-gray-500">
+                            {new Date(message.dateAdded).toLocaleString('en-US', {
+                                hour: 'numeric',
+                                minute: 'numeric',
+                                hour12: true,
+                            })}
+                        </div>
                     </div>
-                    {message.activity?.data?.pipeline && (
-                        <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                            {message.activity.data.pipeline}
-                        </span>
-                    )}
-                </div>
-
-                {message.activity?.data && (
-                    <button
-                        onClick={() => setShowPopup(true)}
-                        className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                    >
-                        View opportunity
-                    </button>
-                )}
-
-                <div className="text-xs mt-2 flex items-center text-gray-500">
-                    {new Date(message.dateAdded).toLocaleString('en-US', {
-                        hour: 'numeric',
-                        minute: 'numeric',
-                        hour12: true,
-                    })}
                 </div>
             </div>
 
@@ -68,6 +68,6 @@ export const ActivityMessageRenderer = ({ message }: { message: Message }) => {
                     onClose={() => setShowPopup(false)}
                 />
             )}
-        </>
+        </div>
     );
 };

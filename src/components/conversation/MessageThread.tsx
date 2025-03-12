@@ -257,7 +257,7 @@ export default function MessageThread({
                         <div
                             key={message.id}
                             className={`flex mb-4 ${message.activity
-                                    ? 'justify-center'
+                                    ? 'w-full px-4'
                                     : (message.direction
                                         ? message.direction === 'outbound'
                                         : message.meta?.email?.direction === 'outbound')
@@ -288,10 +288,6 @@ export default function MessageThread({
                 <div className="space-y-2">
                     {conversationType === 'SMS' && (
                         <div className="flex justify-between text-sm text-gray-600">
-                            <div>
-                                <span className="font-medium">To:</span>{' '}
-                                {activeConversation.phone || 'Unknown Contact'}
-                            </div>
                             <div className="relative">
                                 <span className="font-medium">From:</span>{' '}
                                 {!phoneNumbers || phoneNumbers.length === 0 ? (
@@ -308,7 +304,7 @@ export default function MessageThread({
                                             <ChevronDown size={16} />
                                         </button>
                                         {isDropdownOpen && (
-                                            <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                                            <div className="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                                                 {phoneNumbers.map((number: PhoneNumber) => (
                                                     <button
                                                         key={number.phoneNumber}
@@ -328,6 +324,10 @@ export default function MessageThread({
                                         )}
                                     </div>
                                 )}
+                            </div>
+                            <div>
+                                <span className="font-medium">To:</span>{' '}
+                                {activeConversation.phone || 'Unknown Contact'}
                             </div>
                         </div>
                     )}
