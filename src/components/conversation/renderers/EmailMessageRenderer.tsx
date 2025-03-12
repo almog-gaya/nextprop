@@ -61,33 +61,36 @@ export const EmailMessageRenderer = ({ message, isMe }: EmailMessageRendererProp
         setIsLoading(true);
         setError(null);
 
-        try {
-            const response = await fetch(`/api/conversations/messages/email?id=${message.meta?.email?.messageIds[0]}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch email content");
-            }
-
-            const data = await response.json();
-            setFullMessage({
-                from: data.from,
-                to: data.to,
-                cc: data.cc || [],
-                bcc: data.bcc || [],
-                body: data.body,
-            });
-            setIsExpanded(true);
-        } catch (err) {
-            setError("An error occurred while fetching the email content.");
-            console.error(err);
-        } finally {
-            setIsLoading(false);
+        if ((message.meta?.email?.messageIds.length ?? 0) <= 0) {
+            return ;
         }
+            try {
+                const response = await fetch(`/api/conversations/messages/email?id=${message.meta?.email?.messageIds[0]}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch email content");
+                }
+
+                const data = await response.json();
+                setFullMessage({
+                    from: data.from,
+                    to: data.to,
+                    cc: data.cc || [],
+                    bcc: data.bcc || [],
+                    body: data.body,
+                });
+                setIsExpanded(true);
+            } catch (err) {
+                setError("An error occurred while fetching the email content.");
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
     };
 
     // Toggle expand/collapse on click
