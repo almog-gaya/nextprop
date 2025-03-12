@@ -10,6 +10,7 @@ import ConversationList from '@/components/conversation/ConversationList';
 import axios from 'axios';
 import { ChevronDown } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ENABLE_VERBOSE_LOGGING = true;
 
@@ -23,18 +24,18 @@ const log = (message: string, data?: any) => {
   }
 };
 
-// Create a client component that uses useSearchParams
 function MessagingContent() {
   const searchParams = useSearchParams();
   const contactIdParam = searchParams.get('contactId');
-  
+  const { user } = useAuth();
+
   const [state, setState] = useState({
     activeConversationId: null as string | null,
     messages: [] as any[],
     conversations: [] as ConversationDisplay[],
     contacts: [] as any[],
-    loading: true, // Initial load
-    loadingConversations: false, // For tab changes and API hits
+    loading: true,
+    loadingConversations: false,
     loadingMessages: false,
     messagesPage: null as string | null,
     hasMoreMessages: false,
@@ -42,11 +43,21 @@ function MessagingContent() {
     activeTab: 'unread' as 'unread' | 'recents' | 'all',
     sortOrder: 'desc' as 'asc' | 'desc',
     showSortDropdown: false,
-    pendingNewContactId: contactIdParam, // Store contactId for potential new conversation
+    pendingNewContactId: contactIdParam,
     creatingConversation: false,
+    selectedNumber: null as string | null,
   });
 
-  // Define fetchMessages early since other functions reference it
+  useEffect(() => {
+    if (user?.phoneNumbers?.length) {
+      const defaultNumber = user.phoneNumbers.find(num => num.isDefaultNumber);
+      setState(prev => ({
+        ...prev,
+        selectedNumber: defaultNumber?.phoneNumber || user?.phoneNumbers[0].phoneNumber
+      }));
+    }
+  }, [user]);
+
   const fetchMessages = useCallback(async (conversationId: string, pageToken?: string, append = false) => {
     if (!conversationId) return;
 
@@ -84,10 +95,6 @@ function MessagingContent() {
             conv.id === conversationId && conv.lastMessage !== latestMessage.text
           );
 
-          log('Fetched messages:', formattedMessages);
-          log('Latest message:', latestMessage);
-          log('Should update conversation:', shouldUpdateConversation);
-
           return {
             ...prev,
             messages: newMessages,
@@ -104,7 +111,6 @@ function MessagingContent() {
           };
         });
       } else {
-        log('Invalid messages format or no messages:', data);
         setState((prev) => ({
           ...prev,
           messages: append ? prev.messages : [],
@@ -136,9 +142,6 @@ function MessagingContent() {
     }
   }, [state.activeConversationId, state.loadingMessages, state.messagesPage, fetchMessages]);
 
-  const getActiveConversationContactId = useCallback(() => {
-    return state.conversations.find((conv) => conv.id === state.activeConversationId)?.contactId || null;
-  }, [state.conversations, state.activeConversationId]);
 
   const getActiveConversationType = useCallback(() => {
     const conversation = state.conversations.find((conv) => conv.id === state.activeConversationId);
@@ -148,9 +151,13 @@ function MessagingContent() {
     };
   }, [state.conversations, state.activeConversationId]);
 
-  const handleSendMessage = useCallback(async (text: string, callback?: (success: boolean, error: string) => void) => {
+  const getActiveConversation = useCallback(() => {
+    const conversation = state.conversations.find((conv) => conv.id === state.activeConversationId);
+    return conversation;
+  }, [state.conversations, state.activeConversationId]);
+
+  const handleSendMessage = useCallback(async (text: string, fromNumber?: string) => {
     if (!state.activeConversationId || !text) {
-      callback?.(false, 'Invalid conversation or message');
       return;
     }
 
@@ -182,24 +189,34 @@ function MessagingContent() {
     });
 
     const getAppropriateType = (type: string) => {
-      console.log(`[getAppropriateType] type: ${type}`)
       switch (type) {
         case 'TYPE_PHONE':
           return 'SMS';
         case 'TYPE_EMAIL':
+        case 'TYPE_CUSTOM_EMAIL':
           return 'Email';
         default:
           return 'SMS';
       }
     };
-    try {
-       /// get Type of contact SMS, EMAIL
-      const { lastMessageType, type } = getActiveConversationType();
-      const messageType = getAppropriateType((lastMessageType ?? type)!);
 
-      /// get active conversation
+    try {
+      function getConvoType(convo: ConversationDisplay) {
+        /// if phone and email both are available go for lastMessageType ?? type
+        /// if phone is available only return Sms
+        /// if email is avialable only return Email
+        if (convo.email && convo.phone) {
+          return convo.lastMessageType ?? convo.type;
+        } else if (convo.email) {
+          return 'TYPE_EMAIL'
+        } else {
+          return 'TYPE_PHONE'
+        }
+
+      } 
       const currentContact = state.conversations.find((conv) => conv.id === state.activeConversationId);
-      console.log(`[handleSendMessage] currentContact: ${JSON.stringify(currentContact)}`)
+      const messageType = getAppropriateType(getConvoType(currentContact!)!);
+
       const payload = {
         conversationId: state.activeConversationId,
         type: messageType,
@@ -207,21 +224,21 @@ function MessagingContent() {
         text,
         message: text,
         contactId: currentContact?.contactId || '',
-        ...(messageType === 'SMS' && {  
+        ...(messageType === 'SMS' && {
           toNumber: currentContact!.phone,
+          fromNumber: fromNumber,
         }),
         ...(messageType === 'Email' && {
           html: text,
           emailTo: currentContact!.email,
           subject: "Email from " + currentContact?.email,
           emailFrom: 'no-reply@gmail.com',
-        }), 
+        }),
       };
 
-      console.log(`SNEDING MESSAGE TO ${messageType}`, payload)
       const response = await fetch(
-        messageType == 'Email' ? `/api/conversations/messages` : 
-        `/api/conversations/${state.activeConversationId}/messages`, {
+        messageType === 'Email' ? `/api/conversations/messages` :
+          `/api/conversations/${state.activeConversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -231,23 +248,35 @@ function MessagingContent() {
       if (response.ok) {
         setState((prev) => ({
           ...prev,
-          messages: prev.messages.map((msg) => (msg.id === tempId ? { ...msg, id: data.id || msg.id } : msg)),
+          messages: prev.messages.map((msg) =>
+            msg.id === tempId
+              ? { ...msg, id: data.id || msg.id, status: 'sent' }
+              : msg
+          ),
         }));
-        // fetchConversations(state.activeTab, state.sortOrder); // Refresh conversations
-        callback?.(true, '');
       } else {
-        log('Failed to send message:', data.error);
         setState((prev) => ({
           ...prev,
-          messages: prev.messages.map((msg) => (msg.id === tempId ? { ...msg, sendFailed: true } : msg)),
+          messages: prev.messages.map((msg) =>
+            msg.id === tempId
+              ? { ...msg, status: 'failed' }
+              : msg
+          ),
         }));
-        callback?.(false, data.error);
+        toast.error('Failed to send message');
       }
     } catch (error) {
-      log('Error sending message:', error);
-      callback?.(false, String(error) || 'Unknown error');
+      setState((prev) => ({
+        ...prev,
+        messages: prev.messages.map((msg) =>
+          msg.id === tempId
+            ? { ...msg, status: 'failed' }
+            : msg
+        ),
+      }));
+      toast.error('Error sending message');
     }
-  }, [state.activeConversationId, getActiveConversationContactId, state.activeTab, state.sortOrder, getActiveConversationType]);
+  }, [state.activeConversationId, getActiveConversationType]);
 
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     log('Marking conversation as read:', conversationId);
@@ -291,35 +320,40 @@ function MessagingContent() {
       };
     });
   }, [state.activeConversationId, markConversationAsRead]);
-  
-  // Define the active conversation as a memo
+
+  const handleNumberSelect = useCallback((number: string) => {
+    setState(prev => ({
+      ...prev,
+      selectedNumber: number
+    }));
+  }, []);
+
   const activeConversation = useMemo(() => {
     return state.conversations.find((conv) => conv.id === state.activeConversationId) || null;
   }, [state.activeConversationId, state.conversations]);
 
-  // Component to show a message when no conversation exists for this contact
   const ContactNotFoundMessage = () => {
     if (!state.pendingNewContactId) return null;
 
     return (
       <div className="flex flex-col h-full items-center justify-center text-gray-500 p-8">
         <div className="text-center">
-          <svg 
-            className="w-16 h-16 text-gray-400 mx-auto mb-4" 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            className="w-16 h-16 text-gray-400 mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={1.5} 
-              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
             />
           </svg>
           <h3 className="text-lg font-medium mb-2">No Conversation Found</h3>
           <p className="mb-4">
-            There's no existing conversation with this contact. 
+            There's no existing conversation with this contact.
             Conversations cannot be created at this time.
           </p>
           <p className="text-sm text-gray-400">
@@ -330,14 +364,12 @@ function MessagingContent() {
     );
   };
 
-  // Fetch initial data when the component loads
   useEffect(() => {
     log('Message Embed rendered');
-    
+
     const fetchInitialData = async () => {
       setState((prev) => ({ ...prev, loading: true }));
       try {
-        log('Fetching initial data...');
         const [convResponse, contactsResponse] = await Promise.all([
           fetch(`/api/conversations?status=all&sort=desc&sortBy=last_message_date`),
           axios.get('/api/contacts'),
@@ -347,8 +379,6 @@ function MessagingContent() {
         const contactsData = contactsResponse.data;
 
         if (Array.isArray(convData?.conversations)) {
-          log(`Found ${convData.conversations.length} conversations`);
-          
           const formattedConversations = convData.conversations.map((conv: Conversation) => {
             const name = conv.fullName || conv.contactName || conv.email || conv.phone || 'Unknown Contact';
             const initials = name
@@ -357,6 +387,8 @@ function MessagingContent() {
               .join('')
               .toUpperCase()
               .substring(0, 2);
+
+
             return {
               id: conv.id,
               name,
@@ -371,41 +403,33 @@ function MessagingContent() {
               type: conv.type,
               lastMessageType: conv.lastMessageType,
             };
-          }).sort((a: ConversationDisplay, b: ConversationDisplay) => (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0));
+          }).sort((a: ConversationDisplay, b: ConversationDisplay) =>
+            (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0)
+          );
 
           const contacts = Array.isArray(contactsData?.contacts) ? contactsData.contacts : [];
-          log(`Found ${contacts.length} contacts`);
 
-          // If contactId is provided, try to find a matching conversation
           let matchingConversation = null;
           if (contactIdParam) {
-            log(`Looking for conversation with contact ID: ${contactIdParam}`);
             matchingConversation = formattedConversations.find(
               (conv: ConversationDisplay) => conv.contactId === contactIdParam
             );
-            
-            if (matchingConversation) {
-              log(`Found existing conversation for contact ID: ${contactIdParam}`);
-            } else {
-              log(`No existing conversation found for contact ID: ${contactIdParam}`);
-            }
           }
 
           setState((prev) => ({
             ...prev,
             conversations: formattedConversations,
             contacts,
-            activeConversationId: matchingConversation ? matchingConversation.id : 
+            activeConversationId: matchingConversation ? matchingConversation.id :
               (formattedConversations.length > 0 ? formattedConversations[0].id : null),
             pendingNewContactId: matchingConversation ? null : contactIdParam,
             loading: false,
             creatingConversation: false
           }));
         } else {
-          log('No conversations found or invalid format');
-          setState((prev) => ({ 
-            ...prev, 
-            conversations: [], 
+          setState((prev) => ({
+            ...prev,
+            conversations: [],
             contacts: Array.isArray(contactsData?.contacts) ? contactsData.contacts : [],
             pendingNewContactId: contactIdParam,
             loading: false,
@@ -413,10 +437,9 @@ function MessagingContent() {
           }));
         }
       } catch (error) {
-        log('Failed to fetch initial data:', error);
-        setState((prev) => ({ 
-          ...prev, 
-          conversations: [], 
+        setState((prev) => ({
+          ...prev,
+          conversations: [],
           contacts: [],
           loading: false,
           creatingConversation: false
@@ -427,22 +450,17 @@ function MessagingContent() {
     fetchInitialData();
   }, [contactIdParam]);
 
-  // Watch for activeConversationId changes to fetch messages
   useEffect(() => {
     if (state.activeConversationId) {
-      log(`Active conversation changed, fetching messages for: ${state.activeConversationId}`);
       fetchMessages(state.activeConversationId);
     }
   }, [state.activeConversationId, fetchMessages]);
 
-  // Render message thread with better handling of states
   const renderMessageThread = useMemo(() => {
-    // Show message when we have a pendingNewContactId but no conversation
     if (state.pendingNewContactId) {
       return <ContactNotFoundMessage />;
     }
 
-    // Show 'no conversation selected' state
     if (!state.activeConversationId) {
       return (
         <div className="flex flex-col h-full items-center justify-center text-gray-500 p-8">
@@ -454,7 +472,6 @@ function MessagingContent() {
       );
     }
 
-    // This should never happen, but just in case
     if (!activeConversation) {
       return (
         <div className="flex flex-col h-full items-center justify-center text-gray-500 p-8">
@@ -466,7 +483,6 @@ function MessagingContent() {
       );
     }
 
-    // Loading messages state
     if (state.loadingMessages && state.messages.length === 0) {
       return (
         <div className="flex flex-col h-full items-center justify-center text-gray-500 p-8">
@@ -479,7 +495,6 @@ function MessagingContent() {
       );
     }
 
-    // Normal message thread display
     return (
       <MessageThread
         activeConversation={activeConversation}
@@ -488,26 +503,31 @@ function MessagingContent() {
         onLoadMore={loadMoreMessages}
         hasMore={state.hasMoreMessages}
         loading={state.loadingMessages}
+        selectedNumber={state.selectedNumber}
+        phoneNumbers={user?.phoneNumbers || []}
+        onNumberSelect={handleNumberSelect}
       />
     );
   }, [
-    state.activeConversationId, 
-    activeConversation, 
-    handleSendMessage, 
-    state.messages, 
-    loadMoreMessages, 
-    state.hasMoreMessages, 
+    state.activeConversationId,
+    activeConversation,
+    handleSendMessage,
+    state.messages,
+    loadMoreMessages,
+    state.hasMoreMessages,
     state.loadingMessages,
-    state.pendingNewContactId
+    state.pendingNewContactId,
+    state.selectedNumber,
+    user?.phoneNumbers,
+    handleNumberSelect
   ]);
 
   const fetchConversations = useCallback(async (tab: 'unread' | 'recents' | 'all', sortOrder: 'asc' | 'desc') => {
     setState((prev) => ({ ...prev, loadingConversations: true }));
     try {
-      log('Fetching conversations...');
       const tabMapping = {
         unread: 'unread',
-        recents: 'recent', // Adjust this if your API expects 'recents' instead of 'recent'
+        recents: 'recent',
         all: 'all',
       };
 
@@ -554,11 +574,9 @@ function MessagingContent() {
           };
         });
       } else {
-        log('Invalid conversations format:', data);
         setState((prev) => ({ ...prev, conversations: [], loadingConversations: false }));
       }
     } catch (error) {
-      log('Failed to fetch conversations:', error);
       setState((prev) => ({ ...prev, loadingConversations: false }));
     }
   }, []);
@@ -573,7 +591,7 @@ function MessagingContent() {
               key={tab}
               onClick={() => {
                 setState((prev) => ({ ...prev, activeTab: tabValue }));
-                fetchConversations(tabValue, state.sortOrder); // Pass tabValue directly
+                fetchConversations(tabValue, state.sortOrder);
               }}
               className={`px-3 py-2 text-sm font-medium rounded-md ${state.activeTab === tabValue
                 ? 'bg-gray-100 text-gray-900'
@@ -612,7 +630,7 @@ function MessagingContent() {
                       sortOrder: newSortOrder,
                       showSortDropdown: false,
                     }));
-                    fetchConversations(state.activeTab, newSortOrder); // Pass current activeTab and new sortOrder
+                    fetchConversations(state.activeTab, newSortOrder);
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
@@ -715,7 +733,6 @@ function MessagingContent() {
     }
   }, [state.activeConversationId, state.hasPendingNewMessage]);
 
-  // Custom component for the loading state
   const LoadingState = () => (
     <div className="h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden flex flex-col items-center justify-center">
       <div className="text-center p-8">
@@ -724,8 +741,8 @@ function MessagingContent() {
           {state.creatingConversation ? 'Creating conversation...' : 'Loading messages...'}
         </h3>
         <p className="text-gray-500 max-w-md">
-          {state.creatingConversation 
-            ? 'We\'re setting up your conversation. This will just take a moment.' 
+          {state.creatingConversation
+            ? 'We\'re setting up your conversation. This will just take a moment.'
             : 'Loading your conversation history. Please wait.'}
         </p>
       </div>
@@ -772,7 +789,6 @@ function MessagingContent() {
   );
 }
 
-// Export a wrapper component that provides the Suspense boundary
 export default function MessagingEmbedPage() {
   return (
     <Suspense fallback={<MessagingSkeleton />}>

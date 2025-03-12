@@ -128,7 +128,7 @@ const SendMessage = async (
 
   const response = await fetch(url, options);
   const data = await response.json();
-  if(response.ok){
+  if (response.ok) {
     // const _options = {
     //   method: 'POST',
     //   headers: {

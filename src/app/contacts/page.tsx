@@ -1177,7 +1177,7 @@ export default function ContactsPage() {
                               contact.dnd ? 'Do Not Disturb' : 'Available'
                             ) : (
                               typeof contact[column.key as keyof Contact] === 'object' 
-                                ? 'Complex data' 
+                                ? '-' 
                                 : (contact[column.key as keyof Contact]?.toString() || 'N/A')
                             )}
                           </td>

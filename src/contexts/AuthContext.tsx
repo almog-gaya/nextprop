@@ -14,12 +14,40 @@ interface User {
   firstName?: string;
   lastName?: string;
   id: string;
-  lcPhone?: LCPhone;
+  phoneNumbers?: PhoneNumber[];
+}
+interface PhoneNumberCapabilities {
+  fax: boolean;
+  mms: boolean;
+  sms: boolean;
+  voice: boolean;
 }
 
-interface LCPhone {
-  locationId: string,
+interface InboundCallService {
+  type: string;
+  value: string;
 }
+
+export interface PhoneNumber {
+  phoneNumber: string;
+  sid: string;
+  countryCode: string;
+  capabilities: PhoneNumberCapabilities;
+  type: string;
+  isDefaultNumber: boolean;
+  linkedRingAllUsers: string[];
+  forwardingNumber: string;
+  isGroupConversationEnabled: boolean;
+  addressSid: string | null;
+  bundleSid: string | null;
+  dateAdded: string;
+  dateUpdated: string;
+  origin: string;
+  friendlyName?: string;
+  inboundCallService?: InboundCallService;
+}
+ 
+ 
 
 interface AuthContextType {
   user: User | null;
@@ -61,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           phone: data.user.phone,
           companyId: data.user.companyId,
           dateAdded: data.user.dateAdded,
-          lcPhone: data.user?.lcPhone
+          phoneNumbers: data.user.numbers,
         };
 
         console.log('Setting User as:', userData);
