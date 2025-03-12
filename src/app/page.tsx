@@ -21,6 +21,7 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { format, subDays, subMonths, subWeeks, subYears } from 'date-fns';
 
 // Register Chart.js components
 ChartJS.register(
@@ -58,9 +59,37 @@ interface Message {
   type: string;
 }
 
+// Custom Report Response Interface
+interface StatusCount {
+  label: string;
+  value: number;
+}
+
+interface CustomReportData {
+  total: number;
+  totalValue: number;
+  counts: StatusCount[];
+}
+
+interface CustomReportResponse {
+  data: CustomReportData;
+  comparisonData: CustomReportData;
+  stats: {
+    total: number;
+    comparisonTotal: number;
+    totalValue: number;
+    comparisonTotalValue: number;
+    percentageChange: number;
+    percentageChangeValue: number;
+    percentageChangeWonValue: number;
+  };
+  traceId: string;
+}
+
 export default function DashboardPage() {
   const { user, loading: userLoading } = useAuth();
-  const [isLoadingCharts, setIsLoadingCharts] = useState(false);
+  const [isLoadingCharts, setIsLoadingCharts] = useState(true);
+  const [reportData, setReportData] = useState<CustomReportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'month' | 'year'>('week');
   
@@ -80,7 +109,7 @@ export default function DashboardPage() {
       "Buyer Pipeline": 12,
       "Seller Pipeline": 8,
       "Rental Pipeline": 5
-    },
+    } as Record<string, number>,
     recentActivity: [],
     conversionRate: 300.0,
     responseRate: 39.8,
@@ -92,87 +121,84 @@ export default function DashboardPage() {
     }
   });
 
-  // Chart data is pre-defined to show structure immediately
-  const pipelineDistributionData = {
-    labels: Object.keys(dashboardData.opportunitiesByPipeline),
-    datasets: [{
-      data: Object.values(dashboardData.opportunitiesByPipeline),
-      backgroundColor: [
-        'rgba(99, 102, 241, 0.8)', // Indigo
-        'rgba(16, 185, 129, 0.8)', // Emerald
-        'rgba(249, 115, 22, 0.8)', // Orange
-        'rgba(239, 68, 68, 0.8)',  // Red
-        'rgba(139, 92, 246, 0.8)', // Purple
-      ],
-      borderColor: [
-        'rgba(99, 102, 241, 1)',
-        'rgba(16, 185, 129, 1)',
-        'rgba(249, 115, 22, 1)',
-        'rgba(239, 68, 68, 1)',
-        'rgba(139, 92, 246, 1)',
-      ],
-      borderWidth: 1,
-    }]
-  };
+  // Fetch custom report data
+  useEffect(() => {
+    const fetchReportData = async () => {
+      setIsLoadingCharts(true);
+      setError(null); // Clear previous errors
+      try {
+        // Calculate date ranges based on selected time filter
+        const endDate = format(new Date(), 'yyyy-MM-dd');
+        let startDate;
+        let comparisonStartDate;
+        let comparisonEndDate;
+        
+        if (timeFilter === 'today') {
+          startDate = endDate;
+          comparisonEndDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+          comparisonStartDate = comparisonEndDate;
+        } else if (timeFilter === 'week') {
+          startDate = format(subDays(new Date(), 6), 'yyyy-MM-dd');
+          comparisonEndDate = format(subDays(new Date(), 7), 'yyyy-MM-dd');
+          comparisonStartDate = format(subDays(new Date(), 13), 'yyyy-MM-dd');
+        } else if (timeFilter === 'month') {
+          startDate = format(subDays(new Date(), 29), 'yyyy-MM-dd');
+          comparisonEndDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+          comparisonStartDate = format(subDays(new Date(), 59), 'yyyy-MM-dd');
+        } else if (timeFilter === 'year') {
+          startDate = format(subDays(new Date(), 364), 'yyyy-MM-dd');
+          comparisonEndDate = format(subDays(new Date(), 365), 'yyyy-MM-dd');
+          comparisonStartDate = format(subDays(new Date(), 729), 'yyyy-MM-dd');
+        }
+        
+        const requestBody = {
+          startDate,
+          endDate,
+          chartType: 'opportunities-status-summary',
+          comparisonStartDate,
+          comparisonEndDate,
+          dateProperty: 'last_status_change_date'
+        };
 
-  const messageTypeData = {
-    labels: ['SMS', 'Email', 'Call', 'Voicemail'],
-    datasets: [{
-      data: [
-        dashboardData.messageTypes.sms,
-        dashboardData.messageTypes.email,
-        dashboardData.messageTypes.call,
-        dashboardData.messageTypes.voicemail
-      ],
-      backgroundColor: [
-        'rgba(99, 102, 241, 0.8)',  // Indigo
-        'rgba(16, 185, 129, 0.8)',  // Emerald
-        'rgba(249, 115, 22, 0.8)',  // Orange
-        'rgba(139, 92, 246, 0.8)',  // Purple
-      ],
-      borderColor: [
-        'rgba(99, 102, 241, 1)',
-        'rgba(16, 185, 129, 1)',
-        'rgba(249, 115, 22, 1)',
-        'rgba(139, 92, 246, 1)',
-      ],
-      borderWidth: 1,
-    }]
-  };
-
-  // Sample data for trends - pre-defined to show immediately
-  const messageTrendsData = {
-    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
-    datasets: [
-      {
-        label: 'New Leads',
-        data: [25, 30, 28, 42, 38, 45],
-        borderColor: 'rgba(99, 102, 241, 1)',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2
-      },
-      {
-        label: 'Responses',
-        data: [10, 15, 12, 18, 16, 22],
-        borderColor: 'rgba(16, 185, 129, 1)',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2
-      },
-      {
-        label: 'Meetings',
-        data: [5, 7, 6, 12, 10, 15],
-        borderColor: 'rgba(249, 115, 22, 1)',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        fill: true,
-        tension: 0.4,
-        borderWidth: 2
+        console.log('Sending API request with:', requestBody);
+        
+        const response = await fetch(`/api/reports/custom`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          cache: 'no-store' // Ensure we don't use cached responses
+        });
+        
+        console.log('API response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch report data: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('API response data:', data);
+        
+        if (!data || !data.data) {
+          console.error('API returned invalid data structure:', data);
+          setError('The API returned an invalid response structure');
+          return;
+        }
+        
+        setReportData(data);
+      } catch (err) {
+        console.error('Error fetching report data:', err);
+        setError(`Failed to load report data: ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        setIsLoadingCharts(false);
       }
-    ]
-  };
+    };
+    
+    if (user) {
+      fetchReportData();
+    }
+  }, [user, timeFilter]);
 
   // Only fetch dynamic data in the background
   useEffect(() => {
@@ -318,6 +344,111 @@ export default function DashboardPage() {
     fetchDynamicData();
   }, [user, timeFilter]);
 
+  // Prepare chart data based on the API response
+  const prepareStatusDistributionData = () => {
+    if (!reportData || !reportData.data || !reportData.data.counts) return null;
+    
+    // Create data for current period
+    const currentPeriodData = {
+      labels: reportData.data.counts.map(item => item.label.charAt(0).toUpperCase() + item.label.slice(1)),
+      datasets: [{
+        data: reportData.data.counts.map(item => item.value),
+        backgroundColor: [
+          'rgba(99, 102, 241, 0.8)', // Indigo - Open
+          'rgba(249, 115, 22, 0.8)', // Orange - Abandoned 
+          'rgba(239, 68, 68, 0.8)',  // Red - Lost
+          'rgba(16, 185, 129, 0.8)', // Emerald - Won
+        ],
+        borderColor: [
+          'rgba(99, 102, 241, 1)',
+          'rgba(249, 115, 22, 1)',
+          'rgba(239, 68, 68, 1)',
+          'rgba(16, 185, 129, 1)',
+        ],
+        borderWidth: 1,
+      }]
+    };
+    
+    return currentPeriodData;
+  };
+  
+  const prepareComparisonData = () => {
+    if (!reportData || !reportData.data || !reportData.comparisonData) return null;
+    
+    // Format data for comparison chart (current vs previous period)
+    const comparisonChartData = {
+      labels: ['Current Period', 'Previous Period'],
+      datasets: [
+        {
+          label: 'Total Opportunities',
+          data: [reportData.data.total, reportData.comparisonData.total],
+          backgroundColor: ['rgba(99, 102, 241, 0.8)', 'rgba(156, 163, 175, 0.8)'],
+          borderColor: ['rgba(99, 102, 241, 1)', 'rgba(156, 163, 175, 1)'],
+          borderWidth: 1
+        },
+        {
+          label: 'Total Value',
+          data: [reportData.data.totalValue || 0, reportData.comparisonData.totalValue || 0],
+          backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(209, 213, 219, 0.8)'],
+          borderColor: ['rgba(16, 185, 129, 1)', 'rgba(209, 213, 219, 1)'],
+          borderWidth: 1
+        }
+      ]
+    };
+    
+    return comparisonChartData;
+  };
+  
+  const prepareStatusComparison = () => {
+    if (!reportData || !reportData.data || !reportData.data.counts || !reportData.comparisonData || !reportData.comparisonData.counts) return null;
+    
+    // Get all unique statuses from both periods
+    const allStatuses = new Set([
+      ...reportData.data.counts.map(item => item.label),
+      ...reportData.comparisonData.counts.map(item => item.label)
+    ]);
+    
+    // Format labels to be capitalized
+    const labels = Array.from(allStatuses).map(
+      status => status.charAt(0).toUpperCase() + status.slice(1)
+    );
+    
+    // Prepare datasets
+    const currentValues = labels.map(label => {
+      const statusItem = reportData.data.counts.find(
+        item => item.label.toLowerCase() === label.toLowerCase()
+      );
+      return statusItem ? statusItem.value : 0;
+    });
+    
+    const comparisonValues = labels.map(label => {
+      const statusItem = reportData.comparisonData.counts.find(
+        item => item.label.toLowerCase() === label.toLowerCase()
+      );
+      return statusItem ? statusItem.value : 0;
+    });
+    
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Current Period',
+          data: currentValues,
+          backgroundColor: 'rgba(99, 102, 241, 0.8)',
+          borderColor: 'rgba(99, 102, 241, 1)',
+          borderWidth: 1
+        },
+        {
+          label: 'Previous Period',
+          data: comparisonValues,
+          backgroundColor: 'rgba(156, 163, 175, 0.8)',
+          borderColor: 'rgba(156, 163, 175, 1)',
+          borderWidth: 1
+        }
+      ]
+    };
+  };
+
   // Static UI render handlers
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -372,6 +503,25 @@ export default function DashboardPage() {
           </div>
         </div>
         
+        {/* Display any API errors */}
+        {error && (
+          <div className="rounded-md bg-red-50 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">API Error</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{error}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Summary Statistics Cards - always shown */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
@@ -379,28 +529,28 @@ export default function DashboardPage() {
               <div className="bg-white p-4 border-l-4 border-indigo-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Total Leads</p>
-                    <p className="text-2xl font-bold text-gray-900">{dashboardData.totalLeads}</p>
+                    <p className="text-sm font-medium text-gray-500">Total Opportunities</p>
+                    <p className="text-2xl font-bold text-gray-900">{reportData?.data?.total || '—'}</p>
                   </div>
                   <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center">
                     <UsersIcon className="h-6 w-6 text-indigo-600" />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center">
-                  <div className={`flex items-center ${dashboardData.growthRates.leads >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {dashboardData.growthRates.leads >= 0 ? (
+                  <div className={`flex items-center ${(reportData?.stats?.percentageChange ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {(reportData?.stats?.percentageChange ?? 0) >= 0 ? (
                       <ArrowUpIcon className="h-4 w-4 mr-1" />
                     ) : (
                       <ArrowDownIcon className="h-4 w-4 mr-1" />
                     )}
-                    <span className="text-xs font-semibold">{Math.abs(dashboardData.growthRates.leads)}%</span>
+                    <span className="text-xs font-semibold">{reportData?.stats?.percentageChange !== undefined ? Math.abs(reportData.stats.percentageChange).toFixed(1) : '0'}%</span>
                   </div>
                   <span className="text-xs text-gray-500 ml-1">vs previous {timeFilter}</span>
                 </div>
               </div>
               <div className="px-4 py-3 bg-white">
-                <Link href="/leads" className="text-xs text-indigo-600 hover:underline font-medium flex items-center justify-end">
-                  View all leads
+                <Link href="/opportunities" className="text-xs text-indigo-600 hover:underline font-medium flex items-center justify-end">
+                  View all opportunities
                   <svg className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
@@ -414,28 +564,25 @@ export default function DashboardPage() {
               <div className="bg-white p-4 border-l-4 border-emerald-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Response Rate</p>
-                    <p className="text-2xl font-bold text-gray-900">{dashboardData.responseRate.toFixed(1)}%</p>
+                    <p className="text-sm font-medium text-gray-500">Previous Period</p>
+                    <p className="text-2xl font-bold text-gray-900">{reportData?.comparisonData?.total || '—'}</p>
                   </div>
                   <div className="h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center">
                     <ArrowTrendingUpIcon className="h-6 w-6 text-emerald-600" />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center">
-                  <div className={`flex items-center ${dashboardData.growthRates.messages >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {dashboardData.growthRates.messages >= 0 ? (
-                      <ArrowUpIcon className="h-4 w-4 mr-1" />
-                    ) : (
-                      <ArrowDownIcon className="h-4 w-4 mr-1" />
-                    )}
-                    <span className="text-xs font-semibold">{Math.abs(dashboardData.growthRates.messages)}%</span>
+                  <div className="flex items-center">
+                    <span className="text-xs font-semibold">Period comparison</span>
                   </div>
-                  <span className="text-xs text-gray-500 ml-1">vs previous {timeFilter}</span>
                 </div>
               </div>
               <div className="px-4 py-3 bg-white">
                 <span className="text-xs text-emerald-600 font-medium">
-                  {dashboardData.messagesSent} messages sent, {dashboardData.messagesReceived} received
+                  {reportData && reportData.data && reportData.comparisonData ? 
+                    (reportData.comparisonData.total - reportData.data.total) : 
+                    '0'
+                  } difference
                 </span>
               </div>
             </CardContent>
@@ -446,28 +593,28 @@ export default function DashboardPage() {
               <div className="bg-white p-4 border-l-4 border-orange-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Conversion Rate</p>
-                    <p className="text-2xl font-bold text-gray-900">{dashboardData.conversionRate.toFixed(1)}%</p>
+                    <p className="text-sm font-medium text-gray-500">Total Value</p>
+                    <p className="text-2xl font-bold text-gray-900">${reportData?.data?.totalValue?.toLocaleString() || '0'}</p>
                   </div>
                   <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center">
                     <ChatBubbleLeftRightIcon className="h-6 w-6 text-orange-600" />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center">
-                  <div className={`flex items-center ${dashboardData.growthRates.contacts >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {dashboardData.growthRates.contacts >= 0 ? (
+                  <div className={`flex items-center ${(reportData?.stats?.percentageChangeValue ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {(reportData?.stats?.percentageChangeValue ?? 0) >= 0 ? (
                       <ArrowUpIcon className="h-4 w-4 mr-1" />
                     ) : (
                       <ArrowDownIcon className="h-4 w-4 mr-1" />
                     )}
-                    <span className="text-xs font-semibold">{Math.abs(dashboardData.growthRates.contacts)}%</span>
+                    <span className="text-xs font-semibold">{reportData?.stats?.percentageChangeValue !== undefined ? Math.abs(reportData.stats.percentageChangeValue).toFixed(1) : '0'}%</span>
                   </div>
                   <span className="text-xs text-gray-500 ml-1">vs previous {timeFilter}</span>
                 </div>
               </div>
               <div className="px-4 py-3 bg-white">
                 <span className="text-xs text-orange-600 font-medium">
-                  From {dashboardData.totalContacts} total contacts
+                  Previous: ${reportData?.comparisonData?.totalValue?.toLocaleString() || '0'}
                 </span>
               </div>
             </CardContent>
@@ -478,28 +625,42 @@ export default function DashboardPage() {
               <div className="bg-white p-4 border-l-4 border-purple-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Lead Value</p>
-                    <p className="text-2xl font-bold text-gray-900">${dashboardData.leadValue.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-gray-500">Open Opportunities</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {reportData?.data?.counts?.find(c => c.label === 'open')?.value || '—'}
+                    </p>
                   </div>
                   <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
                     <CurrencyDollarIcon className="h-6 w-6 text-purple-600" />
                   </div>
                 </div>
                 <div className="mt-4 flex items-center">
-                  <div className={`flex items-center ${dashboardData.growthRates.value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {dashboardData.growthRates.value >= 0 ? (
-                      <ArrowUpIcon className="h-4 w-4 mr-1" />
-                    ) : (
-                      <ArrowDownIcon className="h-4 w-4 mr-1" />
-                    )}
-                    <span className="text-xs font-semibold">{Math.abs(dashboardData.growthRates.value)}%</span>
-                  </div>
-                  <span className="text-xs text-gray-500 ml-1">vs previous {timeFilter}</span>
+                  {reportData && reportData.data && reportData.comparisonData && 
+                   reportData.data.counts && reportData.comparisonData.counts && 
+                   reportData.comparisonData.counts.find(c => c.label === 'open') && (
+                    <>
+                      <div className={`flex items-center ${(reportData.data.counts.find(c => c.label === 'open')?.value || 0) >= 
+                        (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0) ? 'text-green-600' : 'text-red-600'}`}>
+                        {(reportData.data.counts.find(c => c.label === 'open')?.value || 0) >= 
+                         (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0) ? (
+                          <ArrowUpIcon className="h-4 w-4 mr-1" />
+                        ) : (
+                          <ArrowDownIcon className="h-4 w-4 mr-1" />
+                        )}
+                        <span className="text-xs font-semibold">
+                          {reportData ? Math.abs(((reportData.data.counts.find(c => c.label === 'open')?.value || 0) - 
+                                               (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0)) / 
+                                              (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 1) * 100).toFixed(1) : '0'}%
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500 ml-1">vs previous {timeFilter}</span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="px-4 py-3 bg-white">
                 <span className="text-xs text-purple-600 font-medium">
-                  ${dashboardData.totalLeads > 0 ? `${Math.round(dashboardData.leadValue / dashboardData.totalLeads).toLocaleString()} avg/lead` : 'No leads yet'}
+                  Previous: {reportData?.comparisonData?.counts?.find(c => c.label === 'open')?.value || '0'}
                 </span>
               </div>
             </CardContent>
@@ -510,275 +671,240 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="pb-0">
-              <CardTitle className="text-lg font-semibold">Lead Journey</CardTitle>
-              <CardDescription>How leads progress through different stages</CardDescription>
+              <CardTitle className="text-lg font-semibold">Status Distribution</CardTitle>
+              <CardDescription>Current period opportunity statuses</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px] flex justify-center items-center p-4">
-                <Bar
-                  data={{
-                    labels: ['New Leads', 'Message Sent', 'Responded', 'Meeting Set', 'Negotiation', 'Closed'],
-                    datasets: [{
-                      label: 'Number of Leads',
-                      data: [
-                        dashboardData.totalLeads,
-                        Math.round(dashboardData.totalLeads * 0.8),
-                        Math.round(dashboardData.totalLeads * 0.4),
-                        Math.round(dashboardData.totalLeads * 0.2),
-                        Math.round(dashboardData.totalLeads * 0.1),
-                        Math.round(dashboardData.totalLeads * 0.05)
-                      ],
-                      backgroundColor: [
-                        'rgba(99, 102, 241, 0.8)',
-                        'rgba(99, 102, 241, 0.7)',
-                        'rgba(16, 185, 129, 0.8)',
-                        'rgba(16, 185, 129, 0.7)',
-                        'rgba(249, 115, 22, 0.8)',
-                        'rgba(139, 92, 246, 0.8)',
-                      ],
-                      borderColor: [
-                        'rgba(99, 102, 241, 1)',
-                        'rgba(99, 102, 241, 1)',
-                        'rgba(16, 185, 129, 1)',
-                        'rgba(16, 185, 129, 1)',
-                        'rgba(249, 115, 22, 1)',
-                        'rgba(139, 92, 246, 1)',
-                      ],
-                      borderWidth: 1
-                    }]
-                  }}
-                  options={{
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        display: false
-                      },
-                      tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        padding: 10,
-                        callbacks: {
-                          label: function(context) {
-                            const value = context.raw as number;
-                            const percentage = ((value / dashboardData.totalLeads) * 100).toFixed(1);
-                            return `${value} leads (${percentage}%)`;
+                {isLoadingCharts ? (
+                  <div className="flex items-center justify-center h-full w-full">
+                    <p className="text-gray-500">Loading chart data...</p>
+                  </div>
+                ) : reportData && reportData.data && reportData.data.counts ? (
+                  <Doughnut
+                    data={prepareStatusDistributionData() || {
+                      labels: [],
+                      datasets: [{ data: [], backgroundColor: [], borderColor: [], borderWidth: 1 }]
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                        },
+                        tooltip: {
+                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                          padding: 10,
+                          callbacks: {
+                            label: function(context) {
+                              const value = context.raw as number;
+                              const total = reportData.data.total;
+                              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+                              return `${value} opportunities (${percentage}%)`;
+                            }
                           }
                         }
                       }
-                    },
-                    scales: {
-                      x: {
-                        beginAtZero: true,
-                        grid: {
-                          display: false
-                        }
-                      },
-                      y: {
-                        grid: {
-                          display: false
-                        }
-                      }
-                    },
-                    animation: {
-                      duration: 1000
-                    }
-                  }}
-                />
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full w-full">
+                    <p className="text-gray-500">No data available</p>
+                  </div>
+                )}
               </div>
-              <div className="mt-2 px-4">
-                <p className="text-sm text-gray-600">
-                  This chart shows how leads progress through your sales funnel from initial contact to closing.
-                  {dashboardData.totalLeads > 0 && dashboardData.responseRate > 0 && (
-                    <span> Your current bottleneck appears to be at the <strong>response stage</strong>, where you're seeing a {(100 - dashboardData.responseRate).toFixed(1)}% drop-off rate.</span>
-                  )}
-                </p>
-              </div>
+              {reportData && reportData.data && reportData.data.counts && (
+                <div className="mt-2 px-4">
+                  <p className="text-sm text-gray-600">
+                    This chart shows the distribution of your opportunities by status.
+                    {reportData.data.counts.length > 0 && (
+                      <span> {reportData.data.counts[0].label.charAt(0).toUpperCase() + reportData.data.counts[0].label.slice(1)} opportunities represent <strong>{((reportData.data.counts[0].value / reportData.data.total) * 100).toFixed(1)}%</strong> of your total.</span>
+                    )}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="pb-0">
-              <CardTitle className="text-lg font-semibold">Communication Effectiveness</CardTitle>
-              <CardDescription>Response rates by message type</CardDescription>
+              <CardTitle className="text-lg font-semibold">Period Comparison</CardTitle>
+              <CardDescription>Current vs Previous Period</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px] flex justify-center items-center p-4">
-                <Bar
-                  data={{
-                    labels: ['SMS', 'Email', 'Call', 'Voicemail'],
-                    datasets: [
-                      {
-                        label: 'Sent',
-                        data: [
-                          Math.max(15, dashboardData.messageTypes.sms * 0.7),
-                          Math.max(20, dashboardData.messageTypes.email * 0.8),
-                          Math.max(10, dashboardData.messageTypes.call * 0.5),
-                          Math.max(25, dashboardData.messageTypes.voicemail * 0.9)
-                        ],
-                        backgroundColor: 'rgba(99, 102, 241, 0.7)',
-                        borderColor: 'rgba(99, 102, 241, 1)',
-                        borderWidth: 1
-                      },
-                      {
-                        label: 'Responded',
-                        data: [
-                          Math.max(10, dashboardData.messageTypes.sms * 0.4),
-                          Math.max(8, dashboardData.messageTypes.email * 0.3),
-                          Math.max(5, dashboardData.messageTypes.call * 0.3),
-                          Math.max(3, dashboardData.messageTypes.voicemail * 0.1)
-                        ],
-                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                        borderColor: 'rgba(16, 185, 129, 1)',
-                        borderWidth: 1
-                      }
-                    ]
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        position: 'top',
-                      },
-                      tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        padding: 10
-                      }
-                    },
-                    scales: {
-                      x: {
-                        grid: {
-                          display: false
+                {isLoadingCharts ? (
+                  <div className="flex items-center justify-center h-full w-full">
+                    <p className="text-gray-500">Loading chart data...</p>
+                  </div>
+                ) : reportData && reportData.data && reportData.comparisonData ? (
+                  <Bar
+                    data={prepareComparisonData() || {
+                      labels: [],
+                      datasets: []
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'top',
+                        },
+                        tooltip: {
+                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                          padding: 10
                         }
                       },
-                      y: {
-                        beginAtZero: true,
-                        grid: {
-                          color: 'rgba(0, 0, 0, 0.05)'
+                      scales: {
+                        x: {
+                          grid: {
+                            display: false
+                          }
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                          }
                         }
                       }
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full w-full">
+                    <p className="text-gray-500">No data available</p>
+                  </div>
+                )}
+              </div>
+              {reportData && reportData.data && reportData.comparisonData && (
+                <div className="mt-2 px-4">
+                  <p className="text-sm text-gray-600">
+                    {reportData.stats?.percentageChange >= 0 ? 
+                      `There has been a ${reportData.stats?.percentageChange.toFixed(1)}% increase in opportunities compared to the previous period.` :
+                      `There has been a ${Math.abs(reportData.stats?.percentageChange || 0).toFixed(1)}% decrease in opportunities compared to the previous period.`
                     }
-                  }}
-                />
-              </div>
-              <div className="px-4 mt-2">
-                <p className="text-sm text-gray-600">
-                  SMS messages show the highest response rate at 
-                  <strong> {((dashboardData.messageTypes.sms > 0) 
-                    ? (Math.max(10, dashboardData.messageTypes.sms * 0.4) / Math.max(15, dashboardData.messageTypes.sms * 0.7) * 100) 
-                    : 0).toFixed(1)}%
-                  </strong>, while voicemails have the lowest at 
-                  <strong> {((dashboardData.messageTypes.voicemail > 0)
-                    ? (Math.max(3, dashboardData.messageTypes.voicemail * 0.1) / Math.max(25, dashboardData.messageTypes.voicemail * 0.9) * 100)
-                    : 0).toFixed(1)}%
-                  </strong>.
-                </p>
-              </div>
+                    {reportData.stats?.percentageChangeValue !== 0 && (
+                      ` The total value has ${reportData.stats?.percentageChangeValue >= 0 ? 'increased' : 'decreased'} by ${Math.abs(reportData.stats?.percentageChangeValue || 0).toFixed(1)}%.`
+                    )}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Lead Engagement chart - always shown */}
+        {/* Status comparison chart */}
         <div className="mb-8">
           <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="pb-0">
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-lg font-semibold">Lead Engagement Over Time</CardTitle>
-                  <CardDescription>How your lead engagement has trended recently</CardDescription>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1">
-                    <div className="h-3 w-3 rounded-full bg-indigo-500"></div>
-                    <span className="text-xs text-gray-600">New Leads</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
-                    <span className="text-xs text-gray-600">Responses</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <div className="h-3 w-3 rounded-full bg-orange-500"></div>
-                    <span className="text-xs text-gray-600">Meetings</span>
-                  </div>
+                  <CardTitle className="text-lg font-semibold">Status Comparison</CardTitle>
+                  <CardDescription>Comparing statuses between current and previous periods</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="h-[300px] p-4">
-                <Line 
-                  data={messageTrendsData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        display: false
+                {isLoadingCharts ? (
+                  <div className="flex items-center justify-center h-full w-full">
+                    <p className="text-gray-500">Loading chart data...</p>
+                  </div>
+                ) : reportData && reportData.data && reportData.comparisonData && 
+                    reportData.data.counts && reportData.comparisonData.counts ? (
+                  <Bar 
+                    data={prepareStatusComparison() || {
+                      labels: [],
+                      datasets: []
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'top'
+                        },
+                        tooltip: {
+                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                          padding: 10,
+                          mode: 'index',
+                          intersect: false
+                        }
                       },
-                      tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        padding: 10,
-                        mode: 'index',
+                      interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
                         intersect: false
-                      }
-                    },
-                    interaction: {
-                      mode: 'nearest',
-                      axis: 'x',
-                      intersect: false
-                    },
-                    scales: {
-                      x: {
-                        grid: {
-                          display: false
+                      },
+                      scales: {
+                        x: {
+                          grid: {
+                            display: false
+                          },
+                          ticks: {
+                            font: {
+                              size: 11
+                            }
+                          }
                         },
-                        ticks: {
-                          font: {
-                            size: 11
+                        y: {
+                          beginAtZero: true,
+                          grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                          },
+                          ticks: {
+                            font: {
+                              size: 11
+                            }
                           }
                         }
                       },
-                      y: {
-                        beginAtZero: true,
-                        grid: {
-                          color: 'rgba(0, 0, 0, 0.05)'
-                        },
-                        ticks: {
-                          font: {
-                            size: 11
-                          }
-                        }
+                      animation: {
+                        duration: 1000
                       }
-                    },
-                    animation: {
-                      duration: 1000
-                    }
-                  }}
-                />
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full w-full">
+                    <p className="text-gray-500">No data available</p>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-3 gap-4 mt-2 px-4">
-                <div className="bg-gray-50 rounded-md p-3 text-center">
-                  <p className="text-sm text-gray-500 mb-1">Average Weekly Leads</p>
-                  <p className="text-xl font-semibold text-indigo-600">35</p>
+              {reportData && reportData.data && reportData.comparisonData && (
+                <div className="grid grid-cols-2 gap-4 mt-2 px-4">
+                  <div className="bg-gray-50 rounded-md p-3 text-center">
+                    <p className="text-sm text-gray-500 mb-1">Current Period Total</p>
+                    <p className="text-xl font-semibold text-indigo-600">{reportData.data.total}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-md p-3 text-center">
+                    <p className="text-sm text-gray-500 mb-1">Previous Period Total</p>
+                    <p className="text-xl font-semibold text-gray-600">{reportData.comparisonData.total}</p>
+                  </div>
                 </div>
-                <div className="bg-gray-50 rounded-md p-3 text-center">
-                  <p className="text-sm text-gray-500 mb-1">Response Rate</p>
-                  <p className="text-xl font-semibold text-emerald-600">46%</p>
+              )}
+              {reportData && reportData.data && reportData.comparisonData && reportData.stats && (
+                <div className="px-4 mt-4">
+                  <div className="bg-indigo-50 p-3 rounded-md">
+                    <p className="text-sm text-indigo-800">
+                      <span className="font-medium">Insight:</span> Your opportunities have 
+                      {reportData.stats.percentageChange >= 0 
+                        ? ` increased by ${reportData.stats.percentageChange.toFixed(1)}%` 
+                        : ` decreased by ${Math.abs(reportData.stats.percentageChange).toFixed(1)}%`
+                      } compared to the previous period.
+                      {reportData.data.counts.some(c => c.label === 'won') &&
+                       reportData.comparisonData.counts.some(c => c.label === 'won') && (
+                        <span> Won opportunities have 
+                          {reportData.stats.percentageChangeWonValue >= 0 
+                            ? ` increased by ${reportData.stats.percentageChangeWonValue.toFixed(1)}%` 
+                            : ` decreased by ${Math.abs(reportData.stats.percentageChangeWonValue).toFixed(1)}%`
+                          }.
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-gray-50 rounded-md p-3 text-center">
-                  <p className="text-sm text-gray-500 mb-1">Meeting Conversion</p>
-                  <p className="text-xl font-semibold text-orange-600">24%</p>
-                </div>
-              </div>
-              <div className="px-4 mt-4">
-                <div className="bg-indigo-50 p-3 rounded-md">
-                  <p className="text-sm text-indigo-800">
-                    <span className="font-medium">Insight:</span> Your lead engagement is trending upward with a 
-                    <span className="font-medium"> 15% increase</span> in new leads and a 
-                    <span className="font-medium"> 22% increase</span> in successful meetings over the past 6 weeks.
-                  </p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
