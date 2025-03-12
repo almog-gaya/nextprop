@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import Avatar from "./Avatar";
 import { ConversationDisplay, Message } from "@/types/messageThread";
-import { ActivityMessageRenderer, EmailMessageRenderer, NormalMessageRenderer } from "./MessageRenderer";
+import { ActivityMessageRenderer } from "./renderers/ActivityMessageRenderer";
+import { EmailMessageRenderer } from "./renderers/EmailMessageRenderer";
+import { NormalMessageRenderer } from "./renderers/NormalMessageRenderer";
 const getMessageRenderer = (message: Message) => {
     const isMe = message.direction
         ? message.direction === 'outbound'
