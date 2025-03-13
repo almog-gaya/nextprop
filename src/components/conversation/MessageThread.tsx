@@ -7,7 +7,9 @@ import { ConversationDisplay, Message } from "@/types/messageThread";
 import { ActivityMessageRenderer } from "./renderers/ActivityMessageRenderer";
 import { EmailMessageRenderer } from "./renderers/EmailMessageRenderer";
 import { NormalMessageRenderer } from "./renderers/NormalMessageRenderer";
+import { CallMessageRenderer } from "./renderers/CallMessageRenderer";
 const getMessageRenderer = (message: Message) => {
+    console.log(`Renderer: ${JSON.stringify(message)}`);
     const isMe = message.direction
         ? message.direction === 'outbound'
         : message.meta?.email?.direction === 'outbound';
@@ -15,9 +17,14 @@ const getMessageRenderer = (message: Message) => {
     if (message.activity?.title) {
         console.log(`Rendering activity`);
         return <ActivityMessageRenderer message={message} />;
-    } else if (message.meta?.email) {
+    } else if(message.type == "1") {
+        return <CallMessageRenderer message={message} />;
+    }
+    else if (message.meta?.email || message.type == "28") {
         return <EmailMessageRenderer message={message} isMe={isMe} />;
-    } else if (message.text) {
+    } 
+    
+    else if (message.text) {
         return <NormalMessageRenderer message={message} isMe={isMe} />;
     }
     return null;

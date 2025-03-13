@@ -228,15 +228,11 @@ const ConversationList = memo(function ConversationList({
     contactId: '',
     message: '',
     type: 'SMS' as 'SMS' | 'Email',
-    fromNumber: user?.lcPhone?.locationId || '+12543585931',
+    fromNumber: user?.phoneNumbers?.[0]?.phoneNumber,
     subject: '',
     scheduledTimestamp: '',
   });
 
-  // Debugging re-renders
-  useEffect(() => {
-    console.log('ConversationList rendered');
-  });
 
   // Scroll to active conversation when it changes
   useEffect(() => {

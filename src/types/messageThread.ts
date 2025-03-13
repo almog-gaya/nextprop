@@ -25,10 +25,15 @@ export interface Message {
   status?: string,
   meta?: MetaDataMessage;
   activity?: Activity,
+  attachments?: string[],
+  type: string,
+  altId?: string,
 }
 
 interface MetaDataMessage {
-  email: MetaEmail
+  email?: MetaEmail,
+  incomingCall?: IncomingCall 
+  call? : Call,
 }
 interface MetaEmail {
   subject?: string,
@@ -38,10 +43,20 @@ interface MetaEmail {
   messageIds: string[],
 }
 
+interface IncomingCall {
+  voicemailFile: string,
+  childCallSid: string, 
+}
+
+interface Call {
+   duration: number,
+   status: string, // [no-answer || completed]
+} 
+
 export interface Activity {
   data: ActivityData,
   title: string,
-  type: string, // opportunity_created || 
+  type: string, // [opportunity_created]
 }
 export interface ActivityData {
   id: string,

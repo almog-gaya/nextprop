@@ -77,7 +77,6 @@ function MessagingContent() {
 
           data.messages
             .map((msg: Message) => {
-              console.log(`'Message': `, msg);
               return (
 
                 {
@@ -93,6 +92,9 @@ function MessagingContent() {
                   messageType: msg.messageType,
                   activity: msg.activity,
                   meta: msg.meta,
+                  attachments: msg.attachments,
+                  type: msg.type,
+                  altId: msg.altId,
                 });
             })
             .sort((a: any, b: any) => new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime());
