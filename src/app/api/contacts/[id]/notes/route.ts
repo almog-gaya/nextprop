@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getAuthHeaders } from '@/lib/enhancedApi'; 
 
-export async function GET(request: Request, { params }: { params: { id: string, noteId: string } }) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
     try {
-        const { id: contactId, noteId } = params;
-        const result = await getAllNotes(contactId, noteId);
+        const { id: contactId } = params;
+        const result = await getAllNotes(contactId);
 
         if ('error' in result) {
             return NextResponse.json({ error: result.error }, { status: result.status });
@@ -12,14 +12,14 @@ export async function GET(request: Request, { params }: { params: { id: string, 
 
         return NextResponse.json(result);
     } catch (error) {
-        console.log('GET note error:', error);
+        console.log('GET notes error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
 
-const getAllNotes = async (contactId: string, noteId: string) => {
+const getAllNotes = async (contactId: string) => {
     const { token } = await getAuthHeaders();
-    const url = `https://services.leadconnectorhq.com/contacts/${contactId}/notes/${noteId}`;
+    const url = `https://services.leadconnectorhq.com/contacts/${contactId}/notes`;
     const headers = {
         'Accept': 'application/json',
         'Authorization': `Bearer ${token}`,
@@ -28,8 +28,8 @@ const getAllNotes = async (contactId: string, noteId: string) => {
     const options = { method: 'GET', headers };
 
     const response = await fetch(url, options);
-    const error = await response.json();
     if (!response.ok) {
+        const error = await response.json();
         console.log(`Error: `, error);
         return {
             error: error.message || error.msg,
