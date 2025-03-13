@@ -974,12 +974,20 @@ export default function ContactsPage() {
       return;
     }
     
+    // Keep focus in the input by using setTimeout
+    setTimeout(() => {
+      document.getElementById('phone')?.focus();
+    }, 0);
+    
     setVerificationStatus('loading');
     setVerificationMessage('');
     setPhoneDetails(null);
     
+    // Format phone number if needed
+    const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
+    
     try {
-      const response = await axios.post('/api/twilio/verify', { phone });
+      const response = await axios.post('/api/twilio/verify', { phone: formattedPhone });
       
       if (response.data?.success) {
         setVerificationStatus('success');
@@ -999,6 +1007,11 @@ export default function ContactsPage() {
       setVerificationMessage(errorMessage);
       toast.error(errorMessage);
     }
+    
+    // Refocus on the input field
+    setTimeout(() => {
+      document.getElementById('phone')?.focus();
+    }, 0);
   };
   
   // Reset verification modal state
@@ -1014,9 +1027,12 @@ export default function ContactsPage() {
     return (
       <div 
         className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
-        onClick={() => {
-          setIsVerifyModalOpen(false);
-          resetVerificationModal();
+        onClick={(e) => {
+          // Prevent closing if clicking inside the modal content
+          if (e.target === e.currentTarget) {
+            setIsVerifyModalOpen(false);
+            resetVerificationModal();
+          }
         }}
       >
         <div 
@@ -1036,7 +1052,17 @@ export default function ContactsPage() {
                 className="block w-full pr-10 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="+1 (123) 456-7890"
                 value={verifyPhoneNumber}
-                onChange={(e) => setVerifyPhoneNumber(e.target.value)}
+                onChange={(e) => {
+                  setVerifyPhoneNumber(e.target.value);
+                }}
+                onBlur={(e) => {
+                  // Format the phone number if needed
+                  const phone = e.target.value.trim();
+                  if (phone && !phone.startsWith('+')) {
+                    setVerifyPhoneNumber(`+${phone}`);
+                  }
+                }}
+                autoFocus
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <PhoneIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
