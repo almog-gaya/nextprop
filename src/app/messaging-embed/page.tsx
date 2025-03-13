@@ -49,11 +49,11 @@ function MessagingContent() {
   });
 
   useEffect(() => {
-    if (user?.phoneNumbers?.length) {
-      const defaultNumber = user.phoneNumbers.find(num => num.isDefaultNumber);
+    if ((user?.phoneNumbers?.length ?? 0) > 0) {
+      const defaultNumber = user?.phoneNumbers?.find(num => num.isDefaultNumber);
       setState(prev => ({
         ...prev,
-        selectedNumber: defaultNumber?.phoneNumber || user?.phoneNumbers[0].phoneNumber
+        selectedNumber: defaultNumber?.phoneNumber || null
       }));
     }
   }, [user]);
@@ -82,7 +82,7 @@ function MessagingContent() {
                 {
                   id: msg.id || `msg-${Date.now()}-${Math.random()}`,
                   senderId: msg.direction === 'inbound' ? 'client' : 'user',
-                  text: msg.body || msg.text || msg.meta?.email.subject || msg.activity?.data.name || '[No message content]',
+                  text: msg.body || msg.text || msg.meta?.email?.subject || msg.activity?.data.name || '[No message content]',
                   timestamp: msg.dateAdded
                     ? new Date(msg.dateAdded).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     : 'Recent',
@@ -725,7 +725,7 @@ function MessagingContent() {
               );
             return isEqual ? prev : {
               ...prev,
-              conversations: updatedConversations.sort((a, b) => (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0)),
+              conversations: updatedConversations.sort((a:any, b:any) => (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0)),
             };
           });
         }

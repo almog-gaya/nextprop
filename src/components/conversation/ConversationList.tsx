@@ -248,10 +248,10 @@ const ConversationList = memo(function ConversationList({
     () =>
       searchTerm
         ? conversations.filter(
-            (conv) =>
-              conv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              (conv.lastMessage && conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase()))
-          )
+          (conv) =>
+            conv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (conv.lastMessage && conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase()))
+        )
         : conversations,
     [conversations, searchTerm]
   );
@@ -320,7 +320,7 @@ const ConversationList = memo(function ConversationList({
         const payload = {
           type: newConversation.type,
           body: newConversation.message.trim(),
-           message: newConversation.message.trim(),
+          message: newConversation.message.trim(),
           contactId: newConversation.contactId,
           ...(newConversation.type === 'SMS' && {
             message: newConversation.message.trim(),
@@ -349,7 +349,7 @@ const ConversationList = memo(function ConversationList({
             contactId: '',
             message: '',
             type: 'SMS',
-            fromNumber: user?.lcPhone?.locationId || '+12543585931',
+            fromNumber: user?.phoneNumbers?.find((pn) => pn.isDefaultNumber)?.phoneNumber || '',
             subject: '',
             scheduledTimestamp: '',
           });
@@ -400,9 +400,8 @@ const ConversationList = memo(function ConversationList({
             <div
               key={conversation.id}
               ref={(el) => (conversationRefs.current[conversation.id] = el)}
-              className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
-                activeId === conversation.id ? 'bg-gray-100' : ''
-              }`}
+              className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${activeId === conversation.id ? 'bg-gray-100' : ''
+                }`}
               onClick={() => onSelect(conversation.id)}
             >
               <div className="flex items-start gap-3">
@@ -415,9 +414,8 @@ const ConversationList = memo(function ConversationList({
                     </span>
                   </div>
                   <p
-                    className={`text-sm truncate ${
-                      conversation.unread ? 'font-medium text-gray-900' : 'text-gray-500'
-                    }`}
+                    className={`text-sm truncate ${conversation.unread ? 'font-medium text-gray-900' : 'text-gray-500'
+                      }`}
                   >
                     {truncateMessage(conversation.lastMessage)}
                   </p>
@@ -440,9 +438,8 @@ const ConversationList = memo(function ConversationList({
           <button
             onClick={handlePrevPage}
             disabled={page === 1}
-            className={`px-3 py-1 text-sm rounded ${
-              page === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'
-            }`}
+            className={`px-3 py-1 text-sm rounded ${page === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'
+              }`}
           >
             Previous
           </button>
@@ -452,9 +449,8 @@ const ConversationList = memo(function ConversationList({
           <button
             onClick={handleNextPage}
             disabled={page === totalPages}
-            className={`px-3 py-1 text-sm rounded ${
-              page === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'
-            }`}
+            className={`px-3 py-1 text-sm rounded ${page === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'
+              }`}
           >
             Next
           </button>
@@ -475,11 +471,11 @@ const ConversationList = memo(function ConversationList({
 }, (prevProps, nextProps) => {
   const conversationsEqual = prevProps.conversations === nextProps.conversations ||
     (prevProps.conversations.length === nextProps.conversations.length &&
-     prevProps.conversations.every((prevConv, index) =>
-       prevConv.id === nextProps.conversations[index].id &&
-       prevConv.lastMessage === nextProps.conversations[index].lastMessage &&
-       prevConv.unread === nextProps.conversations[index].unread
-     ));
+      prevProps.conversations.every((prevConv, index) =>
+        prevConv.id === nextProps.conversations[index].id &&
+        prevConv.lastMessage === nextProps.conversations[index].lastMessage &&
+        prevConv.unread === nextProps.conversations[index].unread
+      ));
   return (
     conversationsEqual &&
     prevProps.activeId === nextProps.activeId &&

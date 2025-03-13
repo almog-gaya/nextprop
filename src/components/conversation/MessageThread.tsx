@@ -9,22 +9,20 @@ import { EmailMessageRenderer } from "./renderers/EmailMessageRenderer";
 import { NormalMessageRenderer } from "./renderers/NormalMessageRenderer";
 import { CallMessageRenderer } from "./renderers/CallMessageRenderer";
 const getMessageRenderer = (message: Message) => {
-    console.log(`Renderer: ${JSON.stringify(message)}`);
     const isMe = message.direction
         ? message.direction === 'outbound'
         : message.meta?.email?.direction === 'outbound';
 
-    if (message.activity?.title) {
-        console.log(`Rendering activity`);
+    if ((message.activity?.title?.length ?? 0) > 0) {
         return <ActivityMessageRenderer message={message} />;
-    } else if(message.type == "1") {
+    } else if (message.type == "1") {
         return <CallMessageRenderer message={message} />;
     }
-    else if (message.meta?.email || message.type == "28") {
+    else if ((message.meta?.email?.direction?.length ?? 0) > 0) {
         return <EmailMessageRenderer message={message} isMe={isMe} />;
-    } 
-    
-    else if (message.text) {
+    }
+
+    else if (message.text || message.type == "2") {
         return <NormalMessageRenderer message={message} isMe={isMe} />;
     }
     return null;
@@ -264,12 +262,12 @@ export default function MessageThread({
                         <div
                             key={message.id}
                             className={`flex mb-4 ${message.activity
-                                    ? 'w-full px-4'
-                                    : (message.direction
-                                        ? message.direction === 'outbound'
-                                        : message.meta?.email?.direction === 'outbound')
-                                        ? 'justify-end'
-                                        : 'justify-start'
+                                ? 'w-full px-4'
+                                : (message.direction
+                                    ? message.direction === 'outbound'
+                                    : message.meta?.email?.direction === 'outbound')
+                                    ? 'justify-end'
+                                    : 'justify-start'
                                 }`}
                         >
                             {getMessageRenderer(message)}
@@ -311,24 +309,24 @@ export default function MessageThread({
                                             <ChevronDown size={16} />
                                         </button>
                                         {isDropdownOpen && (
-  <div className="absolute left-0 mb-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 bottom-full">
-    {phoneNumbers.map((number: PhoneNumber) => (
-      <button
-        key={number.phoneNumber}
-        onClick={() => {
-          onNumberSelect?.(number.phoneNumber);
-          setIsDropdownOpen(false);
-        }}
-        className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-      >
-        {formatPhoneNumber(number.phoneNumber)}
-        {number.isDefaultNumber && (
-          <span className="ml-2 text-xs text-gray-500">(Default)</span>
-        )}
-      </button>
-    ))}
-  </div>
-)}
+                                            <div className="absolute left-0 mb-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 bottom-full">
+                                                {phoneNumbers.map((number: PhoneNumber) => (
+                                                    <button
+                                                        key={number.phoneNumber}
+                                                        onClick={() => {
+                                                            onNumberSelect?.(number.phoneNumber);
+                                                            setIsDropdownOpen(false);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                                                    >
+                                                        {formatPhoneNumber(number.phoneNumber)}
+                                                        {number.isDefaultNumber && (
+                                                            <span className="ml-2 text-xs text-gray-500">(Default)</span>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
