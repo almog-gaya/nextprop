@@ -1,42 +1,145 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { searchProperties } from '@/lib/realEstateApis';
+import { NextResponse } from "next/server";
+import { ApifyClient } from "apify-client";
 
-export async function GET(request: NextRequest) {
+const client = new ApifyClient({ token: process.env.APIFY_API_TOKEN });
+
+export async function POST(req: Request) {
+  const actorId = "ENK9p4RZHg0iVso52"; // New Actor ID
+
   try {
-    // Extract query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const apiType = searchParams.get('api') as 'propgpt' | 'reapi' | 'realtor' | 'zillow' || 'propgpt';
-    const limit = Number(searchParams.get('limit')) || 20;
-    const offset = Number(searchParams.get('offset')) || 0;
-    const sort = searchParams.get('sort') || 'newest';
-    const city = searchParams.get('city') || 'Miami';
-    const state = searchParams.get('state') || 'FL';
-    
-    // Set parameters for API call
-    const params = {
-      city,
-      state_code: state,
-      limit,
-      offset,
-      sort,
-      include_nearby_cities: searchParams.get('include_nearby') === 'true',
-      status: searchParams.get('status') || 'for_sale',
-      beds_min: searchParams.get('beds_min') ? Number(searchParams.get('beds_min')) : undefined,
-      baths_min: searchParams.get('baths_min') ? Number(searchParams.get('baths_min')) : undefined,
-      price_min: searchParams.get('price_min') ? Number(searchParams.get('price_min')) : undefined,
-      price_max: searchParams.get('price_max') ? Number(searchParams.get('price_max')) : 1000000,
-      property_type: searchParams.get('property_type') || undefined,
+    const { query, maxItems: requestedMaxItems } = await req.json();
+
+    // Validate query
+    if (!query) {
+      throw new Error("Please provide a valid address or query");
+    }
+
+    /// [Agent] to scrape search results
+    const searchURLs = await zillowSearchScraper(query);
+    const startUrls = searchURLs.map((url) => ({
+      url,
+      method: "GET",
+    }));
+    // Validate and set maxItems
+    let maxItems = requestedMaxItems ?? 1; 
+
+    const actorInput = {
+      startUrls: startUrls,
+      "extractBuildingUnits": "for_sale",
+      "propertyStatus": "FOR_SALE",
+      searchResultsDatasetId: "",
+      maxItems, // Include maxItems to avoid the error
     };
-    
-    // Call the function to get properties from the selected API
-    const data = await searchProperties(params, apiType);
-    
-    return NextResponse.json(data);
+    // [Agent] to scrape property details
+    const run = await client.actor(actorId).call(actorInput);
+
+    // Check if the run succeeded
+    if (run.status !== "SUCCEEDED") {
+      throw new Error(`Actor run failed with status: ${run.status}`);
+    }
+
+    // Fetch the dataset items
+    const { items } = await client.dataset(run.defaultDatasetId).listItems();
+
+    // Filter items to include only those with required info
+    const filteredItems = items
+      .filter((item: any) => {
+        const attributionInfo = item.attributionInfo || {};
+        // Require either agentPhoneNumber, brokerPhoneNumber, agentEmail, or brokerEmail
+        return (
+          attributionInfo.agentPhoneNumber ||
+          attributionInfo.brokerPhoneNumber ||
+          attributionInfo.agentEmail ||
+          attributionInfo.brokerEmail
+        );
+      })
+      .map((item: any) => {
+        const attributionInfo = item.attributionInfo || {};
+        return {
+          agentName: attributionInfo.agentName || null,
+          agentPhoneNumber: attributionInfo.agentPhoneNumber || null,
+          brokerName: attributionInfo.brokerName || null,
+          brokerPhoneNumber: attributionInfo.brokerPhoneNumber || null,
+          agentEmail: attributionInfo.agentEmail || null,
+          brokerEmail: attributionInfo.brokerEmail || null,
+          homeType: item.homeType || null,
+          streetAddress: item.streetAddress || null,
+          city: item.city || null,
+          state: item.state || null,
+          zipcode: item.zipcode || null,
+          price: item.price || null,
+          listingSubType: item.listingSubType || null,
+          zestimate: item.zestimate || null,
+        };
+      });
+
+    return NextResponse.json({
+      success: true,
+      properties: filteredItems,
+    });
   } catch (error) {
-    console.error('Error fetching properties:', error);
+    console.error("Error running Apify Actor:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch properties', message: (error as Error).message },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
-} 
+}
+
+/// An Agent that fetches the search terms for us
+const zillowSearchScraper = async (q: string) => {
+  function buildZillowUSAURL(query: string, sortBy = "days", daysOnZillow = 90) {
+    const usaBounds = {
+      west: -125.0,
+      east: -66.9,
+      south: 24.4,
+      north: 49.4
+    };
+
+    const searchQueryState = {
+      pagination: {},
+      isMapVisible: true,
+      mapBounds: usaBounds,
+      usersSearchTerm: query,
+      filterState: {
+        sort: { value: sortBy },
+        tow: { value: false },
+        mf: { value: false },
+        con: { value: false },
+        land: { value: false },
+        apa: { value: false },
+        manu: { value: false },
+        apco: { value: false },
+        doz: { value: daysOnZillow }
+      },
+      isListVisible: true,
+      mapZoom: 12
+    };
+    return searchQueryState;
+  }
+  const encodedQuery = encodeURIComponent(JSON.stringify(buildZillowUSAURL(q)));
+  const payload = {
+    "searchUrls": [
+      {
+        "url": `https://www.zillow.com/homes/for_sale/?searchQueryState=${encodedQuery}`,
+        "method": "GET"
+      }
+    ],
+    "extractionMethod": "PAGINATION_WITH_ZOOM_IN",
+    maxItems: 1
+  };
+
+  const run = await client.actor("X46xKaa20oUA1fRiP").call(payload);
+
+
+  const { items } = await client.dataset(run.defaultDatasetId).listItems();
+
+  const filteredSearchResults = items
+    .map((item) => item.detailUrl)
+    .filter(Boolean); // Ensures we only return valid URLs
+
+  return filteredSearchResults;
+}

@@ -17,6 +17,7 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@types/js-cookie": "^3.0.6",
     "@types/uuid": "^10.0.0",
+    "apify-client": "^2.12.1",
     "axios": "^1.8.1",
     "chart.js": "^4.4.8",
     "class-variance-authority": "^0.7.1",
