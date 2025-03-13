@@ -311,24 +311,24 @@ export default function MessageThread({
                                             <ChevronDown size={16} />
                                         </button>
                                         {isDropdownOpen && (
-                                            <div className="absolute left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                                                {phoneNumbers.map((number: PhoneNumber) => (
-                                                    <button
-                                                        key={number.phoneNumber}
-                                                        onClick={() => {
-                                                            onNumberSelect?.(number.phoneNumber);
-                                                            setIsDropdownOpen(false);
-                                                        }}
-                                                        className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                                                    >
-                                                        {formatPhoneNumber(number.phoneNumber)}
-                                                        {number.isDefaultNumber && (
-                                                            <span className="ml-2 text-xs text-gray-500">(Default)</span>
-                                                        )}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
+  <div className="absolute left-0 mb-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 bottom-full">
+    {phoneNumbers.map((number: PhoneNumber) => (
+      <button
+        key={number.phoneNumber}
+        onClick={() => {
+          onNumberSelect?.(number.phoneNumber);
+          setIsDropdownOpen(false);
+        }}
+        className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+      >
+        {formatPhoneNumber(number.phoneNumber)}
+        {number.isDefaultNumber && (
+          <span className="ml-2 text-xs text-gray-500">(Default)</span>
+        )}
+      </button>
+    ))}
+  </div>
+)}
                                     </div>
                                 )}
                             </div>
