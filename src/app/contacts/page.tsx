@@ -14,7 +14,11 @@ import {
   EyeSlashIcon, 
   AdjustmentsHorizontalIcon, 
   PlusCircleIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  PhoneIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 
 interface CustomField {
@@ -60,6 +64,13 @@ export default function ContactsPage() {
   const [isAllSelected, setIsAllSelected] = useState(false);
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const [hiddenColumns, setHiddenColumns] = useState<TableColumn[]>([]);
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [verifyPhoneNumber, setVerifyPhoneNumber] = useState('');
+  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const [phoneDetails, setPhoneDetails] = useState<any>(null);
 
   // Define available columns
   const [columns, setColumns] = useState<TableColumn[]>([
@@ -956,6 +967,187 @@ export default function ContactsPage() {
     router.push(`/messaging?contactId=${contactId}`);
   };
 
+  // Lookup phone number via Twilio
+  const lookupPhoneNumber = async (phone: string) => {
+    if (!phone) {
+      toast.error('Please enter a phone number');
+      return;
+    }
+    
+    // Keep focus in the input by using setTimeout
+    setTimeout(() => {
+      document.getElementById('phone')?.focus();
+    }, 0);
+    
+    setVerificationStatus('loading');
+    setVerificationMessage('');
+    setPhoneDetails(null);
+    
+    // Format phone number if needed
+    const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
+    
+    try {
+      const response = await axios.post('/api/twilio/verify', { phone: formattedPhone });
+      
+      if (response.data?.success) {
+        setVerificationStatus('success');
+        setVerificationMessage(`Phone number validated successfully`);
+        setPhoneDetails(response.data.data);
+        toast.success(`Phone number validated`);
+      } else {
+        throw new Error(response.data?.error || 'Failed to validate phone number');
+      }
+    } catch (err: any) {
+      console.error('Error validating phone number:', err);
+      const errorMessage = err.response?.data?.details?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          'Failed to validate phone number';
+      setVerificationStatus('error');
+      setVerificationMessage(errorMessage);
+      toast.error(errorMessage);
+    }
+    
+    // Refocus on the input field
+    setTimeout(() => {
+      document.getElementById('phone')?.focus();
+    }, 0);
+  };
+  
+  // Reset verification modal state
+  const resetVerificationModal = () => {
+    setVerifyPhoneNumber('');
+    setVerificationStatus('idle');
+    setVerificationMessage('');
+    setPhoneDetails(null);
+  };
+
+  // Phone Lookup Modal
+  const PhoneLookupModal = () => {
+    return (
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
+        onClick={(e) => {
+          // Prevent closing if clicking inside the modal content
+          if (e.target === e.currentTarget) {
+            setIsVerifyModalOpen(false);
+            resetVerificationModal();
+          }
+        }}
+      >
+        <div 
+          className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900">Phone Number Lookup</h3>
+          
+          <div className="mb-5">
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <input
+                type="tel"
+                id="phone"
+                className="block w-full pr-10 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="+1 (123) 456-7890"
+                value={verifyPhoneNumber}
+                onChange={(e) => {
+                  setVerifyPhoneNumber(e.target.value);
+                }}
+                onBlur={(e) => {
+                  // Format the phone number if needed
+                  const phone = e.target.value.trim();
+                  if (phone && !phone.startsWith('+')) {
+                    setVerifyPhoneNumber(`+${phone}`);
+                  }
+                }}
+                autoFocus
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <PhoneIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Enter a phone number to lookup and validate
+            </p>
+          </div>
+          
+          {verificationStatus !== 'idle' && (
+            <div className={`mb-4 p-3 rounded-md ${
+              verificationStatus === 'loading' ? 'bg-blue-50 text-blue-800' :
+              verificationStatus === 'success' ? 'bg-green-50 text-green-800' :
+              'bg-red-50 text-red-800'
+            }`}>
+              <div className="flex items-start">
+                {verificationStatus === 'loading' && (
+                  <svg className="animate-spin h-5 w-5 mr-2 mt-0.5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
+                  </svg>
+                )}
+                {verificationStatus === 'success' && <CheckCircleIcon className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />}
+                {verificationStatus === 'error' && <XCircleIcon className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />}
+                <div>
+                  <p>{verificationStatus === 'loading' ? 'Validating phone number...' : verificationMessage}</p>
+                  {phoneDetails && (
+                    <div className="mt-2 text-sm">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="font-semibold">Country Code:</div>
+                        <div>{phoneDetails.country_code || 'N/A'}</div>
+                        
+                        <div className="font-semibold">Carrier:</div>
+                        <div>{phoneDetails.carrier?.name || 'N/A'}</div>
+                        
+                        <div className="font-semibold">Type:</div>
+                        <div>{phoneDetails.line_type_intelligence?.type || 'N/A'}</div>
+                        
+                        <div className="font-semibold">Valid:</div>
+                        <div>{phoneDetails.valid ? 'Yes' : 'No'}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => {
+                setIsVerifyModalOpen(false);
+                resetVerificationModal();
+              }}
+              className="px-4 py-2 bg-gray-100/80 text-gray-700 rounded-md hover:bg-gray-200/80 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm transition-colors"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => lookupPhoneNumber(verifyPhoneNumber)}
+              disabled={verificationStatus === 'loading' || !verifyPhoneNumber}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm transition-colors disabled:opacity-50 flex items-center"
+            >
+              {verificationStatus === 'loading' ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
+                  </svg>
+                  Validating...
+                </>
+              ) : (
+                <>
+                  <InformationCircleIcon className="h-4 w-4 mr-2" />
+                  Lookup Phone
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <DashboardLayout title="Contacts">
       <div className="dashboard-card">
@@ -963,6 +1155,15 @@ export default function ContactsPage() {
           <h2 className="dashboard-card-title">All Contacts</h2>
           <div className="flex space-x-3">
             <ColumnManager />
+            
+            <button
+              onClick={() => setIsVerifyModalOpen(true)}
+              className="px-3 py-2 bg-blue-500 border border-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+            >
+              <InformationCircleIcon className="h-4 w-4 mr-2" />
+              Verify Phone
+            </button>
+            
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="btn-primary"
@@ -1075,6 +1276,8 @@ export default function ContactsPage() {
             </div>
           </div>
         )}
+
+        {isVerifyModalOpen && <PhoneLookupModal />}
 
         {isLoading ? (
           <ContactListSkeleton />
