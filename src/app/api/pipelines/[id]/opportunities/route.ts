@@ -8,9 +8,9 @@ export async function GET(
   const { id } = await props.params;
   const searchParams = request.nextUrl.searchParams;
 
-  // Extract pagination parameters
   const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '30');
+  const limit = parseInt(searchParams.get('limit') || '100');
+  const stageId = searchParams.get('stageId') || undefined;
   const startAfter = searchParams.get('startAfter') || undefined;
   const startAfterId = searchParams.get('startAfterId') || undefined;
 
@@ -23,43 +23,34 @@ export async function GET(
 
   try {
     const data = await fetchWithErrorHandling(() =>
-      getOpportunitiesById(id, { page, limit, startAfter, startAfterId })
+      getOpportunitiesById(id, { page, limit, stageId, startAfter, startAfterId })
     );
 
-    // Calculate pagination metadata
     const total = data.opportunities.length;
     const totalPages = Math.ceil(total / limit);
     const currentPage = page;
     const nextPage = currentPage < totalPages ? currentPage + 1 : null;
     const prevPage = currentPage > 1 ? currentPage - 1 : null;
 
-    // Construct base URL for pagination links
-    const baseUrl = `${request.nextUrl.origin}/opportunities/search`;
+    const baseUrl = `${request.nextUrl.origin}/api/pipelines/${id}/opportunities`;
     const queryParams = new URLSearchParams({
-      pipeline_id: id,
       limit: limit.toString(),
+      ...(stageId && { stageId }),
     });
 
-    // Construct response with pagination
     const response = {
-      opportunities: data.opportunities.slice(
-        (page - 1) * limit,
-        page * limit
-      ),
+      opportunities: data.opportunities,
       meta: {
         total,
-        nextPageUrl: nextPage
-          ? `${baseUrl}?${queryParams}&page=${nextPage}`
-          : null,
-        startAfterId: data.opportunities.length > 0 
-          ? data.opportunities[data.opportunities.length - 1].id 
-          : null,
-        startAfter: Date.now(),
+        nextPageUrl: nextPage ? `${baseUrl}?${queryParams}&page=${nextPage}` : null,
+        startAfterId: data.opportunities.length > 0 ? data.opportunities[data.opportunities.length - 1].id : null,
+        startAfter: Date.now().toString(),
         currentPage,
+        totalPages,
         nextPage,
-        prevPage
+        prevPage,
       },
-      aggregations: {}
+      aggregations: {},
     };
 
     return NextResponse.json(response);
@@ -74,19 +65,21 @@ export async function GET(
 interface PaginationParams {
   page: number;
   limit: number;
+  stageId?: string;
   startAfter?: string;
   startAfterId?: string;
 }
 
 const getOpportunitiesById = async (id: string, pagination: PaginationParams) => {
   const { token, locationId } = await getAuthHeaders();
-  
-  // Construct query parameters with proper type handling
+
   const queryParams = new URLSearchParams();
   queryParams.append('location_id', locationId || '');
   queryParams.append('pipeline_id', id);
   queryParams.append('limit', pagination.limit.toString());
-  
+  if (pagination.stageId) {
+    queryParams.append('pipeline_stage_id', pagination.stageId);
+  }
   if (pagination.startAfter) {
     queryParams.append('startAfter', pagination.startAfter);
   }
@@ -95,15 +88,13 @@ const getOpportunitiesById = async (id: string, pagination: PaginationParams) =>
   }
 
   const url = `https://services.leadconnectorhq.com/opportunities/search?${queryParams.toString()}`;
-  const mockURL = `https://stoplight.io/mocks/highlevel/integrations/39582852/opportunities/search?${queryParams.toString()}`;
   const options = {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
       Version: '2021-07-28',
-      // Prefer: 'code=200, dynamic=true',
-      Accept: 'application/json'
-    }
+      Accept: 'application/json',
+    },
   };
 
   const response = await fetch(url, options);
