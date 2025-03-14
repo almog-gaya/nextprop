@@ -20,6 +20,7 @@ import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { GHLContact, GHLOpportunity, GHLOpportunityResponse, GHLPipeline, GHLPipelineResponse, GHLStage, Opportunity, PipelineData, PipelineStage } from '@/types/dashboard';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import OpportunityEditModal from '@/components/dashboard/OpportunityEditModal';
 
 interface PaginationState {
   page: number;
@@ -87,8 +88,8 @@ export default function LeadsPage() {
     id: string | null;
     type: 'move' | 'delete' | 'edit' | null;
   }>({ id: null, type: null });
-  const [isEditContactModalOpen, setIsEditContactModalOpen] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<GHLContact | null>(null);
+  const [isEditOpportunityModalOpen, setIsEditOpportunityModalOpen] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [editContactData, setEditContactData] = useState<{
     firstName: string;
     lastName: string;
@@ -259,7 +260,7 @@ export default function LeadsPage() {
     setIsLoading(true);
     try {
       const currentPagination = pagination[pipelineId]?.[stageId] || { page: 1, limit: 10, total: 0, totalPages: 1, nextPage: null, prevPage: null };
-      
+
       const response = await fetch(
         `/api/pipelines/search?pipelineId=${pipelineId}&stageId=${stageId}&page=${page}&limit=${currentPagination.limit}`
       );
@@ -386,7 +387,7 @@ export default function LeadsPage() {
 
     console.log('Opportunity being edited:', opportunity);
 
-    setSelectedContact(opportunity.contact);
+    setSelectedOpportunity(opportunity);
     let customFieldsArray: any[] = [];
 
     if (opportunity.contact.customFields) {
@@ -418,50 +419,35 @@ export default function LeadsPage() {
       customFields: customFieldsArray,
     });
 
-    setIsEditContactModalOpen(true);
+    setIsEditOpportunityModalOpen(true);
   };
 
-  const handleUpdateContact = async (formData: any) => {
-    if (!selectedContact) return;
 
+  const handleUpdateOpportunityUI = async (formData: Partial<Opportunity>) => {
     setIsSubmitting(true);
     try {
-      const response = await axios.put(`/api/contacts/${selectedContact.id}`, formData);
-
-      if (response.data) {
-        const updatedPipelines = pipelines.map((pipeline) => {
-          const updatedStages = pipeline.stages.map((stage) => {
-            const updatedOpportunities = stage.opportunities.map((opp) => {
-              if (opp.contact && opp.contact.id === selectedContact.id) {
-                return {
-                  ...opp,
-                  contact: response.data,
-                };
-              }
-              return opp;
-            });
-
-            return {
-              ...stage,
-              opportunities: updatedOpportunities,
-            };
-          });
-
-          return {
-            ...pipeline,
-            stages: updatedStages,
-          };
-        });
-
-        setPipelines(updatedPipelines);
-        setOpportunities(updatedPipelines.find((p) => p.id === selectedPipeline)?.stages || []);
-
-        toast.success('Contact updated successfully');
-        setIsEditContactModalOpen(false);
-        setSelectedContact(null);
+      console.log(`[handleUpdateOpportunity]: formData: `, formData);
+      /// Update UI only
+      if (selectedOpportunity) {
+        const updatedOpportunity = { ...selectedOpportunity, ...formData };
+        setOpportunities((prevOpportunities) =>
+          prevOpportunities.map((stage) => {
+            if (stage.id === selectedOpportunity?.stage) {
+              return {
+                ...stage,
+                opportunities: stage.opportunities.map((opp) =>
+                  opp.id === selectedOpportunity.id ? updatedOpportunity : opp
+                ),
+              };
+            }
+            return stage;
+          })
+        );
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update contact');
+       
+      setIsEditOpportunityModalOpen(false);
+    } catch (error) {
+      console.error('Error updating opportunity:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -873,17 +859,16 @@ export default function LeadsPage() {
                 await handleCommunication(messageModal.opportunityId, messageModal.actionType);
               }}
             />
-            <ContactEditModal
-              isOpen={isEditContactModalOpen}
-              onClose={() => setIsEditContactModalOpen(false)}
-              selectedContact={selectedContact}
-              editContactData={editContactData}
-              onUpdateContact={handleUpdateContact}
-              isSubmitting={isSubmitting}
-            />
+            <OpportunityEditModal
+              isOpen={isEditOpportunityModalOpen}
+              onClose={() => setIsEditOpportunityModalOpen(false)}
+              opportunityId= {selectedOpportunity?.id ?? ""}
+              onUpdateOpportunity={handleUpdateOpportunityUI}
+            /> 
           </div>
         </div>
-      )}
-    </DashboardLayout>
+      )
+      }
+    </DashboardLayout >
   );
 }
