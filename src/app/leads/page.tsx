@@ -5,7 +5,7 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { StatsCardSkeleton, TableSkeleton } from '@/components/SkeletonLoaders';
 import AutomationPreview from '@/components/AutomationPreview';
-import { PhoneNumber, useAuth } from '@/contexts/AuthContext';
+import {  useAuth } from '@/contexts/AuthContext';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import FilterControls from '@/components/dashboard/FilterControls';
 import SearchBar from '@/components/dashboard/SearchBar';
@@ -14,12 +14,10 @@ import OpportunityGrid from '@/components/dashboard/OpportunityGrid';
 import OpportunityList from '@/components/dashboard/OpportunityList';
 import FilterModal from '@/components/dashboard/FilterModal';
 import SortModal from '@/components/dashboard/SortModal';
-import ContactEditModal from '@/components/dashboard/ContactEditModal';
 import MessageModal from '@/components/dashboard/MessageModal';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { GHLContact, GHLOpportunity, GHLOpportunityResponse, GHLPipeline, GHLPipelineResponse, GHLStage, Opportunity, PipelineData, PipelineStage } from '@/types/dashboard';
-import axios from 'axios';
-import { toast } from 'react-hot-toast';
+
 import OpportunityEditModal from '@/components/dashboard/OpportunityEditModal';
 
 interface PaginationState {
