@@ -11,6 +11,7 @@ import axios from 'axios';
 import { ChevronDown } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { NewConversationCreator } from '@/components/conversation/NewConversationStarter';
 
 const ENABLE_VERBOSE_LOGGING = true;
 
@@ -466,10 +467,23 @@ function MessagingContent() {
       fetchMessages(state.activeConversationId);
     }
   }, [state.activeConversationId, fetchMessages]);
-
+  const handleConversationCreated = useCallback((newConversation: ConversationDisplay) => {
+    setState((prev) => ({
+      ...prev,
+      conversations: [newConversation, ...prev.conversations],
+      activeConversationId: newConversation.id,
+      pendingNewContactId: null,
+      creatingConversation: false,
+    }));
+  }, []);
   const renderMessageThread = useMemo(() => {
     if (state.pendingNewContactId) {
-      return <ContactNotFoundMessage />;
+      return (
+        <NewConversationCreator
+          contactId={state.pendingNewContactId}
+          onConversationCreated={handleConversationCreated}
+        />
+      );
     }
 
     if (!state.activeConversationId) {
@@ -725,7 +739,7 @@ function MessagingContent() {
               );
             return isEqual ? prev : {
               ...prev,
-              conversations: updatedConversations.sort((a:any, b:any) => (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0)),
+              conversations: updatedConversations.sort((a: any, b: any) => (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0)),
             };
           });
         }

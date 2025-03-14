@@ -47,17 +47,22 @@ export default function PropertiesPage() {
         .map(prop => transformLeadToContact(prop));
 
       for (const lead of transformedLeads) {
-        const response = await fetch("/api/contacts", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(lead),
-        });
+        try {
+          const response = await fetch("/api/contacts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(lead),
+          });
 
-        if (!response.ok) {
-          throw new Error(`Failed to add contact: ${response.statusText}`);
+          if (!response.ok) {
+            throw new Error(`Failed to add contact: ${response.statusText}`);
+          }
+        } catch (_) {
+          console.log("error adding contact", _);
         }
+
       }
       return true;
     } catch (error) {
@@ -78,7 +83,6 @@ export default function PropertiesPage() {
       address1: property.streetAddress || "",
       city: property.city || "",
       state: property.state || "",
-      zipcode: property.zipcode || "",
       /// treating scraped data as leads
       customFields: [
         {
@@ -87,6 +91,11 @@ export default function PropertiesPage() {
           "field_value": "lead"
         }
       ],
+      tags: [
+        'scraped-lead',
+        'zillow-property',
+        'Review-new-lead'
+      ]
 
     };
   };
@@ -108,8 +117,7 @@ export default function PropertiesPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: searchQuery,
-          maxItems: count,
+          query: searchQuery, 
         }),
       });
 
@@ -210,7 +218,7 @@ export default function PropertiesPage() {
                   ) : (
                     <>
                       <UserPlusIcon className="h-5 w-5" />
-                      Scrape 100 Properties
+                      Scrape 2 Properties
                     </>
                   )}
                 </button>

@@ -1,51 +1,93 @@
 import { NextResponse } from "next/server";
-import { ApifyClient } from "apify-client";
 
-const client = new ApifyClient({ token: process.env.APIFY_API_TOKEN });
+/// Max number of items to fetch
+const MAX_ITEMS = 5;
 
 export async function POST(req: Request) {
-  const actorId = "ENK9p4RZHg0iVso52"; // New Actor ID
+  const API_TOKEN = process.env.APIFY_API_TOKEN;
+  const ACTOR_ID = "ENK9p4RZHg0iVso52";
+  const API_URL = `https://api.apify.com/v2/acts/${ACTOR_ID}/runs`;
+
+  if (!API_TOKEN) {
+    console.error("API_TOKEN is not set in environment variables");
+    return NextResponse.json(
+      { success: false, error: "Server configuration error" },
+      { status: 500 }
+    );
+  }
 
   try {
-    const { query, maxItems: requestedMaxItems } = await req.json();
+    const { query } = await req.json();
 
-    // Validate query
     if (!query) {
       throw new Error("Please provide a valid address or query");
     }
 
-    /// [Agent] to scrape search results
-    const searchURLs = await zillowSearchScraper(query);
-    const startUrls = searchURLs.map((url) => ({
+    const searchURLs = await zillowSearchScraper(query, API_TOKEN);
+    const startUrls = searchURLs.map((url: any) => ({
       url,
       method: "GET",
     }));
-    // Validate and set maxItems
-    let maxItems = requestedMaxItems ?? 1; 
 
     const actorInput = {
-      startUrls: startUrls,
-      "extractBuildingUnits": "for_sale",
-      "propertyStatus": "FOR_SALE",
+      startUrls,
+      extractBuildingUnits: "for_sale",
+      propertyStatus: "FOR_SALE",
       searchResultsDatasetId: "",
-      maxItems, // Include maxItems to avoid the error
+      maxItems: MAX_ITEMS,
     };
-    // [Agent] to scrape property details
-    const run = await client.actor(actorId).call(actorInput);
 
-    // Check if the run succeeded
-    if (run.status !== "SUCCEEDED") {
-      throw new Error(`Actor run failed with status: ${run.status}`);
+    const runResponse = await fetch(`${API_URL}?token=${API_TOKEN}&maxItems=${MAX_ITEMS}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(actorInput),
+    });
+
+    if (!runResponse.ok) {
+      const errorText = await runResponse.text();
+      throw new Error(`Actor run failed with status: ${runResponse.status} - ${errorText}`);
     }
 
-    // Fetch the dataset items
-    const { items } = await client.dataset(run.defaultDatasetId).listItems();
+    const runData = await runResponse.json();
+    const runId = runData.data.id;
 
-    // Filter items to include only those with required info
+    let runStatus;
+    do {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const statusResponse = await fetch(
+        `https://api.apify.com/v2/actor-runs/${runId}?token=${API_TOKEN}`
+      );
+
+      if (!statusResponse.ok) {
+        const errorText = await statusResponse.text();
+        throw new Error(`Status check failed: ${statusResponse.status} - ${errorText}`);
+      }
+
+      runStatus = await statusResponse.json();
+    } while (runStatus.data.status === "RUNNING" || runStatus.data.status === "READY");
+
+    if (runStatus.data.status !== "SUCCEEDED") {
+      throw new Error(`Actor run failed with status: ${runStatus.data.status}`);
+    }
+
+    const datasetId = runStatus.data.defaultDatasetId;
+    const itemsResponse = await fetch(
+      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${API_TOKEN}`
+    );
+
+    if (!itemsResponse.ok) {
+      const errorText = await itemsResponse.text();
+      throw new Error(`Failed to fetch items: ${itemsResponse.status} - ${errorText}`);
+    }
+
+    const items = await itemsResponse.json();
+    console.log(`Fetched from SearchDetails`, JSON.stringify(items));
+
     const filteredItems = items
       .filter((item: any) => {
         const attributionInfo = item.attributionInfo || {};
-        // Require either agentPhoneNumber, brokerPhoneNumber, agentEmail, or brokerEmail
         return (
           attributionInfo.agentPhoneNumber ||
           attributionInfo.brokerPhoneNumber ||
@@ -89,8 +131,9 @@ export async function POST(req: Request) {
   }
 }
 
-/// An Agent that fetches the search terms for us
-const zillowSearchScraper = async (q: string) => {
+const zillowSearchScraper = async (q: string, API_TOKEN: string) => {
+  const API_URL = 'https://api.apify.com/v2/acts/X46xKaa20oUA1fRiP/runs';
+
   function buildZillowUSAURL(query: string, sortBy = "days", daysOnZillow = 90) {
     const usaBounds = {
       west: -125.0,
@@ -100,7 +143,6 @@ const zillowSearchScraper = async (q: string) => {
     };
 
     const searchQueryState = {
-      pagination: {},
       isMapVisible: true,
       mapBounds: usaBounds,
       usersSearchTerm: query,
@@ -120,26 +162,76 @@ const zillowSearchScraper = async (q: string) => {
     };
     return searchQueryState;
   }
+
   const encodedQuery = encodeURIComponent(JSON.stringify(buildZillowUSAURL(q)));
   const payload = {
-    "searchUrls": [
+    extractionMethod: "MAP_MARKERS",
+    maxItems: MAX_ITEMS,
+    maxTotalChargeUsd: 0.02,
+    searchUrls: [
       {
-        "url": `https://www.zillow.com/homes/for_sale/?searchQueryState=${encodedQuery}`,
-        "method": "GET"
+        url: `https://www.zillow.com/homes/for_sale/?searchQueryState=${encodedQuery}`,
+        method: "GET"
       }
-    ],
-    "extractionMethod": "PAGINATION_WITH_ZOOM_IN",
-    maxItems: 1
+    ]
   };
 
-  const run = await client.actor("X46xKaa20oUA1fRiP").call(payload);
+  try {
+    const runResponse = await fetch(`${API_URL}?token=${API_TOKEN}&maxItems=${MAX_ITEMS}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload)
+    });
 
+    if (!runResponse.ok) {
+      const errorText = await runResponse.text();
+      throw new Error(`Run failed with status: ${runResponse.status} - ${errorText}`);
+    }
 
-  const { items } = await client.dataset(run.defaultDatasetId).listItems();
+    const runData = await runResponse.json();
+    const runId = runData.data.id;
 
-  const filteredSearchResults = items
-    .map((item) => item.detailUrl)
-    .filter(Boolean); // Ensures we only return valid URLs
+    let runStatus;
+    do {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const statusResponse = await fetch(
+        `https://api.apify.com/v2/actor-runs/${runId}?token=${API_TOKEN}`
+      );
 
-  return filteredSearchResults;
-}
+      if (!statusResponse.ok) {
+        const errorText = await statusResponse.text();
+        throw new Error(`Status check failed: ${statusResponse.status} - ${errorText}`);
+      }
+
+      runStatus = await statusResponse.json();
+    } while (runStatus.data.status === "RUNNING" || runStatus.data.status === "READY");
+
+    if (runStatus.data.status !== "SUCCEEDED") {
+      throw new Error(`Run failed with status: ${runStatus.data.status}`);
+    }
+
+    const datasetId = runStatus.data.defaultDatasetId;
+    const itemsResponse = await fetch(
+      `https://api.apify.com/v2/datasets/${datasetId}/items?token=${API_TOKEN}`
+    );
+
+    if (!itemsResponse.ok) {
+      const errorText = await itemsResponse.text();
+      throw new Error(`Failed to fetch items: ${itemsResponse.status} - ${errorText}`);
+    }
+
+    const items = await itemsResponse.json();
+    console.log(`Fetched from Search URLs`, JSON.stringify(items));
+
+    const filteredSearchResults = items
+      .map((item) => item.detailUrl)
+      .filter(Boolean);
+
+    return filteredSearchResults;
+  } catch (error) {
+    console.error('Error in Zillow search scraper:', error);
+    throw error;
+  }
+};

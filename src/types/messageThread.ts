@@ -3,7 +3,7 @@ export interface Conversation {
   contactId: string;
   locationId: string;
   lastMessageBody: string;
-  lastMessageType: string;
+  lastMessageType?: string;
   type: string; 
   unreadCount: number;
   fullName: string;

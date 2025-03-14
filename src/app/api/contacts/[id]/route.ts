@@ -78,6 +78,27 @@ export async function DELETE(
   }
 }
 
+export async function GET(
+  { params }: { params: { id: string } }
+) {
+  try {
+    const contactId = (await params.id);
+    console.log('Fetching contact in GHL:', contactId);
+    const response = await fetchWithErrorHandling(() => getContactById(contactId));
+    console.log('GHL get response:', response);
+    if (response.error) {
+      console.error('GHL get error:', response.error);
+      return NextResponse.json({})
+    }
+
+    return NextResponse.json(response.contact);
+  } catch (error: any) {
+    console.error('Error fetching contact:', error);
+    return NextResponse.json({})
+  }
+
+}
+
 const deleteContactById = async (contactId: string) => {
   const { token } = await getAuthHeaders();
   const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
@@ -113,5 +134,20 @@ const updateContact = async (contactId: string, contactData: any) => {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   const data = await response.json();
+  return data;
+};
+
+const getContactById = async (contactId: string) => {
+  const { token } = await getAuthHeaders();
+  const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
+
+  const options = {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}`, Version: '2021-07-28', Accept: 'application/json' }
+  };
+
+  const response = await fetch(url, options);
+  const data = await response.json();
+
   return data;
 };
