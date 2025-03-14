@@ -61,8 +61,16 @@ export interface Contact {
   customFields?: {
     [key: string]: string | number | boolean | null;
   };
+  assignedTo?: string;
+  source?: string;
+  postalCode?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  address1?: string;
   createdAt?: string;
   updatedAt?: string;
+  type?: string;
 }
 
 export interface ContactsResponse {

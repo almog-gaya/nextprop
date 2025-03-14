@@ -1,26 +1,16 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
-import { Contact } from '@/types';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { timezones } from '@/utils/timezones';
 import { ContactListSkeleton } from '@/components/SkeletonLoaders';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import {
-  EyeIcon,
-  EyeSlashIcon,
-  AdjustmentsHorizontalIcon,
-  PlusCircleIcon,
-  ChatBubbleLeftRightIcon,
-  PhoneIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  InformationCircleIcon
-} from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, PhoneIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import BulkAddToPipelineStage from '@/components/contacts/BulkAddToPipelineStage';
+import { Contact } from '@/types';
+
 
 interface CustomField {
   id: string;
@@ -41,7 +31,6 @@ interface CustomFieldDefinition {
   picklistOptions?: PicklistOption[];
 }
 
-// Define column interface
 interface TableColumn {
   id: string;
   label: string;
@@ -65,57 +54,122 @@ export default function ContactsPage() {
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [isAllSelected, setIsAllSelected] = useState(false);
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
-  const [hiddenColumns, setHiddenColumns] = useState<TableColumn[]>([]);
-  const [isSendingVerification, setIsSendingVerification] = useState(false);
-  const [verificationError, setVerificationError] = useState<string | null>(null);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [verifyPhoneNumber, setVerifyPhoneNumber] = useState('');
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [verificationMessage, setVerificationMessage] = useState('');
   const [phoneDetails, setPhoneDetails] = useState<any>(null);
 
-  // Define available columns
   const [columns, setColumns] = useState<TableColumn[]>([
-    { id: 'name', label: 'Name', key: 'firstName', visible: true },
+    { id: 'name', label: 'Name', key: 'name', visible: true },
     { id: 'email', label: 'Email', key: 'email', visible: true },
     { id: 'phone', label: 'Phone', key: 'phone', visible: true },
     { id: 'tags', label: 'Tags', key: 'tags', visible: true },
+    { id: 'type', label: 'Type', key: 'type', visible: false },
     { id: 'timezone', label: 'Timezone', key: 'timezone', visible: false },
     { id: 'dnd', label: 'DND Status', key: 'dnd', visible: false },
+    { id: 'source', label: 'Source', key: 'source', visible: false },
+    { id: 'address1', label: 'Address', key: 'address1', visible: false },
+    { id: 'city', label: 'City', key: 'city', visible: false },
+    { id: 'state', label: 'State', key: 'state', visible: false },
+    { id: 'country', label: 'Country', key: 'country', visible: false },
+    { id: 'postalCode', label: 'Postal Code', key: 'postalCode', visible: false },
   ]);
 
-  const [newContact, setNewContact] = useState({
+  const [newContact, setNewContact] = useState<Contact>({
+    id: '',
+    name: '',
     firstName: '',
     lastName: '',
-    email: '',
     locationId: 've9EPM428h8vShlRW1KT',
+    email: '',
     phone: '',
+    tags: [],
     timezone: '',
     dnd: false,
-    customFields: [] as CustomField[],
+    customFields: {}, 
     source: 'public api',
+    postalCode: '',
+    city: '',
+    state: '',
     country: 'US',
+    address1: '',
   });
 
-  const [editContact, setEditContact] = useState({
+  const [editContact, setEditContact] = useState<Contact>({
+    id: '',
+    name: '',
     firstName: '',
     lastName: '',
-    email: '',
     locationId: '',
+    email: '',
     phone: '',
+    tags: [],
     timezone: '',
     dnd: false,
-    tags: [] as string[],
-    customFields: [] as CustomField[],
+    customFields: {}, 
+    source: '',
+    postalCode: '',
+    city: '',
+    state: '',
+    country: '',
+    address1: '',
+    createdAt: '',
+    updatedAt: '',
   });
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [contactsPerPage, setContactsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalContacts, setTotalContacts] = useState(0);
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
 
+  // Load columns from localStorage
+  useEffect(() => {
+    const savedColumns = localStorage.getItem('contactColumns');
+    if (savedColumns) {
+      const parsedColumns = JSON.parse(savedColumns);
+      setColumns(prev => {
+        const mergedColumns = [...prev];
+        parsedColumns.forEach((savedCol: TableColumn) => {
+          const index = mergedColumns.findIndex(col => col.id === savedCol.id);
+          if (index !== -1) {
+            mergedColumns[index].visible = savedCol.visible; // Update visibility
+          } else {
+            mergedColumns.push(savedCol); // Add any new columns from localStorage
+          }
+        });
+        console.log('Merged columns from localStorage:', mergedColumns); // Debug log
+        return mergedColumns;
+      });
+    }
+  }, []);
+
+  // Save columns to localStorage
+  useEffect(() => {
+    localStorage.setItem('contactColumns', JSON.stringify(columns));
+  }, [columns]);
+
+  // Add custom fields to columns
+  useEffect(() => {
+    if (customFields.length > 0) {
+      const customColumns = customFields.map(field => ({
+        id: field.id,
+        label: field.name,
+        key: field.fieldKey,
+        visible: false,
+      }));
+      setColumns(prev => {
+        const existingIds = new Set(prev.map(col => col.id));
+        const newColumns = customColumns.filter(col => !existingIds.has(col.id));
+        const updatedColumns = [...prev, ...newColumns];
+        console.log('Updated columns:', updatedColumns); // Debug log
+        return updatedColumns;
+      });
+    }
+  }, [customFields]);
+
+  // Fetch data
   useEffect(() => {
     const validateAndFetch = async () => {
       try {
@@ -135,25 +189,17 @@ export default function ContactsPage() {
   const fetchContacts = async (forceRefresh = false) => {
     try {
       setIsLoading(true);
-
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: contactsPerPage.toString(),
         ...(forceRefresh && { forceRefresh: 'true' }),
         ...(activeTagFilter && { tag: activeTagFilter }),
       });
-
       const response = await axios.get(`/api/contacts?${params.toString()}`);
-
-      if (!response.data || !Array.isArray(response.data.contacts)) {
-        throw new Error('Invalid contacts data received');
-      }
-
       const processedContacts = response.data.contacts.map((contact: Contact) => ({
         ...contact,
-        name: contact?.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+        name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
       }));
-
       setContacts(processedContacts);
       setTotalContacts(response.data.total || processedContacts.length);
       setTotalPages(Math.ceil(response.data.total / contactsPerPage) || 1);
@@ -174,57 +220,55 @@ export default function ContactsPage() {
           name: "Contact Type",
           picklistOptions: [
             { value: "lead", name: "Lead" },
-            { value: "customer", name: "Customer" }
-          ]
-        }
+            { value: "customer", name: "Customer" },
+          ],
+        },
       ];
       setCustomFields(fields);
     } catch (err: any) {
-      console.error('Failed to fetch custom fields:', err);
       toast.error('Failed to load custom fields');
     }
   };
 
   const handleEdit = (contact: Contact) => {
     setSelectedContact(contact);
-    let customFieldsArray: CustomField[] = [];
-
-    if (contact.customFields) {
-      if (Array.isArray(contact.customFields)) {
-        customFieldsArray = contact.customFields as CustomField[];
-      } else {
-        customFieldsArray = Object.entries(contact.customFields).map(([key, value]) => ({
+    const customFieldsArray: CustomField[] = contact.customFields
+      ? Object.entries(contact.customFields).map(([key, value]) => ({
           id: key,
-          key: key,
-          value: value as string | string[] | boolean
-        }));
-      }
-    }
-
+          key,
+          value: value as string | string[] | boolean,
+        }))
+      : [];
     setEditContact({
+      id: contact.id,
+      name: contact.name || '',
       firstName: contact.firstName || '',
       lastName: contact.lastName || '',
-      email: contact.email || '',
       locationId: contact.locationId || '',
+      email: contact.email || '',
       phone: contact.phone || '',
+      tags: contact.tags || [],
       timezone: contact.timezone || '',
       dnd: contact.dnd || false,
-      tags: contact.tags || [],
-      customFields: customFieldsArray,
+      customFields: customFieldsArray, 
+      source: contact.source || '',
+      postalCode: contact.postalCode || '',
+      city: contact.city || '',
+      state: contact.state || '',
+      country: contact.country || '',
+      address1: contact.address1 || '', 
     });
     setIsEditModalOpen(true);
   };
 
-  const handleUpdate = async (formData: any) => {
+  const handleUpdate = async (formData: Contact) => {
     if (!selectedContact) return;
-
     setIsSubmitting(true);
     try {
       const response = await axios.put(`/api/contacts/${selectedContact.id}`, formData);
-
       if (response.data) {
-        setContacts(prevContacts =>
-          prevContacts.map(c => c.id === selectedContact.id ? { ...c, ...response.data } : c)
+        setContacts(prev =>
+          prev.map(c => (c.id === selectedContact.id ? { ...c, ...response.data } : c))
         );
         toast.success('Contact updated successfully');
         setIsEditModalOpen(false);
@@ -244,12 +288,10 @@ export default function ContactsPage() {
 
   const confirmDelete = async () => {
     if (!selectedContact) return;
-
     setIsSubmitting(true);
     try {
       await axios.delete(`/api/contacts/${selectedContact.id}`);
-
-      setContacts(prevContacts => prevContacts.filter(c => c.id !== selectedContact.id));
+      setContacts(prev => prev.filter(c => c.id !== selectedContact.id));
       setTotalContacts(prev => prev - 1);
       setTotalPages(Math.ceil((totalContacts - 1) / contactsPerPage));
       setIsDeleteModalOpen(false);
@@ -262,44 +304,45 @@ export default function ContactsPage() {
     }
   };
 
-  const handleAdd = async (formData: any) => {
+  const handleAdd = async (formData: Contact) => {
     setIsSubmitting(true);
-
-    if (!formData.firstName) {
-      toast.error('First Name is required');
+    if (!formData.name && !formData.firstName) {
+      toast.error('Name or First Name is required');
       setIsSubmitting(false);
       return;
     }
-
     try {
       const response = await axios.post('/api/contacts', formData);
       const contactData = response.data.contact;
-
       if (contactData && contactData.id) {
         const processedContact = {
           ...contactData,
-          name: contactData.firstName || (contactData.phone ? `Contact ${contactData.phone.slice(-4)}` : 'Unknown Contact'),
+          name: contactData.name || contactData.firstName || (contactData.phone ? `Contact ${contactData.phone.slice(-4)}` : 'Unknown Contact'),
         };
-
         setContacts(prev => [processedContact, ...prev]);
         setTotalContacts(prev => prev + 1);
         setTotalPages(Math.ceil((totalContacts + 1) / contactsPerPage));
         toast.success('Contact added successfully');
         setIsAddModalOpen(false);
         setNewContact({
+          id: '',
+          name: '',
           firstName: '',
           lastName: '',
-          email: '',
           locationId: 've9EPM428h8vShlRW1KT',
+          email: '',
           phone: '',
+          tags: [],
           timezone: '',
           dnd: false,
-          customFields: [],
+          customFields: {}, 
           source: 'public api',
+          postalCode: '',
+          city: '',
+          state: '',
           country: 'US',
+          address1: '',
         });
-      } else {
-        toast.error('Invalid response from server');
       }
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to add contact');
@@ -311,9 +354,8 @@ export default function ContactsPage() {
   const renderCustomFieldInput = (field: CustomFieldDefinition, value: any, onChange: (value: any) => void) => {
     const options = field.picklistOptions?.map(option => ({
       value: option.value,
-      label: option.name
+      label: option.name,
     })) || [];
-
     const fieldValue = Array.isArray(value)
       ? value.find((v: any) => v.id === field.id)?.value || ''
       : value || (field.dataType === 'CHECKBOX' ? [] : '');
@@ -322,8 +364,8 @@ export default function ContactsPage() {
       return (
         <select
           value={typeof fieldValue === 'string' ? fieldValue : ''}
-          onChange={(e) => onChange({ id: field.id, key: field.fieldKey, value: e.target.value })}
-          className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+          onChange={e => onChange({ id: field.id, key: field.fieldKey, value: e.target.value })}
+          className="mt-1 block w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
           disabled={isSubmitting}
         >
           <option value="">Select {field.name}</option>
@@ -342,8 +384,8 @@ export default function ContactsPage() {
           <input
             type="text"
             value={fieldValue || ''}
-            onChange={(e) => onChange({ id: field.id, key: field.fieldKey, value: e.target.value })}
-            className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+            onChange={e => onChange({ id: field.id, key: field.fieldKey, value: e.target.value })}
+            className="mt-1 block w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
             placeholder={`Enter ${field.name}`}
             disabled={isSubmitting}
           />
@@ -356,14 +398,10 @@ export default function ContactsPage() {
                 <input
                   type="checkbox"
                   checked={Array.isArray(fieldValue) ? fieldValue.includes(option.value) : false}
-                  onChange={(e) => {
+                  onChange={e => {
                     const newValue = Array.isArray(fieldValue) ? [...fieldValue] : [];
-                    if (e.target.checked) {
-                      newValue.push(option.value);
-                    } else {
-                      const index = newValue.indexOf(option.value);
-                      if (index > -1) newValue.splice(index, 1);
-                    }
+                    if (e.target.checked) newValue.push(option.value);
+                    else newValue.splice(newValue.indexOf(option.value), 1);
                     onChange({ id: field.id, key: field.fieldKey, value: newValue });
                   }}
                   className="mr-2"
@@ -379,8 +417,8 @@ export default function ContactsPage() {
           <input
             type="text"
             value={fieldValue || ''}
-            onChange={(e) => onChange({ id: field.id, key: field.fieldKey, value: e.target.value })}
-            className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+            onChange={e => onChange({ id: field.id, key: field.fieldKey, value: e.target.value })}
+            className="mt-1 block w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
             placeholder={`Enter ${field.name}`}
             disabled={isSubmitting}
           />
@@ -389,7 +427,7 @@ export default function ContactsPage() {
   };
 
   const ModalContent = ({ isEdit = false }) => {
-    const [formData, setFormData] = useState(isEdit ? editContact : newContact);
+    const [formData, setFormData] = useState<Contact>(isEdit ? editContact : newContact);
 
     useEffect(() => {
       setFormData(isEdit ? editContact : newContact);
@@ -404,20 +442,19 @@ export default function ContactsPage() {
       }
     };
 
+    const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+      setFormData(prev => ({ ...prev, tags }));
+    };
+
     return (
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 sm:p-6 z-50"
-        onClick={() => {
-          if (isEdit) {
-            setIsEditModalOpen(false);
-          } else {
-            setIsAddModalOpen(false);
-          }
-        }}
+        className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+        onClick={() => (isEdit ? setIsEditModalOpen(false) : setIsAddModalOpen(false))}
       >
         <div
-          className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md sm:max-w-lg mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative"
-          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
+          onClick={e => e.stopPropagation()}
         >
           <button
             onClick={() => {
@@ -426,38 +463,56 @@ export default function ContactsPage() {
               } else {
                 setIsAddModalOpen(false);
                 setNewContact({
+                  id: '',
+                  name: '',
                   firstName: '',
                   lastName: '',
-                  email: '',
                   locationId: 've9EPM428h8vShlRW1KT',
+                  email: '',
                   phone: '',
+                  tags: [],
                   timezone: '',
                   dnd: false,
-                  customFields: [],
+                  customFields: {}, 
                   source: 'public api',
+                  postalCode: '',
+                  city: '',
+                  state: '',
                   country: 'US',
+                  address1: '',
                 });
               }
             }}
-            className="absolute top-3 right-3 sm:top-4 sm:right-4 w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200/50 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+            className="absolute top-4 right-4 w-6 h-6 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-900">{isEdit ? 'Edit Contact' : 'Add New Contact'}</h3>
-          <p className="text-sm text-gray-600 mb-4 sm:mb-6">{isEdit ? 'Update contact details below' : 'Create a new contact by filling in the details below'}</p>
+          <h3 className="text-xl font-semibold mb-2 text-gray-900">{isEdit ? 'Edit Contact' : 'Add New Contact'}</h3>
+          <p className="text-sm text-gray-600 mb-6">{isEdit ? 'Update contact details below' : 'Create a new contact'}</p>
           <form onSubmit={handleSubmit}>
-            <div className="space-y-4 sm:space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-5">
+              {/* Name Fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                  required={!formData.firstName} // Required if firstName is not provided
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                   <input
                     type="text"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
-                    required
+                    value={formData.firstName || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -465,21 +520,23 @@ export default function ContactsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                   <input
                     type="text"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+                    value={formData.lastName || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                     disabled={isSubmitting}
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* Contact Info */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <input
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+                    value={formData.email || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -487,21 +544,37 @@ export default function ContactsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                   <input
                     type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+                    value={formData.phone || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                     disabled={isSubmitting}
                   />
                 </div>
               </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  value={formData.tags?.join(', ') || ''}
+                  onChange={handleTagChange}
+                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                  placeholder="e.g., lead, customer"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              {/* Timezone and DND */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
                 <select
-                  value={formData.timezone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                  className="mt-1 block w-full border border-gray-200 rounded-md p-2 sm:p-2.5 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 placeholder-gray-400 text-sm transition-all hover:border-gray-300"
+                  value={formData.timezone || ''}
+                  onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                   disabled={isSubmitting}
                 >
+                  <option value="">Select Timezone</option>
                   {timezones.map(timezone => (
                     <option key={timezone.value} value={timezone.value}>
                       {timezone.label}
@@ -514,7 +587,7 @@ export default function ContactsPage() {
                   <input
                     type="checkbox"
                     checked={formData.dnd}
-                    onChange={(e) => setFormData(prev => ({ ...prev, dnd: e.target.checked }))}
+                    onChange={e => setFormData(prev => ({ ...prev, dnd: e.target.checked }))}
                     className="mr-2"
                     disabled={isSubmitting}
                   />
@@ -522,64 +595,110 @@ export default function ContactsPage() {
                 </label>
               </div>
 
-              {customFields.map(field => {
-                const customFieldValue = formData.customFields.find(cf => cf.id === field.id)?.value ||
-                  (field.dataType === 'CHECKBOX' ? [] : '');
+              {/* Address Fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                <input
+                  type="text"
+                  value={formData.address1 || ''}
+                  onChange={e => setFormData(prev => ({ ...prev, address1: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <input
+                    type="text"
+                    value={formData.city || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <input
+                    type="text"
+                    value={formData.state || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                  <input
+                    type="text"
+                    value={formData.postalCode || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <input
+                    type="text"
+                    value={formData.country || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+ 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+                <input
+                  type="text"
+                  value={formData.source || ''}
+                  onChange={e => setFormData(prev => ({ ...prev, source: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                  disabled={isSubmitting}
+                />
+              </div>
 
+              {/* Custom Fields */}
+              {customFields.map(field => {
+                const customFieldValue =
+                  formData.customFields && typeof formData.customFields === 'object'
+                    ? formData.customFields[field.fieldKey] || (field.dataType === 'CHECKBOX' ? [] : '')
+                    : field.dataType === 'CHECKBOX' ? [] : '';
                 return (
                   <div key={field.id}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{field.name}</label>
-                    {renderCustomFieldInput(field, customFieldValue, (value) => {
-                      const updatedCustomFields = [...formData.customFields.filter(cf => cf.id !== field.id), value];
+                    {renderCustomFieldInput(field, customFieldValue, value => {
+                      const updatedCustomFields = {
+                        ...(formData.customFields || {}),
+                        [field.fieldKey]: value.value,
+                      };
                       setFormData(prev => ({ ...prev, customFields: updatedCustomFields }));
                     })}
                   </div>
                 );
               })}
+
+         
             </div>
-            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 sm:pt-6 border-t border-gray-200">
+            <div className="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200">
               <button
                 type="button"
-                onClick={() => {
-                  if (isEdit) {
-                    setIsEditModalOpen(false);
-                  } else {
-                    setIsAddModalOpen(false);
-                    setNewContact({
-                      firstName: '',
-                      lastName: '',
-                      email: '',
-                      locationId: 've9EPM428h8vShlRW1KT',
-                      phone: '',
-                      timezone: '',
-                      dnd: false,
-                      customFields: [],
-                      source: 'public api',
-                      country: 'US',
-                    });
-                  }
-                }}
-                className="px-4 py-2 bg-gray-100/80 text-gray-700 rounded-md hover:bg-gray-200/80 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm transition-colors w-full sm:w-auto"
+                onClick={() => (isEdit ? setIsEditModalOpen(false) : setIsAddModalOpen(false))}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
                 disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="btn-primary px-4 py-2 text-white rounded-md text-sm transition-colors disabled:opacity-50 w-full sm:w-auto"
+                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm disabled:opacity-50"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                    </svg>
-                    {isEdit ? 'Updating...' : 'Saving...'}
-                  </>
-                ) : (
-                  isEdit ? 'Update Contact' : 'Add Contact'
-                )}
+                {isSubmitting ? 'Saving...' : isEdit ? 'Update Contact' : 'Add Contact'}
               </button>
             </div>
           </form>
@@ -607,17 +726,12 @@ export default function ContactsPage() {
 
   const TagFilters = () => {
     const allTags = new Set<string>();
-    contacts.forEach(contact => {
-      if (contact.tags && Array.isArray(contact.tags)) {
-        contact.tags.forEach(tag => allTags.add(tag));
-      }
-    });
-
+    contacts.forEach(contact => contact.tags?.forEach(tag => allTags.add(tag)));
     const uniqueTags = Array.from(allTags).sort();
-    const scrapedLeadIndex = uniqueTags.indexOf("scraped-lead");
+    const scrapedLeadIndex = uniqueTags.indexOf('scraped-lead');
     if (scrapedLeadIndex > -1) {
       uniqueTags.splice(scrapedLeadIndex, 1);
-      uniqueTags.unshift("scraped-lead");
+      uniqueTags.unshift('scraped-lead');
     }
 
     return (
@@ -626,50 +740,23 @@ export default function ContactsPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => filterContactsByTag(null)}
-            className={`px-3 py-1 rounded-full text-sm ${activeTagFilter === null
-              ? 'bg-purple-600 text-white'
-              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
+            className={`px-3 py-1 rounded-full text-sm ${activeTagFilter === null ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
           >
             All Contacts ({totalContacts})
           </button>
-
           {uniqueTags.map(tag => {
-            const count = contacts.filter(c => c.tags && c.tags.includes(tag)).length;
-            let tagLabel = tag;
-            let tagClass = '';
-
-            if (tag === 'scraped-lead') {
-              tagLabel = 'Scraped Leads';
-              tagClass = 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-            }
-
+            const count = contacts.filter(c => c.tags?.includes(tag)).length;
             return (
               <button
                 key={tag}
                 onClick={() => filterContactsByTag(tag)}
-                className={`px-3 py-1 rounded-full text-sm ${activeTagFilter === tag
-                  ? 'bg-purple-600 text-white'
-                  : tagClass || 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                  }`}
+                className={`px-3 py-1 rounded-full text-sm ${activeTagFilter === tag ? 'bg-purple-600 text-white' : tag === 'scraped-lead' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
               >
-                {tagLabel} ({count})
+                {tag === 'scraped-lead' ? 'Scraped Leads' : tag} ({count})
               </button>
             );
           })}
         </div>
-
-        {activeTagFilter === 'scraped-lead' && (
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-700 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              These scraped contacts have been automatically added to your Leads Pipeline in the "Review New Lead" stage.
-              <a href="/opportunities" className="ml-1 font-medium underline">View your Pipeline</a>
-            </p>
-          </div>
-        )}
       </div>
     );
   };
@@ -677,49 +764,22 @@ export default function ContactsPage() {
   const PaginationControls = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
-
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
-
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(i);
     }
 
     return (
-      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
-        <div className="flex flex-1 justify-between sm:hidden">
-          <button
-            onClick={() => changePage(currentPage - 1)}
-            disabled={currentPage === 1}
-            className={`relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium 
-              ${currentPage === 1
-                ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => changePage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className={`relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium 
-              ${currentPage === totalPages
-                ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-          >
-            Next
-          </button>
-        </div>
+      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 mt-4">
         <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{contacts.length > 0 ? (currentPage - 1) * contactsPerPage + 1 : 0}</span> to{' '}
-              <span className="font-medium">
-                {Math.min(currentPage * contactsPerPage, totalContacts)}
-              </span> of{' '}
+              Showing <span className="font-medium">{(currentPage - 1) * contactsPerPage + 1}</span> to{' '}
+              <span className="font-medium">{Math.min(currentPage * contactsPerPage, totalContacts)}</span> of{' '}
               <span className="font-medium">{totalContacts}</span> results
             </p>
           </div>
@@ -730,7 +790,7 @@ export default function ContactsPage() {
                 id="perPage"
                 value={contactsPerPage}
                 onChange={handleContactsPerPageChange}
-                className="rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                className="rounded-md border-gray-300 focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -738,80 +798,51 @@ export default function ContactsPage() {
                 <option value={100}>100</option>
               </select>
             </div>
-            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+            <nav className="inline-flex -space-x-px rounded-md shadow-sm">
               <button
                 onClick={() => changePage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`relative inline-flex items-center rounded-l-md px-2 py-2 
-                  ${currentPage === 1
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-gray-500 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                className={`px-2 py-2 rounded-l-md ${currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
               >
-                <span className="sr-only">Previous</span>
-                <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+                <ChevronLeftIcon className="h-5 w-5" />
               </button>
-
               {startPage > 1 && (
                 <>
                   <button
                     onClick={() => changePage(1)}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                      ${currentPage === 1
-                        ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600'
-                        : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                    className={`px-4 py-2 text-sm font-semibold ${currentPage === 1 ? 'bg-purple-600 text-white' : 'text-gray-900 hover:bg-gray-50'}`}
                   >
                     1
                   </button>
-                  {startPage > 2 && (
-                    <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
-                      ...
-                    </span>
-                  )}
+                  {startPage > 2 && <span className="px-4 py-2 text-sm text-gray-700">...</span>}
                 </>
               )}
-
               {pageNumbers.map(number => (
                 <button
                   key={number}
                   onClick={() => changePage(number)}
-                  className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                    ${currentPage === number
-                      ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600'
-                      : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                  className={`px-4 py-2 text-sm font-semibold ${currentPage === number ? 'bg-purple-600 text-white' : 'text-gray-900 hover:bg-gray-50'}`}
                 >
                   {number}
                 </button>
               ))}
-
               {endPage < totalPages && (
                 <>
-                  {endPage < totalPages - 1 && (
-                    <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
-                      ...
-                    </span>
-                  )}
+                  {endPage < totalPages - 1 && <span className="px-4 py-2 text-sm text-gray-700">...</span>}
                   <button
                     onClick={() => changePage(totalPages)}
-                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                      ${currentPage === totalPages
-                        ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600'
-                        : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                    className={`px-4 py-2 text-sm font-semibold ${currentPage === totalPages ? 'bg-purple-600 text-white' : 'text-gray-900 hover:bg-gray-50'}`}
                   >
                     {totalPages}
                   </button>
                 </>
               )}
-
               <button
                 onClick={() => changePage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className={`relative inline-flex items-center rounded-r-md px-2 py-2 
-                  ${currentPage === totalPages
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-gray-500 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
+                className={`px-2 py-2 rounded-r-md ${currentPage === totalPages ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
               >
-                <span className="sr-only">Next</span>
-                <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+                <ChevronRightIcon className="h-5 w-5" />
               </button>
             </nav>
           </div>
@@ -820,34 +851,74 @@ export default function ContactsPage() {
     );
   };
 
-  // Toggle column visibility
-  const hideColumn = (columnId: string) => {
-    setColumns(prevColumns => {
-      const updatedColumns = prevColumns.map(column =>
-        column.id === columnId ? { ...column, visible: false } : column
-      );
-
-      const hiddenColumn = prevColumns.find(col => col.id === columnId);
-      if (hiddenColumn) {
-        setHiddenColumns(prev => [...prev, { ...hiddenColumn, visible: false }]);
-      }
-
-      return updatedColumns;
-    });
-  };
-
-  // Show a hidden column
-  const showColumn = (columnId: string) => {
-    setColumns(prevColumns =>
-      prevColumns.map(column =>
-        column.id === columnId ? { ...column, visible: true } : column
-      )
+  const toggleColumnVisibility = (columnId: string) => {
+    setColumns(prev =>
+      prev.map(column => (column.id === columnId ? { ...column, visible: !column.visible } : column))
     );
-
-    setHiddenColumns(prev => prev.filter(col => col.id !== columnId));
   };
 
-  // Toggle select all contacts
+  const ColumnManager = () => {
+    const dropdownRef = useRef<HTMLDivElement>(null);
+  
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+          setIsColumnSelectorOpen(false);
+        }
+      };
+  
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+  
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsColumnSelectorOpen(!isColumnSelectorOpen);
+          }}
+          className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center"
+        >
+          <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
+          Manage Columns
+        </button>
+        {isColumnSelectorOpen && (
+          <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+            <div className="p-2 border-b border-gray-100">
+              <h3 className="text-xs font-medium text-gray-500 uppercase">Columns</h3>
+            </div>
+            <div className="py-1 max-h-64 overflow-y-auto">
+              {columns.map(column => (
+                <label 
+                  key={column.id} 
+                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={column.visible}
+                    onChange={() => toggleColumnVisibility(column.id)}
+                    className="mr-2 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  />
+                  {column.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => setIsColumnSelectorOpen(false);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isColumnSelectorOpen]);
+
   const toggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedContacts([]);
@@ -857,43 +928,26 @@ export default function ContactsPage() {
     setIsAllSelected(!isAllSelected);
   };
 
-  // Toggle select single contact
   const toggleSelectContact = (contact: Contact) => {
-    setSelectedContacts(prevSelected => {
-      if (prevSelected!.some(c => c.id === contact.id)) {
-        return prevSelected!.filter(c => c.id !== contact.id);
-      } else {
-        return [...prevSelected!, contact];
-      }
-    });
+    setSelectedContacts(prev =>
+      prev.includes(contact) ? prev.filter(c => c.id !== contact.id) : [...prev, contact]
+    );
   };
 
-  // Check if all contacts are selected
   useEffect(() => {
-    if (contacts.length > 0 && selectedContacts?.length === contacts.length) {
-      setIsAllSelected(true);
-    } else {
-      setIsAllSelected(false);
-    }
+    setIsAllSelected(contacts.length > 0 && selectedContacts.length === contacts.length);
   }, [selectedContacts, contacts]);
 
-  // Handle bulk delete
   const confirmBulkDelete = async () => {
     setIsSubmitting(true);
     try {
-      // In a real app, you might want to perform a batch delete operation
-      await Promise.all(
-        selectedContacts!.map(contact => axios.delete(`/api/contacts/${contact.id}`))
-      );
-
-      setContacts(prevContacts =>
-        prevContacts.filter(contact => !selectedContacts!.includes(contact))
-      );
-      setTotalContacts(prev => prev - selectedContacts!.length);
-      setTotalPages(Math.ceil((totalContacts - selectedContacts!.length) / contactsPerPage) || 1);
+      await Promise.all(selectedContacts.map(contact => axios.delete(`/api/contacts/${contact.id}`)));
+      setContacts(prev => prev.filter(contact => !selectedContacts.includes(contact)));
+      setTotalContacts(prev => prev - selectedContacts.length);
+      setTotalPages(Math.ceil((totalContacts - selectedContacts.length) / contactsPerPage) || 1);
       setIsBulkDeleteModalOpen(false);
       setSelectedContacts([]);
-      toast.success(`${selectedContacts!.length} contacts deleted successfully`);
+      toast.success(`${selectedContacts.length} contacts deleted successfully`);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to delete contacts');
     } finally {
@@ -901,121 +955,67 @@ export default function ContactsPage() {
     }
   };
 
-
-  // Render column manager
-  const ColumnManager = () => {
-    return (
-      <div className="relative">
+  const renderCell = (contact: Contact, column: TableColumn) => {
+    const value = contact[column.key as keyof Contact];
+    if (column.id === 'name') {
+      return (
         <button
-          onClick={() => setIsColumnSelectorOpen(!isColumnSelectorOpen)}
-          className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center"
+          onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
+          className="text-left font-medium text-blue-600 hover:text-blue-800 hover:underline"
         >
-          <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
-          Manage Columns
+          {value?.toString() || 'N/A'}
         </button>
-
-        {isColumnSelectorOpen && (
-          <div
-            className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-2 border-b border-gray-100">
-              <h3 className="text-xs font-medium text-gray-500 uppercase">Hidden Columns</h3>
-            </div>
-            <div className="py-1" role="menu" aria-orientation="vertical">
-              {hiddenColumns.length > 0 ? (
-                hiddenColumns.map(column => (
-                  <button
-                    key={column.id}
-                    onClick={() => showColumn(column.id)}
-                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <PlusCircleIcon className="h-4 w-4 mr-2 text-green-500" />
-                    {column.label}
-                  </button>
-                ))
-              ) : (
-                <p className="px-4 py-2 text-sm text-gray-500 italic">No hidden columns</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
+      );
+    } else if (column.id === 'tags') {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {contact.tags?.map((tag, idx) => (
+            <span
+              key={idx}
+              className={`px-2 py-1 text-xs rounded-full ${tag === 'scraped-lead' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      );
+    } else if (column.id === 'dnd') {
+      return contact.dnd ? 'Do Not Disturb' : 'Available';
+    } else if (customFields.some(field => field.fieldKey === column.key)) {
+      const customField = contact.customFields?.[column.key];
+      return customField?.toString() || 'N/A';
+    }
+    return typeof value === 'object' && value !== null ? JSON.stringify(value) : (value?.toString() || 'N/A');
   };
 
-  // Close column selector when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (isColumnSelectorOpen) {
-        setIsColumnSelectorOpen(false);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [isColumnSelectorOpen]);
-
-  // Initialize hidden columns on component mount
-  useEffect(() => {
-    setHiddenColumns(columns.filter(col => !col.visible));
-  }, []);
-
-  // Navigate to messaging page with the specified contact
-  const navigateToMessaging = (contactId: string) => {
-    router.push(`/messaging?contactId=${contactId}`);
-  };
-
-  // Lookup phone number via Twilio
   const lookupPhoneNumber = async (phone: string) => {
     if (!phone) {
       toast.error('Please enter a phone number');
       return;
     }
-
-    // Keep focus in the input by using setTimeout
-    setTimeout(() => {
-      document.getElementById('phone')?.focus();
-    }, 0);
-
     setVerificationStatus('loading');
     setVerificationMessage('');
     setPhoneDetails(null);
-
-    // Format phone number if needed
     const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
-
     try {
       const response = await axios.post('/api/twilio/verify', { phone: formattedPhone });
-
       if (response.data?.success) {
         setVerificationStatus('success');
-        setVerificationMessage(`Phone number validated successfully`);
+        setVerificationMessage('Phone number validated successfully');
         setPhoneDetails(response.data.data);
-        toast.success(`Phone number validated`);
+        toast.success('Phone number validated');
       } else {
         throw new Error(response.data?.error || 'Failed to validate phone number');
       }
     } catch (err: any) {
-      console.error('Error validating phone number:', err);
-      const errorMessage = err.response?.data?.details?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        'Failed to validate phone number';
+      const errorMessage =
+        err.response?.data?.details?.message || err.response?.data?.error || err.message || 'Failed to validate phone number';
       setVerificationStatus('error');
       setVerificationMessage(errorMessage);
       toast.error(errorMessage);
     }
-
-    // Refocus on the input field
-    setTimeout(() => {
-      document.getElementById('phone')?.focus();
-    }, 0);
   };
 
-  // Reset verification modal state
   const resetVerificationModal = () => {
     setVerifyPhoneNumber('');
     setVerificationStatus('idle');
@@ -1023,25 +1023,20 @@ export default function ContactsPage() {
     setPhoneDetails(null);
   };
 
-  // Phone Lookup Modal
   const PhoneLookupModal = () => {
     return (
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
-        onClick={(e) => {
-          // Prevent closing if clicking inside the modal content
-          if (e.target === e.currentTarget) {
-            setIsVerifyModalOpen(false);
-            resetVerificationModal();
-          }
+        className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+        onClick={() => {
+          setIsVerifyModalOpen(false);
+          resetVerificationModal();
         }}
       >
         <div
-          className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
-          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+          onClick={e => e.stopPropagation()}
         >
-          <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900">Phone Number Lookup</h3>
-
+          <h3 className="text-xl font-semibold mb-4 text-gray-900">Phone Number Lookup</h3>
           <div className="mb-5">
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
               Phone Number
@@ -1053,32 +1048,22 @@ export default function ContactsPage() {
                 className="block w-full pr-10 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="+1 (123) 456-7890"
                 value={verifyPhoneNumber}
-                onChange={(e) => {
-                  setVerifyPhoneNumber(e.target.value);
-                }}
-                onBlur={(e) => {
-                  // Format the phone number if needed
+                onChange={e => setVerifyPhoneNumber(e.target.value)}
+                onBlur={e => {
                   const phone = e.target.value.trim();
-                  if (phone && !phone.startsWith('+')) {
-                    setVerifyPhoneNumber(`+${phone}`);
-                  }
+                  if (phone && !phone.startsWith('+')) setVerifyPhoneNumber(`+${phone}`);
                 }}
                 autoFocus
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <PhoneIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                <PhoneIcon className="h-5 w-5 text-gray-400" />
               </div>
             </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Enter a phone number to lookup and validate
-            </p>
           </div>
-
           {verificationStatus !== 'idle' && (
-            <div className={`mb-4 p-3 rounded-md ${verificationStatus === 'loading' ? 'bg-blue-50 text-blue-800' :
-              verificationStatus === 'success' ? 'bg-green-50 text-green-800' :
-                'bg-red-50 text-red-800'
-              }`}>
+            <div
+              className={`mb-4 p-3 rounded-md ${verificationStatus === 'loading' ? 'bg-blue-50 text-blue-800' : verificationStatus === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}
+            >
               <div className="flex items-start">
                 {verificationStatus === 'loading' && (
                   <svg className="animate-spin h-5 w-5 mr-2 mt-0.5" viewBox="0 0 24 24">
@@ -1086,8 +1071,8 @@ export default function ContactsPage() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
                   </svg>
                 )}
-                {verificationStatus === 'success' && <CheckCircleIcon className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />}
-                {verificationStatus === 'error' && <XCircleIcon className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />}
+                {verificationStatus === 'success' && <CheckCircleIcon className="h-5 w-5 mr-2 mt-0.5" />}
+                {verificationStatus === 'error' && <XCircleIcon className="h-5 w-5 mr-2 mt-0.5" />}
                 <div>
                   <p>{verificationStatus === 'loading' ? 'Validating phone number...' : verificationMessage}</p>
                   {phoneDetails && (
@@ -1095,13 +1080,10 @@ export default function ContactsPage() {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="font-semibold">Country Code:</div>
                         <div>{phoneDetails.country_code || 'N/A'}</div>
-
                         <div className="font-semibold">Carrier:</div>
                         <div>{phoneDetails.carrier?.name || 'N/A'}</div>
-
                         <div className="font-semibold">Type:</div>
                         <div>{phoneDetails.line_type_intelligence?.type || 'N/A'}</div>
-
                         <div className="font-semibold">Valid:</div>
                         <div>{phoneDetails.valid ? 'Yes' : 'No'}</div>
                       </div>
@@ -1111,21 +1093,20 @@ export default function ContactsPage() {
               </div>
             </div>
           )}
-
           <div className="flex justify-end space-x-3">
             <button
               onClick={() => {
                 setIsVerifyModalOpen(false);
                 resetVerificationModal();
               }}
-              className="px-4 py-2 bg-gray-100/80 text-gray-700 rounded-md hover:bg-gray-200/80 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm transition-colors"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
             >
               Close
             </button>
             <button
               onClick={() => lookupPhoneNumber(verifyPhoneNumber)}
               disabled={verificationStatus === 'loading' || !verifyPhoneNumber}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm transition-colors disabled:opacity-50 flex items-center"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm disabled:opacity-50 flex items-center"
             >
               {verificationStatus === 'loading' ? (
                 <>
@@ -1155,19 +1136,14 @@ export default function ContactsPage() {
           <h2 className="dashboard-card-title">All Contacts</h2>
           <div className="flex space-x-3">
             <ColumnManager />
-
             <button
               onClick={() => setIsVerifyModalOpen(true)}
-              className="px-3 py-2 bg-blue-500 border border-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+              className="px-3 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 flex items-center"
             >
               <InformationCircleIcon className="h-4 w-4 mr-2" />
               Verify Phone
             </button>
-
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="btn-primary"
-            >
+            <button onClick={() => setIsAddModalOpen(true)} className="btn-primary">
               Add Contact
             </button>
           </div>
@@ -1175,102 +1151,67 @@ export default function ContactsPage() {
 
         {contacts.length > 0 && <TagFilters />}
 
-        {activeTagFilter === 'scraped-lead' && (
-          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-700 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              These scraped contacts have been automatically added to your Leads Pipeline in the "Review New Lead" stage.
-              <a href="/opportunities" className="ml-1 font-medium underline">View your Pipeline</a>
-            </p>
-          </div>
-        )}
-
         {isAddModalOpen && <ModalContent />}
         {isEditModalOpen && <ModalContent isEdit />}
-
         {isDeleteModalOpen && selectedContact && (
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             onClick={() => setIsDeleteModalOpen(false)}
           >
             <div
-              className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
-              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+              onClick={e => e.stopPropagation()}
             >
-              <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-900">Delete Contact</h3>
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Delete Contact</h3>
               <p className="text-sm text-gray-600 mb-6">
-                Are you sure you want to delete "{selectedContact.firstName}"? This action cannot be undone.
+                Are you sure you want to delete "{selectedContact.name}"? This action cannot be undone.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setIsDeleteModalOpen(false)}
-                  className="px-4 py-2 bg-gray-100/80 text-gray-700 rounded-md hover:bg-gray-200/80 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm transition-colors"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm disabled:opacity-50"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                      </svg>
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete'
-                  )}
+                  {isSubmitting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>
           </div>
         )}
-
-        {/* Bulk Delete Modal */}
         {isBulkDeleteModalOpen && (
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
             onClick={() => setIsBulkDeleteModalOpen(false)}
           >
             <div
-              className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
-              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+              onClick={e => e.stopPropagation()}
             >
-              <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-900">Delete Selected Contacts</h3>
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Delete Selected Contacts</h3>
               <p className="text-sm text-gray-600 mb-6">
                 Are you sure you want to delete {selectedContacts.length} selected contacts? This action cannot be undone.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setIsBulkDeleteModalOpen(false)}
-                  className="px-4 py-2 bg-gray-100/80 text-gray-700 rounded-md hover:bg-gray-200/80 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm transition-colors"
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmBulkDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm disabled:opacity-50"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                      </svg>
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete Selected'
-                  )}
+                  {isSubmitting ? 'Deleting...' : 'Delete Selected'}
                 </button>
               </div>
             </div>
@@ -1280,167 +1221,106 @@ export default function ContactsPage() {
           contacts={selectedContacts}
           isOpen={isBulkAddOpportunities}
           setIsOpen={setIsBulkAddOpportunities}
-          onComplete={(newOpportunities) => {
-            setIsLoading(false);
-          }}
-          onError={(error) => {
+          onComplete={() => setIsLoading(false)}
+          onError={error => {
             setError(error);
             setIsLoading(false);
           }}
           isSubmitting={isSubmitting}
         />
-
         {isVerifyModalOpen && <PhoneLookupModal />}
 
         {isLoading ? (
           <ContactListSkeleton />
         ) : error ? (
-          <div className="bg-red-50 p-4 rounded-md text-red-800">
-            <p>{error}</p>
-          </div>
+          <div className="bg-red-50 p-4 rounded-md text-red-800">{error}</div>
         ) : contacts.length > 0 ? (
           <div>
-
-            {selectedContacts!.length > 0 && (
+            {selectedContacts.length > 0 && (
               <div className="mb-4 flex items-center justify-between bg-purple-50 p-3 rounded-md border border-purple-100">
                 <span className="text-sm text-purple-800">
-                  <span className="font-semibold">{selectedContacts!.length}</span> contacts selected
+                  <span className="font-semibold">{selectedContacts.length}</span> contacts selected
                 </span>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setIsBulkAddOpportunities(true)}
-                    className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
+                    className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
                   >
                     Add to Opportunities
                   </button>
                   <button
                     onClick={() => setIsBulkDeleteModalOpen(true)}
-                    className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200"
+                    className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
                   >
                     Delete Selected
                   </button>
                 </div>
               </div>
             )}
-            <div className="relative max-w-full overflow-x-hidden">
-              <div className="max-h-[60vh] overflow-y-auto">
-                <table className="w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
-                    <tr>
-                      <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+            <div className="relative max-w-full overflow-x-auto">
+              <table className="w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                      />
+                    </th>
+                    {columns.filter(col => col.visible).map(column => (
+                      <th
+                        key={column.id}
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        {column.label}
+                      </th>
+                    ))}
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {contacts.map(contact => (
+                    <tr key={contact.id}>
+                      <td className="pl-4 pr-3 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
-                          checked={isAllSelected}
-                          onChange={toggleSelectAll}
+                          checked={selectedContacts.includes(contact)}
+                          onChange={() => toggleSelectContact(contact)}
                           className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                         />
-                      </th>
-                      {columns.filter(column => column.visible).map(column => (
-                        <th
-                          key={column.id}
-                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative"
-                        >
-                          <div className="flex items-center">
-                            <span>{column.label}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                hideColumn(column.id);
-                              }}
-                              className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-                              title={`Hide ${column.label} column`}
-                            >
-                              <EyeSlashIcon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                            </button>
-                          </div>
-                        </th>
+                      </td>
+                      {columns.filter(col => col.visible).map(column => (
+                        <td key={column.id} className="px-4 py-4 truncate max-w-[200px]">
+                          {renderCell(contact, column)}
+                        </td>
                       ))}
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
+                          className="text-blue-600 hover:text-blue-800 mr-2"
+                          title="Message this contact"
+                        >
+                          <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(contact)}
+                          className="text-purple-600 hover:text-purple-900 mr-2"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(contact)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {contacts.map((contact) => (
-                      <tr
-                        key={contact.id}
-                        className="transition-colors"
-                      >
-                        <td className="pl-4 pr-3 py-4 whitespace-nowrap">
-                          <input
-                            type="checkbox"
-                            checked={selectedContacts!.includes(contact)}
-                            onChange={() => toggleSelectContact(contact)}
-                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                          />
-                        </td>
-                        {columns.filter(col => col.visible).map(column => (
-                          <td key={column.id} className="px-4 py-4 truncate max-w-[200px]">
-                            {column.id === 'name' ? (
-                              <button
-                                onClick={() => navigateToMessaging(contact.id)}
-                                className="text-left font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:underline"
-                              >
-                                {contact[column.key as keyof Contact]?.toString() || 'N/A'}
-                              </button>
-                            ) : column.id === 'tags' ? (
-                              <div className="flex flex-wrap gap-1 overflow-hidden">
-                                {contact.tags && contact.tags.map((tag, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`px-2 py-1 text-xs rounded-full truncate ${tag === 'scraped-lead'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : tag === 'review-new-lead'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                      }`}
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : column.id === 'dnd' ? (
-                              contact.dnd ? 'Do Not Disturb' : 'Available'
-                            ) : (
-                              typeof contact[column.key as keyof Contact] === 'object'
-                                ? '-'
-                                : (contact[column.key as keyof Contact]?.toString() || 'N/A')
-                            )}
-                          </td>
-                        ))}
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigateToMessaging(contact.id);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 mr-2"
-                            title="Message this contact"
-                          >
-                            <ChatBubbleLeftRightIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(contact);
-                            }}
-                            className="text-purple-600 hover:text-blue-900 mr-2"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(contact);
-                            }}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
             <PaginationControls />
           </div>

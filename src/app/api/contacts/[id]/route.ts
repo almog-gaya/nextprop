@@ -117,6 +117,15 @@ const updateContact = async (contactId: string, contactData: any) => {
   const { token } = await getAuthHeaders();
   const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
   delete contactData.locationId;
+  delete contactData.id;
+  delete contactData.createdAt;
+  delete contactData.updatedAt;
+  if(!contactData.phone) {
+    delete contactData.phone;
+  }
+  if(!contactData.email) {
+    delete contactData.email;
+  }
   const options = {
     method: 'PUT',
     headers: {
@@ -129,10 +138,12 @@ const updateContact = async (contactId: string, contactData: any) => {
   };
 
   const response = await fetch(url, options);
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
   const data = await response.json();
+
+  console.log(`[Update-Contact]: Data Response: `, JSON.stringify(data));
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status} ${data.message}`);
+  }
   return data;
 };
 
@@ -148,5 +159,6 @@ const getContactById = async (contactId: string) => {
   const response = await fetch(url, options);
   const data = await response.json();
 
+  console.log(`[Get-Contact]: Data Response: `, JSON.stringify(data));
   return data;
 };
