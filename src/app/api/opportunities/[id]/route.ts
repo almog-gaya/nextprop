@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         ));
         return NextResponse.json({
             success: true,
-            message: 'Opportunity updated successfully',
+            message: 'Lead updated successfully',
             data
         }, { status: 200 });
     } catch (error: any) {

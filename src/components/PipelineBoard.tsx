@@ -203,13 +203,13 @@ export default function PipelineBoard() {
           
           {opportunity.source && (
             <div className="text-sm mt-1">
-              <span className="text-gray-500">Opportunity Source:</span>
+              <span className="text-gray-500">Lead Source:</span>
               <span className="ml-1">{opportunity.source}</span>
             </div>
           )}
           
           <div className="text-sm mt-1">
-            <span className="text-gray-500">Opportunity Value:</span>
+            <span className="text-gray-500">Lead Value:</span>
             <span className="ml-1">{opportunity.value}</span>
           </div>
         </div>
@@ -269,7 +269,7 @@ export default function PipelineBoard() {
             )}
           </div>
           
-          <span className="text-purple-600 text-sm">{selectedPipeline.totalOpportunities} opportunities</span>
+          <span className="text-purple-600 text-sm">{selectedPipeline.totalOpportunities} leads</span>
         </div>
         
         <div className="flex items-center space-x-3">
@@ -285,7 +285,7 @@ export default function PipelineBoard() {
           </button>
           <button className="bg-purple-600 text-white rounded px-3 py-2 hover:bg-blue-700 flex items-center space-x-1">
             <PlusIcon className="h-4 w-4" />
-            <span>Add opportunity</span>
+            <span>Add lead</span>
           </button>
         </div>
       </div>

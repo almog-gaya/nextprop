@@ -216,7 +216,7 @@ export default function OpportunityGrid({
                 </SortableContext>
                 {getProcessedOpportunities(stage.id).length === 0 && (
                   <div className="text-center py-8 text-gray-500 h-full flex items-center justify-center">
-                    <p>No opportunities in this stage</p>
+                    <p>No leads in this stage</p>
                   </div>
                 )}
               </DroppableStage>

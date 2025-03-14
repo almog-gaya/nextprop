@@ -21,13 +21,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         
         return NextResponse.json({ 
             success: true, 
-            message: 'Opportunity moved successfully',
+            message: 'Lead moved successfully',
             data 
         }, { status: 200 });
     } catch (error: any) {
         console.error('Move opportunity error:', error);
         return NextResponse.json({ 
-            error: 'Failed to move opportunity', 
+            error: 'Failed to move lead', 
             message: error.message 
         }, { status: 500 });
     }

@@ -97,8 +97,8 @@ export default function DashboardHeader({
           <span className="ml-3 text-purple-600 font-medium">
             {selectedPipeline
               ? (pipelines.find((p) => p.id === selectedPipeline)?.totalOpportunities || 0) +
-                ' opportunities'
-              : '0 opportunities'}
+                ' leads'
+              : '0 leads'}
           </span>
         </div>
 

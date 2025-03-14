@@ -58,7 +58,7 @@ const BulkAddToPipelineStage: React.FC<BulkAddToPipelineStageProps> = ({
       const opportunitiesPromises = contacts.map(async (contact) => {
         const opportunityData = {
           pipelineId: formData.pipelineId,
-          name: `Opportunity for ${contact.name || `${contact.firstName} ${contact.lastName}`}`,
+          name: `Lead for ${contact.name || `${contact.firstName} ${contact.lastName}`}`,
           pipelineStageId: formData.pipelineStageId,
           status: 'open',
           contactId: contact.id,

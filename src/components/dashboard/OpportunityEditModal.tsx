@@ -159,7 +159,7 @@ export default function OpportunityEditModal({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
-                <h3 className="text-xl font-semibold mb-2 text-gray-900">Edit Opportunity</h3>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900">Edit Lead</h3>
                 {error && (
                     <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4">
                         <p className="text-sm text-red-700">{error}</p>
@@ -206,10 +206,10 @@ export default function OpportunityEditModal({
                             </div>
                         </div>
                         <div>
-                            <h4 className="text-lg font-medium text-gray-800 mb-3 border-b border-gray-200 pb-2">Opportunity Details</h4>
+                            <h4 className="text-lg font-medium text-gray-800 mb-3 border-b border-gray-200 pb-2">Lead Details</h4>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Opportunity Name *</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Lead Name *</label>
                                     <input
                                         type="text"
                                         value={formData.name}
@@ -273,7 +273,7 @@ export default function OpportunityEditModal({
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Opportunity Value</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Lead Value</label>
                                         <input
                                             type="number"
                                             value={formData.monetaryValue}
@@ -310,7 +310,7 @@ export default function OpportunityEditModal({
                                     Updating...
                                 </>
                             ) : (
-                                'Update Opportunity'
+                                'Update Lead'
                             )}
                         </button>
                     </div>
