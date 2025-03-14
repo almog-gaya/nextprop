@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { StatsCardSkeleton, TableSkeleton } from '@/components/SkeletonLoaders';
 import AutomationPreview from '@/components/AutomationPreview';
-import {  useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import FilterControls from '@/components/dashboard/FilterControls';
 import SearchBar from '@/components/dashboard/SearchBar';
@@ -16,8 +16,7 @@ import FilterModal from '@/components/dashboard/FilterModal';
 import SortModal from '@/components/dashboard/SortModal';
 import MessageModal from '@/components/dashboard/MessageModal';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { GHLContact, GHLOpportunity, GHLOpportunityResponse, GHLPipeline, GHLPipelineResponse, GHLStage, Opportunity, PipelineData, PipelineStage } from '@/types/dashboard';
-
+import { GHLContact, GHLOpportunity, GHLPipeline, GHLPipelineResponse, GHLStage, Opportunity, PipelineData, PipelineStage } from '@/types/dashboard';
 import OpportunityEditModal from '@/components/dashboard/OpportunityEditModal';
 
 interface PaginationState {
@@ -27,8 +26,7 @@ interface PaginationState {
   totalPages: number;
   nextPage: number | null;
   prevPage: number | null;
-  startAfter?: string;
-  startAfterId?: string;
+  hasMore: boolean;
 }
 
 export default function LeadsPage() {
@@ -39,9 +37,10 @@ export default function LeadsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [opportunities, setOpportunities] = useState<PipelineStage[]>([]);
   const [pagination, setPagination] = useState<Record<string, Record<string, PaginationState>>>({}); // pipelineId -> stageId -> PaginationState
+  const [loadingStates, setLoadingStates] = useState<Record<string, Record<string, boolean>>>({}); // pipelineId -> stageId -> isLoading
   const [notificationActive, setNotificationActive] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: string }>({ message: '', type: '' });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Only for initial load
   const [error, setError] = useState<string | null>(null);
   const [apiConfigured, setApiConfigured] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -109,134 +108,218 @@ export default function LeadsPage() {
     tags: [],
     customFields: [],
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+ 
+  const observerRefs = useRef<Record<string, IntersectionObserver>>({});
 
-  useEffect(() => {
+  const initializePagination = (pipelineId: string, stageId: string): PaginationState => ({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+    nextPage: null,
+    prevPage: null,
+    hasMore: true,
+  });
+
+  const fetchInitialOpportunities = async () => {
     if (!user) return;
 
-    const fetchPipelineData = async () => {
-      setIsLoading(true);
-      setError(null);
-      setApiConfigured(true);
+    setIsLoading(true);
+    setError(null);
+    setApiConfigured(true);
 
-      try {
-        const response = await fetch('/api/pipelines');
-        if (!response.ok) {
-          if (response.status === 404) {
-            setApiConfigured(false);
-            setError('API endpoint not found. Please configure your API integration.');
-          } else {
-            const errorData = await response.json();
-            setError(`Error fetching pipeline data: ${errorData.error || response.statusText}`);
-          }
-          setIsLoading(false);
-          return;
+    try {
+      const response = await fetch('/api/pipelines');
+      if (!response.ok) {
+        if (response.status === 404) {
+          setApiConfigured(false);
+          setError('API endpoint not found. Please configure your API integration.');
+        } else {
+          const errorData = await response.json();
+          setError(`Error fetching pipeline data: ${errorData.error || response.statusText}`);
         }
-
-        const pipelineData: GHLPipelineResponse = await response.json();
-        if (!pipelineData?.pipelines?.length) {
-          setError('No pipeline data available');
-          setIsLoading(false);
-          return;
-        }
-
-        const mappedPipelines: PipelineData[] = await Promise.all(
-          pipelineData.pipelines.map(async (pipeline: GHLPipeline) => {
-            const stagesWithOpps: PipelineStage[] = await Promise.all(
-              pipeline.stages.map(async (stage: GHLStage) => {
-                try {
-                  const initialPagination: PaginationState = {
-                    page: 1,
-                    limit: 10, // Adjust as needed
-                    total: 0,
-                    totalPages: 1,
-                    nextPage: null,
-                    prevPage: null,
-                  };
-                  const opportunitiesResponse = await fetch(
-                    `/api/pipelines/search?pipelineId=${pipeline.id}&stageId=${stage.id}&page=${initialPagination.page}&limit=${initialPagination.limit}`
-
-                    // `/api/pipelines/${pipeline.id}/opportunities?page=${initialPagination.page}&limit=${initialPagination.limit}&stageId=${stage.id}`
-                  );
-                  if (!opportunitiesResponse.ok) {
-                    throw new Error(`Error fetching opportunities for stage ${stage.id}: ${opportunitiesResponse.statusText}`);
-                  }
-
-                  const opportunitiesData = await opportunitiesResponse.json();
-                  const stageOpportunities: Opportunity[] = (opportunitiesData.opportunities || []).map((opp: GHLOpportunity) => ({
-                    id: opp.id,
-                    name: opp.name,
-                    value: `$${opp.monetaryValue || 0}`,
-                    businessName: opp.contact?.company || '',
-                    stage: opp.pipelineStageId,
-                    source: opp.source || '',
-                    lastActivity: opp.updatedAt || '',
-                    contact: opp.contact,
-                  }));
-
-                  console.log(`opportunitiesData?.total: `, opportunitiesData?.total);
-                  setPagination((prev) => ({
-                    ...prev,
-                    [pipeline.id]: {
-                      ...prev[pipeline.id],
-                      [stage.id]: {
-                        ...initialPagination,
-                        total: opportunitiesData?.total,
-                        totalPages: opportunitiesData?.totalPages || 1,
-                        nextPage: opportunitiesData?.nextPage,
-                        prevPage: opportunitiesData?.prevPage,
-                        startAfter: opportunitiesData?.startAfter,
-                        startAfterId: opportunitiesData?.startAfterId,
-                      },
-                    },
-                  }));
-
-                  return {
-                    id: stage.id,
-                    name: stage.name,
-                    opportunities: stageOpportunities,
-                    count: stageOpportunities.length,
-                    total: `$${stageOpportunities.reduce(
-                      (sum: number, opp: Opportunity) => sum + (parseFloat(opp.value.replace('$', '')) || 0),
-                      0
-                    )}`,
-                  };
-                } catch (error) {
-                  console.error(`Error fetching opportunities for stage ${stage.id}:`, error);
-                  return {
-                    id: stage.id,
-                    name: stage.name,
-                    opportunities: [],
-                    count: 0,
-                    total: '$0',
-                  };
-                }
-              })
-            );
-
-            const totalOpportunities = stagesWithOpps.reduce((sum, stage) => sum + stage.count, 0);
-            return {
-              id: pipeline.id,
-              name: pipeline.name,
-              stages: stagesWithOpps,
-              totalOpportunities,
-            };
-          })
-        );
-
-        setPipelines(mappedPipelines);
-        if (mappedPipelines.length > 0) {
-          setSelectedPipeline(mappedPipelines[0].id);
-          setOpportunities(mappedPipelines[0].stages);
-        }
-      } catch (error) {
-        setError('Failed to fetch pipeline data: ' + (error as Error).message);
-      } finally {
         setIsLoading(false);
+        return;
       }
-    };
 
-    fetchPipelineData();
+      const pipelineData: GHLPipelineResponse = await response.json();
+      if (!pipelineData?.pipelines?.length) {
+        setError('No pipeline data available');
+        setIsLoading(false);
+        return;
+      }
+
+      const mappedPipelines: PipelineData[] = await Promise.all(
+        pipelineData.pipelines.map(async (pipeline: GHLPipeline) => {
+          const stagesWithOpps: PipelineStage[] = await Promise.all(
+            pipeline.stages.map(async (stage: GHLStage) => {
+              const initialPagination = initializePagination(pipeline.id, stage.id);
+              setLoadingStates((prev) => ({
+                ...prev,
+                [pipeline.id]: {
+                  ...prev[pipeline.id],
+                  [stage.id]: true,
+                },
+              }));
+
+              const opportunitiesResponse = await fetch(
+                `/api/pipelines/search?pipelineId=${pipeline.id}&stageId=${stage.id}&page=${initialPagination.page}&limit=${initialPagination.limit}`
+              );
+              if (!opportunitiesResponse.ok) {
+                throw new Error(`Error fetching opportunities for stage ${stage.id}: ${opportunitiesResponse.statusText}`);
+              }
+
+              const opportunitiesData = await opportunitiesResponse.json();
+              const stageOpportunities: Opportunity[] = (opportunitiesData.opportunities || []).map((opp: GHLOpportunity) => ({
+                id: opp.id,
+                name: opp.name,
+                value: `$${opp.monetaryValue || 0}`,
+                businessName: opp.contact?.company || '',
+                stage: opp.pipelineStageId,
+                source: opp.source || '',
+                lastActivity: opp.updatedAt || '',
+                contact: opp.contact,
+              }));
+
+              setPagination((prev) => ({
+                ...prev,
+                [pipeline.id]: {
+                  ...prev[pipeline.id],
+                  [stage.id]: {
+                    ...initialPagination,
+                    total: opportunitiesData.total, // Store API total
+                    totalPages: opportunitiesData.totalPages || 1,
+                    nextPage: opportunitiesData.nextPage,
+                    prevPage: opportunitiesData.prevPage,
+                    hasMore: opportunitiesData.nextPage !== null,
+                  },
+                },
+              }));
+
+              setLoadingStates((prev) => ({
+                ...prev,
+                [pipeline.id]: {
+                  ...prev[pipeline.id],
+                  [stage.id]: false,
+                },
+              }));
+
+              return {
+                id: stage.id,
+                name: stage.name,
+                opportunities: stageOpportunities,
+                count: opportunitiesData.total, // Use API total for count
+                total: `$${stageOpportunities.reduce(
+                  (sum: number, opp: Opportunity) => sum + (parseFloat(opp.value.replace('$', '')) || 0),
+                  0
+                )}`,
+              };
+            })
+          );
+
+          const totalOpportunities = stagesWithOpps.reduce((sum, stage) => sum + stage.count, 0);
+          return {
+            id: pipeline.id,
+            name: pipeline.name,
+            stages: stagesWithOpps,
+            totalOpportunities,
+          };
+        })
+      );
+
+      setPipelines(mappedPipelines);
+      if (mappedPipelines.length > 0) {
+        setSelectedPipeline(mappedPipelines[0].id);
+        setOpportunities(mappedPipelines[0].stages);
+      }
+    } catch (error) {
+      setError('Failed to fetch pipeline data: ' + (error as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchMoreOpportunities = useCallback(async (pipelineId: string, stageId: string) => {
+    const currentPagination = pagination[pipelineId]?.[stageId] || initializePagination(pipelineId, stageId);
+    if (!currentPagination.hasMore || loadingStates[pipelineId]?.[stageId]) return;
+
+    setLoadingStates((prev) => ({
+      ...prev,
+      [pipelineId]: {
+        ...prev[pipelineId],
+        [stageId]: true,
+      },
+    }));
+
+    try {
+      const nextPage = currentPagination.page + 1;
+      const response = await fetch(
+        `/api/pipelines/search?pipelineId=${pipelineId}&stageId=${stageId}&page=${nextPage}&limit=${currentPagination.limit}`
+      );
+      if (!response.ok) {
+        throw new Error(`Error fetching opportunities for stage ${stageId}: ${response.statusText}`);
+      }
+
+      const opportunitiesData = await response.json();
+      const newOpportunities: Opportunity[] = (opportunitiesData.opportunities || []).map((opp: GHLOpportunity) => ({
+        id: opp.id,
+        name: opp.name,
+        value: `$${opp.monetaryValue || 0}`,
+        businessName: opp.contact?.company || '',
+        stage: opp.pipelineStageId,
+        source: opp.source || '',
+        lastActivity: opp.updatedAt || '',
+        contact: opp.contact,
+      }));
+
+      setOpportunities((prev) =>
+        prev.map((stage) => {
+          if (stage.id === stageId && pipelineId === selectedPipeline) {
+            return {
+              ...stage,
+              opportunities: [...stage.opportunities, ...newOpportunities],
+              count: opportunitiesData.total, // Update with API total
+              total: `$${[...stage.opportunities, ...newOpportunities].reduce(
+                (sum: number, opp: Opportunity) => sum + (parseFloat(opp.value.replace('$', '')) || 0),
+                0
+              )}`,
+            };
+          }
+          return stage;
+        })
+      );
+
+      setPagination((prev) => ({
+        ...prev,
+        [pipelineId]: {
+          ...prev[pipelineId],
+          [stageId]: {
+            ...currentPagination,
+            page: nextPage,
+            total: opportunitiesData.total, // Update with API total
+            totalPages: opportunitiesData.totalPages || 1,
+            nextPage: opportunitiesData.nextPage,
+            prevPage: opportunitiesData.prevPage,
+            hasMore: opportunitiesData.nextPage !== null,
+          },
+        },
+      }));
+    } catch (error) {
+      console.error(`Error fetching more opportunities for stage ${stageId}:`, error);
+      setError(`Failed to fetch more opportunities for stage ${stageId}`);
+    } finally {
+      setLoadingStates((prev) => ({
+        ...prev,
+        [pipelineId]: {
+          ...prev[pipelineId],
+          [stageId]: false,
+        },
+      }));
+    }
+  }, [pagination, loadingStates, selectedPipeline]);
+
+  useEffect(() => {
+    fetchInitialOpportunities();
   }, [user]);
 
   useEffect(() => {
@@ -248,82 +331,42 @@ export default function LeadsPage() {
     }
   }, [selectedPipeline, pipelines]);
 
+  const setupIntersectionObserver = useCallback((stageId: string) => {
+    if (!selectedPipeline) return;
+
+    const target = document.getElementById(`load-more-${stageId}`);
+    if (!target) return;
+
+    if (observerRefs.current[stageId]) {
+      observerRefs.current[stageId].disconnect();
+    }
+
+    observerRefs.current[stageId] = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchMoreOpportunities(selectedPipeline, stageId);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observerRefs.current[stageId].observe(target);
+  }, [selectedPipeline, fetchMoreOpportunities]);
+
+  useEffect(() => {
+    if (selectedPipeline && opportunities.length > 0) {
+      opportunities.forEach((stage) => setupIntersectionObserver(stage.id));
+    }
+
+    return () => {
+      Object.values(observerRefs.current).forEach((observer) => observer.disconnect());
+    };
+  }, [opportunities, selectedPipeline, setupIntersectionObserver]);
+
   const handlePipelineChange = (pipelineId: string) => {
     setSelectedPipeline(pipelineId);
     setOpportunities(pipelines.find((p) => p.id === pipelineId)?.stages || []);
     setIsDropdownOpen(false);
-  };
-
-  const handlePageChange = async (pipelineId: string, stageId: string, page: number) => {
-    setIsLoading(true);
-    try {
-      const currentPagination = pagination[pipelineId]?.[stageId] || { page: 1, limit: 10, total: 0, totalPages: 1, nextPage: null, prevPage: null };
-
-      const response = await fetch(
-        `/api/pipelines/search?pipelineId=${pipelineId}&stageId=${stageId}&page=${page}&limit=${currentPagination.limit}`
-      );
-      if (!response.ok) {
-        throw new Error(`Error fetching page ${page} for stage ${stageId}: ${response.statusText}`);
-      }
-
-      const opportunitiesData: GHLOpportunityResponse & { meta: PaginationState } = await response.json();
-      const stageOpportunities: Opportunity[] = (opportunitiesData.opportunities || []).map((opp: GHLOpportunity) => ({
-        id: opp.id,
-        name: opp.name,
-        value: `$${opp.monetaryValue || 0}`,
-        businessName: opp.contact?.company || '',
-        stage: opp.pipelineStageId,
-        source: opp.source || '',
-        lastActivity: opp.updatedAt || '',
-        contact: opp.contact,
-      }));
-
-      const updatedPipelines = pipelines.map((pipeline) => {
-        if (pipeline.id === pipelineId) {
-          const updatedStages = pipeline.stages.map((stage) => {
-            if (stage.id === stageId) {
-              return {
-                ...stage,
-                opportunities: stageOpportunities,
-                count: stageOpportunities.length,
-                total: `$${stageOpportunities.reduce(
-                  (sum: number, opp: Opportunity) => sum + (parseFloat(opp.value.replace('$', '')) || 0),
-                  0
-                )}`,
-              };
-            }
-            return stage;
-          });
-          const totalOpportunities = updatedStages.reduce((sum, stage) => sum + stage.count, 0);
-          return { ...pipeline, stages: updatedStages, totalOpportunities };
-        }
-        return pipeline;
-      });
-
-      setPipelines(updatedPipelines);
-      setOpportunities(updatedPipelines.find((p) => p.id === pipelineId)?.stages || []);
-      setPagination((prev) => ({
-        ...prev,
-        [pipelineId]: {
-          ...prev[pipelineId],
-          [stageId]: {
-            ...prev[pipelineId]?.[stageId],
-            page,
-            total: opportunitiesData.meta.total,
-            totalPages: opportunitiesData.meta.totalPages || 1,
-            nextPage: opportunitiesData.meta.nextPage,
-            prevPage: opportunitiesData.meta.prevPage,
-            startAfter: opportunitiesData.meta.startAfter,
-            startAfterId: opportunitiesData.meta.startAfterId,
-          },
-        },
-      }));
-    } catch (error) {
-      console.error(`Error fetching page ${page} for stage ${stageId}:`, error);
-      setError(`Failed to fetch page ${page} for stage ${stageId}`);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const filterOpportunities = (opportunities: Opportunity[]): Opportunity[] => {
@@ -373,332 +416,94 @@ export default function LeadsPage() {
   };
 
   const handleEditOpportunity = (opportunity: Opportunity) => {
-    if (!opportunity.contact) {
-      setNotification({
-        message: 'No contact information available for this opportunity',
-        type: 'error',
-      });
-      setNotificationActive(true);
-      setTimeout(() => setNotificationActive(false), 3000);
-      return;
-    }
-
-    console.log('Opportunity being edited:', opportunity);
-
     setSelectedOpportunity(opportunity);
-    let customFieldsArray: any[] = [];
-
-    if (opportunity.contact.customFields) {
-      if (Array.isArray(opportunity.contact.customFields)) {
-        customFieldsArray = opportunity.contact.customFields;
-      } else {
-        customFieldsArray = Object.entries(opportunity.contact.customFields).map(([key, value]) => ({
-          id: key,
-          key: key,
-          value: value,
-        }));
-      }
-    }
-
-    const contactFirstName = opportunity.name?.split(' ')[0] || opportunity.contact.firstName || '';
-    const contactLastName = opportunity.name?.includes(' ')
-      ? opportunity.name.substring(opportunity.name.indexOf(' ') + 1)
-      : opportunity.contact.lastName || '';
-
     setEditContactData({
-      firstName: contactFirstName,
-      lastName: contactLastName,
-      email: opportunity.contact.email || '',
-      locationId: opportunity.contact.locationId || '',
-      phone: opportunity.contact.phone || '',
-      timezone: opportunity.contact.timezone || '',
-      dnd: opportunity.contact.dnd || false,
-      tags: opportunity.contact.tags || [],
-      customFields: customFieldsArray,
+      firstName: opportunity.contact?.firstName || '',
+      lastName: opportunity.contact?.lastName || '',
+      email: opportunity.contact?.email || '',
+      locationId: opportunity.contact?.locationId || '',
+      phone: opportunity.contact?.phone || '',
+      timezone: opportunity.contact?.timezone || '',
+      dnd: opportunity.contact?.dnd || false,
+      tags: opportunity.contact?.tags || [],
+      customFields: opportunity.contact?.customFields || [],
     });
-
     setIsEditOpportunityModalOpen(true);
   };
 
-
   const handleUpdateOpportunityUI = async (formData: Partial<Opportunity>) => {
-    setIsSubmitting(true);
-    try {
-      console.log(`[handleUpdateOpportunity]: formData: `, formData);
-      /// Update UI only
-      if (selectedOpportunity) {
-        const updatedOpportunity = { ...selectedOpportunity, ...formData };
-        setOpportunities((prevOpportunities) =>
-          prevOpportunities.map((stage) => {
-            if (stage.id === selectedOpportunity?.stage) {
-              return {
-                ...stage,
-                opportunities: stage.opportunities.map((opp) =>
-                  opp.id === selectedOpportunity.id ? updatedOpportunity : opp
-                ),
-              };
-            }
-            return stage;
-          })
-        );
-      }
-       
-      setIsEditOpportunityModalOpen(false);
-    } catch (error) {
-      console.error('Error updating opportunity:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSMS = async (contact: GHLContact, message: string, fromNumber: string): Promise<boolean> => {
-    try {
-      const response = await fetch('/api/conversations/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'SMS',
-          message,
-          fromNumber: fromNumber,
-          toNumber: contact.phone,
-          contactId: contact.id,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send SMS');
-      }
-      return true;
-    } catch (error) {
-      console.error('Error sending SMS:', error);
-      return false;
-    }
-  };
-
-  const handleEmail = async (contact: GHLContact, subject: string, body: string): Promise<boolean> => {
-    try {
-      const response = await fetch('/api/conversations/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactId: contact.id,
-          type: 'Email',
-          html: body,
-          emailTo: contact.email,
-          subject,
-          emailFrom: user?.email || 'no-reply@yourdomain.com',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send email');
-      }
-      return true;
-    } catch (error) {
-      console.error('Error sending email:', error);
-      return false;
-    }
-  };
-
-  const handleCall = async (contact: GHLContact): Promise<boolean> => {
-    if ((user?.phoneNumbers?.length ?? 0) <= 0) {
-      alert('You don’t have any numbers');
-      return false;
-    }
-    console.log('Initiating call to:', contact);
-    try {
-      const response = await fetch('/api/conversations/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'Call',
-          fromNumber: user?.phoneNumbers![0].phoneNumber,
-          toNumber: contact.phone,
-          contactId: contact.id,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to initiate call');
-      }
-      return true;
-    } catch (error) {
-      console.error('Error initiating call:', error);
-      return false;
-    }
+    setOpportunities((prev) =>
+      prev.map((stage) => ({
+        ...stage,
+        opportunities: stage.opportunities.map((opp) =>
+          opp.id === formData.id ? { ...opp, ...formData } : opp
+        ),
+      }))
+    );
+    setIsEditOpportunityModalOpen(false);
   };
 
   const handleCommunication = async (
     opportunityId: string,
     actionType: 'voicemail' | 'sms' | 'call' | 'email' | 'optout'
   ) => {
-    try {
-      const selectedPipelineData = pipelines.find((pipeline) => pipeline.id === selectedPipeline);
-      if (!selectedPipelineData) return;
+    const opportunity = opportunities
+      .flatMap((stage) => stage.opportunities)
+      .find((opp) => opp.id === opportunityId);
+    if (!opportunity) return;
 
-      const updatedPipeline: PipelineData = JSON.parse(JSON.stringify(selectedPipelineData));
-      let foundOpportunity: Opportunity | null = null;
-      let currentStageId = '';
-
-      for (const stage of updatedPipeline.stages) {
-        const opportunityIndex = stage.opportunities.findIndex((opp) => opp.id === opportunityId);
-        if (opportunityIndex !== -1) {
-          foundOpportunity = stage.opportunities[opportunityIndex];
-          currentStageId = stage.id;
-          stage.opportunities.splice(opportunityIndex, 1);
-          stage.count = stage.opportunities.length;
-          break;
-        }
-      }
-
-      if (!foundOpportunity || !foundOpportunity.contact) return;
-
-      if (actionType === 'sms' || actionType === 'email') {
-        setMessageModal({
-          isOpen: true,
-          actionType,
-          opportunityId,
-          contact: foundOpportunity.contact,
-        });
-        return;
-      }
-
-      foundOpportunity.lastActivityType = actionType;
-      foundOpportunity.lastActivity = new Date().toISOString();
-
-      let targetStageId = currentStageId;
-      let notificationMsg = '';
-      let success = true;
-
-      switch (actionType) {
-        case 'call':
-          targetStageId = 'returned-call';
-          notificationMsg = `${foundOpportunity.name || 'Contact'} moved to Returned Call stage`;
-          success = await handleCall(foundOpportunity.contact);
-          break;
-        case 'optout':
-          targetStageId = 'lead-opted-out';
-          notificationMsg = `${foundOpportunity.name || 'Contact'} moved to Lead Opted Out stage`;
-          break;
-        case 'voicemail':
-          if (currentStageId !== 'voice-drop-sent') {
-            targetStageId = 'voice-drop-sent';
-            notificationMsg = `New voicemail sent to ${foundOpportunity.name || 'Contact'}`;
-          }
-          break;
-      }
-
-      if (success && targetStageId !== currentStageId) {
-        const targetStage = updatedPipeline.stages.find((stage) => stage.id === targetStageId);
-        if (targetStage) {
-          foundOpportunity.stage = targetStageId;
-          targetStage.opportunities.push(foundOpportunity);
-          targetStage.count = targetStage.opportunities.length;
-
-          setPipelines(pipelines.map((p) => (p.id === selectedPipeline ? updatedPipeline : p)));
-          setOpportunities(updatedPipeline.stages);
-
-          setNotification({ message: notificationMsg, type: 'success' });
-          setNotificationActive(true);
-          setTimeout(() => setNotificationActive(false), 3000);
-
-          if (apiConfigured) {
-            try {
-              const response = await fetch(`/api/opportunities/${opportunityId}/move`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ stageId: targetStageId, actionType }),
-              });
-
-              if (!response.ok) {
-                throw new Error('Failed to update opportunity stage');
-              }
-            } catch (err) {
-              console.error('Error updating opportunity:', err);
-              setNotification({
-                message: 'Failed to update opportunity. Please try again.',
-                type: 'error',
-              });
-              setNotificationActive(true);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Error handling ${actionType}:`, error);
+    if (actionType === 'sms' || actionType === 'email') {
+      setMessageModal({
+        isOpen: true,
+        actionType,
+        opportunityId,
+        contact: opportunity.contact || null,
+      });
     }
   };
 
   const handleMoveOpportunity = async (opportunityId: string, targetStageId: string) => {
+    setLoadingOperation({ id: opportunityId, type: 'move' });
     try {
-      setLoadingOperation({ id: opportunityId, type: 'move' });
+      // Simulate API call to move opportunity
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Mock delay
+      setOpportunities((prev) => {
+        const sourceStage = prev.find((stage) =>
+          stage.opportunities.some((opp) => opp.id === opportunityId)
+        );
+        if (!sourceStage) return prev;
 
-      const selectedPipelineData = pipelines.find((pipeline) => pipeline.id === selectedPipeline);
-      if (!selectedPipelineData) return;
+        const opportunity = sourceStage.opportunities.find((opp) => opp.id === opportunityId);
+        if (!opportunity) return prev;
 
-      const updatedPipeline: PipelineData = JSON.parse(JSON.stringify(selectedPipelineData));
-      let foundOpportunity: Opportunity | null = null;
-      let currentStageId = '';
-
-      for (const stage of updatedPipeline.stages) {
-        const opportunityIndex = stage.opportunities.findIndex((opp) => opp.id === opportunityId);
-        if (opportunityIndex !== -1) {
-          foundOpportunity = stage.opportunities[opportunityIndex];
-          currentStageId = stage.id;
-          stage.opportunities.splice(opportunityIndex, 1);
-          stage.count = stage.opportunities.length;
-          break;
-        }
-      }
-
-      if (!foundOpportunity) {
-        setLoadingOperation({ id: null, type: null });
-        return;
-      }
-
-      const targetStage = updatedPipeline.stages.find((stage) => stage.id === targetStageId);
-      if (targetStage) {
-        foundOpportunity.stage = targetStageId;
-        targetStage.opportunities.push(foundOpportunity);
-        targetStage.count = targetStage.opportunities.length;
-
-        setPipelines(pipelines.map((p) => (p.id === selectedPipeline ? updatedPipeline : p)));
-        setOpportunities(updatedPipeline.stages);
-
-        setNotification({
-          message: `Opportunity moved to ${targetStage.name}`,
-          type: 'success',
-        });
-        setNotificationActive(true);
-        setTimeout(() => setNotificationActive(false), 3000);
-
-        if (apiConfigured) {
-          const response = await fetch(`/api/opportunities/${opportunityId}/move`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stageId: targetStageId }),
-          });
-
-          if (!response.ok) {
-            setNotification({
-              message: 'Failed to update opportunity. Reverting changes.',
-              type: 'error',
-            });
-            setNotificationActive(true);
-
-            const originalPipeline: PipelineData = JSON.parse(JSON.stringify(selectedPipelineData));
-            setPipelines(pipelines.map((p) => (p.id === selectedPipeline ? originalPipeline : p)));
-            setOpportunities(originalPipeline.stages);
+        return prev.map((stage) => {
+          if (stage.id === sourceStage.id) {
+            return {
+              ...stage,
+              opportunities: stage.opportunities.filter((opp) => opp.id !== opportunityId),
+              count: stage.count - 1, // Decrease total count
+              total: `$${stage.opportunities
+                .filter((opp) => opp.id !== opportunityId)
+                .reduce((sum, opp) => sum + (parseFloat(opp.value.replace('$', '')) || 0), 0)}`,
+            };
           }
-        }
-      }
+          if (stage.id === targetStageId) {
+            return {
+              ...stage,
+              opportunities: [...stage.opportunities, { ...opportunity, stage: targetStageId }],
+              count: stage.count + 1, // Increase total count
+              total: `$${[...stage.opportunities, opportunity].reduce(
+                (sum, opp) => sum + (parseFloat(opp.value.replace('$', '')) || 0),
+                0
+              )}`,
+            };
+          }
+          return stage;
+        });
+      });
     } catch (error) {
       console.error('Error moving opportunity:', error);
-      setNotification({
-        message: 'An error occurred while moving the opportunity.',
-        type: 'error',
-      });
-      setNotificationActive(true);
+      setError('Failed to move opportunity');
     } finally {
       setLoadingOperation({ id: null, type: null });
     }
@@ -757,7 +562,7 @@ export default function LeadsPage() {
         </div>
       ) : (
         <div className="container mx-auto px-4 py-8">
-          <div className="h-full overflow-hidden flex flex-col bg-gray-50">
+          <div className="h-full flex flex-col bg-gray-50">
             <DashboardHeader
               pipelines={pipelines}
               selectedPipeline={selectedPipeline}
@@ -789,33 +594,29 @@ export default function LeadsPage() {
               setFilters={setFilters}
               setSortConfig={setSortConfig}
             />
-            <div className="flex-1 overflow-auto">
-              <div className="px-4 py-6 sm:px-6 lg:px-8">
-                <AutomationPreview className="mb-6" />
-                {viewMode === 'grid' ? (
-                  <OpportunityGrid
-                    opportunities={opportunities}
-                    getProcessedOpportunities={getProcessedOpportunities}
-                    handleCommunication={handleCommunication}
-                    handleEditOpportunity={handleEditOpportunity}
-                    handleMoveOpportunity={handleMoveOpportunity}
-                    loadingOpportunityId={loadingOperation.id}
-                    pagination={pagination[selectedPipeline!]}
-                    onPageChange={(stageId, page) => handlePageChange(selectedPipeline!, stageId, page)}
-                  />
-                ) : (
-                  <OpportunityList
-                    opportunities={opportunities}
-                    getProcessedOpportunities={getProcessedOpportunities}
-                    handleCommunication={handleCommunication}
-                    handleEditOpportunity={handleEditOpportunity}
-                    handleMoveOpportunity={handleMoveOpportunity}
-                    loadingOpportunityId={loadingOperation.id}
-                    pagination={pagination[selectedPipeline!]}
-                    onPageChange={(stageId, page) => handlePageChange(selectedPipeline!, stageId, page)}
-                  />
-                )}
-              </div>
+            <div className="px-4 py-6 sm:px-6 lg:px-8 flex-1">
+              <AutomationPreview className="mb-6" />
+              {viewMode === 'grid' ? (
+                <OpportunityGrid
+                  opportunities={opportunities}
+                  getProcessedOpportunities={getProcessedOpportunities}
+                  handleCommunication={handleCommunication}
+                  handleEditOpportunity={handleEditOpportunity}
+                  handleMoveOpportunity={handleMoveOpportunity}
+                  loadingOpportunityId={loadingOperation.id}
+                  pagination={pagination[selectedPipeline!]}
+                  loadingStates={loadingStates[selectedPipeline!]}
+                />
+              ) : (
+                <OpportunityList
+                  opportunities={opportunities}
+                  getProcessedOpportunities={getProcessedOpportunities}
+                  handleCommunication={handleCommunication}
+                  handleEditOpportunity={handleEditOpportunity}
+                  handleMoveOpportunity={handleMoveOpportunity}
+                  loadingOpportunityId={loadingOperation.id}
+                />
+              )}
             </div>
             {isFilterModalOpen && (
               <FilterModal
@@ -840,33 +641,18 @@ export default function LeadsPage() {
               messageContent={messageContent}
               setMessageContent={setMessageContent}
               onSend={async () => {
-                if (!messageModal.opportunityId || !messageModal.contact || !messageModal.actionType) return;
-
-                let success = false;
-                if (messageModal.actionType === 'sms') {
-                  const selectedNumber = user?.phoneNumbers?.[0]?.phoneNumber;
-                  if (selectedNumber) {
-                    success = await handleSMS(messageModal.contact, messageContent.sms, selectedNumber);
-                  }
-                } else {
-                  success = await handleEmail(messageModal.contact, messageContent.emailSubject, messageContent.emailBody);
-                }
-
-                setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null });
-                setMessageContent({ sms: '', emailSubject: '', emailBody: '' });
-                await handleCommunication(messageModal.opportunityId, messageModal.actionType);
+               handleCommunication(messageModal.opportunityId!, messageModal.actionType!);
               }}
             />
             <OpportunityEditModal
               isOpen={isEditOpportunityModalOpen}
               onClose={() => setIsEditOpportunityModalOpen(false)}
-              opportunityId= {selectedOpportunity?.id ?? ""}
+              opportunityId={selectedOpportunity?.id ?? ""}
               onUpdateOpportunity={handleUpdateOpportunityUI}
-            /> 
+            />
           </div>
         </div>
-      )
-      }
-    </DashboardLayout >
+      )}
+    </DashboardLayout>
   );
 }

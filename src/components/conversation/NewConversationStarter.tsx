@@ -274,10 +274,7 @@ export const NewConversationCreator = ({ contactId, onConversationCreated }: {
                             </div>
                         )}
                     </div>
-                )}
-                <p className="text-xs text-gray-400 mt-4 text-center">
-                    Contact ID: {contactId}
-                </p>
+                )} 
             </div>
         </div>
     );

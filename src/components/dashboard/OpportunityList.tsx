@@ -12,17 +12,8 @@ import {
   DragEndEvent,
   DragOverEvent,
   useDroppable,
-  closestCenter,
-  pointerWithin,
   rectIntersection
 } from '@dnd-kit/core';
-import {
-  PhoneIcon,
-  ChatBubbleLeftRightIcon,
-  EnvelopeIcon,
-  PencilIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/outline';
 import SortableOpportunityRow from './SortableOpportunityRow';
 
 interface Opportunity {
@@ -58,7 +49,6 @@ interface StageDroppableAreaProps {
   children: ReactNode;
 }
 
-// Add droppable areas for each stage
 function StageDroppableArea({ id, children }: StageDroppableAreaProps) {
   const { setNodeRef, isOver } = useDroppable({ 
     id,
@@ -74,7 +64,6 @@ function StageDroppableArea({ id, children }: StageDroppableAreaProps) {
       className={`${isOver ? 'bg-blue-50' : ''} transition-colors w-full h-full min-h-[40px] relative`}
     >
       {children}
-      {/* This overlay makes the entire stage area droppable */}
       <div className="absolute inset-0" style={{ pointerEvents: 'none' }}></div>
     </div>
   );
@@ -110,7 +99,6 @@ export default function OpportunityList({
     const { active } = event;
     const opportunityId = active.id as string;
     
-    // Find the opportunity being dragged and its stage
     for (const stage of opportunities) {
       const foundOpportunity = getProcessedOpportunities(stage.id).find(opp => opp.id === opportunityId);
       if (foundOpportunity) {
@@ -126,22 +114,16 @@ export default function OpportunityList({
     
     if (!over) return;
     
-    // Make sure we have a valid drop target
-    // Accept drops on stages or individual opportunities
     const isStageOrOpportunity = 
         (over.data?.current?.type === 'stage') || 
         (over.data?.current?.type === 'opportunity');
 
-    // If dropping on an opportunity, find its stage
     if (isStageOrOpportunity) {
       if (over.data?.current?.type === 'opportunity') {
         const opportunityData = over.data.current;
         const targetStageId = opportunityData.fromStage || opportunityData.stageId;
-        
-        // Log that we're dropping on an opportunity in a specific stage
         console.log('Dropping on opportunity in stage:', targetStageId);
       } else {
-        // We're dropping directly on a stage
         console.log('Dropping directly on stage:', over.id);
       }
     }
@@ -159,17 +141,13 @@ export default function OpportunityList({
     const opportunityId = active.id as string;
     let targetStageId = over.id as string;
     
-    // If we're dropping on another opportunity, get its stage
     if (over.data?.current?.type === 'opportunity') {
       targetStageId = over.data.current.fromStage || over.data.current.stageId;
     }
     
-    // Only proceed if the opportunity is moving to a different stage
     if (targetStageId !== activeStage) {
       setActiveOpportunity(null);
       setActiveStage(null);
-      
-      // Move the opportunity using the parent component handler
       await handleMoveOpportunity(opportunityId, targetStageId);
     } else {
       setActiveOpportunity(null);
@@ -185,9 +163,9 @@ export default function OpportunityList({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow overflow-auto max-h-[500px]">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 sticky top-0 z-[5]">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Name
@@ -210,7 +188,6 @@ export default function OpportunityList({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {/* Add stage headers as droppable areas */}
             {opportunities.map((stage) => (
               <React.Fragment key={`stage-${stage.id}`}>
                 <tr className="bg-gray-50">
@@ -219,7 +196,7 @@ export default function OpportunityList({
                       <div className="flex justify-between items-center">
                         <h4 className="text-sm font-medium text-gray-700">{stage.name}</h4>
                         <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                          {getProcessedOpportunities(stage.id).length}
+                          {stage.count}
                         </span>
                       </div>
                     </StageDroppableArea>
@@ -236,7 +213,6 @@ export default function OpportunityList({
                     isLoading={loadingOpportunityId === opportunity.id}
                   />
                 ))}
-                {/* Add an empty row for dropping when the stage is empty */}
                 {getProcessedOpportunities(stage.id).length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-0">

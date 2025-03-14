@@ -78,10 +78,12 @@ export async function DELETE(
 }
 
 export async function GET(
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const contactId = ( params.id);
+    console.log(`params: ${JSON.stringify(params)}`)
+    const contactId = params?.id;
     console.log('Fetching contact in GHL:', contactId);
     const response = await fetchWithErrorHandling(() => getContactById(contactId));
     console.log('GHL get response:', response);
@@ -120,10 +122,10 @@ const updateContact = async (contactId: string, contactData: any) => {
   delete contactData.id;
   delete contactData.createdAt;
   delete contactData.updatedAt;
-  if(!contactData.phone) {
+  if (!contactData.phone) {
     delete contactData.phone;
   }
-  if(!contactData.email) {
+  if (!contactData.email) {
     delete contactData.email;
   }
   const options = {

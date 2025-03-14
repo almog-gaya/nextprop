@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-
-/// Max number of items to fetch
-const MAX_ITEMS = 5;
+export const MAX_PROPERTIES = 5;
 
 export async function POST(req: Request) {
   const API_TOKEN = process.env.APIFY_API_TOKEN;
@@ -34,10 +32,10 @@ export async function POST(req: Request) {
       extractBuildingUnits: "for_sale",
       propertyStatus: "FOR_SALE",
       searchResultsDatasetId: "",
-      maxItems: MAX_ITEMS,
+      maxItems: MAX_PROPERTIES,
     };
 
-    const runResponse = await fetch(`${API_URL}?token=${API_TOKEN}&maxItems=${MAX_ITEMS}`, {
+    const runResponse = await fetch(`${API_URL}?token=${API_TOKEN}&maxItems=${MAX_PROPERTIES}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -166,7 +164,7 @@ const zillowSearchScraper = async (q: string, API_TOKEN: string) => {
   const encodedQuery = encodeURIComponent(JSON.stringify(buildZillowUSAURL(q)));
   const payload = {
     extractionMethod: "MAP_MARKERS",
-    maxItems: MAX_ITEMS,
+    maxItems: MAX_PROPERTIES,
     maxTotalChargeUsd: 0.02,
     searchUrls: [
       {
@@ -177,7 +175,7 @@ const zillowSearchScraper = async (q: string, API_TOKEN: string) => {
   };
 
   try {
-    const runResponse = await fetch(`${API_URL}?token=${API_TOKEN}&maxItems=${MAX_ITEMS}`, {
+    const runResponse = await fetch(`${API_URL}?token=${API_TOKEN}&maxItems=${MAX_PROPERTIES}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

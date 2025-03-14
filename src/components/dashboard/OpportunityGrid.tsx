@@ -44,8 +44,7 @@ interface PaginationState {
   totalPages: number;
   nextPage: number | null;
   prevPage: number | null;
-  startAfter?: string;
-  startAfterId?: string;
+  hasMore: boolean;
 }
 
 interface OpportunityGridProps {
@@ -55,8 +54,8 @@ interface OpportunityGridProps {
   handleEditOpportunity: (Opportunity: Opportunity) => void;
   handleMoveOpportunity: (opportunityId: string, targetStageId: string) => Promise<void>;
   loadingOpportunityId: string | null;
-  pagination?: Record<string, PaginationState>;
-  onPageChange?: (stageId: string, page: number) => void;
+  pagination: Record<string, PaginationState>;
+  loadingStates: Record<string, boolean>;
 }
 
 interface DroppableStageProps {
@@ -95,7 +94,7 @@ export default function OpportunityGrid({
   handleMoveOpportunity,
   loadingOpportunityId,
   pagination,
-  onPageChange
+  loadingStates,
 }: OpportunityGridProps) {
   const [activeOpportunity, setActiveOpportunity] = useState<Opportunity | null>(null);
 
@@ -186,23 +185,23 @@ export default function OpportunityGrid({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="overflow-hidden h-full px-4">
-        <div className="flex overflow-x-auto pb-4 space-x-4 h-full touch-pan-x">
-          {opportunities.map((stage) => (
-            <div
-              key={stage.id}
-              className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col min-w-[300px] h-full"
+      <div className="flex overflow-x-auto pb-4 space-x-4 h-full">
+        {opportunities.map((stage) => (
+          <div
+            key={stage.id}
+            className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col min-w-[300px] h-full"
+          >
+            <div className="p-3 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-[5]">
+              <h3 className="font-medium text-gray-900 truncate">{stage.name}</h3>
+              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                {stage.count}
+              </span>
+            </div>
+            <DroppableStage
+              id={stage.id}
+              isEmpty={getProcessedOpportunities(stage.id).length === 0}
             >
-              <div className="p-3 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-[5]">
-                <h3 className="font-medium text-gray-900 truncate">{stage.name}</h3>
-                <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                  {getProcessedOpportunities(stage.id).length}
-                </span>
-              </div>
-              <DroppableStage
-                id={stage.id}
-                isEmpty={getProcessedOpportunities(stage.id).length === 0}
-              >
+              <div className="flex-1 overflow-auto max-h-[500px]">
                 <SortableContext items={getProcessedOpportunities(stage.id).map(opp => opp.id)} strategy={rectSortingStrategy}>
                   {getProcessedOpportunities(stage.id).map((opportunity) => (
                     <SortableOpportunityCard
@@ -219,42 +218,26 @@ export default function OpportunityGrid({
                     <p>No leads in this stage</p>
                   </div>
                 )}
-              </DroppableStage>
-              {pagination && pagination[stage.id] && (
-                <div className="p-2 border-t border-gray-200 flex justify-center items-center space-x-2">
-                  <button
-                    onClick={() => onPageChange && pagination[stage.id].prevPage && onPageChange(stage.id, pagination[stage.id].prevPage!)}
-                    disabled={!pagination[stage.id].prevPage}
-                    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span>
-                    Page {pagination[stage.id].page} of {pagination[stage.id].totalPages}
-                  </span>
-                  <button
-                    onClick={() => onPageChange && pagination[stage.id].nextPage && onPageChange(stage.id, pagination[stage.id].nextPage!)}
-                    disabled={!pagination[stage.id].nextPage}
-                    className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-                  >
-                    Next
-                  </button>
+                <div id={`load-more-${stage.id}`} className="h-10">
+                  {loadingStates?.[stage.id] && pagination?.[stage.id]?.hasMore && (
+                    <div className="text-center text-gray-500 py-2">Loading more...</div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <DragOverlay>
-          {activeOpportunity ? (
-            <OpportunityCard
-              opportunity={activeOpportunity}
-              handleCommunication={handleCommunication}
-              handleEditOpportunity={handleEditOpportunity}
-              isDragging
-            />
-          ) : null}
-        </DragOverlay>
+              </div>
+            </DroppableStage>
+          </div>
+        ))}
       </div>
+      <DragOverlay>
+        {activeOpportunity ? (
+          <OpportunityCard
+            opportunity={activeOpportunity}
+            handleCommunication={handleCommunication}
+            handleEditOpportunity={handleEditOpportunity}
+            isDragging
+          />
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

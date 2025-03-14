@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { MagnifyingGlassIcon, ArrowPathIcon, UserPlusIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import DashboardLayout from "@/components/DashboardLayout";
+import { MAX_PROPERTIES } from "../api/properties/route";
+
 
 // Define response types
 interface ZillowProperty {
@@ -29,7 +31,7 @@ interface ScrapedResult {
 }
 
 export default function PropertiesPage() {
-  const [searchQuery, setSearchQuery] = useState("Miami property under $1,000,000");
+  const [searchQuery, setSearchQuery] = useState("Miami");
   const [isScraping, setIsScraping] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(0);
   const [successCount, setSuccessCount] = useState(0);
@@ -181,7 +183,7 @@ export default function PropertiesPage() {
           <div className="p-6 md:p-8 text-white">
             <h2 className="text-xl md:text-2xl font-bold mb-3">Scrape Zillow Properties</h2>
             <p className="mb-4">
-              Enter a search query and generate up to 100 property listings from Zillow with one click, powered by Apify.
+              Enter a search query and generate up to {MAX_PROPERTIES} property listings from Zillow with one click, powered by Apify.
             </p>
           </div>
         </div>
@@ -206,7 +208,7 @@ export default function PropertiesPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleScrapeProperties(100)}
+                  onClick={() => handleScrapeProperties(MAX_PROPERTIES)}
                   disabled={isScraping}
                   className={`flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm text-white font-medium ${isScraping ? "bg-gray-500" : "bg-purple-700 hover:bg-purple-800"}`}
                 >
@@ -218,17 +220,10 @@ export default function PropertiesPage() {
                   ) : (
                     <>
                       <UserPlusIcon className="h-5 w-5" />
-                      Scrape 2 Properties
+                      Scrape {MAX_PROPERTIES} Properties
                     </>
                   )}
-                </button>
-                <button
-                  onClick={handleGenerateSingleProperty}
-                  disabled={isScraping}
-                  className="flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm bg-white border border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
-                >
-                  Test (1 Property)
-                </button>
+                </button> 
               </div>
             </div>
           </div>
