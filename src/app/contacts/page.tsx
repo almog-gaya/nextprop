@@ -9,10 +9,10 @@ import { useRouter } from 'next/navigation';
 import { timezones } from '@/utils/timezones';
 import { ContactListSkeleton } from '@/components/SkeletonLoaders';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import { 
-  EyeIcon, 
-  EyeSlashIcon, 
-  AdjustmentsHorizontalIcon, 
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  AdjustmentsHorizontalIcon,
   PlusCircleIcon,
   ChatBubbleLeftRightIcon,
   PhoneIcon,
@@ -20,6 +20,7 @@ import {
   XCircleIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
+import BulkAddToPipelineStage from '@/components/contacts/BulkAddToPipelineStage';
 
 interface CustomField {
   id: string;
@@ -57,10 +58,11 @@ export default function ContactsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkAddOpportunities, setIsBulkAddOpportunities] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
-  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [isAllSelected, setIsAllSelected] = useState(false);
   const [isColumnSelectorOpen, setIsColumnSelectorOpen] = useState(false);
   const [hiddenColumns, setHiddenColumns] = useState<TableColumn[]>([]);
@@ -186,7 +188,7 @@ export default function ContactsPage() {
   const handleEdit = (contact: Contact) => {
     setSelectedContact(contact);
     let customFieldsArray: CustomField[] = [];
-    
+
     if (contact.customFields) {
       if (Array.isArray(contact.customFields)) {
         customFieldsArray = contact.customFields as CustomField[];
@@ -198,7 +200,7 @@ export default function ContactsPage() {
         }));
       }
     }
-    
+
     setEditContact({
       firstName: contact.firstName || '',
       lastName: contact.lastName || '',
@@ -262,13 +264,13 @@ export default function ContactsPage() {
 
   const handleAdd = async (formData: any) => {
     setIsSubmitting(true);
-  
+
     if (!formData.firstName) {
       toast.error('First Name is required');
       setIsSubmitting(false);
       return;
     }
-  
+
     try {
       const response = await axios.post('/api/contacts', formData);
       const contactData = response.data.contact;
@@ -403,7 +405,7 @@ export default function ContactsPage() {
     };
 
     return (
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 sm:p-6 z-50"
         onClick={() => {
           if (isEdit) {
@@ -413,7 +415,7 @@ export default function ContactsPage() {
           }
         }}
       >
-        <div 
+        <div
           className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md sm:max-w-lg mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto p-4 sm:p-6 relative"
           onClick={(e) => e.stopPropagation()}
         >
@@ -624,41 +626,39 @@ export default function ContactsPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => filterContactsByTag(null)}
-            className={`px-3 py-1 rounded-full text-sm ${
-              activeTagFilter === null 
-                ? 'bg-purple-600 text-white' 
-                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-1 rounded-full text-sm ${activeTagFilter === null
+              ? 'bg-purple-600 text-white'
+              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
           >
             All Contacts ({totalContacts})
           </button>
-          
+
           {uniqueTags.map(tag => {
             const count = contacts.filter(c => c.tags && c.tags.includes(tag)).length;
             let tagLabel = tag;
             let tagClass = '';
-            
+
             if (tag === 'scraped-lead') {
               tagLabel = 'Scraped Leads';
               tagClass = 'bg-blue-100 text-blue-800 hover:bg-blue-200';
             }
-            
+
             return (
               <button
                 key={tag}
                 onClick={() => filterContactsByTag(tag)}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  activeTagFilter === tag 
-                    ? 'bg-purple-600 text-white' 
-                    : tagClass || 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
+                className={`px-3 py-1 rounded-full text-sm ${activeTagFilter === tag
+                  ? 'bg-purple-600 text-white'
+                  : tagClass || 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                  }`}
               >
                 {tagLabel} ({count})
               </button>
             );
           })}
         </div>
-        
+
         {activeTagFilter === 'scraped-lead' && (
           <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-700 flex items-center">
@@ -677,18 +677,18 @@ export default function ContactsPage() {
   const PaginationControls = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
-    
+
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
     let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-    
+
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(i);
     }
-    
+
     return (
       <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 mt-4">
         <div className="flex flex-1 justify-between sm:hidden">
@@ -696,8 +696,8 @@ export default function ContactsPage() {
             onClick={() => changePage(currentPage - 1)}
             disabled={currentPage === 1}
             className={`relative inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium 
-              ${currentPage === 1 
-                ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed' 
+              ${currentPage === 1
+                ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
           >
             Previous
@@ -706,8 +706,8 @@ export default function ContactsPage() {
             onClick={() => changePage(currentPage + 1)}
             disabled={currentPage === totalPages}
             className={`relative ml-3 inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium 
-              ${currentPage === totalPages 
-                ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed' 
+              ${currentPage === totalPages
+                ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
           >
             Next
@@ -743,21 +743,21 @@ export default function ContactsPage() {
                 onClick={() => changePage(currentPage - 1)}
                 disabled={currentPage === 1}
                 className={`relative inline-flex items-center rounded-l-md px-2 py-2 
-                  ${currentPage === 1 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  ${currentPage === 1
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-white text-gray-500 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
               >
                 <span className="sr-only">Previous</span>
                 <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
               </button>
-              
+
               {startPage > 1 && (
                 <>
                   <button
                     onClick={() => changePage(1)}
                     className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                      ${currentPage === 1 
-                        ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600' 
+                      ${currentPage === 1
+                        ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600'
                         : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
                   >
                     1
@@ -769,20 +769,20 @@ export default function ContactsPage() {
                   )}
                 </>
               )}
-              
+
               {pageNumbers.map(number => (
                 <button
                   key={number}
                   onClick={() => changePage(number)}
                   className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                    ${currentPage === number 
-                      ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600' 
+                    ${currentPage === number
+                      ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600'
                       : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
                 >
                   {number}
                 </button>
               ))}
-              
+
               {endPage < totalPages && (
                 <>
                   {endPage < totalPages - 1 && (
@@ -793,21 +793,21 @@ export default function ContactsPage() {
                   <button
                     onClick={() => changePage(totalPages)}
                     className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold 
-                      ${currentPage === totalPages 
-                        ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600' 
+                      ${currentPage === totalPages
+                        ? 'z-10 bg-purple-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600'
                         : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
                   >
                     {totalPages}
                   </button>
                 </>
               )}
-              
+
               <button
                 onClick={() => changePage(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 className={`relative inline-flex items-center rounded-r-md px-2 py-2 
-                  ${currentPage === totalPages 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  ${currentPage === totalPages
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-white text-gray-500 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}`}
               >
                 <span className="sr-only">Next</span>
@@ -823,59 +823,59 @@ export default function ContactsPage() {
   // Toggle column visibility
   const hideColumn = (columnId: string) => {
     setColumns(prevColumns => {
-      const updatedColumns = prevColumns.map(column => 
+      const updatedColumns = prevColumns.map(column =>
         column.id === columnId ? { ...column, visible: false } : column
       );
-      
+
       const hiddenColumn = prevColumns.find(col => col.id === columnId);
       if (hiddenColumn) {
         setHiddenColumns(prev => [...prev, { ...hiddenColumn, visible: false }]);
       }
-      
+
       return updatedColumns;
     });
   };
-  
+
   // Show a hidden column
   const showColumn = (columnId: string) => {
-    setColumns(prevColumns => 
-      prevColumns.map(column => 
+    setColumns(prevColumns =>
+      prevColumns.map(column =>
         column.id === columnId ? { ...column, visible: true } : column
       )
     );
-    
+
     setHiddenColumns(prev => prev.filter(col => col.id !== columnId));
   };
 
   // Toggle select all contacts
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      setSelectedContactIds([]);
+      setSelectedContacts([]);
     } else {
-      setSelectedContactIds(contacts.map(contact => contact.id));
+      setSelectedContacts(contacts);
     }
     setIsAllSelected(!isAllSelected);
   };
 
   // Toggle select single contact
-  const toggleSelectContact = (contactId: string) => {
-    setSelectedContactIds(prevSelected => {
-      if (prevSelected.includes(contactId)) {
-        return prevSelected.filter(id => id !== contactId);
+  const toggleSelectContact = (contact: Contact) => {
+    setSelectedContacts(prevSelected => {
+      if (prevSelected!.some(c => c.id === contact.id)) {
+        return prevSelected!.filter(c => c.id !== contact.id);
       } else {
-        return [...prevSelected, contactId];
+        return [...prevSelected!, contact];
       }
     });
   };
 
   // Check if all contacts are selected
   useEffect(() => {
-    if (contacts.length > 0 && selectedContactIds.length === contacts.length) {
+    if (contacts.length > 0 && selectedContacts?.length === contacts.length) {
       setIsAllSelected(true);
     } else {
       setIsAllSelected(false);
     }
-  }, [selectedContactIds, contacts]);
+  }, [selectedContacts, contacts]);
 
   // Handle bulk delete
   const confirmBulkDelete = async () => {
@@ -883,23 +883,24 @@ export default function ContactsPage() {
     try {
       // In a real app, you might want to perform a batch delete operation
       await Promise.all(
-        selectedContactIds.map(id => axios.delete(`/api/contacts/${id}`))
+        selectedContacts!.map(contact => axios.delete(`/api/contacts/${contact.id}`))
       );
 
-      setContacts(prevContacts => 
-        prevContacts.filter(contact => !selectedContactIds.includes(contact.id))
+      setContacts(prevContacts =>
+        prevContacts.filter(contact => !selectedContacts!.includes(contact))
       );
-      setTotalContacts(prev => prev - selectedContactIds.length);
-      setTotalPages(Math.ceil((totalContacts - selectedContactIds.length) / contactsPerPage) || 1);
+      setTotalContacts(prev => prev - selectedContacts!.length);
+      setTotalPages(Math.ceil((totalContacts - selectedContacts!.length) / contactsPerPage) || 1);
       setIsBulkDeleteModalOpen(false);
-      setSelectedContactIds([]);
-      toast.success(`${selectedContactIds.length} contacts deleted successfully`);
+      setSelectedContacts([]);
+      toast.success(`${selectedContacts!.length} contacts deleted successfully`);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to delete contacts');
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   // Render column manager
   const ColumnManager = () => {
@@ -912,9 +913,9 @@ export default function ContactsPage() {
           <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
           Manage Columns
         </button>
-        
+
         {isColumnSelectorOpen && (
-          <div 
+          <div
             className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
             onClick={(e) => e.stopPropagation()}
           >
@@ -950,7 +951,7 @@ export default function ContactsPage() {
         setIsColumnSelectorOpen(false);
       }
     };
-    
+
     document.addEventListener('click', handleClickOutside);
     return () => {
       document.removeEventListener('click', handleClickOutside);
@@ -973,22 +974,22 @@ export default function ContactsPage() {
       toast.error('Please enter a phone number');
       return;
     }
-    
+
     // Keep focus in the input by using setTimeout
     setTimeout(() => {
       document.getElementById('phone')?.focus();
     }, 0);
-    
+
     setVerificationStatus('loading');
     setVerificationMessage('');
     setPhoneDetails(null);
-    
+
     // Format phone number if needed
     const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
-    
+
     try {
       const response = await axios.post('/api/twilio/verify', { phone: formattedPhone });
-      
+
       if (response.data?.success) {
         setVerificationStatus('success');
         setVerificationMessage(`Phone number validated successfully`);
@@ -999,21 +1000,21 @@ export default function ContactsPage() {
       }
     } catch (err: any) {
       console.error('Error validating phone number:', err);
-      const errorMessage = err.response?.data?.details?.message || 
-                          err.response?.data?.error || 
-                          err.message || 
-                          'Failed to validate phone number';
+      const errorMessage = err.response?.data?.details?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Failed to validate phone number';
       setVerificationStatus('error');
       setVerificationMessage(errorMessage);
       toast.error(errorMessage);
     }
-    
+
     // Refocus on the input field
     setTimeout(() => {
       document.getElementById('phone')?.focus();
     }, 0);
   };
-  
+
   // Reset verification modal state
   const resetVerificationModal = () => {
     setVerifyPhoneNumber('');
@@ -1025,7 +1026,7 @@ export default function ContactsPage() {
   // Phone Lookup Modal
   const PhoneLookupModal = () => {
     return (
-      <div 
+      <div
         className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
         onClick={(e) => {
           // Prevent closing if clicking inside the modal content
@@ -1035,12 +1036,12 @@ export default function ContactsPage() {
           }
         }}
       >
-        <div 
+        <div
           className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
           onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900">Phone Number Lookup</h3>
-          
+
           <div className="mb-5">
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
               Phone Number
@@ -1072,13 +1073,12 @@ export default function ContactsPage() {
               Enter a phone number to lookup and validate
             </p>
           </div>
-          
+
           {verificationStatus !== 'idle' && (
-            <div className={`mb-4 p-3 rounded-md ${
-              verificationStatus === 'loading' ? 'bg-blue-50 text-blue-800' :
+            <div className={`mb-4 p-3 rounded-md ${verificationStatus === 'loading' ? 'bg-blue-50 text-blue-800' :
               verificationStatus === 'success' ? 'bg-green-50 text-green-800' :
-              'bg-red-50 text-red-800'
-            }`}>
+                'bg-red-50 text-red-800'
+              }`}>
               <div className="flex items-start">
                 {verificationStatus === 'loading' && (
                   <svg className="animate-spin h-5 w-5 mr-2 mt-0.5" viewBox="0 0 24 24">
@@ -1095,13 +1095,13 @@ export default function ContactsPage() {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="font-semibold">Country Code:</div>
                         <div>{phoneDetails.country_code || 'N/A'}</div>
-                        
+
                         <div className="font-semibold">Carrier:</div>
                         <div>{phoneDetails.carrier?.name || 'N/A'}</div>
-                        
+
                         <div className="font-semibold">Type:</div>
                         <div>{phoneDetails.line_type_intelligence?.type || 'N/A'}</div>
-                        
+
                         <div className="font-semibold">Valid:</div>
                         <div>{phoneDetails.valid ? 'Yes' : 'No'}</div>
                       </div>
@@ -1111,7 +1111,7 @@ export default function ContactsPage() {
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-end space-x-3">
             <button
               onClick={() => {
@@ -1155,7 +1155,7 @@ export default function ContactsPage() {
           <h2 className="dashboard-card-title">All Contacts</h2>
           <div className="flex space-x-3">
             <ColumnManager />
-            
+
             <button
               onClick={() => setIsVerifyModalOpen(true)}
               className="px-3 py-2 bg-blue-500 border border-blue-600 rounded-md text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
@@ -1163,7 +1163,7 @@ export default function ContactsPage() {
               <InformationCircleIcon className="h-4 w-4 mr-2" />
               Verify Phone
             </button>
-            
+
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="btn-primary"
@@ -1174,7 +1174,7 @@ export default function ContactsPage() {
         </div>
 
         {contacts.length > 0 && <TagFilters />}
-        
+
         {activeTagFilter === 'scraped-lead' && (
           <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-700 flex items-center">
@@ -1191,11 +1191,11 @@ export default function ContactsPage() {
         {isEditModalOpen && <ModalContent isEdit />}
 
         {isDeleteModalOpen && selectedContact && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
             onClick={() => setIsDeleteModalOpen(false)}
           >
-            <div 
+            <div
               className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
               onClick={(e) => e.stopPropagation()}
             >
@@ -1235,17 +1235,17 @@ export default function ContactsPage() {
 
         {/* Bulk Delete Modal */}
         {isBulkDeleteModalOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 z-50"
             onClick={() => setIsBulkDeleteModalOpen(false)}
           >
-            <div 
+            <div
               className="bg-white border border-transparent rounded-xl shadow-xl w-full max-w-md mx-4 sm:mx-0 p-4 sm:p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-900">Delete Selected Contacts</h3>
               <p className="text-sm text-gray-600 mb-6">
-                Are you sure you want to delete {selectedContactIds.length} selected contacts? This action cannot be undone.
+                Are you sure you want to delete {selectedContacts.length} selected contacts? This action cannot be undone.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
@@ -1276,6 +1276,19 @@ export default function ContactsPage() {
             </div>
           </div>
         )}
+        <BulkAddToPipelineStage
+          contacts={selectedContacts}
+          isOpen={isBulkAddOpportunities}
+          setIsOpen={setIsBulkAddOpportunities}
+          onComplete={(newOpportunities) => {
+            setIsLoading(false);
+          }}
+          onError={(error) => {
+            setError(error);
+            setIsLoading(false);
+          }}
+          isSubmitting={isSubmitting}
+        />
 
         {isVerifyModalOpen && <PhoneLookupModal />}
 
@@ -1287,17 +1300,26 @@ export default function ContactsPage() {
           </div>
         ) : contacts.length > 0 ? (
           <div>
-            {selectedContactIds.length > 0 && (
+
+            {selectedContacts!.length > 0 && (
               <div className="mb-4 flex items-center justify-between bg-purple-50 p-3 rounded-md border border-purple-100">
                 <span className="text-sm text-purple-800">
-                  <span className="font-medium">{selectedContactIds.length}</span> contacts selected
+                  <span className="font-semibold">{selectedContacts!.length}</span> contacts selected
                 </span>
-                <button
-                  onClick={() => setIsBulkDeleteModalOpen(true)}
-                  className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors"
-                >
-                  Delete Selected
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsBulkAddOpportunities(true)}
+                    className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200"
+                  >
+                    Add to Opportunities
+                  </button>
+                  <button
+                    onClick={() => setIsBulkDeleteModalOpen(true)}
+                    className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200"
+                  >
+                    Delete Selected
+                  </button>
+                </div>
               </div>
             )}
             <div className="relative max-w-full overflow-x-hidden">
@@ -1314,13 +1336,13 @@ export default function ContactsPage() {
                         />
                       </th>
                       {columns.filter(column => column.visible).map(column => (
-                        <th 
+                        <th
                           key={column.id}
                           className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative"
                         >
                           <div className="flex items-center">
                             <span>{column.label}</span>
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 hideColumn(column.id);
@@ -1338,15 +1360,15 @@ export default function ContactsPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {contacts.map((contact) => (
-                      <tr 
-                        key={contact.id} 
+                      <tr
+                        key={contact.id}
                         className="transition-colors"
                       >
                         <td className="pl-4 pr-3 py-4 whitespace-nowrap">
                           <input
                             type="checkbox"
-                            checked={selectedContactIds.includes(contact.id)}
-                            onChange={() => toggleSelectContact(contact.id)}
+                            checked={selectedContacts!.includes(contact)}
+                            onChange={() => toggleSelectContact(contact)}
                             className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                           />
                         </td>
@@ -1362,15 +1384,14 @@ export default function ContactsPage() {
                             ) : column.id === 'tags' ? (
                               <div className="flex flex-wrap gap-1 overflow-hidden">
                                 {contact.tags && contact.tags.map((tag, idx) => (
-                                  <span 
-                                    key={idx} 
-                                    className={`px-2 py-1 text-xs rounded-full truncate ${
-                                      tag === 'scraped-lead' 
-                                        ? 'bg-blue-100 text-blue-800' 
-                                        : tag === 'review-new-lead' 
-                                          ? 'bg-green-100 text-green-800'
-                                          : 'bg-gray-100 text-gray-800'
-                                    }`}
+                                  <span
+                                    key={idx}
+                                    className={`px-2 py-1 text-xs rounded-full truncate ${tag === 'scraped-lead'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : tag === 'review-new-lead'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                      }`}
                                   >
                                     {tag}
                                   </span>
@@ -1379,8 +1400,8 @@ export default function ContactsPage() {
                             ) : column.id === 'dnd' ? (
                               contact.dnd ? 'Do Not Disturb' : 'Available'
                             ) : (
-                              typeof contact[column.key as keyof Contact] === 'object' 
-                                ? '-' 
+                              typeof contact[column.key as keyof Contact] === 'object'
+                                ? '-'
                                 : (contact[column.key as keyof Contact]?.toString() || 'N/A')
                             )}
                           </td>

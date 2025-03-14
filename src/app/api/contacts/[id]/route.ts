@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { fetchWithErrorHandling, getAuthHeaders } from '@/lib/enhancedApi';
-import { cookies } from 'next/headers';
 
 export async function PUT(
   request: Request,
@@ -82,7 +81,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const contactId = (await params.id);
+    const contactId = ( params.id);
     console.log('Fetching contact in GHL:', contactId);
     const response = await fetchWithErrorHandling(() => getContactById(contactId));
     console.log('GHL get response:', response);
