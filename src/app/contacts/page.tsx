@@ -7,9 +7,10 @@ import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { timezones } from '@/utils/timezones';
 import { ContactListSkeleton } from '@/components/SkeletonLoaders';
-import { ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, PhoneIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, PhoneIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import BulkAddToPipelineStage from '@/components/contacts/BulkAddToPipelineStage';
 import { Contact } from '@/types';
+import BulkUploadForm from '@/components/BulkUploadForm';
 
 
 interface CustomField {
@@ -59,6 +60,7 @@ export default function ContactsPage() {
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [verificationMessage, setVerificationMessage] = useState('');
   const [phoneDetails, setPhoneDetails] = useState<any>(null);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
 
   const [columns, setColumns] = useState<TableColumn[]>([
     { id: 'name', label: 'Name', key: 'name', visible: true },
@@ -232,13 +234,18 @@ export default function ContactsPage() {
 
   const handleEdit = (contact: Contact) => {
     setSelectedContact(contact);
-    const customFieldsArray: CustomField[] = contact.customFields
-      ? Object.entries(contact.customFields).map(([key, value]) => ({
-          id: key,
-          key,
-          value: value as string | string[] | boolean,
-        }))
-      : [];
+    // Convert customFields array to object
+    const customFieldsObject: { [key: string]: string | number | boolean | null } = {};
+    if (contact.customFields) {
+      if (Array.isArray(contact.customFields)) {
+        contact.customFields.forEach((field: CustomField) => {
+          customFieldsObject[field.key] = field.value as string | number | boolean | null;
+        });
+      } else {
+        Object.assign(customFieldsObject, contact.customFields);
+      }
+    }
+    
     setEditContact({
       id: contact.id,
       name: contact.name || '',
@@ -250,7 +257,7 @@ export default function ContactsPage() {
       tags: contact.tags || [],
       timezone: contact.timezone || '',
       dnd: contact.dnd || false,
-      customFields: customFieldsArray, 
+      customFields: customFieldsObject,
       source: contact.source || '',
       postalCode: contact.postalCode || '',
       city: contact.city || '',
@@ -1129,6 +1136,42 @@ export default function ContactsPage() {
     );
   };
 
+  const handleBulkUpload = async (contacts: { name: string; phone: string; street: string; city: string; state: string; pipelineId: string; email?: string; notes?: string }[]) => {
+    setIsSubmitting(true);
+    try {
+      const createdContacts = await Promise.all(
+        contacts.map(async (contact) => {
+          const response = await axios.post('/api/contacts', {
+            name: contact.name,
+            phone: contact.phone,
+            address1: contact.street,
+            city: contact.city,
+            state: contact.state,
+            email: contact.email,
+            notes: contact.notes,
+            source: 'bulk_upload'
+          });
+          return response.data.contact;
+        })
+      );
+
+      const processedContacts = createdContacts.map(contact => ({
+        ...contact,
+        name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+      }));
+
+      setContacts(prev => [...processedContacts, ...prev]);
+      setTotalContacts(prev => prev + processedContacts.length);
+      setTotalPages(Math.ceil((totalContacts + processedContacts.length) / contactsPerPage));
+      toast.success(`${processedContacts.length} contacts added successfully`);
+      setIsBulkUploadModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to add contacts');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <DashboardLayout title="Contacts">
       <div className="dashboard-card">
@@ -1142,6 +1185,13 @@ export default function ContactsPage() {
             >
               <InformationCircleIcon className="h-4 w-4 mr-2" />
               Verify Phone
+            </button>
+            <button
+              onClick={() => setIsBulkUploadModalOpen(true)}
+              className="px-3 py-2 bg-purple-500 text-white rounded-md text-sm font-medium hover:bg-purple-600 flex items-center"
+            >
+              <DocumentTextIcon className="h-4 w-4 mr-2" />
+              Bulk Upload
             </button>
             <button onClick={() => setIsAddModalOpen(true)} className="btn-primary">
               Add Contact
@@ -1229,6 +1279,27 @@ export default function ContactsPage() {
           isSubmitting={isSubmitting}
         />
         {isVerifyModalOpen && <PhoneLookupModal />}
+        {isBulkUploadModalOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setIsBulkUploadModalOpen(false)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-xl w-full max-w-4xl p-6"
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setIsBulkUploadModalOpen(false)}
+                className="absolute top-4 right-4 w-6 h-6 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <BulkUploadForm onContactsSelect={handleBulkUpload} isLoading={isSubmitting} />
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <ContactListSkeleton />

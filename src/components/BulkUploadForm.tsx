@@ -7,14 +7,16 @@ import { PhoneIcon, DocumentTextIcon, CheckCircleIcon, TagIcon, ChevronDownIcon 
 interface Contact {
   name: string;
   phone: string;
-  street_name: string;
+  street: string;
+  city: string;
+  state: string;
   email?: string;
   notes?: string;
   selected: boolean;
 }
 
 interface BulkUploadFormProps {
-  onContactsSelect: (contacts: { name: string; phone: string; street_name: string; pipelineId: string; email?: string; notes?: string }[]) => void;
+  onContactsSelect: (contacts: { name: string; phone: string; street: string; city: string; state: string; pipelineId: string; email?: string; notes?: string }[]) => void;
   isLoading?: boolean;
   pipelines?: { id: string; name: string }[];
 }
@@ -127,8 +129,18 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
           return;
         }
 
-        if (!firstRow['Street Name'] && !firstRow['street name'] && !firstRow['Street'] && !firstRow['street']) {
-          setError('The file must have a "Street Name" or "Street" column.');
+        if (!firstRow['Street'] && !firstRow['street']) {
+          setError('The file must have a "Street" column.');
+          return;
+        }
+
+        if (!firstRow['City'] && !firstRow['city']) {
+          setError('The file must have a "City" column.');
+          return;
+        }
+
+        if (!firstRow['State'] && !firstRow['state']) {
+          setError('The file must have a "State" column.');
           return;
         }
         
@@ -136,14 +148,18 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         const parsedContacts: Contact[] = data.map((row: any) => {
           const name = row['Contact Name'] || row['contact name'] || row['Name'] || row['name'] || '';
           const phone = row['Phone'] || row['phone'] || row['Phone Number'] || row['phone number'] || '';
-          const street_name = row['Street Name'] || row['street name'] || row['Street'] || row['street'] || '';
+          const street = row['Street'] || row['street'] || '';
+          const city = row['City'] || row['city'] || '';
+          const state = row['State'] || row['state'] || '';
           const email = row['Email'] || row['email'] || '';
           const notes = row['Notes'] || row['notes'] || '';
           
           return {
             name,
             phone: phone.toString(), // Convert to string in case it's a number in the spreadsheet
-            street_name: street_name.toString(),
+            street: street.toString(),
+            city: city.toString(),
+            state: state.toString(),
             email: email.toString(),
             notes: notes.toString(),
             selected: true
@@ -185,10 +201,12 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     
     const selectedContacts = contacts
       .filter(contact => contact.selected)
-      .map(({ name, phone, street_name, email, notes }) => ({ 
+      .map(({ name, phone, street, city, state, email, notes }) => ({ 
         name, 
         phone, 
-        street_name,
+        street,
+        city,
+        state,
         email,
         notes,
         pipelineId: selectedPipeline 
@@ -225,6 +243,38 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
   };
   
   console.log('Current pipelines state:', pipelines);
+
+  const handleDownloadSample = () => {
+    // Create sample data
+    const sampleData = [
+      {
+        'Contact Name': 'John Smith',
+        'Phone': '+1234567890',
+        'Street': '123 Main St',
+        'City': 'New York',
+        'State': 'NY',
+        'Email': 'john@example.com',
+        'Notes': 'Interested in property'
+      },
+      {
+        'Contact Name': 'Jane Doe',
+        'Phone': '+0987654321',
+        'Street': '456 Oak Ave',
+        'City': 'Los Angeles',
+        'State': 'CA',
+        'Email': 'jane@example.com',
+        'Notes': 'Looking for investment'
+      }
+    ];
+
+    // Convert to worksheet
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+
+    // Save file
+    XLSX.writeFile(wb, 'contact_upload_template.xlsx');
+  };
 
   return (
     <div className="nextprop-card">
@@ -373,14 +423,28 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
               </div>
               
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Required Format:</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-gray-700">Required Format:</h4>
+                  <button
+                    type="button"
+                    onClick={handleDownloadSample}
+                    className="text-sm text-[#7c3aed] hover:text-[#6d28d9] flex items-center"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download Sample
+                  </button>
+                </div>
                 <div className="bg-gray-50 p-3 rounded-md overflow-x-auto">
                   <table className="min-w-full text-xs">
                     <thead>
                       <tr>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Contact Name</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Phone</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Street Name</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Street</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">City</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">State</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Email</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Notes</th>
                       </tr>
@@ -390,6 +454,8 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                         <td className="px-3 py-2 border border-gray-200">Kelly Price</td>
                         <td className="px-3 py-2 border border-gray-200">+18167505325</td>
                         <td className="px-3 py-2 border border-gray-200">Oak Avenue</td>
+                        <td className="px-3 py-2 border border-gray-200">Kansas City</td>
+                        <td className="px-3 py-2 border border-gray-200">Missouri</td>
                         <td className="px-3 py-2 border border-gray-200">kelly@example.com</td>
                         <td className="px-3 py-2 border border-gray-200">Interested in 3-bedroom</td>
                       </tr>
@@ -397,6 +463,8 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                         <td className="px-3 py-2 border border-gray-200">Cody Ferrin</td>
                         <td className="px-3 py-2 border border-gray-200">+18622089925</td>
                         <td className="px-3 py-2 border border-gray-200">Pine Street</td>
+                        <td className="px-3 py-2 border border-gray-200">Kansas City</td>
+                        <td className="px-3 py-2 border border-gray-200">Missouri</td>
                         <td className="px-3 py-2 border border-gray-200">cody@example.com</td>
                         <td className="px-3 py-2 border border-gray-200">Looking to sell</td>
                       </tr>
@@ -453,7 +521,13 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                           Phone
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Street Name
+                          Street
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          City
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          State
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Email
@@ -478,7 +552,13 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                             <div className="text-sm text-gray-500">{contact.phone}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.street_name}</div>
+                            <div className="text-sm text-gray-500">{contact.street}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">{contact.city}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">{contact.state}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-500">{contact.email}</div>
