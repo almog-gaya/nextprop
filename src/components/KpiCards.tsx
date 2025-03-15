@@ -1,92 +1,82 @@
+"use client";
+
 import React from 'react';
-import { UserGroupIcon, HomeModernIcon, PhoneIcon, CurrencyDollarIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
+import { ArrowUpIcon, ArrowDownIcon, ArrowRightIcon } from '@heroicons/react/24/solid';
 
-interface Kpi {
+interface KpiCardProps {
   title: string;
-  value: string;
-  change?: string;
+  value: string | number;
+  change?: number;
   trend?: 'up' | 'down' | 'neutral';
+  precision?: number;
+  prefix?: string;
+  suffix?: string;
+  onClick?: () => void;
 }
 
-interface KpiCardsProps {
-  kpis?: Kpi[];
-}
+export default function KpiCard({
+  title,
+  value,
+  change,
+  trend = 'neutral',
+  precision = 0,
+  prefix = '',
+  suffix = '',
+  onClick
+}: KpiCardProps) {
+  // Format the value if it's a number
+  const formattedValue = typeof value === 'number' 
+    ? `${prefix}${value.toLocaleString(undefined, { 
+        minimumFractionDigits: precision,
+        maximumFractionDigits: precision
+      })}${suffix}`
+    : `${prefix}${value}${suffix}`;
 
-const KpiCards: React.FC<KpiCardsProps> = ({ kpis }) => {
-  // Default KPIs if none provided
-  const defaultKpis: Kpi[] = [
-    { title: 'Total Contacts', value: '238', change: '+12%', trend: 'up' },
-    { title: 'New Leads', value: '23', change: '+5%', trend: 'up' },
-    { title: 'Calls Made', value: '65', change: '-3%', trend: 'down' },
-    { title: 'Active Properties', value: '42', change: '+8%', trend: 'up' }
-  ];
-
-  const displayKpis = kpis || defaultKpis;
-
-  // Map KPI titles to appropriate icons
-  const getIconForKpi = (title: string) => {
-    const lowercaseTitle = title.toLowerCase();
-    
-    if (lowercaseTitle.includes('contact') || lowercaseTitle.includes('lead')) {
-      return <UserGroupIcon className="h-6 w-6" />;
-    } else if (lowercaseTitle.includes('call') || lowercaseTitle.includes('phone')) {
-      return <PhoneIcon className="h-6 w-6" />;
-    } else if (lowercaseTitle.includes('propert') || lowercaseTitle.includes('house') || lowercaseTitle.includes('home')) {
-      return <HomeModernIcon className="h-6 w-6" />;
-    } else {
-      return <CurrencyDollarIcon className="h-6 w-6" />;
+  // Determine color and icon based on trend
+  const trendConfig = {
+    up: {
+      icon: <ArrowUpIcon className="h-4 w-4" />,
+      color: 'text-green-500',
+      bgColor: 'bg-green-50'
+    },
+    down: {
+      icon: <ArrowDownIcon className="h-4 w-4" />,
+      color: 'text-red-500',
+      bgColor: 'bg-red-50'
+    },
+    neutral: {
+      icon: <ArrowRightIcon className="h-4 w-4" />,
+      color: 'text-gray-500',
+      bgColor: 'bg-gray-50'
     }
   };
 
-  // Get appropriate colors based on KPI trend
-  const getColorClasses = (index: number, trend?: 'up' | 'down' | 'neutral') => {
-    const baseColors = [
-      'bg-blue-100 text-purple-600',  // blue
-      'bg-green-100 text-green-600', // green
-      'bg-yellow-100 text-yellow-600', // yellow
-      'bg-purple-100 text-purple-600', // purple
-    ];
-    
-    // Use trend to override colors if specified
-    if (trend === 'up') {
-      return 'bg-green-100 text-green-600';
-    } else if (trend === 'down') {
-      return 'bg-red-100 text-red-600';
-    }
-    
-    // Default to base colors
-    return baseColors[index % baseColors.length];
-  };
+  const { icon, color, bgColor } = trendConfig[trend];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {displayKpis.map((kpi, index) => (
-        <div key={index} className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className={`p-3 rounded-full ${getColorClasses(index, kpi.trend)} mr-4`}>
-              {getIconForKpi(kpi.title)}
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">{kpi.title}</p>
-              <div className="flex items-center">
-                <p className="text-xl font-bold">{kpi.value}</p>
-                {kpi.change && (
-                  <span className={`ml-2 text-xs font-medium flex items-center ${
-                    kpi.trend === 'up' ? 'text-green-600' : 
-                    kpi.trend === 'down' ? 'text-red-600' : 'text-gray-600'
-                  }`}>
-                    {kpi.trend === 'up' && <ArrowUpIcon className="h-3 w-3 mr-1" />}
-                    {kpi.trend === 'down' && <ArrowDownIcon className="h-3 w-3 mr-1" />}
-                    {kpi.change}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+    <div 
+      className="bg-white rounded-lg shadow-sm p-4 border border-gray-100 hover:shadow-md transition-shadow"
+      onClick={onClick}
+    >
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs md:text-sm font-medium text-gray-500">{title}</h3>
         </div>
-      ))}
+        
+        <div className="mt-2">
+          <div className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">{formattedValue}</div>
+          
+          {change !== undefined && (
+            <div className="flex items-center mt-2">
+              <div className={`flex items-center ${color} ${bgColor} px-2 py-1 rounded-full text-xs font-medium`}>
+                {icon}
+                <span className="ml-1">{change}%</span>
+              </div>
+              <span className="ml-2 text-xs text-gray-500">vs. previous period</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
-};
-
-export default KpiCards; 
+} 

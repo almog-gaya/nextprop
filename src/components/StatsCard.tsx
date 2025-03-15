@@ -1,60 +1,54 @@
 "use client";
 
-import React, { ReactNode } from 'react';
-import Link from 'next/link';
+import React from 'react';
+import { ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 
 interface StatsCardProps {
   title: string;
-  value: number | string;
-  icon: ReactNode;
-  trend?: {
-    value: number;
-    isUpward: boolean;
-  };
-  bgColor?: string;
-  href?: string;
+  value: string | number;
+  change?: number;
+  trend?: 'up' | 'down' | 'neutral';
+  icon?: React.ReactNode;
+  textColor?: string;
+  onClick?: () => void;
 }
 
-export default function StatsCard({ 
-  title, 
-  value, 
-  icon, 
-  trend, 
-  bgColor = 'bg-white',
-  href
-}: StatsCardProps) {
-  const CardContent = () => (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider">{title}</h3>
-        <div className="text-[#7c3aed] bg-purple-50 p-3 rounded-full">{icon}</div>
-      </div>
-      
-      <div className="flex items-end justify-between">
-        <p className="text-3xl font-extrabold text-[#1e1b4b]">{value}</p>
-        
-        {trend && (
-          <div className={`flex items-center text-sm font-semibold px-3 py-1 rounded-full ${
-            trend.isUpward ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'
-          }`}>
-            <span>{trend.isUpward ? '↑' : '↓'} {trend.value}%</span>
-          </div>
-        )}
-      </div>
-    </>
-  );
+const StatsCard = ({ title, value, change, trend, icon, textColor = 'text-[#7c3aed]', onClick }: StatsCardProps) => {
+  const trendIcon = trend === 'up' ? (
+    <ArrowUpIcon className="h-4 w-4 text-green-500" />
+  ) : trend === 'down' ? (
+    <ArrowDownIcon className="h-4 w-4 text-red-500" />
+  ) : null;
 
-  if (href) {
-    return (
-      <Link href={href} className={`nextprop-card shadow-lg hover:shadow-xl transition-all ${bgColor} cursor-pointer transform hover:-translate-y-1 duration-200`}>
-        <CardContent />
-      </Link>
-    );
-  }
+  const cardClass = onClick 
+    ? 'stat-card cursor-pointer transition-all hover:-translate-y-1 hover:shadow'
+    : 'stat-card';
 
   return (
-    <div className={`nextprop-card shadow-lg hover:shadow-xl transition-all ${bgColor}`}>
-      <CardContent />
+    <div 
+      className={cardClass}
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs md:text-sm font-medium text-gray-500">{title}</h3>
+        {icon && <div className="text-[#7c3aed]">{icon}</div>}
+      </div>
+      
+      <div className={`text-xl md:text-3xl font-bold ${textColor}`}>
+        {value}
+      </div>
+      
+      {(change !== undefined && trend) && (
+        <div className="flex items-center mt-2 text-xs">
+          {trendIcon}
+          <span className={`ml-1 font-medium ${trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-gray-500'}`}>
+            {change}%
+          </span>
+          <span className="ml-1 text-gray-500">from previous period</span>
+        </div>
+      )}
     </div>
   );
-} 
+};
+
+export default StatsCard; 

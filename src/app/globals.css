@@ -126,6 +126,31 @@ body {
   .nextprop-input {
     @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-[#7c3aed] focus:ring focus:ring-[#7c3aed];
   }
+  
+  /* Mobile responsive utilities */
+  .sidebar-mobile {
+    @apply fixed top-0 left-0 h-screen w-full z-50 bg-[#1e1b4b] transform transition-transform duration-300 ease-in-out;
+  }
+
+  .sidebar-mobile-closed {
+    @apply -translate-x-full;
+  }
+
+  .sidebar-mobile-open {
+    @apply translate-x-0;
+  }
+
+  .sidebar-toggle-button {
+    @apply fixed top-4 left-4 z-50 bg-[#7c3aed] text-white p-2 rounded-md shadow-md md:hidden;
+  }
+
+  .mobile-header-padding {
+    @apply md:px-8 px-4;
+  }
+
+  .main-content-mobile {
+    @apply md:ml-64 ml-0 w-full transition-all duration-300 ease-in-out;
+  }
 }
 
 /* Table styling enhancements */
@@ -144,4 +169,23 @@ th {
 
 tr:hover td {
   background-color: #f8fafc;
+}
+
+/* Mobile responsive overrides */
+@media (max-width: 768px) {
+  .main-content {
+    @apply p-3 m-2;
+  }
+  
+  .dashboard-card {
+    @apply p-4;
+  }
+  
+  .stat-card {
+    @apply p-3;
+  }
+  
+  .stat-value {
+    @apply text-2xl;
+  }
 }

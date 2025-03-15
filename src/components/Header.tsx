@@ -30,11 +30,11 @@ export default function Header({ title }: HeaderProps) {
   }, []);
   
   return (
-    <header className="bg-white shadow-sm px-8 py-5 flex items-center justify-between border-b border-gray-200">
+    <header className="bg-white shadow-sm mobile-header-padding py-5 flex items-center justify-between border-b border-gray-200">
       <div>
-        <h1 className="text-2xl font-extrabold nextprop-gradient-text">{title}</h1>
+        <h1 className="text-xl md:text-2xl font-extrabold nextprop-gradient-text">{title}</h1>
         {user && (
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-xs md:text-sm text-gray-600 mt-1">
             Welcome back, <span className="font-semibold">{user.name || user.email.split('@')[0]}</span>!
           </p>
         )}
@@ -47,10 +47,10 @@ export default function Header({ title }: HeaderProps) {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center space-x-3 pl-3 border-l border-gray-200 focus:outline-none"
           >
-            <div className="h-10 w-10 nextprop-gradient rounded-full flex items-center justify-center text-white font-bold shadow-md">
-              <UserCircleIcon className="h-6 w-6 text-white" />
+            <div className="h-8 w-8 md:h-10 md:w-10 nextprop-gradient rounded-full flex items-center justify-center text-white font-bold shadow-md">
+              <UserCircleIcon className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
-            <div className="flex flex-col items-start">
+            <div className="hidden md:flex md:flex-col md:items-start">
               <span className="text-[#1e1b4b] font-semibold text-sm">{user?.name || 'User'}</span>
               <span className="text-gray-500 text-xs">
                 {user?.email ? user.email.split('@')[0] : 'user'}

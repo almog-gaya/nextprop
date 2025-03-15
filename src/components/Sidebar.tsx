@@ -17,7 +17,9 @@ import {
   ChevronUpIcon,
   EnvelopeIcon,
   ClockIcon,
-  UserIcon
+  UserIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 interface SidebarLinkProps {
@@ -25,6 +27,7 @@ interface SidebarLinkProps {
   text: string;
   href: string;
   active: boolean;
+  onClick?: () => void;
 }
 
 interface SidebarDropdownProps {
@@ -36,14 +39,20 @@ interface SidebarDropdownProps {
   children: React.ReactNode;
 }
 
-const SidebarLink = ({ icon, text, href, active }: SidebarLinkProps) => {
+interface SidebarProps {
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+const SidebarLink = ({ icon, text, href, active, onClick }: SidebarLinkProps) => {
   const linkClass = classNames('flex items-center w-full px-4 py-3 my-1 rounded-lg mx-2 transition-all duration-200', {
     'bg-[#7c3aed] text-white font-medium': active,
     'text-gray-300 hover:bg-gray-800 hover:text-white': !active
   });
 
   return (
-    <Link href={href} passHref>
+    <Link href={href} passHref onClick={onClick}>
       <div className={linkClass}>
         <div className="w-5 h-5 mr-3">{icon}</div>
         <span className="text-sm">{text}</span>
@@ -80,7 +89,7 @@ const SidebarDropdown = ({ icon, text, active, open, onClick, children }: Sideba
   );
 };
 
-export default function Sidebar() {
+export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [pipelinesOpen, setPipelinesOpen] = useState(pathname.startsWith('/pipelines'));
   const [userType, setUserType] = useState<string | null>(null);
@@ -138,8 +147,24 @@ export default function Sidebar() {
     { text: 'Distressed Homeowners', href: '/pipelines/distressed-homeowners' }
   ];
 
+  const sidebarClass = classNames({
+    "fixed top-0 left-0 h-screen w-64 flex flex-col bg-[#1e1b4b] shadow-lg z-40": !isMobile,
+    "sidebar-mobile": isMobile,
+    "sidebar-mobile-open": isMobile && isOpen,
+    "sidebar-mobile-closed": isMobile && !isOpen
+  });
+
   return (
-    <div className="fixed top-0 left-0 h-screen w-64 flex flex-col bg-[#1e1b4b] shadow-lg">
+    <div className={sidebarClass}>
+      {isMobile && (
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 text-white hover:bg-[#322b70] rounded-md transition-colors"
+        >
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+      )}
+      
       <div className="mt-6 mb-10 px-4">
         <div className="flex items-center justify-center">
           <div className="flex flex-col items-center">
@@ -153,7 +178,7 @@ export default function Sidebar() {
         </div>
       </div>
       
-      <div className="flex flex-col w-full px-2">
+      <div className="flex flex-col w-full px-2 overflow-y-auto">
         {links.map((link) => (
           <SidebarLink
             key={link.href}
@@ -161,6 +186,7 @@ export default function Sidebar() {
             text={link.text}
             href={link.href}
             active={pathname === link.href}
+            onClick={isMobile ? onClose : undefined}
           />
         ))}
         
@@ -179,6 +205,7 @@ export default function Sidebar() {
               text={link.text}
               href={link.href}
               active={pathname === link.href}
+              onClick={isMobile ? onClose : undefined}
             />
           ))}
         </SidebarDropdown>
@@ -189,6 +216,7 @@ export default function Sidebar() {
           text="Email Campaigns"
           href="/emails"
           active={pathname === '/emails' || pathname.startsWith('/emails/')}
+          onClick={isMobile ? onClose : undefined}
         />
       </div>
       
@@ -199,6 +227,7 @@ export default function Sidebar() {
             text="Settings"
             href="/settings"
             active={pathname === '/settings'}
+            onClick={isMobile ? onClose : undefined}
           />
         </div>
       </div>
