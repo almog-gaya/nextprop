@@ -1,5 +1,5 @@
 import { PhoneNumber } from "@/contexts/AuthContext";
-import { ArrowLeft, RefreshCw, Phone, MoreVertical, AlertCircle, Send, CheckCircle, ChevronDown } from "lucide-react";
+import { ArrowLeft, RefreshCw, Phone, MoreVertical, AlertCircle, Send, CheckCircle, ChevronDown, StickyNote } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import Avatar from "./Avatar";
@@ -8,6 +8,8 @@ import { ActivityMessageRenderer } from "./renderers/ActivityMessageRenderer";
 import { EmailMessageRenderer } from "./renderers/EmailMessageRenderer";
 import { NormalMessageRenderer } from "./renderers/NormalMessageRenderer";
 import { CallMessageRenderer } from "./renderers/CallMessageRenderer";
+import NoteSidebar from './NoteSidebar';
+
 const getMessageRenderer = (message: Message) => {
     const isMe = message.direction
         ? message.direction === 'outbound'
@@ -27,6 +29,7 @@ const getMessageRenderer = (message: Message) => {
     }
     return null;
 };
+
 interface MessageThreadProps {
     activeConversation: ConversationDisplay;
     onSendMessage: (message: string, fromNumber?: string) => void;
@@ -75,6 +78,7 @@ export default function MessageThread({
     const [sendingStatus, setSendingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [isNoteSidebarOpen, setIsNoteSidebarOpen] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -199,7 +203,7 @@ export default function MessageThread({
     const conversationType = getConversationAppropriateType(getConvoType(activeConversation!)!);
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full relative">
             <div className="border-b border-gray-200 p-3 sticky top-0 z-10 bg-white">
                 <div className="flex items-center">
                     <div className="md:hidden mr-2">
@@ -219,30 +223,42 @@ export default function MessageThread({
                             )}
                         </div>
                     </div>
-                    <div className="flex">
+                    <div className="flex items-center space-x-2">
                         <button
-                            className="p-2 rounded-full hover:bg-gray-100 mr-1"
+                            className="p-2 rounded-full hover:bg-gray-100"
                             onClick={handleRefresh}
                             disabled={loading || refreshing}
+                            title="Refresh messages"
                         >
                             <div className={`${refreshing ? 'animate-spin' : ''}`}>
                                 <RefreshCw size={20} className="text-gray-600" />
                             </div>
                         </button>
                         <button
-                            className="p-2 rounded-full hover:bg-gray-100 mr-1"
+                            className="p-2 rounded-full hover:bg-gray-100"
                             onClick={handleCall}
+                            title="Call contact"
                         >
                             <Phone size={20} className="text-gray-600" />
                         </button>
-                        <button className="p-2 rounded-full hover:bg-gray-100">
+                        <button 
+                            onClick={() => setIsNoteSidebarOpen(true)}
+                            className={`p-2 rounded-full ${isNoteSidebarOpen ? 'bg-purple-100 text-purple-600' : 'hover:bg-gray-100'}`}
+                            title="Contact notes"
+                        >
+                            <StickyNote size={20} className={isNoteSidebarOpen ? 'text-purple-600' : 'text-gray-600'} />
+                        </button>
+                        <button 
+                            className="p-2 rounded-full hover:bg-gray-100"
+                            title="More options"
+                        >
                             <MoreVertical size={20} className="text-gray-600" />
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-grow overflow-y-auto p-4">
+            <div className="flex-grow overflow-y-auto p-4 relative">
                 {hasMore && (
                     <div className="flex justify-center mb-4">
                         <button
@@ -375,6 +391,14 @@ export default function MessageThread({
                     )}
                 </div>
             </div>
+
+            {activeConversation.contactId && (
+                <NoteSidebar
+                    contactId={activeConversation.contactId}
+                    isOpen={isNoteSidebarOpen}
+                    onClose={() => setIsNoteSidebarOpen(false)}
+                />
+            )}
         </div>
     );
 }

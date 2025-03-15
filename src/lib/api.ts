@@ -690,4 +690,91 @@ function validateApiKey(apiKey: string): boolean {
   const isAlphanumeric = /^[a-zA-Z0-9_-]+$/.test(apiKey);
   
   return hasMinLength && isAlphanumeric;
+}
+
+/**
+ * Get all notes for a contact
+ */
+export async function getContactNotes(contactId: string) {
+  try {
+    const response = await fetch(`/api/contacts/${contactId}/notes`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error('Failed to get contact notes');
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting contact notes:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a specific note
+ */
+export async function getContactNote(contactId: string, noteId: string) {
+  try {
+    const response = await fetch(`/api/contacts/${contactId}/notes/${noteId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error('Failed to get contact note');
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting contact note:', error);
+    throw error;
+  }
+}
+
+/**
+ * Create a new note for a contact
+ */
+export async function createContactNote(contactId: string, noteData: { body: string; userId?: string }) {
+  try {
+    const response = await fetch(`/api/contacts/${contactId}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(noteData),
+    });
+    if (!response.ok) throw new Error('Failed to create contact note');
+    return await response.json();
+  } catch (error) {
+    console.error('Error creating contact note:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing note
+ */
+export async function updateContactNote(contactId: string, noteId: string, noteData: { body: string; userId?: string }) {
+  try {
+    const response = await fetch(`/api/contacts/${contactId}/notes/${noteId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(noteData),
+    });
+    if (!response.ok) throw new Error('Failed to update contact note');
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating contact note:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a note
+ */
+export async function deleteContactNote(contactId: string, noteId: string) {
+  try {
+    const response = await fetch(`/api/contacts/${contactId}/notes/${noteId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error('Failed to delete contact note');
+    return await response.json();
+  } catch (error) {
+    console.error('Error deleting contact note:', error);
+    throw error;
+  }
 } 
