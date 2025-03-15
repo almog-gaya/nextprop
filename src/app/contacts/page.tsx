@@ -49,6 +49,7 @@ export default function ContactsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [isBulkAddOpportunities, setIsBulkAddOpportunities] = useState(false);
+  const [isBulkMessagingModalOpen, setIsBulkMessagingModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
@@ -61,6 +62,7 @@ export default function ContactsPage() {
   const [verificationMessage, setVerificationMessage] = useState('');
   const [phoneDetails, setPhoneDetails] = useState<any>(null);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [selectedMessageType, setSelectedMessageType] = useState<'sms' | 'email' | 'voicemail' | null>(null);
 
   const [columns, setColumns] = useState<TableColumn[]>([
     { id: 'name', label: 'Name', key: 'name', visible: true },
@@ -1301,6 +1303,131 @@ export default function ContactsPage() {
           </div>
         )}
 
+        {isBulkMessagingModalOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setIsBulkMessagingModalOpen(false)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6"
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Send Bulk Message</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Send a message to {selectedContacts.length} selected contacts.
+              </p>
+              
+              {selectedMessageType ? (
+                <div>
+                  {selectedMessageType === 'sms' && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">SMS Message</label>
+                      <textarea
+                        className="w-full border border-gray-300 rounded-md p-2 h-32"
+                        placeholder="Enter your SMS message here..."
+                      />
+                    </div>
+                  )}
+                  
+                  {selectedMessageType === 'email' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-md p-2"
+                          placeholder="Email subject..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Content</label>
+                        <textarea
+                          className="w-full border border-gray-300 rounded-md p-2 h-32"
+                          placeholder="Enter your email content here..."
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedMessageType === 'voicemail' && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Voicemail Message</label>
+                      <p className="text-sm text-gray-500 mb-2">Upload an audio file for your ringless voicemail</p>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        className="w-full border border-gray-300 rounded-md p-2"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Supported formats: MP3, WAV (max 2MB)</p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-6 flex justify-between">
+                    <button
+                      onClick={() => setSelectedMessageType(null)}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                    >
+                      Back to Options
+                    </button>
+                    <button
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm disabled:opacity-50"
+                    >
+                      Send to {selectedContacts.length} Contacts
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  <button
+                    onClick={() => setSelectedMessageType('sms')}
+                    className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
+                  >
+                    <ChatBubbleLeftRightIcon className="h-6 w-6 text-blue-500 mr-3" />
+                    <div className="text-left">
+                      <h4 className="font-medium text-gray-900">SMS Message</h4>
+                      <p className="text-sm text-gray-500">Send a text message to selected contacts</p>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setSelectedMessageType('email')}
+                    className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
+                  >
+                    <DocumentTextIcon className="h-6 w-6 text-green-500 mr-3" />
+                    <div className="text-left">
+                      <h4 className="font-medium text-gray-900">Email</h4>
+                      <p className="text-sm text-gray-500">Send an email to selected contacts</p>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => setSelectedMessageType('voicemail')}
+                    className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
+                  >
+                    <PhoneIcon className="h-6 w-6 text-purple-500 mr-3" />
+                    <div className="text-left">
+                      <h4 className="font-medium text-gray-900">Ringless Voicemail</h4>
+                      <p className="text-sm text-gray-500">Send a voicemail without ringing their phone</p>
+                    </div>
+                  </button>
+                </div>
+              )}
+              
+              <button
+                onClick={() => {
+                  setIsBulkMessagingModalOpen(false);
+                  setSelectedMessageType(null);
+                }}
+                className="absolute top-4 right-4 w-6 h-6 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <ContactListSkeleton />
         ) : error ? (
@@ -1318,6 +1445,13 @@ export default function ContactsPage() {
                     className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
                   >
                     Add to Opportunities
+                  </button>
+                  <button
+                    onClick={() => setIsBulkMessagingModalOpen(true)}
+                    className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 flex items-center"
+                  >
+                    <ChatBubbleLeftRightIcon className="h-4 w-4 mr-1" />
+                    Send Message
                   </button>
                   <button
                     onClick={() => setIsBulkDeleteModalOpen(true)}
