@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const MAX_PROPERTIES = 5;
 
 export async function POST(req: Request) {
   const API_TOKEN = process.env.APIFY_API_TOKEN;
@@ -14,13 +15,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { query, limit } = await req.json();
-    const MAX_PROPERTIES = limit;
+    const { query } = await req.json();
+
     if (!query) {
       throw new Error("Please provide a valid address or query");
     }
 
-    const searchURLs = await zillowSearchScraper(query, API_TOKEN, MAX_PROPERTIES);
+    const searchURLs = await zillowSearchScraper(query, API_TOKEN);
     const startUrls = searchURLs.map((url: any) => ({
       url,
       method: "GET",
@@ -128,8 +129,7 @@ export async function POST(req: Request) {
   }
 }
 
-const zillowSearchScraper = async (q: string, API_TOKEN: string, limit: number) => {
-  const MAX_PROPERTIES = limit;
+const zillowSearchScraper = async (q: string, API_TOKEN: string) => {
   const API_URL = 'https://api.apify.com/v2/acts/X46xKaa20oUA1fRiP/runs';
 
   function buildZillowUSAURL(query: string, sortBy = "days", daysOnZillow = 90) {
