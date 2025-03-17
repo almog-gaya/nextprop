@@ -122,14 +122,14 @@ export default function PropertiesPage() {
           query: searchQuery, 
         }),
       });
-      const errorData = await response.json();
-      console.log("Scraped at FrontEND:", JSON.stringify(errorData));
+      const data = await response.json();
+      console.log("Scraped at FrontEND:", JSON.stringify(data));
       if (!response.ok) {
         
-        throw new Error(`Failed to scrape properties: ${errorData.error || response.statusText}`);
+        throw new Error(`Failed to scrape properties: ${data.error || response.statusText}`);
       }
 
-      const data: ScrapedResult = await response.json();
+      // const data: ScrapedResult = await response.json();
       console.log("Scraped data:", data);
 
       if (data.success && data.properties) {
