@@ -3,10 +3,8 @@
 import React, { useState } from "react";
 import { MagnifyingGlassIcon, ArrowPathIcon, UserPlusIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import DashboardLayout from "@/components/DashboardLayout";
-import { MAX_PROPERTIES } from "../api/properties/route";
+const DAILY_LIMIT = parseInt(process.env.NEXT_PUBLIC_DAILY_LIMIT || '2', 10);
 
-
-// Define response types
 interface ZillowProperty {
   agentName?: string | null;
   agentPhoneNumber?: string | null;
@@ -43,11 +41,10 @@ export default function PropertiesPage() {
     actions: { label: string; href: string }[];
   } | null>(null);
 
+
   const addLeadsToContact = async (properties: ZillowProperty[]) => {
     try {
-      const transformedLeads = properties
-        .map(prop => transformLeadToContact(prop));
-
+      const transformedLeads = properties.map(prop => transformLeadToContact(prop));
       for (const lead of transformedLeads) {
         try {
           const response = await fetch("/api/contacts", {
@@ -57,14 +54,12 @@ export default function PropertiesPage() {
             },
             body: JSON.stringify(lead),
           });
-
           if (!response.ok) {
             throw new Error(`Failed to add contact: ${response.statusText}`);
           }
         } catch (_) {
           console.log("error adding contact", _);
         }
-
       }
       return true;
     } catch (error) {
@@ -85,7 +80,6 @@ export default function PropertiesPage() {
       address1: property.streetAddress || "",
       city: property.city || "",
       state: property.state || "",
-      /// treating scraped data as leads
       customFields: [
         {
           "id": "ECqyHR21ZJnSMolxlHpU",
@@ -93,16 +87,11 @@ export default function PropertiesPage() {
           "field_value": "lead"
         }
       ],
-      tags: [
-        'scraped-lead',
-        'zillow-property',
-        'Review-new-lead'
-      ]
-
+      tags: ['scraped-lead', 'zillow-property', 'Review-new-lead']
     };
   };
 
-  const handleScrapeProperties = async (count: number = 100) => {
+  const handleScrapeProperties = async (count: number = DAILY_LIMIT) => {
     setIsScraping(true);
     setProgressPercentage(0);
     setSuccessCount(0);
@@ -111,7 +100,31 @@ export default function PropertiesPage() {
     setCompletionMessage(null);
 
     try {
-      setCurrentStatus(`Starting to scrape ${count} properties...`);
+      const today = new Date().toISOString().split('T')[0];
+      let scrapedToday = parseInt(localStorage.getItem('scrapedToday') || '0');
+      const storedDate = localStorage.getItem('scrapeDate') || today;
+
+      if (storedDate !== today) {
+        scrapedToday = 0;
+        localStorage.setItem('scrapeDate', today);
+        localStorage.setItem('scrapedToday', '0');
+      }
+
+      if (scrapedToday >= DAILY_LIMIT) {
+        setCompletionMessage({
+          title: "Daily Limit Reached",
+          message: `You've reached the daily limit of ${DAILY_LIMIT} properties. Come back tomorrow to scrape more listings!`,
+          actions: [
+            { label: "View Properties", href: "/properties/list" },
+            { label: "View Contacts", href: "/contacts" },
+          ],
+        });
+        return;
+      }
+
+      const remainingCount = Math.min(count, DAILY_LIMIT - scrapedToday);
+      
+      setCurrentStatus(`Starting to scrape ${remainingCount} properties...`);
 
       const response = await fetch("/api/properties", {
         method: "POST",
@@ -119,7 +132,8 @@ export default function PropertiesPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: searchQuery, 
+          query: searchQuery,
+          limit: remainingCount
         }),
       });
 
@@ -140,12 +154,16 @@ export default function PropertiesPage() {
 
         const contactsAdded = await addLeadsToContact(data.properties);
 
+        scrapedToday += totalProperties;
+        localStorage.setItem('scrapedToday', scrapedToday.toString());
+
         setProgressPercentage(100);
         setCurrentStatus(`Successfully scraped ${totalProperties} properties and added to contacts.`);
 
+        const remaining = DAILY_LIMIT - scrapedToday;
         setCompletionMessage({
           title: "Property Scraping Complete",
-          message: `${totalProperties} properties have been scraped from Zillow and ${contactsAdded ? "added to contacts" : "failed to add to contacts"} based on your query: "${searchQuery}".`,
+          message: `${totalProperties} properties have been scraped from Zillow and ${contactsAdded ? "added to contacts" : "failed to add to contacts"} based on your query: "${searchQuery}". You have ${remaining} properties left to scrape today.`,
           actions: [
             { label: "View Properties", href: "/properties/list" },
             { label: "View Contacts", href: "/contacts" },
@@ -183,7 +201,7 @@ export default function PropertiesPage() {
           <div className="p-6 md:p-8 text-white">
             <h2 className="text-xl md:text-2xl font-bold mb-3">Scrape Zillow Properties</h2>
             <p className="mb-4">
-              Enter a search query and generate up to {MAX_PROPERTIES} property listings from Zillow with one click, powered by Apify.
+              Enter a search query and generate up to {DAILY_LIMIT} property listings at a time from Zillow per day, powered by Apify.
             </p>
           </div>
         </div>
@@ -208,7 +226,7 @@ export default function PropertiesPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleScrapeProperties(MAX_PROPERTIES)}
+                  onClick={() => handleScrapeProperties(DAILY_LIMIT)}
                   disabled={isScraping}
                   className={`flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm text-white font-medium ${isScraping ? "bg-gray-500" : "bg-purple-700 hover:bg-purple-800"}`}
                 >
@@ -220,7 +238,7 @@ export default function PropertiesPage() {
                   ) : (
                     <>
                       <UserPlusIcon className="h-5 w-5" />
-                      Scrape {MAX_PROPERTIES} Properties
+                      Scrape {DAILY_LIMIT} Properties
                     </>
                   )}
                 </button> 
@@ -229,9 +247,13 @@ export default function PropertiesPage() {
           </div>
 
           {completionMessage && (
-            <div className="mb-6 p-4 border border-green-200 bg-green-50 rounded-md text-sm text-green-700">
+            <div className={`mb-6 p-4 border rounded-md text-sm ${completionMessage.title === "Daily Limit Reached" ? "border-yellow-200 bg-yellow-50 text-yellow-700" : "border-green-200 bg-green-50 text-green-700"}`}>
               <div className="flex items-start">
-                <CheckCircleIcon className="h-5 w-5 mr-2 flex-shrink-0 text-green-500" />
+                {completionMessage.title === "Daily Limit Reached" ? (
+                  <XCircleIcon className="h-5 w-5 mr-2 flex-shrink-0 text-yellow-500" />
+                ) : (
+                  <CheckCircleIcon className="h-5 w-5 mr-2 flex-shrink-0 text-green-500" />
+                )}
                 <div>
                   <p className="font-medium mb-1">{completionMessage.title}</p>
                   <p>{completionMessage.message}</p>
@@ -241,7 +263,7 @@ export default function PropertiesPage() {
                         <a
                           key={index}
                           href={action.href}
-                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-green-100 text-green-800 hover:bg-green-200"
+                          className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${completionMessage.title === "Daily Limit Reached" ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200" : "bg-green-100 text-green-800 hover:bg-green-200"}`}
                         >
                           {action.label} →
                         </a>
