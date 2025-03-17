@@ -40,6 +40,13 @@ function LoginForm() {
   }, [searchParams]);
 
   const handleOAuthLogin = () => {
+    /// logout....
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
     setIsSubmitting(true);
     window.location.href = getAuthUrl();
   };

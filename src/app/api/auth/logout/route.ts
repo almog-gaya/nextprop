@@ -15,6 +15,7 @@ export async function POST() {
     cookieStore.delete('ghl_user_type');
     cookieStore.delete('ghl_location_data');
     cookieStore.delete('ghl_token_data');
+    
 
     // Also clear nextprop cookies
     cookieStore.delete('nextprop_token');
