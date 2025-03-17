@@ -126,7 +126,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     { icon: <UserIcon className="w-5 h-5" />, text: 'Leads', href: '/leads' },
     { icon: <UserGroupIcon className="w-5 h-5" />, text: 'Contacts', href: '/contacts' },
     { icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, text: 'Messaging', href: '/messaging-embed' },
-    { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/calls' },
+    { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
     // killed that for now , no need atm
     // { icon: <CurrencyDollarIcon className="w-5 h-5" />, text: 'Opportunities', href: '/opportunities' },
