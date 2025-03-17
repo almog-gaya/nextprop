@@ -31,42 +31,28 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [pipelines, setPipelines] = useState<{ id: string; name: string }[]>(initialPipelines);
   const [loadingPipelines, setLoadingPipelines] = useState(initialPipelines.length === 0);
-  
-  // Fetch pipelines directly from API
+
+  // Fetch pipelines (unchanged)
   useEffect(() => {
     async function fetchPipelines() {
       try {
         setLoadingPipelines(true);
         const response = await fetch('/api/pipelines');
-        
         if (!response.ok) {
           console.error('Failed to fetch pipelines:', response.status, response.statusText);
           return;
         }
-        
         const data = await response.json();
-        console.log('Pipelines API response:', data);
-        
         if (Array.isArray(data) && data.length > 0) {
-          console.log('Setting pipelines from array:', data);
           setPipelines(data);
-        } else if (data.pipelines && Array.isArray(data.pipelines) && data.pipelines.length > 0) {
-          console.log('Setting pipelines from data.pipelines:', data.pipelines);
+        } else if (data.pipelines && Array.isArray(data.pipelines)) {
           setPipelines(data.pipelines);
         } else {
-          // Try to extract pipelines from any format
           const extractedArrays = Object.values(data).filter(value => 
-            Array.isArray(value) && value.length > 0 && 
-            value[0] && typeof value[0] === 'object' &&
-            'id' in value[0] && 'name' in value[0]
+            Array.isArray(value) && value.length > 0 && value[0] && 'id' in value[0] && 'name' in value[0]
           );
-          
           if (extractedArrays.length > 0) {
-            const possiblePipelines = extractedArrays[0] as { id: string; name: string }[];
-            console.log('Found pipelines in unexpected format:', possiblePipelines);
-            setPipelines(possiblePipelines);
-          } else {
-            console.warn('No pipelines found in API response:', data);
+            setPipelines(extractedArrays[0] as { id: string; name: string }[]);
           }
         }
       } catch (err) {
@@ -75,34 +61,28 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         setLoadingPipelines(false);
       }
     }
-
-    // Always fetch pipelines directly to ensure we have them
     fetchPipelines();
   }, []);
-  
-  // Close dropdown when clicking outside
+
+  // Close dropdown when clicking outside (unchanged)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
     }
-    
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     const file = e.target.files?.[0];
-    
     if (!file) return;
-    
+
     setFileName(file.name);
-    
     const reader = new FileReader();
+
     reader.onload = (evt) => {
       try {
         const binaryString = evt.target?.result;
@@ -110,41 +90,35 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const data = XLSX.utils.sheet_to_json(sheet);
-        
-        // Check if the data has the required format
+
         if (data.length === 0) {
           setError('The file appears to be empty.');
           return;
         }
-        
-        // Check if the data has the required columns
+
         const firstRow = data[0] as any;
         if (!firstRow['Contact Name'] && !firstRow['contact name'] && !firstRow['Name'] && !firstRow['name']) {
           setError('The file must have a "Contact Name" or "Name" column.');
           return;
         }
-        
-        if (!firstRow['Phone'] && !firstRow['phone'] && !firstRow['Phone Number'] && !firstRow['phone number']) {
-          setError('The file must have a "Phone" or "Phone Number" column.');
+        if (!firstRow['Phone'] && !firstRow['phone'] && !firstRow['Phone Number'] && !firstRow['phone number'] &&
+            !firstRow['Email'] && !firstRow['email']) {
+          setError('The file must have either a "Phone" or "Email" column.');
           return;
         }
-
         if (!firstRow['Street'] && !firstRow['street']) {
           setError('The file must have a "Street" column.');
           return;
         }
-
         if (!firstRow['City'] && !firstRow['city']) {
           setError('The file must have a "City" column.');
           return;
         }
-
         if (!firstRow['State'] && !firstRow['state']) {
           setError('The file must have a "State" column.');
           return;
         }
-        
-        // Parse the data into contacts
+
         const parsedContacts: Contact[] = data.map((row: any) => {
           const name = row['Contact Name'] || row['contact name'] || row['Name'] || row['name'] || '';
           const phone = row['Phone'] || row['phone'] || row['Phone Number'] || row['phone number'] || '';
@@ -152,31 +126,33 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
           const city = row['City'] || row['city'] || '';
           const state = row['State'] || row['state'] || '';
           const email = row['Email'] || row['email'] || '';
-          const notes = row['Notes'] || row['notes'] || '';
-          
+          // const notes = row['Notes'] || row['notes'] || '';
+
+          // Validate that at least phone or email is present
+          if (!phone && !email) {
+            throw new Error(`Contact "${name}" is missing both phone and email. At least one is required.`);
+          }
+
           return {
             name,
-            phone: phone.toString(), // Convert to string in case it's a number in the spreadsheet
+            phone: phone.toString(),
             street: street.toString(),
             city: city.toString(),
             state: state.toString(),
             email: email.toString(),
-            notes: notes.toString(),
+            // notes: notes.toString(),
             selected: true
           };
         });
-        
+
         setContacts(parsedContacts);
       } catch (error) {
         console.error('Error parsing Excel file:', error);
-        setError('Failed to parse the Excel file. Please make sure it\'s a valid spreadsheet.');
+        setError(error instanceof Error ? error.message : 'Failed to parse the Excel file. Please ensure it’s valid and each contact has a phone or email.');
       }
     };
-    
-    reader.onerror = () => {
-      setError('Failed to read the file. Please try again.');
-    };
-    
+
+    reader.onerror = () => setError('Failed to read the file. Please try again.');
     reader.readAsBinaryString(file);
   };
 
@@ -193,30 +169,37 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedPipeline) {
       setError('Please select a pipeline for these contacts.');
       return;
     }
-    
+
     const selectedContacts = contacts
       .filter(contact => contact.selected)
-      .map(({ name, phone, street, city, state, email, notes }) => ({ 
-        name, 
-        phone, 
+      .map(({ name, phone, street, city, state, email, notes }) => ({
+        name,
+        phone,
         street,
         city,
         state,
         email,
-        notes,
-        pipelineId: selectedPipeline 
+        // notes,
+        pipelineId: selectedPipeline
       }));
-    
+
     if (selectedContacts.length === 0) {
       setError('Please select at least one contact.');
       return;
     }
-    
+
+    // Double-check that all selected contacts have phone or email
+    const invalidContacts = selectedContacts.filter(c => !c.phone && !c.email);
+    if (invalidContacts.length > 0) {
+      setError(`The following contacts are missing both phone and email: ${invalidContacts.map(c => c.name).join(', ')}. At least one is required.`);
+      return;
+    }
+
     onContactsSelect(selectedContacts);
   };
 
@@ -225,27 +208,19 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     setFileName('');
     setError(null);
     setSelectedPipeline('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const allSelected = contacts.length > 0 && contacts.every(contact => contact.selected);
   const someSelected = contacts.some(contact => contact.selected);
-
-  // Check if pipelines are available
   const hasPipelines = pipelines && pipelines.length > 0;
 
-  // Custom dropdown handling to ensure visibility
   const handleSelectPipeline = (pipelineId: string) => {
     setSelectedPipeline(pipelineId);
     setDropdownOpen(false);
   };
-  
-  console.log('Current pipelines state:', pipelines);
 
   const handleDownloadSample = () => {
-    // Create sample data
     const sampleData = [
       {
         'Contact Name': 'John Smith',
@@ -258,7 +233,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
       },
       {
         'Contact Name': 'Jane Doe',
-        'Phone': '+0987654321',
+        'Phone': '',
         'Street': '456 Oak Ave',
         'City': 'Los Angeles',
         'State': 'CA',
@@ -267,15 +242,13 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
       }
     ];
 
-    // Convert to worksheet
     const ws = XLSX.utils.json_to_sheet(sampleData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
-
-    // Save file
     XLSX.writeFile(wb, 'contact_upload_template.xlsx');
   };
 
+  // JSX remains largely unchanged; only updating the error message display and sample download
   return (
     <div className="nextprop-card">
       <div className="flex items-center justify-between mb-6">
@@ -287,7 +260,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
-          {/* Pipeline Selection */}
+          {/* Pipeline Selection (unchanged) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="pipeline" className="block text-sm font-medium text-gray-700">
@@ -300,9 +273,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                 <span className="text-xs text-gray-500">Loading pipelines...</span>
               )}
             </div>
-            
             <div className="flex items-start">
-              {/* Custom Dropdown Implementation - Limited Width */}
               <div className="relative w-64" ref={dropdownRef}>
                 <button
                   type="button"
@@ -327,8 +298,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                     />
                   </div>
                 </button>
-                
-                {/* Dropdown Options - Fixed Position for better visibility */}
                 {dropdownOpen && (
                   <div className="fixed mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-xl z-[100] max-h-60 overflow-y-auto" style={{
                     top: dropdownRef.current ? dropdownRef.current.getBoundingClientRect().bottom + window.scrollY : 0,
@@ -361,8 +330,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                     </ul>
                   </div>
                 )}
-                
-                {/* Hidden select for form validation */}
                 <select
                   id="pipeline"
                   value={selectedPipeline}
@@ -378,15 +345,12 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                   ))}
                 </select>
               </div>
-              
-              {/* Pipeline count indicator */}
               {hasPipelines && (
                 <span className="text-xs text-gray-500 ml-3 pt-3">
                   {pipelines.length} pipeline{pipelines.length !== 1 ? 's' : ''} available
                 </span>
               )}
             </div>
-            
             {selectedPipeline && (
               <div className="flex items-center mt-2 bg-purple-50 p-2 rounded-md max-w-md">
                 <div className="w-3 h-3 rounded-full bg-[#7c3aed] mr-2"></div>
@@ -395,7 +359,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                 </p>
               </div>
             )}
-            
             <p className="text-xs text-gray-500 italic mt-1">
               Contacts will be tagged with the selected pipeline and saved to your contacts page
             </p>
@@ -421,10 +384,9 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                   <span className="text-xs text-gray-500 mt-1">XLSX, XLS, or CSV</span>
                 </label>
               </div>
-              
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-gray-700">Required Format:</h4>
+                  <h4 className="text-sm font-medium text-gray-700">Required Format (Phone or Email required):</h4>
                   <button
                     type="button"
                     onClick={handleDownloadSample}
@@ -461,7 +423,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                       </tr>
                       <tr>
                         <td className="px-3 py-2 border border-gray-200">Cody Ferrin</td>
-                        <td className="px-3 py-2 border border-gray-200">+18622089925</td>
+                        <td className="px-3 py-2 border border-gray-200"></td>
                         <td className="px-3 py-2 border border-gray-200">Pine Street</td>
                         <td className="px-3 py-2 border border-gray-200">Kansas City</td>
                         <td className="px-3 py-2 border border-gray-200">Missouri</td>
@@ -492,7 +454,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                   Upload Different File
                 </button>
               </div>
-              
               <div className="border border-gray-200 rounded-md overflow-hidden">
                 <div className="bg-gray-50 px-4 py-3 flex items-center">
                   <input
@@ -506,32 +467,17 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                     Select All
                   </label>
                 </div>
-                
                 <div className="max-h-60 overflow-y-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th scope="col" className="w-16 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Phone
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Street
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          City
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          State
-                        </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
-                        </th>
+                        <th scope="col" className="w-16 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Street</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">State</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -571,13 +517,11 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
               </div>
             </div>
           )}
-          
           {error && (
             <div className="bg-red-50 p-4 rounded-md text-red-800">
               <p>{error}</p>
             </div>
           )}
-          
           {contacts.length > 0 && (
             <button
               type="submit"
@@ -604,4 +548,4 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
       </form>
     </div>
   );
-} 
+}
