@@ -27,6 +27,8 @@ export async function POST(req: Request) {
       method: "GET",
     }));
 
+    console.log(`[SearchURLS]: ${JSON.stringify(searchURLs)}`)
+
     const actorInput = {
       startUrls,
       extractBuildingUnits: "for_sale",
@@ -74,14 +76,13 @@ export async function POST(req: Request) {
     const itemsResponse = await fetch(
       `https://api.apify.com/v2/datasets/${datasetId}/items?token=${API_TOKEN}`
     );
-
+    const items = await itemsResponse.json();
+    console.log(`[SearchDetails] datasetId: ${JSON.stringify(items)}`)
     if (!itemsResponse.ok) {
       const errorText = await itemsResponse.text();
       throw new Error(`Failed to fetch items: ${itemsResponse.status} - ${errorText}`);
     }
-
-    const items = await itemsResponse.json();
-    console.log(`Fetched from SearchDetails`, JSON.stringify(items));
+ 
 
     const filteredItems = items
       .filter((item: any) => {
@@ -113,6 +114,7 @@ export async function POST(req: Request) {
         };
       });
 
+      console.log(`Returning filteredItems: ${JSON.stringify(filteredItems)}`)
     return NextResponse.json({
       success: true,
       properties: filteredItems,
@@ -227,6 +229,7 @@ const zillowSearchScraper = async (q: string, API_TOKEN: string) => {
       .map((item) => item.detailUrl)
       .filter(Boolean);
 
+      console.log(`[zillowSearchScraper] filteredSearchResults: ${JSON.stringify(filteredSearchResults)} [zillowSearchScraper]`)
     return filteredSearchResults;
   } catch (error) {
     console.error('Error in Zillow search scraper:', error);
