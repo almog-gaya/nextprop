@@ -53,15 +53,49 @@ export default function SearchBarProperties({
   setSearchMode,
 }: SearchBarProps) {
   const [showFilters, setShowFilters] = useState(true);
+  const [priceError, setPriceError] = useState<string | null>(null); // State for validation error
 
   const handleSearchModeToggle = (mode: "query" | "zipcode") => {
     setSearchMode(mode);
     if (mode === "query") {
-      setZipCodes([]); // Clear zip codes when switching to query
-      setShowFilters(false); // Hide filters when switching to query
+      setZipCodes([]);
+      setShowFilters(false);
     }
     if (mode === "zipcode") {
-      setSearchQuery(""); // Clear query when switching to zip codes
+      setSearchQuery("");
+    }
+  };
+
+  // Validation function for price range
+  const validatePriceRange = (min: number, max: number) => {
+    if (min < 0 || max < 0) {
+      setPriceError("Prices cannot be negative");
+      return false;
+    }
+    if (min > max && max !== 0) { // Allow max to be 0 (unbounded)
+      setPriceError("Max price must be greater than min price");
+      return false;
+    }
+    setPriceError(null); // Clear error if valid
+    return true;
+  };
+
+  // Handle price min change with validation
+  const handlePriceMinChange = (value: number) => {
+    setPriceMin(value);
+    validatePriceRange(value, priceMax);
+  };
+
+  // Handle price max change with validation
+  const handlePriceMaxChange = (value: number) => {
+    setPriceMax(value);
+    validatePriceRange(priceMin, value);
+  };
+
+  // Override scrape handler to include validation
+  const handleScrapeWithValidation = () => {
+    if (validatePriceRange(priceMin, priceMax)) {
+      handleScrapeProperties(dailyLimit);
     }
   };
 
@@ -116,7 +150,6 @@ export default function SearchBarProperties({
             </div>
           )}
           <div className="flex gap-2">
-            {/* Show Filters button only in zipcode mode */}
             {searchMode === "zipcode" && (
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -128,9 +161,11 @@ export default function SearchBarProperties({
               </button>
             )}
             <button
-              onClick={() => handleScrapeProperties(dailyLimit)}
-              disabled={isScraping}
-              className={`flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm text-white font-medium ${isScraping ? "bg-gray-500" : "bg-purple-700 hover:bg-purple-800"}`}
+              onClick={handleScrapeWithValidation}
+              disabled={isScraping || !!priceError} // Disable if scraping or validation error
+              className={`flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm text-white font-medium ${
+                isScraping || priceError ? "bg-gray-500" : "bg-purple-700 hover:bg-purple-800"
+              }`}
             >
               {isScraping ? (
                 <>
@@ -160,19 +195,24 @@ export default function SearchBarProperties({
                     type="number"
                     placeholder="Min"
                     value={priceMin}
-                    onChange={(e) => setPriceMin(Number(e.target.value))}
+                    onChange={(e) => handlePriceMinChange(Number(e.target.value))}
                     disabled={isScraping}
-                    className="w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600"
+                    className={`w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ${
+                      priceError ? "ring-red-500" : "ring-gray-300"
+                    } focus:ring-2 focus:ring-blue-600`}
                   />
                   <input
                     type="number"
                     placeholder="Max"
                     value={priceMax}
-                    onChange={(e) => setPriceMax(Number(e.target.value))}
+                    onChange={(e) => handlePriceMaxChange(Number(e.target.value))}
                     disabled={isScraping}
-                    className="w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600"
+                    className={`w-full rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ${
+                      priceError ? "ring-red-500" : "ring-gray-300"
+                    } focus:ring-2 focus:ring-blue-600`}
                   />
                 </div>
+                {priceError && <p className="text-red-500 text-sm mt-1">{priceError}</p>}
               </div>
 
               {/* Days on Zillow */}
