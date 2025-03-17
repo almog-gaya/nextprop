@@ -370,6 +370,15 @@ const ConversationList = memo(function ConversationList({
     [newConversation, contacts, user, onSelect, onConversationStarted]
   );
 
+  const convertTimeStampToDate = useCallback((timestamp: number) => {
+    const date = new Date(timestamp );
+    const options: Intl.DateTimeFormatOptions = {
+     
+      month: 'short',
+      day: 'numeric', 
+    };
+    return date.toLocaleString('en-US', options);
+  }, []);
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="p-3 border-b border-gray-200 sticky top-0 z-10 bg-white">
@@ -410,7 +419,7 @@ const ConversationList = memo(function ConversationList({
                   <div className="flex justify-between items-baseline">
                     <h3 className="font-medium text-gray-900 truncate">{conversation.name}</h3>
                     <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                      {conversation.timestamp}
+                      {convertTimeStampToDate(conversation.timestamp)}
                     </span>
                   </div>
                   <p

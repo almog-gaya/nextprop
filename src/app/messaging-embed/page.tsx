@@ -406,7 +406,7 @@ function MessagingContent() {
               name,
               avatar: initials,
               lastMessage: conv.lastMessageBody || 'No messages yet',
-              timestamp: 'Recent',
+              timestamp: conv.dateUpdated,
               unread: conv.unreadCount > 0,
               contactId: conv.contactId,
               email: conv.email,
@@ -414,6 +414,7 @@ function MessagingContent() {
               originalData: conv,
               type: conv.type,
               lastMessageType: conv.lastMessageType,
+              lastMessageDate: conv.lastMessageDate,
             };
           }).sort((a: ConversationDisplay, b: ConversationDisplay) =>
             (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0)
@@ -574,7 +575,7 @@ function MessagingContent() {
             name,
             avatar: initials,
             lastMessage: conv.lastMessageBody || 'No messages yet',
-            timestamp: 'Recent',
+            timestamp: conv.dateUpdated,
             unread: conv.unreadCount > 0,
             contactId: conv.contactId,
             email: conv.email,
@@ -695,10 +696,11 @@ function MessagingContent() {
               email: conv.email,
               phone: conv.phone,
               lastMessage: conv.lastMessageBody || 'No messages yet',
-              timestamp: 'Recent',
+              timestamp: conv.dateUpdated,
               unread: conv.unreadCount > 0,
               unreadCount: conv.unreadCount || 0,
               originalData: conv,
+              lastMessageDate: conv.lastMessageDate,
             };
           });
 

@@ -11,6 +11,9 @@ export interface Conversation {
   email: string;
   phone: string;
   originalData?: any;
+  dateAdded?: string;
+  lastMessageDate?: string;
+  dateUpdated?: string;
   
 }
 
