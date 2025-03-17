@@ -191,14 +191,16 @@ export default function ContactsPage() {
     fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
 
+
   const fetchContacts = async () => {
     try {
+      console.log(`Fetching contacts for page ${currentPage}... limit: ${contactsPerPage}`);
       setIsLoading(true);
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: contactsPerPage.toString(),
         ...(activeTagFilter && { tag: activeTagFilter }),
-        ...(currentPage > 1 && lastContactId && { startAfter: lastContactId }), // Pass lastContactId
+        ...(currentPage > 1 && lastContactId && { startAfter: lastContactId }), // Pass last contact ID
       });
       const response = await axios.get(`/api/contacts?${params.toString()}`);
       const processedContacts = response.data.contacts.map((contact: Contact) => ({
@@ -206,15 +208,22 @@ export default function ContactsPage() {
         name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
       }));
       setContacts(processedContacts);
-      setLastContactId(processedContacts[processedContacts.length - 1]?.id || ''); // Store last contact ID
-      setTotalContacts(response.data.total);
-      setTotalPages(Math.ceil(response.data.total / contactsPerPage) || 1);
+      setLastContactId(processedContacts[processedContacts.length - 1]?.id || ''); // Update last contact ID
+      const total = response.data.total;
+      setTotalContacts(total);
+      const newTotalPages = Math.ceil(total / contactsPerPage) || 1;
+      setTotalPages(newTotalPages);
+      if (currentPage > newTotalPages) setCurrentPage(newTotalPages); // Adjust page if needed
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch contacts');
       setIsLoading(false);
     }
   };
+  
+  useEffect(() => {
+    fetchContacts();
+  }, [currentPage, contactsPerPage, activeTagFilter]);
   
   useEffect(() => {
     fetchContacts();

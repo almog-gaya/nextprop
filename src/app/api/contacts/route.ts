@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { getAuthHeaders } from '@/lib/enhancedApi';
 import { cookies } from 'next/headers';
 import { log } from '@/middleware';
+ 
 
 export async function GET(request: Request) {
   const { locationId, token } = await getAuthHeaders();
   const url = new URL(request.url);
   const page = parseInt(url.searchParams.get('page') || '1', 10);
   const limit = parseInt(url.searchParams.get('limit') || '10', 10);
-  const startAfter = url.searchParams.get('startAfter') || null; // Use contact ID instead of offset
+  const startAfter = url.searchParams.get('startAfter') || null; // Expect contact ID from frontend
   const tag = url.searchParams.get('tag') || null;
 
   try {
@@ -17,18 +18,28 @@ export async function GET(request: Request) {
       'Authorization': `Bearer ${token}`,
       'Version': '2021-07-28',
     };
+
     const prodURL = new URL(`https://services.leadconnectorhq.com/contacts/`);
     prodURL.searchParams.set('locationId', locationId!);
-    prodURL.searchParams.set('limit', limit.toString()); 
-    if (tag) prodURL.searchParams.set('query', tag);
+    prodURL.searchParams.set('limit', limit.toString());
+    if (page > 1 && startAfter) {
+    prodURL.searchParams.set('page', page.toString());
+
+      // prodURL.searchParams.set('startAfter', startAfter); // Use last contact ID
+    }
+    if (tag) {
+      prodURL.searchParams.set('tags', tag); // Assuming 'tags' is the correct param; verify with API docs
+    }
 
     const response = await fetch(prodURL.toString(), { headers });
     if (!response.ok) {
       const error = await response.json();
+      console.error('API Error:', { status: response.status, error });
       return NextResponse.json({ error: error.message }, { status: response.status });
     }
 
     const data = await response.json();
+
     const processedContacts = (data.contacts || []).map((contact: any) => ({
       ...contact,
       name: contact.contactName || `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || null,
@@ -36,7 +47,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       contacts: processedContacts,
-      total: data.meta?.total || processedContacts.length, // Use meta.total if available
+      total: data.meta.total, // Use meta.total for accurate count
     });
   } catch (error: any) {
     console.error('Error in contacts API route:', error);
