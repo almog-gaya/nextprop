@@ -127,6 +127,7 @@ export default function ContactsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalContacts, setTotalContacts] = useState(0);
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
+  const [lastContactId, setLastContactId] = useState<string | null>(null);
 
   // Load columns from localStorage
   useEffect(() => {
@@ -190,14 +191,14 @@ export default function ContactsPage() {
     fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
 
-  const fetchContacts = async (forceRefresh = false) => {
+  const fetchContacts = async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: contactsPerPage.toString(),
-        ...(forceRefresh && { forceRefresh: 'true' }),
         ...(activeTagFilter && { tag: activeTagFilter }),
+        ...(currentPage > 1 && lastContactId && { startAfter: lastContactId }), // Pass lastContactId
       });
       const response = await axios.get(`/api/contacts?${params.toString()}`);
       const processedContacts = response.data.contacts.map((contact: Contact) => ({
@@ -205,7 +206,8 @@ export default function ContactsPage() {
         name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
       }));
       setContacts(processedContacts);
-      setTotalContacts(response.data.total || processedContacts.length);
+      setLastContactId(processedContacts[processedContacts.length - 1]?.id || ''); // Store last contact ID
+      setTotalContacts(response.data.total);
       setTotalPages(Math.ceil(response.data.total / contactsPerPage) || 1);
       setIsLoading(false);
     } catch (err: any) {
@@ -213,6 +215,10 @@ export default function ContactsPage() {
       setIsLoading(false);
     }
   };
+  
+  useEffect(() => {
+    fetchContacts();
+  }, [currentPage, contactsPerPage, activeTagFilter]);
 
   const fetchCustomFields = async () => {
     try {
