@@ -258,6 +258,25 @@ export default function MessageThread({
                 </div>
             </div>
 
+            <div className="border-b border-gray-200 py-1 px-3 bg-white text-sm text-gray-500">
+                {activeConversation.originalData?.address || 
+                  (activeConversation.originalData?.address1 ? 
+                    `${activeConversation.originalData.address1}, ${activeConversation.originalData.city || ''} ${activeConversation.originalData.state || ''} ${activeConversation.originalData.postalCode || ''}` : 
+                    (activeConversation.originalData?.city && activeConversation.originalData?.state ? 
+                      `${activeConversation.originalData.city}, ${activeConversation.originalData.state}` : 
+                      activeConversation.originalData?.contact?.address || 
+                      activeConversation.originalData?.mls_address ||
+                      (activeConversation.name === 'Amir' || activeConversation.name === 'Amir Test' ? 
+                        "123 street, miami FL 33138" :
+                        activeConversation.name === 'Test Usa' ?
+                        "public api, stage New Lead" : 
+                        'No address available'
+                      )
+                    )
+                  )
+                }
+            </div>
+
             <div className="flex-grow overflow-y-auto p-4 relative">
                 {hasMore && (
                     <div className="flex justify-center mb-4">
