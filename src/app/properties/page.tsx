@@ -3,10 +3,14 @@
 import React, { useState } from "react";
 import { MagnifyingGlassIcon, ArrowPathIcon, UserPlusIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import DashboardLayout from "@/components/DashboardLayout";
-import { MAX_PROPERTIES } from "../api/properties/route";
 
+let DAILY_LIMIT = parseInt(process.env.NEXT_PUBLIC_DAILY_LIMIT || "2", 10);
+if (isNaN(DAILY_LIMIT) || DAILY_LIMIT <= 0) {
+  console.error("Invalid NEXT_PUBLIC_DAILY_LIMIT, defaulting to 2");
+  DAILY_LIMIT = 2;
+}
+console.log("DAILY_LIMIT in production:", DAILY_LIMIT);
 
-// Define response types
 interface ZillowProperty {
   agentName?: string | null;
   agentPhoneNumber?: string | null;
@@ -37,17 +41,50 @@ export default function PropertiesPage() {
   const [successCount, setSuccessCount] = useState(0);
   const [failureCount, setFailureCount] = useState(0);
   const [currentStatus, setCurrentStatus] = useState("");
+  const [scrapedProperties, setScrapedProperties] = useState<ZillowProperty[]>([]);
   const [completionMessage, setCompletionMessage] = useState<{
     title: string;
     message: string;
     actions: { label: string; href: string }[];
   } | null>(null);
 
+  const getScrapedToday = () => {
+    try {
+      return parseInt(localStorage.getItem("scrapedToday") || "0", 10);
+    } catch (e) {
+      console.error("Error accessing localStorage scrapedToday:", e);
+      return 0;
+    }
+  };
+
+  const setScrapedToday = (value: number) => {
+    try {
+      localStorage.setItem("scrapedToday", value.toString());
+    } catch (e) {
+      console.error("Error setting localStorage scrapedToday:", e);
+    }
+  };
+
+  const getScrapeDate = () => {
+    try {
+      return localStorage.getItem("scrapeDate") || new Date().toISOString().split("T")[0];
+    } catch (e) {
+      console.error("Error accessing localStorage scrapeDate:", e);
+      return new Date().toISOString().split("T")[0];
+    }
+  };
+
+  const setScrapeDate = (date: string) => {
+    try {
+      localStorage.setItem("scrapeDate", date);
+    } catch (e) {
+      console.error("Error setting localStorage scrapeDate:", e);
+    }
+  };
+
   const addLeadsToContact = async (properties: ZillowProperty[]) => {
     try {
-      const transformedLeads = properties
-        .map(prop => transformLeadToContact(prop));
-
+      const transformedLeads = properties.map((prop) => transformLeadToContact(prop));
       for (const lead of transformedLeads) {
         try {
           const response = await fetch("/api/contacts", {
@@ -57,14 +94,12 @@ export default function PropertiesPage() {
             },
             body: JSON.stringify(lead),
           });
-
           if (!response.ok) {
             throw new Error(`Failed to add contact: ${response.statusText}`);
           }
-        } catch (_) {
-          console.log("error adding contact", _);
+        } catch (error) {
+          console.log("Error adding contact:", error);
         }
-
       }
       return true;
     } catch (error) {
@@ -76,7 +111,6 @@ export default function PropertiesPage() {
   const transformLeadToContact = (property: ZillowProperty) => {
     const fullName = property.agentName || property.brokerName || "";
     const nameParts = fullName.split(" ");
-
     return {
       firstName: nameParts[0] || "",
       lastName: nameParts.slice(1).join(" ") || "",
@@ -85,68 +119,109 @@ export default function PropertiesPage() {
       address1: property.streetAddress || "",
       city: property.city || "",
       state: property.state || "",
-      /// treating scraped data as leads
       customFields: [
         {
-          "id": "ECqyHR21ZJnSMolxlHpU",
-          "key": "contact.type",
-          "field_value": "lead"
-        }
+          id: "ECqyHR21ZJnSMolxlHpU",
+          key: "contact.type",
+          field_value: "lead",
+        },
       ],
-      tags: [
-        'scraped-lead',
-        'zillow-property',
-        'Review-new-lead'
-      ]
-
+      tags: ["scraped-lead", "zillow-property", "Review-new-lead"],
     };
   };
 
-  const handleScrapeProperties = async (count: number = 100) => {
+  const handleScrapeProperties = async (count: number = DAILY_LIMIT) => {
     setIsScraping(true);
     setProgressPercentage(0);
     setSuccessCount(0);
     setFailureCount(0);
     setCurrentStatus("");
     setCompletionMessage(null);
+    setScrapedProperties([]); // Reset properties
 
     try {
-      setCurrentStatus(`Starting to scrape ${count} properties...`);
+      const today = new Date().toISOString().split("T")[0];
+      let scrapedToday = getScrapedToday();
+      const storedDate = getScrapeDate();
 
-      const response = await fetch("/api/properties", {
+      if (storedDate !== today) {
+        scrapedToday = 0;
+        setScrapeDate(today);
+        setScrapedToday(0);
+      }
+
+      if (scrapedToday >= DAILY_LIMIT) {
+        setCompletionMessage({
+          title: "Daily Limit Reached",
+          message: `You've reached the daily limit of ${DAILY_LIMIT} properties. Come back tomorrow to scrape more listings!`,
+          actions: [
+            { label: "View Properties", href: "/properties/list" },
+            { label: "View Contacts", href: "/contacts" },
+          ],
+        });
+        return;
+      }
+
+      const remainingCount = Math.min(count, DAILY_LIMIT - scrapedToday);
+      setCurrentStatus(`Starting to scrape ${remainingCount} properties...`);
+
+      const searchResponse = await fetch("/api/properties", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: searchQuery, 
+          query: searchQuery,
+          limit: remainingCount,
         }),
       });
-      const data = await response.json();
-      console.log("Scraped at FrontEND:", JSON.stringify(data));
-      if (!response.ok) {
-        
-        throw new Error(`Failed to scrape properties: ${data.error || response.statusText}`);
+      const searchURLbody = await searchResponse.json();
+      const searchURLs = searchURLbody.urls;
+      if (!searchResponse.ok || !searchURLs) {
+        console.error("Raw error response:", searchURLbody);
+        let parsedError;
+        try {
+          parsedError = JSON.parse(searchURLbody);
+        } catch (e) {
+          throw new Error(`Failed to scrape properties: ${searchResponse.statusText} (Status: ${searchResponse.status})`);
+        }
+        throw new Error(`Failed to scrape properties: ${parsedError.error || searchResponse.statusText}`);
       }
+      const searchDetailResponse = await fetch("/api/properties/detail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          urls: searchURLs,
+          limit: remainingCount,
+        }),
+      });
+      const searchDetailURLbody = await searchDetailResponse.json();
 
-      // const data: ScrapedResult = await response.json();
+      const data: ScrapedResult = searchDetailURLbody;
       console.log("Scraped data:", data);
 
       if (data.success && data.properties) {
         const totalProperties = data.properties.length;
         setSuccessCount(totalProperties);
+        setScrapedProperties(data.properties); // Store the properties
         setProgressPercentage(50);
 
         setCurrentStatus(`Adding ${totalProperties} properties to contacts...`);
-
         const contactsAdded = await addLeadsToContact(data.properties);
+
+        scrapedToday += totalProperties;
+        setScrapedToday(scrapedToday);
 
         setProgressPercentage(100);
         setCurrentStatus(`Successfully scraped ${totalProperties} properties and added to contacts.`);
 
+        const remaining = DAILY_LIMIT - scrapedToday;
         setCompletionMessage({
           title: "Property Scraping Complete",
-          message: `${totalProperties} properties have been scraped from Zillow and ${contactsAdded ? "added to contacts" : "failed to add to contacts"} based on your query: "${searchQuery}".`,
+          message: `${totalProperties} properties have been scraped from Zillow and ${contactsAdded ? "added to contacts" : "failed to add to contacts"
+            } based on your query: "${searchQuery}". You have ${remaining} properties left to scrape today.`,
           actions: [
             { label: "View Properties", href: "/properties/list" },
             { label: "View Contacts", href: "/contacts" },
@@ -157,11 +232,12 @@ export default function PropertiesPage() {
       }
     } catch (error) {
       console.error("Error scraping properties:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error) || "An unknown error occurred";
       setFailureCount(1);
-      setCurrentStatus(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setCurrentStatus(`Error: ${errorMessage}`);
       setCompletionMessage({
         title: "Property Scraping Failed",
-        message: `Error: ${error instanceof Error ? error.message : "An unknown error occurred"}`,
+        message: `Error: ${errorMessage}`,
         actions: [],
       });
     } finally {
@@ -184,7 +260,7 @@ export default function PropertiesPage() {
           <div className="p-6 md:p-8 text-white">
             <h2 className="text-xl md:text-2xl font-bold mb-3">Scrape Zillow Properties</h2>
             <p className="mb-4">
-              Enter a search query and generate up to {MAX_PROPERTIES} property listings from Zillow with one click, powered by Apify.
+              Enter a search query and generate up to {DAILY_LIMIT} property listings at a time from Zillow per day, powered by Apify.
             </p>
           </div>
         </div>
@@ -198,7 +274,7 @@ export default function PropertiesPage() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
+               <input
                   type="text"
                   className="block w-full rounded-md border-0 py-3 pl-10 pr-4 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm"
                   placeholder="e.g., Miami property under $1,000,000"
@@ -209,9 +285,10 @@ export default function PropertiesPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleScrapeProperties(MAX_PROPERTIES)}
+                  onClick={() => handleScrapeProperties(DAILY_LIMIT)}
                   disabled={isScraping}
-                  className={`flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm text-white font-medium ${isScraping ? "bg-gray-500" : "bg-purple-700 hover:bg-purple-800"}`}
+                  className={`flex items-center justify-center gap-2 py-3 px-6 rounded-lg shadow-sm text-white font-medium ${isScraping ? "bg-gray-500" : "bg-purple-700 hover:bg-purple-800"
+                    }`}
                 >
                   {isScraping ? (
                     <>
@@ -221,18 +298,27 @@ export default function PropertiesPage() {
                   ) : (
                     <>
                       <UserPlusIcon className="h-5 w-5" />
-                      Scrape {MAX_PROPERTIES} Properties
+                      Scrape {DAILY_LIMIT} Properties
                     </>
                   )}
-                </button> 
+                </button>
               </div>
             </div>
           </div>
 
           {completionMessage && (
-            <div className="mb-6 p-4 border border-green-200 bg-green-50 rounded-md text-sm text-green-700">
+            <div
+              className={`mb-6 p-4 border rounded-md text-sm ${completionMessage.title === "Daily Limit Reached"
+                  ? "border-yellow-200 bg-yellow-50 text-yellow-700"
+                  : "border-green-200 bg-green-50 text-green-700"
+                }`}
+            >
               <div className="flex items-start">
-                <CheckCircleIcon className="h-5 w-5 mr-2 flex-shrink-0 text-green-500" />
+                {completionMessage.title === "Daily Limit Reached" ? (
+                  <XCircleIcon className="h-5 w-5 mr-2 flex-shrink-0 text-yellow-500" />
+                ) : (
+                  <CheckCircleIcon className="h-5 w-5 mr-2 flex-shrink-0 text-green-500" />
+                )}
                 <div>
                   <p className="font-medium mb-1">{completionMessage.title}</p>
                   <p>{completionMessage.message}</p>
@@ -242,7 +328,10 @@ export default function PropertiesPage() {
                         <a
                           key={index}
                           href={action.href}
-                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-green-100 text-green-800 hover:bg-green-200"
+                          className={`inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${completionMessage.title === "Daily Limit Reached"
+                              ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                              : "bg-green-100 text-green-800 hover:bg-green-200"
+                            }`}
                         >
                           {action.label} →
                         </a>
@@ -250,6 +339,58 @@ export default function PropertiesPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Display Scraped Properties in a Table */}
+          {scrapedProperties.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-medium mb-4">Scraped Properties</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Address
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Home Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Agent Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Agent Phone
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {scrapedProperties.map((property, index) => (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {property.streetAddress || "N/A"}, {property.city || "N/A"}, {property.state || "N/A"}{" "}
+                          {property.zipcode || ""}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {property.price || "N/A"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {property.homeType || "N/A"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {property.agentName || "N/A"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {property.agentPhoneNumber || "N/A"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
