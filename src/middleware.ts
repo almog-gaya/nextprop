@@ -26,9 +26,7 @@ export async function middleware(request: NextRequest) {
   const userId = cookieStore.get('ghl_user_id')?.value;
 
   // console.log('[Middleware] Cookies - Access Token:', accessToken);
-  console.log('[Middleware] Cookies - User ID:', userId);
-  // console.log('[Middleware] Cookies - Refresh Token:', refreshToken ? 'exists' : 'missing');
-  // console.log('[Middleware] Cookies - Timestamp:', tokenTimestamp);
+  console.log('[Middleware] Cookies - User ID:', userId); 
 
   // If no access token, redirect immediately
   if (!accessToken) {
