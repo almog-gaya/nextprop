@@ -2,9 +2,6 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   const API_TOKEN = process.env.APIFY_API_TOKEN;
-  const ACTOR_ID = "ENK9p4RZHg0iVso52";
-  const API_URL = `https://api.apify.com/v2/acts/${ACTOR_ID}/runs`;
-
   if (!API_TOKEN) {
     console.error("API_TOKEN is not set in environment variables");
     return NextResponse.json(
