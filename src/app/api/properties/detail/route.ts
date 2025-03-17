@@ -121,6 +121,11 @@ export async function POST(req: Request) {
                     price: item.price || null,
                     listingSubType: item.listingSubType || null,
                     zestimate: item.zestimate || null,
+                    bedrooms: item.bedrooms || null,
+                    bathrooms: item.bathrooms || null,
+                    description: item.description || null,
+                    timeOnZillow: item.timeOnZillow || null,
+                    url: item.hdpUrl? "https://www.zillow.com"+item.hdpUrl : null,
                 };
                 console.log("[DEBUG] Mapped item:", JSON.stringify(mappedItem));
                 return mappedItem;
