@@ -22,6 +22,7 @@ export const getUserDataAPI = async () => {
     const { locationId, token } = await getAuthHeaders();
 
     const url = `https://services.leadconnectorhq.com/locations/${locationId}`;
+    console.log(`Fetching user data from ${url}`);
     const options = {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}`, Version: '2021-07-28', Accept: 'application/json' }
