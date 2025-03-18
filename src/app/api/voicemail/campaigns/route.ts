@@ -148,6 +148,7 @@ export async function POST(request: Request) {
       firstContact.status = 'failed';
       firstContact.error = error instanceof Error ? error.message : 'Unknown error';
       firstContact.retries++;
+      firstContact.debugError = error;
       
       // Update campaign progress
       campaign.progress.failed = 1;
