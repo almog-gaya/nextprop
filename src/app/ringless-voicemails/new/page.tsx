@@ -233,7 +233,7 @@ export default function NewCampaignPage() {
                 pipelineStageId: stageId,
                 contactId: contact.id,
                 status: "open",
-                name: `${contact.firstName} ${contact.zipCode || contact.street || ''}`.trim()
+                name: `${contact.firstName} ${contact.zipCode || contact.street || contact.city || contact.state || ' - bulk'}`.trim()
               }),
             });
 
