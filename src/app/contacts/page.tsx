@@ -191,7 +191,6 @@ export default function ContactsPage() {
     fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
 
-
   const fetchContacts = async () => {
     try {
       console.log(`Fetching contacts for page ${currentPage}... limit: ${contactsPerPage}`);
@@ -1160,7 +1159,7 @@ export default function ContactsPage() {
         contacts.map(async (contact) => {
           try {
             const response = await axios.post('/api/contacts', {
-            
+
               firstName: contact.firstName,
               lastName: contact.lastName,
               phone: contact.phone,
@@ -1170,7 +1169,7 @@ export default function ContactsPage() {
               email: contact.email,
               // notes: contact.notes,
               source: 'bulk_upload',
-              postalCode: contact.zipCode, 
+              postalCode: contact.zipCode,
             });
             return { success: true, contact: response.data.contact };
           } catch (error) {
@@ -1202,7 +1201,7 @@ export default function ContactsPage() {
       } else {
         if (failedUploads > 0) {
           toast.error(`${failedUploads} contact(s) failed to upload either due to invalid phone number or already exists.`);
-        
+
         }
       }
 

@@ -27,6 +27,7 @@ export async function GET(request: Request) {
 
       // prodURL.searchParams.set('startAfter', startAfter); // Use last contact ID
     }
+    
     if (tag) {
       prodURL.searchParams.set('tags', tag); // Assuming 'tags' is the correct param; verify with API docs
     }

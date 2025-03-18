@@ -1,102 +1,187 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import BulkUploadForm from '@/components/BulkUploadForm';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 
 export default function NewCampaignPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]); // Cumulative list of contacts
   const [selectedContacts, setSelectedContacts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [script, setScript] = useState('');
   const [settings, setSettings] = useState({
     delayMinutes: 5,
-    dailyLimit: 50
+    dailyLimit: 50,
   });
-  
-  // Fetch contacts on component mount
-  useEffect(() => {
-    fetchContacts();
-  }, []);
-  
-  async function fetchContacts() {
+  const [totalContacts, setTotalContacts] = useState(0); // Total contacts from API
+  const [currentPage, setCurrentPage] = useState(1); // Current page for pagination
+  const [isFetching, setIsFetching] = useState(false); // Track fetching state
+  const loaderRef = useRef<HTMLDivElement>(null); // Ref for the loader element
+
+  // Bulk Upload States
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const CONTACTS_PER_PAGE = 100; // Number of contacts per page
+
+  // Fetch contacts function with page-based pagination
+  const fetchContacts = async (reset = false) => {
+    if (isFetching || (!reset && contacts.length >= totalContacts && totalContacts > 0)) {
+      console.log('Fetch skipped:', { isFetching, contactsLength: contacts.length, totalContacts });
+      return;
+    }
+
     try {
-      setLoading(true);
-      const response = await axios.get('/api/contacts');
-      setContacts(response.data.contacts || []);
+      setIsFetching(true);
+      const pageToFetch = reset ? 1 : currentPage;
+      const params = new URLSearchParams({
+        page: pageToFetch.toString(),
+        limit: CONTACTS_PER_PAGE.toString(),
+      });
+
+      console.log('Fetching contacts with params:', params.toString());
+      const response = await axios.get(`/api/contacts?${params.toString()}`);
+      const newContacts = response.data.contacts || [];
+      const total = response.data.total || 0;
+
+      console.log('API Response:', { contacts: newContacts, total, page: pageToFetch });
+
+      const processedContacts = newContacts.map((contact: any) => ({
+        ...contact,
+        name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+      }));
+
+      // Append new contacts or reset the list
+      setContacts((prev) => {
+        const updatedContacts = reset ? processedContacts : [...prev, ...processedContacts];
+        console.log('Updated contacts length:', updatedContacts.length, 'Total:', total);
+        return updatedContacts;
+      });
+
+      setTotalContacts(total);
+      if (newContacts.length > 0) {
+        const newPage = pageToFetch + 1;
+        setCurrentPage(newPage);
+        console.log('Page incremented to:', newPage);
+      } else {
+        console.log('No new contacts, page not incremented:', pageToFetch);
+      }
     } catch (error) {
       console.error('Error fetching contacts:', error);
       toast.error('Failed to load contacts');
     } finally {
-      setLoading(false);
+      setIsFetching(false);
     }
-  }
-  
-  // Filter contacts based on search query
-  const filteredContacts = contacts.filter(contact => {
-    const fullName = `${contact.firstName || ''} ${contact.lastName || ''}`.toLowerCase();
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    console.log('Initial fetch triggered');
+    fetchContacts(true); // Reset and fetch initial contacts
+  }, []);
+
+  // Handle search (resets contacts and fetches anew)
+  useEffect(() => {
+    if (searchQuery) {
+      console.log('Search query changed, resetting:', searchQuery);
+      setContacts([]);
+      setCurrentPage(1);
+      setTotalContacts(0);
+      fetchContacts(true);
+    }
+  }, [searchQuery]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const shouldFetch = entries[0].isIntersecting && contacts.length < totalContacts && !isFetching;
+        console.log('Observer check:', {
+          isIntersecting: entries[0].isIntersecting,
+          contactsLength: contacts.length,
+          totalContacts,
+          isFetching,
+          shouldFetch,
+        });
+        if (shouldFetch) {
+          console.log('Fetching page:', currentPage);
+          fetchContacts();
+        }
+      },
+      { threshold: 0.1 } // Trigger when 10% of the loader is visible
+    );
+
+    if (loaderRef.current) {
+      console.log('Observing loader');
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        console.log('Unobserving loader');
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [contacts.length, totalContacts, isFetching]);
+
+  // Filter contacts based on search query (client-side filtering)
+  const filteredContacts = contacts.filter((contact) => {
+    const fullName = `${contact.firstName || contact.contactName || ''} ${contact.lastName || ''}`.toLowerCase();
     const phone = contact.phone || '';
     return fullName.includes(searchQuery.toLowerCase()) || phone.includes(searchQuery);
   });
-  
-  // Handle contact selection toggle
+
   const toggleContact = (contact: any) => {
-    if (selectedContacts.some(c => c.id === contact.id)) {
-      setSelectedContacts(selectedContacts.filter(c => c.id !== contact.id));
+    if (selectedContacts.some((c) => c.id === contact.id)) {
+      setSelectedContacts(selectedContacts.filter((c) => c.id !== contact.id));
     } else {
       setSelectedContacts([...selectedContacts, contact]);
     }
   };
-  
-  // Calculate estimated completion time
+
   const estimatedMinutes = selectedContacts.length * settings.delayMinutes;
-  
-  // Generate default script with placeholders
+
   const generateDefaultScript = () => {
-    setScript(`Hi {{first_name}}, this is ${user?.firstName || 'Adforce'} from NextProp. I noticed you might be interested in properties in your area. I've got some great listings on {{street_name}} that match your criteria. Call me back when you have a chance and we can discuss your needs. Thanks!`);
+    setScript(
+      `Hi {{first_name}}, this is ${user?.firstName || user?.name || 'Adforce'} from NextProp. I noticed you might be interested in properties in your area. I've got some great listings on {{street_name}} that match your criteria. Call me back when you have a chance and we can discuss your needs. Thanks!`
+    );
   };
-  
-  // Create campaign
+
   const createCampaign = async () => {
     if (selectedContacts.length === 0) {
       toast.error('Please select at least one contact');
       return;
     }
-    
     if (!script.trim()) {
       toast.error('Please enter a voicemail script');
       return;
     }
-    
     try {
       setLoading(true);
-      
       const campaignData = {
         name: `Campaign ${new Date().toLocaleString()}`,
-        contacts: selectedContacts.map(contact => ({
+        contacts: selectedContacts.map((contact) => ({
           id: contact.id,
-          firstName: contact.firstName || '',
+          firstName: contact.firstName || contact.contactName || '',
           lastName: contact.lastName || '',
           phone: contact.phone,
-          streetName: contact.address1 || 'your area'
+          streetName: contact.address1 || 'your area',
         })),
         script,
         delayMinutes: settings.delayMinutes,
-        dailyLimit: settings.dailyLimit
+        dailyLimit: settings.dailyLimit,
       };
-      
-      const response = await axios.post('/api/voicemail/campaigns', campaignData);
-      
+      await axios.post('/api/voicemail/campaigns', campaignData);
       toast.success('Campaign created successfully');
-      
-      // Redirect to the campaign list
       router.push('/ringless-voicemails');
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -105,7 +190,46 @@ export default function NewCampaignPage() {
       setLoading(false);
     }
   };
-  
+
+  const handleBulkUpload = async (contacts: any[]) => {
+    setIsSubmitting(true);
+    try {
+      const uploadResults = await Promise.all(
+        contacts.map(async (contact) => {
+          try {
+            const response = await axios.post('/api/contacts', {
+              firstName: contact.firstName,
+              lastName: contact.lastName,
+              phone: contact.phone,
+              address1: contact.street,
+              city: contact.city,
+              state: contact.state,
+              email: contact.email,
+              source: 'bulk_upload',
+              postalCode: contact.zipCode,
+            });
+            return { success: true, contact: response.data.contact };
+          } catch (error) {
+            console.warn(`Failed to upload contact "${contact.firstName || contact.phone}":`, error);
+            return { success: false, contact: null };
+          }
+        })
+      );
+
+      const successfulUploads = uploadResults.filter((result) => result.success);
+      const processedContacts = successfulUploads.map((result) => result.contact!);
+      setContacts((prev) => [...processedContacts, ...prev]);
+      setTotalContacts((prev) => prev + successfulUploads.length);
+      setSelectedContacts(processedContacts);
+      toast.success(`${successfulUploads.length} contacts added successfully`);
+      setIsBulkUploadModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to add contacts');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <DashboardLayout title="New Voicemail Campaign">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -113,20 +237,38 @@ export default function NewCampaignPage() {
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
             Create New Voicemail Campaign
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Send personalized voicemails to multiple contacts.
-          </p>
+          <p className="mt-1 text-sm text-gray-500">Send personalized voicemails to multiple contacts.</p>
         </div>
-        
+        <div className="flex items-center justify-end mb-4">
+          <button
+            onClick={() => setIsBulkUploadModalOpen(true)}
+            className="px-3 py-2 bg-purple-500 text-white rounded-md text-sm font-medium hover:bg-purple-600 flex items-center"
+          >
+            <DocumentTextIcon className="h-4 w-4 mr-2" />
+            Bulk Upload
+          </button>
+        </div>
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column - Contact Selection */}
               <div>
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                  Select Contacts
-                </h3>
-                
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Select Contacts</h3>
+
+                {isBulkUploadModalOpen && (
+                  <div
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+                    onClick={() => setIsBulkUploadModalOpen(false)}
+                  >
+                    <div
+                      className="bg-white rounded-xl shadow-xl w-full max-w-4xl p-6"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <BulkUploadForm onContactsSelect={handleBulkUpload} isLoading={isSubmitting} />
+                    </div>
+                  </div>
+                )}
+
                 <div className="mb-4">
                   <div className="relative rounded-md shadow-sm">
                     <input
@@ -137,51 +279,73 @@ export default function NewCampaignPage() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                      <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </div>
                   </div>
                 </div>
-                
-                {loading ? (
-                  <div className="flex justify-center p-12">
-                    <svg className="animate-spin h-8 w-8 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  </div>
-                ) : filteredContacts.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    No contacts found
-                  </div>
-                ) : (
-                  <div className="overflow-y-auto max-h-[400px] border border-gray-200 rounded-md">
+
+                <div className="overflow-y-auto max-h-[400px] border border-gray-200 rounded-md">
+                  {filteredContacts.length === 0 && !isFetching && contacts.length > 0 ? (
+                    <div className="text-center py-12 text-gray-500">No contacts match your search</div>
+                  ) : filteredContacts.length === 0 && !isFetching ? (
+                    <div className="text-center py-12 text-gray-500">No contacts found</div>
+                  ) : (
                     <ul className="divide-y divide-gray-200">
-                      {filteredContacts.map(contact => (
+                      {filteredContacts.map((contact) => (
                         <li key={contact.id} className="px-4 py-4 hover:bg-gray-50">
                           <label className="flex items-center">
                             <input
                               type="checkbox"
                               className="focus:ring-purple-500 h-4 w-4 text-purple-600 border-gray-300 rounded"
-                              checked={selectedContacts.some(c => c.id === contact.id)}
+                              checked={selectedContacts.some((c) => c.id === contact.id)}
                               onChange={() => toggleContact(contact)}
                             />
                             <div className="ml-3">
                               <p className="text-sm font-medium text-gray-900">
-                                {contact.firstName} {contact.lastName}
+                                {contact.firstName || contact.contactName} {contact.lastName || ''}
                               </p>
-                              <p className="text-sm text-gray-500">
-                                {contact.phone || 'No phone number'}
-                              </p>
+                              <p className="text-sm text-gray-500">{contact.phone || 'No phone number'}</p>
                             </div>
                           </label>
                         </li>
                       ))}
                     </ul>
-                  </div>
-                )}
-                
+                  )}
+                  {contacts.length < totalContacts && (
+                    <div ref={loaderRef} className="flex justify-center p-4">
+                      {isFetching ? (
+                        <svg
+                          className="animate-spin h-8 w-8 text-purple-600"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      ) : (
+                        <span>Loading more...</span> // Visible placeholder to ensure loader is in view
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="mt-4 bg-gray-50 p-4 rounded-md">
                   <div className="flex items-center justify-between">
                     <div>
@@ -200,15 +364,11 @@ export default function NewCampaignPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Right Column - Campaign Settings */}
               <div>
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                  Campaign Settings
-                </h3>
-                
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Campaign Settings</h3>
                 <div className="space-y-6">
-                  {/* Delay Settings */}
                   <div>
                     <label htmlFor="delayMinutes" className="block text-sm font-medium text-gray-700">
                       Delay Between Voicemails
@@ -227,12 +387,9 @@ export default function NewCampaignPage() {
                         <span className="text-gray-500 sm:text-sm">minutes</span>
                       </div>
                     </div>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Estimated completion time: {estimatedMinutes} minutes
-                    </p>
+                    <p className="mt-2 text-sm text-gray-500">Estimated completion time: {estimatedMinutes} minutes</p>
                   </div>
-                  
-                  {/* Daily Limit */}
+
                   <div>
                     <label htmlFor="dailyLimit" className="block text-sm font-medium text-gray-700">
                       Daily Sending Limit
@@ -251,12 +408,9 @@ export default function NewCampaignPage() {
                         <span className="text-gray-500 sm:text-sm">voicemails</span>
                       </div>
                     </div>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Maximum voicemails to send per day
-                    </p>
+                    <p className="mt-2 text-sm text-gray-500">Maximum voicemails to send per day</p>
                   </div>
-                  
-                  {/* Voicemail Script */}
+
                   <div>
                     <div className="flex justify-between items-center">
                       <label htmlFor="script" className="block text-sm font-medium text-gray-700">
@@ -278,7 +432,7 @@ export default function NewCampaignPage() {
                         placeholder="Enter your script. Use {{first_name}} and {{street_name}} as placeholders."
                         value={script}
                         onChange={(e) => setScript(e.target.value)}
-                      ></textarea>
+                      />
                     </div>
                     <p className="mt-2 text-sm text-gray-500">
                       Use {'{{'}'first_name'{'}}'}' and {'{{'}'street_name'{'}}'}' as placeholders for personalization
@@ -287,34 +441,43 @@ export default function NewCampaignPage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end">
-              <Link 
+              <Link
                 href="/ringless-voicemails"
                 className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 mr-3"
               >
                 Cancel
               </Link>
-              
               <button
                 type="button"
                 onClick={createCampaign}
                 disabled={loading || selectedContacts.length === 0 || !script.trim()}
-                className={`${
-                  loading || selectedContacts.length === 0 || !script.trim()
-                    ? 'bg-purple-300 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700'
-                } inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
+                className={`${loading || selectedContacts.length === 0 || !script.trim()
+                  ? 'bg-purple-300 cursor-not-allowed'
+                  : 'bg-purple-600 hover:bg-purple-700'
+                  } inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
               >
                 {loading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
                     </svg>
                     Creating...
                   </>
-                ) : `Start Campaign (${selectedContacts.length} Contacts)`}
+                ) : (
+                  `Start Campaign (${selectedContacts.length} Contacts)`
+                )}
               </button>
             </div>
           </div>
@@ -322,4 +485,4 @@ export default function NewCampaignPage() {
       </div>
     </DashboardLayout>
   );
-} 
+}
