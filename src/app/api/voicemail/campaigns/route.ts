@@ -40,7 +40,8 @@ export async function POST(request: Request) {
       startTime = "10:00 AM",
       endTime = "4:00 PM",
       timezone = "EST (New York)",
-      maxPerHour = 100
+      maxPerHour = 100,
+      daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri"]
     } = data;
     
     // Validate required data
@@ -50,6 +51,10 @@ export async function POST(request: Request) {
     
     if (!script || typeof script !== 'string') {
       return NextResponse.json({ error: 'Script is required' }, { status: 400 });
+    }
+    
+    if (!daysOfWeek || !Array.isArray(daysOfWeek) || daysOfWeek.length === 0) {
+      return NextResponse.json({ error: 'At least one day of the week must be selected' }, { status: 400 });
     }
     
     // Use provided sender phone number or fall back to default
@@ -72,6 +77,7 @@ export async function POST(request: Request) {
       endTime,
       timezone,
       maxPerHour,
+      daysOfWeek,
       contacts: contacts.map((contact: any) => ({
         ...contact,
         status: 'pending',

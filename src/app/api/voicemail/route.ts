@@ -39,7 +39,8 @@ export async function POST(request: Request) {
       startTime: data.startTime,
       endTime: data.endTime,
       timezone: data.timezone,
-      maxPerHour: data.maxPerHour
+      maxPerHour: data.maxPerHour,
+      daysOfWeek: data.daysOfWeek
     });
     
     // Use provided sender phone or default
@@ -58,7 +59,8 @@ export async function POST(request: Request) {
         startTime: data.startTime || "10:00 AM",
         endTime: data.endTime || "4:00 PM",
         timezone: data.timezone || "EST (New York)",
-        maxPerHour: data.maxPerHour || 100
+        maxPerHour: data.maxPerHour || 100,
+        daysOfWeek: data.daysOfWeek || ["Mon", "Tue", "Wed", "Thu", "Fri"]
       }
     };
     

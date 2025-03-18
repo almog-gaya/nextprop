@@ -26,7 +26,8 @@ export default function NewCampaignPage() {
     startTime: "10:00 AM",
     endTime: "4:00 PM",
     timezone: "EST (New York)",
-    maxPerHour: 100
+    maxPerHour: 100,
+    daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri"]
   });
   const [totalContacts, setTotalContacts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -185,6 +186,10 @@ export default function NewCampaignPage() {
       toast.error('Please select a sender phone number');
       return;
     }
+    if (settings.daysOfWeek.length === 0) {
+      toast.error('Please select at least one day of the week');
+      return;
+    }
     try {
       setLoading(true);
       const campaignData = {
@@ -203,7 +208,8 @@ export default function NewCampaignPage() {
         startTime: settings.startTime,
         endTime: settings.endTime,
         timezone: settings.timezone,
-        maxPerHour: settings.maxPerHour
+        maxPerHour: settings.maxPerHour,
+        daysOfWeek: settings.daysOfWeek
       };
       const response = await axios.post('/api/voicemail/campaigns', campaignData);
       toast.success('Campaign created successfully');
@@ -458,6 +464,39 @@ export default function NewCampaignPage() {
                   {/* Time Range Settings */}
                   <div className="bg-white p-4 rounded-md border border-gray-200">
                     <h4 className="text-sm font-medium text-gray-700 mb-4">Sending Schedule</h4>
+                    
+                    {/* Days of Week Selection */}
+                    <div className="mb-6">
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Select Schedule</h5>
+                      <div className="flex flex-wrap gap-2">
+                        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => {
+                              if (settings.daysOfWeek.includes(day)) {
+                                setSettings({
+                                  ...settings,
+                                  daysOfWeek: settings.daysOfWeek.filter((d) => d !== day),
+                                });
+                              } else {
+                                setSettings({
+                                  ...settings,
+                                  daysOfWeek: [...settings.daysOfWeek, day],
+                                });
+                              }
+                            }}
+                            className={`py-2 px-4 rounded-md ${
+                              settings.daysOfWeek.includes(day)
+                                ? "bg-purple-100 text-purple-700 border border-purple-200"
+                                : "bg-white text-gray-700 border border-gray-300"
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     
                     <div className="flex flex-wrap gap-4 mb-4">
                       <div className="w-full sm:w-auto">
