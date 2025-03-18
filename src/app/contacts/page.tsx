@@ -91,7 +91,7 @@ export default function ContactsPage() {
     tags: [],
     timezone: '',
     dnd: false,
-    customFields: {}, 
+    customFields: {},
     source: 'public api',
     postalCode: '',
     city: '',
@@ -111,7 +111,7 @@ export default function ContactsPage() {
     tags: [],
     timezone: '',
     dnd: false,
-    customFields: {}, 
+    customFields: {},
     source: '',
     postalCode: '',
     city: '',
@@ -220,11 +220,11 @@ export default function ContactsPage() {
       setIsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
-  
+
   useEffect(() => {
     fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
@@ -262,7 +262,7 @@ export default function ContactsPage() {
         Object.assign(customFieldsObject, contact.customFields);
       }
     }
-    
+
     setEditContact({
       id: contact.id,
       name: contact.name || '',
@@ -280,7 +280,7 @@ export default function ContactsPage() {
       city: contact.city || '',
       state: contact.state || '',
       country: contact.country || '',
-      address1: contact.address1 || '', 
+      address1: contact.address1 || '',
     });
     setIsEditModalOpen(true);
   };
@@ -359,7 +359,7 @@ export default function ContactsPage() {
           tags: [],
           timezone: '',
           dnd: false,
-          customFields: {}, 
+          customFields: {},
           source: 'public api',
           postalCode: '',
           city: '',
@@ -497,7 +497,7 @@ export default function ContactsPage() {
                   tags: [],
                   timezone: '',
                   dnd: false,
-                  customFields: {}, 
+                  customFields: {},
                   source: 'public api',
                   postalCode: '',
                   city: '',
@@ -674,7 +674,7 @@ export default function ContactsPage() {
                   />
                 </div>
               </div>
- 
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
                 <input
@@ -706,7 +706,7 @@ export default function ContactsPage() {
                 );
               })}
 
-         
+
             </div>
             <div className="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200">
               <button
@@ -883,20 +883,20 @@ export default function ContactsPage() {
 
   const ColumnManager = () => {
     const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
           setIsColumnSelectorOpen(false);
         }
       };
-  
+
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }, []);
-  
+
     return (
       <div className="relative" ref={dropdownRef}>
         <button
@@ -916,8 +916,8 @@ export default function ContactsPage() {
             </div>
             <div className="py-1 max-h-64 overflow-y-auto">
               {columns.map(column => (
-                <label 
-                  key={column.id} 
+                <label
+                  key={column.id}
                   className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -1153,34 +1153,59 @@ export default function ContactsPage() {
     );
   };
 
-  const handleBulkUpload = async (contacts: { name: string; phone: string; street: string; city: string; state: string; pipelineId: string; email?: string; notes?: string }[]) => {
+  const handleBulkUpload = async (contacts: { firstName: string; lastName: string; phone: string; street: string; city: string; state: string; pipelineId: string; email?: string; notes?: string; zipCode?: string }[]) => {
     setIsSubmitting(true);
     try {
-      const createdContacts = await Promise.all(
+      const uploadResults = await Promise.all(
         contacts.map(async (contact) => {
-          const response = await axios.post('/api/contacts', {
-            name: contact.name,
-            phone: contact.phone,
-            address1: contact.street,
-            city: contact.city,
-            state: contact.state,
-            email: contact.email,
-            notes: contact.notes,
-            source: 'bulk_upload'
-          });
-          return response.data.contact;
+          try {
+            const response = await axios.post('/api/contacts', {
+            
+              firstName: contact.firstName,
+              lastName: contact.lastName,
+              phone: contact.phone,
+              address1: contact.street,
+              city: contact.city,
+              state: contact.state,
+              email: contact.email,
+              // notes: contact.notes,
+              source: 'bulk_upload',
+              postalCode: contact.zipCode, 
+            });
+            return { success: true, contact: response.data.contact };
+          } catch (error) {
+            console.warn(`Failed to upload contact "${contact.firstName || contact.phone}":`, error);
+            return { success: false, contact: null };
+          }
         })
       );
 
-      const processedContacts = createdContacts.map(contact => ({
-        ...contact,
-        name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
-      }));
+      const successfulUploads = uploadResults.filter((result) => result.success);
+      const failedUploads = uploadResults.length - successfulUploads.length;
+      const processedContacts = successfulUploads.map((result) => {
+        const contact = result.contact!;
+        return {
+          ...contact,
+          name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+        };
+      });
 
-      setContacts(prev => [...processedContacts, ...prev]);
-      setTotalContacts(prev => prev + processedContacts.length);
+      setContacts((prev) => [...processedContacts, ...prev]);
+      setTotalContacts((prev) => prev + processedContacts.length);
       setTotalPages(Math.ceil((totalContacts + processedContacts.length) / contactsPerPage));
-      toast.success(`${processedContacts.length} contacts added successfully`);
+
+      if (successfulUploads.length === contacts.length) {
+        toast.success(`${successfulUploads.length} contacts added successfully`);
+      } else if (successfulUploads.length > 0) {
+        toast.success(`${successfulUploads.length} out of ${contacts.length} contacts have been uploaded successfully`);
+
+      } else {
+        if (failedUploads > 0) {
+          toast.error(`${failedUploads} contact(s) failed to upload either due to invalid phone number or already exists.`);
+        
+        }
+      }
+
       setIsBulkUploadModalOpen(false);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to add contacts');
@@ -1331,7 +1356,7 @@ export default function ContactsPage() {
               <p className="text-sm text-gray-600 mb-6">
                 Send a message to {selectedContacts.length} selected contacts.
               </p>
-              
+
               {selectedMessageType ? (
                 <div>
                   {selectedMessageType === 'sms' && (
@@ -1343,7 +1368,7 @@ export default function ContactsPage() {
                       />
                     </div>
                   )}
-                  
+
                   {selectedMessageType === 'email' && (
                     <div className="space-y-4">
                       <div>
@@ -1363,7 +1388,7 @@ export default function ContactsPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {selectedMessageType === 'voicemail' && (
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Voicemail Message</label>
@@ -1376,7 +1401,7 @@ export default function ContactsPage() {
                       <p className="text-xs text-gray-500 mt-1">Supported formats: MP3, WAV (max 2MB)</p>
                     </div>
                   )}
-                  
+
                   <div className="mt-6 flex justify-between">
                     <button
                       onClick={() => setSelectedMessageType(null)}
@@ -1403,7 +1428,7 @@ export default function ContactsPage() {
                       <p className="text-sm text-gray-500">Send a text message to selected contacts</p>
                     </div>
                   </button>
-                  
+
                   <button
                     onClick={() => setSelectedMessageType('email')}
                     className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
@@ -1414,7 +1439,7 @@ export default function ContactsPage() {
                       <p className="text-sm text-gray-500">Send an email to selected contacts</p>
                     </div>
                   </button>
-                  
+
                   <button
                     onClick={() => setSelectedMessageType('voicemail')}
                     className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
@@ -1427,7 +1452,7 @@ export default function ContactsPage() {
                   </button>
                 </div>
               )}
-              
+
               <button
                 onClick={() => {
                   setIsBulkMessagingModalOpen(false);

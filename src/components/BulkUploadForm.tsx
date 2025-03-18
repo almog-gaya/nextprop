@@ -6,6 +6,8 @@ import { PhoneIcon, DocumentTextIcon, CheckCircleIcon, TagIcon, ChevronDownIcon 
 
 interface Contact {
   name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   street: string;
   city: string;
@@ -13,10 +15,11 @@ interface Contact {
   email?: string;
   notes?: string;
   selected: boolean;
+  zipCode?: string;
 }
 
 interface BulkUploadFormProps {
-  onContactsSelect: (contacts: { name: string; phone: string; street: string; city: string; state: string; pipelineId: string; email?: string; notes?: string }[]) => void;
+  onContactsSelect: (contacts: { firstName: string, lastName: string, name: string; phone: string; street: string; city: string; state: string; pipelineId: string; email?: string; notes?: string; zipCode?: string }[]) => void;
   isLoading?: boolean;
   pipelines?: { id: string; name: string }[];
 }
@@ -48,7 +51,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         } else if (data.pipelines && Array.isArray(data.pipelines)) {
           setPipelines(data.pipelines);
         } else {
-          const extractedArrays = Object.values(data).filter(value => 
+          const extractedArrays = Object.values(data).filter(value =>
             Array.isArray(value) && value.length > 0 && value[0] && 'id' in value[0] && 'name' in value[0]
           );
           if (extractedArrays.length > 0) {
@@ -97,58 +100,70 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         }
 
         const firstRow = data[0] as any;
-        if (!firstRow['Contact Name'] && !firstRow['contact name'] && !firstRow['Name'] && !firstRow['name']) {
-          setError('The file must have a "Contact Name" or "Name" column.');
-          return;
-        }
-        if (!firstRow['Phone'] && !firstRow['phone'] && !firstRow['Phone Number'] && !firstRow['phone number'] &&
-            !firstRow['Email'] && !firstRow['email']) {
+        // Only check for Phone or Email presence in the header
+        if (
+          !firstRow['Phone'] &&
+          !firstRow['phone'] &&
+          !firstRow['Phone Number'] &&
+          !firstRow['phone number'] &&
+          !firstRow['Email'] &&
+          !firstRow['email']
+        ) {
           setError('The file must have either a "Phone" or "Email" column.');
           return;
         }
-        if (!firstRow['Street'] && !firstRow['street']) {
-          setError('The file must have a "Street" column.');
+
+        const parsedContacts: Contact[] = data
+          .map((row: any) => {
+            const name = row['Contact Name'] || row['contact name'] || row['name'] || row['Name'] || '  ';
+            const nameParts = name.trim().split(/\s+/); // Split by any whitespace and trim
+            const firstName = row['First Name'] || row['first name'] || nameParts[0] || '';
+            const lastName = row['Last Name'] || row['last name'] || nameParts.slice(1).join(' ') || '';
+            const phone = row['Phone'] || row['phone'] || row['Phone Number'] || row['phone number'] || '';
+            const street = row['Street'] || row['street'] || '';
+            const city = row['City'] || row['city'] || '';
+            const state = row['State'] || row['state'] || '';
+            const email = row['Email'] || row['email'] || '';
+            const notes = row['Notes'] || row['notes'] || '';
+            const zipCode = row['Zip Code'] || row['zip code'] || row['zipcode'] || row['Zipcode'] || row['ZipCode'] || '';
+
+            return {
+              name: name.toString(),
+              firstName: firstName.toString(),
+              lastName: lastName.toString(),
+              phone: phone.toString(),
+              street: street.toString(),
+              city: city.toString(),
+              state: state.toString(),
+              email: email.toString(),
+              notes: notes.toString(),
+              selected: true,
+              zipCode: zipCode.toString()
+            };
+          })
+          .filter((contact) => {
+            // Only include contacts that have at least a phone or email
+            const isValid = contact.phone || contact.email;
+            if (!isValid) {
+              console.warn(`Skipping contact "${contact.firstName}" due to missing phone and email.`);
+            }
+            return isValid;
+          });
+
+        if (parsedContacts.length === 0) {
+          setError('No valid contacts found. Each contact must have at least a phone or email.');
           return;
         }
-        if (!firstRow['City'] && !firstRow['city']) {
-          setError('The file must have a "City" column.');
-          return;
-        }
-        if (!firstRow['State'] && !firstRow['state']) {
-          setError('The file must have a "State" column.');
-          return;
-        }
-
-        const parsedContacts: Contact[] = data.map((row: any) => {
-          const name = row['Contact Name'] || row['contact name'] || row['Name'] || row['name'] || '';
-          const phone = row['Phone'] || row['phone'] || row['Phone Number'] || row['phone number'] || '';
-          const street = row['Street'] || row['street'] || '';
-          const city = row['City'] || row['city'] || '';
-          const state = row['State'] || row['state'] || '';
-          const email = row['Email'] || row['email'] || '';
-          // const notes = row['Notes'] || row['notes'] || '';
-
-          // Validate that at least phone or email is present
-          if (!phone && !email) {
-            throw new Error(`Contact "${name}" is missing both phone and email. At least one is required.`);
-          }
-
-          return {
-            name,
-            phone: phone.toString(),
-            street: street.toString(),
-            city: city.toString(),
-            state: state.toString(),
-            email: email.toString(),
-            // notes: notes.toString(),
-            selected: true
-          };
-        });
 
         setContacts(parsedContacts);
+        if (parsedContacts.length < data.length) {
+          setError(
+            `${data.length - parsedContacts.length} contact(s) skipped due to missing phone and email.`
+          );
+        }
       } catch (error) {
         console.error('Error parsing Excel file:', error);
-        setError(error instanceof Error ? error.message : 'Failed to parse the Excel file. Please ensure it’s valid and each contact has a phone or email.');
+        setError('Failed to parse the Excel file. Please ensure it’s valid.');
       }
     };
 
@@ -177,15 +192,17 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
 
     const selectedContacts = contacts
       .filter(contact => contact.selected)
-      .map(({ name, phone, street, city, state, email, notes }) => ({
-        name,
+      .map(({ firstName, lastName, phone, street, city, state, email, notes, zipCode }) => ({
+        firstName,
+        lastName,
         phone,
         street,
         city,
         state,
         email,
-        // notes,
-        pipelineId: selectedPipeline
+        notes,
+        pipelineId: selectedPipeline,
+        zipCode,
       }));
 
     if (selectedContacts.length === 0) {
@@ -196,7 +213,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     // Double-check that all selected contacts have phone or email
     const invalidContacts = selectedContacts.filter(c => !c.phone && !c.email);
     if (invalidContacts.length > 0) {
-      setError(`The following contacts are missing both phone and email: ${invalidContacts.map(c => c.name).join(', ')}. At least one is required.`);
+      setError(`The following contacts are missing both phone and email: ${invalidContacts.map(c => c.firstName).join(', ')}. At least one is required.`);
       return;
     }
 
@@ -223,20 +240,24 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
   const handleDownloadSample = () => {
     const sampleData = [
       {
-        'Contact Name': 'John Smith',
+        'First Name': 'John',
+        'Last Name': 'Doe',
         'Phone': '+1234567890',
         'Street': '123 Main St',
         'City': 'New York',
         'State': 'NY',
+        'Zip Code': '10001',
         'Email': 'john@example.com',
         'Notes': 'Interested in property'
       },
       {
-        'Contact Name': 'Jane Doe',
+        'First Name': 'John',
+        'Last Name': 'Doe',
         'Phone': '',
         'Street': '456 Oak Ave',
         'City': 'Los Angeles',
         'State': 'CA',
+        'Zip Code': '90210',
         'Email': 'jane@example.com',
         'Notes': 'Looking for investment'
       }
@@ -248,7 +269,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     XLSX.writeFile(wb, 'contact_upload_template.xlsx');
   };
 
-  // JSX remains largely unchanged; only updating the error message display and sample download
+  // JSX remains largely unchanged
   return (
     <div className="nextprop-card">
       <div className="flex items-center justify-between mb-6">
@@ -285,16 +306,16 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                     <div className="flex items-center truncate">
                       <TagIcon className="h-5 w-5 text-[#7c3aed] mr-2 flex-shrink-0" />
                       <span className="text-sm text-gray-700 truncate">
-                        {loadingPipelines 
+                        {loadingPipelines
                           ? 'Loading pipelines...'
-                          : selectedPipeline 
-                            ? pipelines.find(p => p.id === selectedPipeline)?.name 
+                          : selectedPipeline
+                            ? pipelines.find(p => p.id === selectedPipeline)?.name
                             : 'Select a pipeline'}
                       </span>
                     </div>
-                    <ChevronDownIcon 
-                      className={`h-5 w-5 text-gray-400 transition-transform flex-shrink-0 ${dropdownOpen ? 'transform rotate-180' : ''}`} 
-                      aria-hidden="true" 
+                    <ChevronDownIcon
+                      className={`h-5 w-5 text-gray-400 transition-transform flex-shrink-0 ${dropdownOpen ? 'transform rotate-180' : ''}`}
+                      aria-hidden="true"
                     />
                   </div>
                 </button>
@@ -316,12 +337,11 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                         <li className="px-4 py-2 text-sm text-gray-500">No pipelines available</li>
                       ) : (
                         pipelines.map(pipeline => (
-                          <li 
+                          <li
                             key={pipeline.id}
                             onClick={() => handleSelectPipeline(pipeline.id)}
-                            className={`px-4 py-2 text-sm cursor-pointer hover:bg-[#f5f3ff] ${
-                              selectedPipeline === pipeline.id ? 'bg-[#f5f3ff] text-[#7c3aed] font-medium' : 'text-gray-700'
-                            }`}
+                            className={`px-4 py-2 text-sm cursor-pointer hover:bg-[#f5f3ff] ${selectedPipeline === pipeline.id ? 'bg-[#f5f3ff] text-[#7c3aed] font-medium' : 'text-gray-700'
+                              }`}
                           >
                             {pipeline.name}
                           </li>
@@ -375,8 +395,8 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                   accept=".xlsx, .xls, .csv"
                   onChange={handleFileUpload}
                 />
-                <label 
-                  htmlFor="excelFile" 
+                <label
+                  htmlFor="excelFile"
                   className="cursor-pointer flex flex-col items-center justify-center"
                 >
                   <DocumentTextIcon className="w-10 h-10 text-gray-400 mb-2" />
@@ -402,33 +422,40 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                   <table className="min-w-full text-xs">
                     <thead>
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Contact Name</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">First Name</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Last Name</th>
+
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Phone</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Street</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">City</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">State</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Email</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Notes</th>
+                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Zip Code</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
-                        <td className="px-3 py-2 border border-gray-200">Kelly Price</td>
+                        <td className="px-3 py-2 border border-gray-200">Kelly</td>
+                        <td className="px-3 py-2 border border-gray-200">Price</td>
                         <td className="px-3 py-2 border border-gray-200">+18167505325</td>
                         <td className="px-3 py-2 border border-gray-200">Oak Avenue</td>
                         <td className="px-3 py-2 border border-gray-200">Kansas City</td>
                         <td className="px-3 py-2 border border-gray-200">Missouri</td>
                         <td className="px-3 py-2 border border-gray-200">kelly@example.com</td>
                         <td className="px-3 py-2 border border-gray-200">Interested in 3-bedroom</td>
+                        <td className="px-3 py-2 border border-gray-200">64108</td>
                       </tr>
                       <tr>
-                        <td className="px-3 py-2 border border-gray-200">Cody Ferrin</td>
+                        <td className="px-3 py-2 border border-gray-200">Cody</td>
+                        <td className="px-3 py-2 border border-gray-200">Ferrin</td>
                         <td className="px-3 py-2 border border-gray-200"></td>
                         <td className="px-3 py-2 border border-gray-200">Pine Street</td>
                         <td className="px-3 py-2 border border-gray-200">Kansas City</td>
                         <td className="px-3 py-2 border border-gray-200">Missouri</td>
                         <td className="px-3 py-2 border border-gray-200">cody@example.com</td>
                         <td className="px-3 py-2 border border-gray-200">Looking to sell</td>
+                        <td className="px-3 py-2 border border-gray-200">64128</td>
                       </tr>
                     </tbody>
                   </table>
@@ -472,12 +499,15 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                     <thead className="bg-gray-50">
                       <tr>
                         <th scope="col" className="w-16 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
+
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Street</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">State</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zip Code</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -492,22 +522,28 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{contact.name}</div>
+                            <div className="text-sm font-medium text-gray-900">{contact.firstName || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.phone}</div>
+                            <div className="text-sm font-medium text-gray-900">{contact.lastName || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.street}</div>
+                            <div className="text-sm text-gray-500">{contact.phone || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.city}</div>
+                            <div className="text-sm text-gray-500">{contact.street || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.state}</div>
+                            <div className="text-sm text-gray-500">{contact.city || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.email}</div>
+                            <div className="text-sm text-gray-500">{contact.state || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">{contact.email || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">{contact.zipCode || '-'}</div>
                           </td>
                         </tr>
                       ))}
