@@ -550,51 +550,7 @@ export default function NewCampaignPage() {
                       </div>
                     </div>
                   </div>
-                  
-                  <div>
-                    <label htmlFor="delayMinutes" className="block text-sm font-medium text-gray-700">
-                      Delay Between Voicemails
-                    </label>
-                    <div className="mt-1 relative rounded-md">
-                      <input
-                        type="number"
-                        id="delayMinutes"
-                        min="1"
-                        max="60"
-                        className="block w-full pr-16 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                        value={settings.delayMinutes}
-                        onChange={(e) => setSettings({ ...settings, delayMinutes: parseInt(e.target.value, 10) })}
-                      />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <span className="text-gray-500 sm:text-sm">minutes</span>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-sm text-gray-500">Estimated completion time: {estimatedMinutes} minutes</p>
-                  </div>
-
-                  <div>
-                    <label htmlFor="dailyLimit" className="block text-sm font-medium text-gray-700">
-                      Daily Sending Limit
-                    </label>
-                    <div className="mt-1 relative rounded-md">
-                      <input
-                        type="number"
-                        id="dailyLimit"
-                        min="1"
-                        max="500"
-                        className="block w-full pr-16 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                        value={settings.dailyLimit}
-                        onChange={(e) => setSettings({ ...settings, dailyLimit: parseInt(e.target.value, 10) })}
-                      />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <span className="text-gray-500 sm:text-sm">voicemails</span>
-                      </div>
-                    </div>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Maximum voicemails to send per day
-                    </p>
-                  </div>
-
+            
                   <div>
                     <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
                       Sender Phone Number

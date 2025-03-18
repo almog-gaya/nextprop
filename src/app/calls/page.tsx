@@ -116,49 +116,7 @@ export default function CallsPage() {
         {/* Campaign Delivery Settings */}
         <div className="nextprop-card p-6">
           <h3 className="text-lg font-semibold text-[#1e1b4b] mb-4">Campaign Delivery Settings</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="delay-between-calls" className="block text-sm font-medium text-gray-700 mb-2">
-                Delay Between Voicemails
-              </label>
-              <select
-                id="delay-between-calls"
-                className="nextprop-input w-full rounded-md shadow-sm"
-                defaultValue="5"
-              >
-                <option value="1">1 minute</option>
-                <option value="5">5 minutes</option>
-                <option value="10">10 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="60">1 hour</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-2">
-                Space out your voicemails to avoid carrier spam detection
-              </p>
-            </div>
-            
-            <div>
-              <label htmlFor="daily-limit" className="block text-sm font-medium text-gray-700 mb-2">
-                Daily Sending Limit
-              </label>
-              <select
-                id="daily-limit"
-                className="nextprop-input w-full rounded-md shadow-sm"
-                defaultValue="50"
-              >
-                <option value="10">10 voicemails</option>
-                <option value="25">25 voicemails</option>
-                <option value="50">50 voicemails</option>
-                <option value="100">100 voicemails</option>
-                <option value="250">250 voicemails</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-2">
-                Limit how many voicemails are sent each day
-              </p>
-            </div>
-          </div>
-          
+   
           <div className="mt-6">
             <button
               type="button"
