@@ -35,7 +35,11 @@ export async function POST(request: Request) {
       zip: data.zip,
       email: data.email,
       property_link: data.property_link,
-      from: data.from
+      from: data.from,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      timezone: data.timezone,
+      maxPerHour: data.maxPerHour
     });
     
     // Use provided sender phone or default
@@ -48,7 +52,14 @@ export async function POST(request: Request) {
       to: data.phone,
       from: fromPhone,
       validate_recipient_phone: true,
-      send_status_to_webhook: webhookUrl
+      send_status_to_webhook: webhookUrl,
+      // Add scheduling metadata
+      metadata: {
+        startTime: data.startTime || "10:00 AM",
+        endTime: data.endTime || "4:00 PM",
+        timezone: data.timezone || "EST (New York)",
+        maxPerHour: data.maxPerHour || 100
+      }
     };
     
     console.log('Sending request to VoiceDrop API:', payload);

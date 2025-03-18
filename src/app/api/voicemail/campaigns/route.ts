@@ -31,7 +31,17 @@ export async function POST(request: Request) {
     
     // Parse the request body
     const data = await request.json();
-    const { contacts, script, delayMinutes = 5, dailyLimit = 50, senderPhone } = data;
+    const { 
+      contacts, 
+      script, 
+      delayMinutes = 5, 
+      dailyLimit = 50, 
+      senderPhone,
+      startTime = "10:00 AM",
+      endTime = "4:00 PM",
+      timezone = "EST (New York)",
+      maxPerHour = 100
+    } = data;
     
     // Validate required data
     if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
@@ -58,6 +68,10 @@ export async function POST(request: Request) {
       delayMinutes,
       dailyLimit,
       fromPhone,
+      startTime,
+      endTime,
+      timezone,
+      maxPerHour,
       contacts: contacts.map((contact: any) => ({
         ...contact,
         status: 'pending',
