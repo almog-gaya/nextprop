@@ -27,7 +27,14 @@ export async function POST(request: Request) {
       message: data.message,
       phone: data.phone,
       first_name: data.first_name,
+      last_name: data.last_name,
       street_name: data.street_name,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      zip: data.zip,
+      email: data.email,
+      property_link: data.property_link,
       from: data.from
     });
     

@@ -517,17 +517,16 @@ export default function NewCampaignPage() {
                     </p>
                   </div>
 
+                  {/* Voicemail Script */}
                   <div>
                     <div className="flex justify-between items-center">
-                      <label htmlFor="script" className="block text-sm font-medium text-gray-700">
-                        Voicemail Script
-                      </label>
+                      <h4 className="text-sm font-medium text-gray-700">Voicemail Script</h4>
                       <button
                         type="button"
                         onClick={generateDefaultScript}
                         className="text-sm text-purple-600 hover:text-purple-500"
                       >
-                        Generate Default
+                        Reset to Default
                       </button>
                     </div>
                     <div className="mt-1">
@@ -535,56 +534,136 @@ export default function NewCampaignPage() {
                         id="script"
                         rows={6}
                         className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                        placeholder="Enter your script. Use {{first_name}} and {{street_name}} as placeholders."
                         value={script}
                         onChange={(e) => setScript(e.target.value)}
-                      />
+                      ></textarea>
                     </div>
                     <p className="mt-2 text-sm text-gray-500">
-                      Use {'{{'}'first_name'{'}}'}' and {'{{'}'street_name'{'}}'}' as placeholders for personalization
+                      Use placeholders like {'{{'}'first_name'{'}}'}' and {'{{'}'street_name'{'}}'}' for personalization
                     </p>
+                  </div>
+                  
+                  {/* Contact Field Placeholders */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Available Contact Fields</h4>
+                    <p className="text-sm text-gray-500 mb-3">
+                      Click a field to add its placeholder to your script
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{first_name}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        First Name
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{last_name}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        Last Name
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{street_name}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        Street Name
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{address}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        Full Address
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{city}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        City
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{state}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        State
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{zip}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        ZIP Code
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{phone}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        Phone Number
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{email}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        Email
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScript(prev => `${prev} {{property_link}}`)}
+                        className="flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        Property Link
+                      </button>
+                    </div>
+                    
+                    <div className="mt-4 bg-gray-50 p-4 rounded-md">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Preview</h4>
+                      <p className="text-sm text-gray-600">
+                        {script
+                          .replace(/{{first_name}}/g, selectedContacts[0]?.firstName || '[First Name]')
+                          .replace(/{{last_name}}/g, selectedContacts[0]?.lastName || '[Last Name]')
+                          .replace(/{{street_name}}/g, selectedContacts[0]?.address1 || '[Street Name]')
+                          .replace(/{{address}}/g, selectedContacts[0]?.address1 || '[Address]')
+                          .replace(/{{city}}/g, selectedContacts[0]?.city || '[City]')
+                          .replace(/{{state}}/g, selectedContacts[0]?.state || '[State]')
+                          .replace(/{{zip}}/g, selectedContacts[0]?.zip || '[ZIP]')
+                          .replace(/{{phone}}/g, selectedContacts[0]?.phone || '[Phone]')
+                          .replace(/{{email}}/g, selectedContacts[0]?.email || '[Email]')
+                          .replace(/{{property_link}}/g, '[Property Link]')}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8">
+                    <button
+                      type="button"
+                      onClick={createCampaign}
+                      disabled={loading || selectedContacts.length === 0 || !script.trim()}
+                      className={`${
+                        loading || selectedContacts.length === 0 || !script.trim()
+                          ? 'bg-purple-300 cursor-not-allowed'
+                          : 'bg-purple-600 hover:bg-purple-700'
+                      } w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
+                    >
+                      {loading ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Creating Campaign...
+                        </>
+                      ) : 'Create Campaign'}
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end">
-              <Link
-                href="/ringless-voicemails"
-                className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 mr-3"
-              >
-                Cancel
-              </Link>
-              <button
-                type="button"
-                onClick={createCampaign}
-                disabled={loading || selectedContacts.length === 0 || !script.trim()}
-                className={`${loading || selectedContacts.length === 0 || !script.trim()
-                  ? 'bg-purple-300 cursor-not-allowed'
-                  : 'bg-purple-600 hover:bg-purple-700'
-                  } inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500`}
-              >
-                {loading ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Creating...
-                  </>
-                ) : (
-                  `Start Campaign (${selectedContacts.length} Contacts)`
-                )}
-              </button>
             </div>
           </div>
         </div>

@@ -80,7 +80,15 @@ export async function POST(request: Request) {
       // Create the payload for VoiceDrop
       const personalizedScript = script
         .replace(/{{first_name}}/g, firstContact.firstName || '')
-        .replace(/{{street_name}}/g, firstContact.streetName || '');
+        .replace(/{{last_name}}/g, firstContact.lastName || '')
+        .replace(/{{street_name}}/g, firstContact.streetName || '')
+        .replace(/{{address}}/g, firstContact.address1 || '')
+        .replace(/{{city}}/g, firstContact.city || '')
+        .replace(/{{state}}/g, firstContact.state || '')
+        .replace(/{{zip}}/g, firstContact.zip || '')
+        .replace(/{{phone}}/g, firstContact.phone || '')
+        .replace(/{{email}}/g, firstContact.email || '')
+        .replace(/{{property_link}}/g, firstContact.propertyLink || '');
       
       const payload = {
         voice_clone_id: DEFAULT_VOICE_CLONE_ID,
