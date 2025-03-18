@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const prodURL = new URL(`https://services.leadconnectorhq.com/contacts/`);
     prodURL.searchParams.set('locationId', locationId!);
     prodURL.searchParams.set('limit', limit.toString());
-    if (page > 1 && startAfter) {
+    if (page > 1 ) {
     prodURL.searchParams.set('page', page.toString());
 
       // prodURL.searchParams.set('startAfter', startAfter); // Use last contact ID

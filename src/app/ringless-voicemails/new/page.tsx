@@ -14,31 +14,28 @@ export default function NewCampaignPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [contacts, setContacts] = useState<any[]>([]); // Cumulative list of contacts
-  const [selectedContacts, setSelectedContacts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState([]);
+  const [selectedContacts, setSelectedContacts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [script, setScript] = useState('');
   const [settings, setSettings] = useState({
     delayMinutes: 5,
     dailyLimit: 50,
   });
-  const [totalContacts, setTotalContacts] = useState(0); // Total contacts from API
-  const [currentPage, setCurrentPage] = useState(1); // Current page for pagination
-  const [isFetching, setIsFetching] = useState(false); // Track fetching state
-  const loaderRef = useRef<HTMLDivElement>(null); // Ref for the loader element
+  const [totalContacts, setTotalContacts] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isFetching, setIsFetching] = useState(false);
+  const loaderRef = useRef(null);
 
   // Bulk Upload States
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const CONTACTS_PER_PAGE = 100; // Number of contacts per page
+  const CONTACTS_PER_PAGE = 10;
 
-  // Fetch contacts function with page-based pagination
+  // Fetch contacts with pagination and optional search
   const fetchContacts = async (reset = false) => {
-    if (isFetching || (!reset && contacts.length >= totalContacts && totalContacts > 0)) {
-      console.log('Fetch skipped:', { isFetching, contactsLength: contacts.length, totalContacts });
-      return;
-    }
+    if (isFetching) return;
 
     try {
       setIsFetching(true);
@@ -46,6 +43,7 @@ export default function NewCampaignPage() {
       const params = new URLSearchParams({
         page: pageToFetch.toString(),
         limit: CONTACTS_PER_PAGE.toString(),
+        ...(searchQuery && { search: searchQuery }), // Add search param if supported by API
       });
 
       console.log('Fetching contacts with params:', params.toString());
@@ -53,27 +51,21 @@ export default function NewCampaignPage() {
       const newContacts = response.data.contacts || [];
       const total = response.data.total || 0;
 
-      console.log('API Response:', { contacts: newContacts, total, page: pageToFetch });
+      console.log('API Response:', { contacts: newContacts.length, total, page: pageToFetch });
 
-      const processedContacts = newContacts.map((contact: any) => ({
+      const processedContacts = newContacts.map((contact) => ({
         ...contact,
         name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
       }));
 
-      // Append new contacts or reset the list
-      setContacts((prev) => {
-        const updatedContacts = reset ? processedContacts : [...prev, ...processedContacts];
-        console.log('Updated contacts length:', updatedContacts.length, 'Total:', total);
-        return updatedContacts;
-      });
-
+      setContacts((prev) => (reset ? processedContacts : [...prev, ...processedContacts]));
       setTotalContacts(total);
-      if (newContacts.length > 0) {
-        const newPage = pageToFetch + 1;
-        setCurrentPage(newPage);
-        console.log('Page incremented to:', newPage);
+
+      if (newContacts.length > 0 && newContacts.length === CONTACTS_PER_PAGE) {
+        setCurrentPage(pageToFetch + 1);
+        console.log('Page incremented to:', pageToFetch + 1);
       } else {
-        console.log('No new contacts, page not incremented:', pageToFetch);
+        console.log('No more contacts to fetch or partial page received');
       }
     } catch (error) {
       console.error('Error fetching contacts:', error);
@@ -86,10 +78,10 @@ export default function NewCampaignPage() {
   // Initial fetch
   useEffect(() => {
     console.log('Initial fetch triggered');
-    fetchContacts(true); // Reset and fetch initial contacts
+    fetchContacts(true);
   }, []);
 
-  // Handle search (resets contacts and fetches anew)
+  // Handle search reset
   useEffect(() => {
     if (searchQuery) {
       console.log('Search query changed, resetting:', searchQuery);
@@ -97,55 +89,44 @@ export default function NewCampaignPage() {
       setCurrentPage(1);
       setTotalContacts(0);
       fetchContacts(true);
+    } else {
+      // Reset to full list if search is cleared
+      setContacts([]);
+      setCurrentPage(1);
+      setTotalContacts(0);
+      fetchContacts(true);
     }
   }, [searchQuery]);
 
-  // Intersection Observer for infinite scroll
+  // Infinite scroll with IntersectionObserver
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        const shouldFetch = entries[0].isIntersecting && contacts.length < totalContacts && !isFetching;
-        console.log('Observer check:', {
-          isIntersecting: entries[0].isIntersecting,
-          contactsLength: contacts.length,
-          totalContacts,
-          isFetching,
-          shouldFetch,
-        });
-        if (shouldFetch) {
+        if (entries[0].isIntersecting && !isFetching && contacts.length < totalContacts) {
           console.log('Fetching page:', currentPage);
           fetchContacts();
         }
       },
-      { threshold: 0.1 } // Trigger when 10% of the loader is visible
+      { threshold: 0.1 }
     );
 
-    if (loaderRef.current) {
-      console.log('Observing loader');
-      observer.observe(loaderRef.current);
-    }
-
+    if (loaderRef.current) observer.observe(loaderRef.current);
     return () => {
-      if (loaderRef.current) {
-        console.log('Unobserving loader');
-        observer.unobserve(loaderRef.current);
-      }
+      if (loaderRef.current) observer.unobserve(loaderRef.current);
     };
-  }, [contacts.length, totalContacts, isFetching]);
+  }, [contacts.length, totalContacts, isFetching, currentPage]);
 
-  // Filter contacts based on search query (client-side filtering)
+  // Filter contacts client-side (if API doesn't handle search)
   const filteredContacts = contacts.filter((contact) => {
     const fullName = `${contact.firstName || contact.contactName || ''} ${contact.lastName || ''}`.toLowerCase();
     const phone = contact.phone || '';
     return fullName.includes(searchQuery.toLowerCase()) || phone.includes(searchQuery);
   });
 
-  const toggleContact = (contact: any) => {
-    if (selectedContacts.some((c) => c.id === contact.id)) {
-      setSelectedContacts(selectedContacts.filter((c) => c.id !== contact.id));
-    } else {
-      setSelectedContacts([...selectedContacts, contact]);
-    }
+  const toggleContact = (contact) => {
+    setSelectedContacts((prev) =>
+      prev.some((c) => c.id === contact.id) ? prev.filter((c) => c.id !== contact.id) : [...prev, contact]
+    );
   };
 
   const estimatedMinutes = selectedContacts.length * settings.delayMinutes;
@@ -191,7 +172,7 @@ export default function NewCampaignPage() {
     }
   };
 
-  const handleBulkUpload = async (contacts: any[]) => {
+  const handleBulkUpload = async (contacts) => {
     setIsSubmitting(true);
     try {
       const uploadResults = await Promise.all(
@@ -217,13 +198,13 @@ export default function NewCampaignPage() {
       );
 
       const successfulUploads = uploadResults.filter((result) => result.success);
-      const processedContacts = successfulUploads.map((result) => result.contact!);
+      const processedContacts = successfulUploads.map((result) => result.contact);
       setContacts((prev) => [...processedContacts, ...prev]);
       setTotalContacts((prev) => prev + successfulUploads.length);
       setSelectedContacts(processedContacts);
       toast.success(`${successfulUploads.length} contacts added successfully`);
       setIsBulkUploadModalOpen(false);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to add contacts');
     } finally {
       setIsSubmitting(false);
@@ -340,10 +321,14 @@ export default function NewCampaignPage() {
                           />
                         </svg>
                       ) : (
-                        <span>Loading more...</span> // Visible placeholder to ensure loader is in view
+                        <span>Loading more...</span>
                       )}
                     </div>
                   )}
+                </div>
+
+                <div className="mt-2 text-sm text-gray-500">
+                  Showing {contacts.length} of {totalContacts} contacts (Page {currentPage - 1})
                 </div>
 
                 <div className="mt-4 bg-gray-50 p-4 rounded-md">
