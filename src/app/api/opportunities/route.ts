@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithErrorHandling, getAuthHeaders } from '@/lib/enhancedApi';
-import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
     const {

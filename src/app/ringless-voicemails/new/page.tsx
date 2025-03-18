@@ -53,7 +53,7 @@ export default function NewCampaignPage() {
 
       console.log('API Response:', { contacts: newContacts.length, total, page: pageToFetch });
 
-      const processedContacts = newContacts.map((contact) => ({
+      const processedContacts = newContacts.map((contact: any) => ({
         ...contact,
         name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
       }));
@@ -175,9 +175,13 @@ export default function NewCampaignPage() {
   const handleBulkUpload = async (contacts) => {
     setIsSubmitting(true);
     try {
+      let selectedPipelineId = null;
+      let selectedStageId = null;
       const uploadResults = await Promise.all(
         contacts.map(async (contact) => {
           try {
+            selectedPipelineId = contact.pipelineId;
+            selectedStageId = contact.stageId;
             const response = await axios.post('/api/contacts', {
               firstName: contact.firstName,
               lastName: contact.lastName,
@@ -202,12 +206,65 @@ export default function NewCampaignPage() {
       setContacts((prev) => [...processedContacts, ...prev]);
       setTotalContacts((prev) => prev + successfulUploads.length);
       setSelectedContacts(processedContacts);
+
       toast.success(`${successfulUploads.length} contacts added successfully`);
       setIsBulkUploadModalOpen(false);
+      addContactsToPipeline(selectedPipelineId!, selectedStageId!, processedContacts);
+
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to add contacts');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const addContactsToPipeline = async (pipelineId: string, stageId: string, contacts: any) => {
+    try {
+      const results = await Promise.allSettled(
+        contacts.map(async (contact: any) => {
+          try {
+            const response = await fetch('/api/opportunities', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                pipelineId: pipelineId,
+                pipelineStageId: stageId,
+                contactId: contact.id,
+                status: "open",
+                name: `${contact.firstName} ${contact.zipCode || contact.street || ''}`.trim()
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return { contact, success: true };
+          } catch (error) {
+            console.error(`Failed to add contact ${contact.id} to pipeline:`, error);
+            return { contact, success: false, error };
+          }
+        })
+      );
+
+      const successful = results.filter(result => result.status === 'fulfilled' && result.value.success);
+      const failed = results.filter(result => result.status === 'rejected' || !result.value.success);
+
+      if (failed.length > 0) {
+        toast.error(`${failed.length} contacts failed to add to pipeline`);
+      }
+
+      if (successful.length > 0) {
+        toast.success(`${successful.length} contacts added to pipeline successfully`);
+      }
+
+      return { successful, failed };
+    } catch (error) {
+      console.error('Unexpected error in addContactsToPipeline:', error);
+      toast.error('An unexpected error occurred while adding contacts to pipeline');
+      return { successful: [], failed: contacts.map(contact => ({ contact, success: false, error })) };
     }
   };
 

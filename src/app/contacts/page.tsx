@@ -1152,12 +1152,17 @@ export default function ContactsPage() {
     );
   };
 
-  const handleBulkUpload = async (contacts: { firstName: string; lastName: string; phone: string; street: string; city: string; state: string; pipelineId: string; email?: string; notes?: string; zipCode?: string }[]) => {
+  const handleBulkUpload = async (contacts: { firstName: string; lastName: string; phone: string; street: string; city: string; state: string; pipelineId: any; email?: string; notes?: string; zipCode?: string; stageId?: string }[]) => {
+    let selectedPipelineId = null;
+    let selectedStageId = null;
     setIsSubmitting(true);
     try {
+   
       const uploadResults = await Promise.all(
         contacts.map(async (contact) => {
           try {
+            selectedPipelineId = contact.pipelineId;
+            selectedStageId = contact.stageId;
             const response = await axios.post('/api/contacts', {
 
               firstName: contact.firstName,
@@ -1171,6 +1176,7 @@ export default function ContactsPage() {
               source: 'bulk_upload',
               postalCode: contact.zipCode,
             });
+
             return { success: true, contact: response.data.contact };
           } catch (error) {
             console.warn(`Failed to upload contact "${contact.firstName || contact.phone}":`, error);
@@ -1178,7 +1184,6 @@ export default function ContactsPage() {
           }
         })
       );
-
       const successfulUploads = uploadResults.filter((result) => result.success);
       const failedUploads = uploadResults.length - successfulUploads.length;
       const processedContacts = successfulUploads.map((result) => {
@@ -1188,6 +1193,7 @@ export default function ContactsPage() {
           name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
         };
       });
+     
 
       setContacts((prev) => [...processedContacts, ...prev]);
       setTotalContacts((prev) => prev + processedContacts.length);
@@ -1204,12 +1210,63 @@ export default function ContactsPage() {
 
         }
       }
-
+      addContactsToPipeline(selectedPipelineId!, selectedStageId!, processedContacts);
       setIsBulkUploadModalOpen(false);
     } catch (err: any) {
+      console.error(err);
       toast.error(err.response?.data?.error || 'Failed to add contacts');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const addContactsToPipeline = async (pipelineId: string, stageId: string, contacts: any) => {
+    try {
+      const results = await Promise.allSettled(
+        contacts.map(async (contact: any) => {
+          try { 
+            const response = await fetch('/api/opportunities', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                pipelineId: pipelineId,
+                pipelineStageId: stageId,
+                contactId: contact.id,
+                status: "open",
+                name: `${contact.firstName} ${contact.zipCode || contact.street || ''}`.trim()
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return { contact, success: true };
+          } catch (error) {
+            console.error(`Failed to add contact ${contact.id} to pipeline:`, error);
+            return { contact, success: false, error };
+          }
+        })
+      );
+
+      const successful = results.filter(result => result.status === 'fulfilled' && result.value.success);
+      const failed = results.filter(result => result.status === 'rejected' || !result.value.success);
+
+      if (failed.length > 0) {
+        toast.error(`${failed.length} contacts failed to add to pipeline`);
+      }
+
+      if (successful.length > 0) {
+        toast.success(`${successful.length} contacts added to pipeline successfully`);
+      }
+
+      return { successful, failed };
+    } catch (error) {
+      console.error('Unexpected error in addContactsToPipeline:', error);
+      toast.error('An unexpected error occurred while adding contacts to pipeline');
+      return { successful: [], failed: contacts.map(contact => ({ contact, success: false, error })) };
     }
   };
 

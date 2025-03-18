@@ -18,10 +18,29 @@ interface Contact {
   zipCode?: string;
 }
 
+interface Pipeline {
+  id: string;
+  name: string;
+  stageId: string; // Add stageId for the stage with position 0
+}
+
 interface BulkUploadFormProps {
-  onContactsSelect: (contacts: { firstName: string, lastName: string, name: string; phone: string; street: string; city: string; state: string; pipelineId: string; email?: string; notes?: string; zipCode?: string }[]) => void;
+  onContactsSelect: (contacts: { 
+    firstName: string; 
+    lastName: string; 
+    name: string; 
+    phone: string; 
+    street: string; 
+    city: string; 
+    state: string; 
+    pipelineId: string; 
+    stageId: string; // Add stageId
+    email?: string; 
+    notes?: string; 
+    zipCode?: string 
+  }[]) => void;
   isLoading?: boolean;
-  pipelines?: { id: string; name: string }[];
+  pipelines?: Pipeline[];
 }
 
 export default function BulkUploadForm({ onContactsSelect, isLoading = false, pipelines: initialPipelines = [] }: BulkUploadFormProps) {
@@ -29,13 +48,14 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
   const [fileName, setFileName] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [selectedPipeline, setSelectedPipeline] = useState<string>('');
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [pipelines, setPipelines] = useState<{ id: string; name: string }[]>(initialPipelines);
+  const [pipelines, setPipelines] = useState<Pipeline[]>(initialPipelines);
   const [loadingPipelines, setLoadingPipelines] = useState(initialPipelines.length === 0);
 
-  // Fetch pipelines (unchanged)
+  // Fetch pipelines
   useEffect(() => {
     async function fetchPipelines() {
       try {
@@ -46,18 +66,34 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
           return;
         }
         const data = await response.json();
+
+        let pipelineData: Pipeline[] = [];
         if (Array.isArray(data) && data.length > 0) {
-          setPipelines(data);
+          pipelineData = data.map((pipeline: any) => ({
+            id: pipeline.id,
+            name: pipeline.name,
+            stageId: pipeline.stages.find((stage: any) => stage.position === 0)?.id || ''
+          }));
         } else if (data.pipelines && Array.isArray(data.pipelines)) {
-          setPipelines(data.pipelines);
+          pipelineData = data.pipelines.map((pipeline: any) => ({
+            id: pipeline.id,
+            name: pipeline.name,
+            stageId: pipeline.stages.find((stage: any) => stage.position === 0)?.id || ''
+          }));
         } else {
           const extractedArrays = Object.values(data).filter(value =>
             Array.isArray(value) && value.length > 0 && value[0] && 'id' in value[0] && 'name' in value[0]
           );
           if (extractedArrays.length > 0) {
-            setPipelines(extractedArrays[0] as { id: string; name: string }[]);
+            pipelineData = (extractedArrays[0] as any[]).map((pipeline: any) => ({
+              id: pipeline.id,
+              name: pipeline.name,
+              stageId: pipeline.stages.find((stage: any) => stage.position === 0)?.id || ''
+            }));
           }
         }
+
+        setPipelines(pipelineData);
       } catch (err) {
         console.error('Error fetching pipelines:', err);
       } finally {
@@ -78,6 +114,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // File upload handler remains unchanged
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     const file = e.target.files?.[0];
@@ -100,7 +137,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         }
 
         const firstRow = data[0] as any;
-        // Only check for Phone or Email presence in the header
         if (
           !firstRow['Phone'] &&
           !firstRow['phone'] &&
@@ -116,7 +152,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         const parsedContacts: Contact[] = data
           .map((row: any) => {
             const name = row['Contact Name'] || row['contact name'] || row['name'] || row['Name'] || '  ';
-            const nameParts = name.trim().split(/\s+/); // Split by any whitespace and trim
+            const nameParts = name.trim().split(/\s+/);
             const firstName = row['First Name'] || row['first name'] || nameParts[0] || '';
             const lastName = row['Last Name'] || row['last name'] || nameParts.slice(1).join(' ') || '';
             const phone = row['Phone'] || row['phone'] || row['Phone Number'] || row['phone number'] || '';
@@ -142,7 +178,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
             };
           })
           .filter((contact) => {
-            // Only include contacts that have at least a phone or email
             const isValid = contact.phone || contact.email;
             if (!isValid) {
               console.warn(`Skipping contact "${contact.firstName}" due to missing phone and email.`);
@@ -190,9 +225,16 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
       return;
     }
 
+    const selectedPipelineData = pipelines.find(p => p.id === selectedPipeline);
+    if (!selectedPipelineData) {
+      setError('Selected pipeline not found.');
+      return;
+    }
+
     const selectedContacts = contacts
       .filter(contact => contact.selected)
       .map(({ firstName, lastName, phone, street, city, state, email, notes, zipCode }) => ({
+        name: `${firstName} ${lastName}`.trim(),
         firstName,
         lastName,
         phone,
@@ -202,6 +244,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         email,
         notes,
         pipelineId: selectedPipeline,
+        stageId: selectedPipelineData.stageId, // Include stageId
         zipCode,
       }));
 
@@ -210,7 +253,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
       return;
     }
 
-    // Double-check that all selected contacts have phone or email
     const invalidContacts = selectedContacts.filter(c => !c.phone && !c.email);
     if (invalidContacts.length > 0) {
       setError(`The following contacts are missing both phone and email: ${invalidContacts.map(c => c.firstName).join(', ')}. At least one is required.`);
@@ -250,17 +292,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         'Email': 'john@example.com',
         'Notes': 'Interested in property'
       },
-      {
-        'First Name': 'John',
-        'Last Name': 'Doe',
-        'Phone': '',
-        'Street': '456 Oak Ave',
-        'City': 'Los Angeles',
-        'State': 'CA',
-        'Zip Code': '90210',
-        'Email': 'jane@example.com',
-        'Notes': 'Looking for investment'
-      }
     ];
 
     const ws = XLSX.utils.json_to_sheet(sampleData);
@@ -269,7 +300,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     XLSX.writeFile(wb, 'contact_upload_template.xlsx');
   };
 
-  // JSX remains largely unchanged
+  // JSX remains mostly unchanged
   return (
     <div className="nextprop-card">
       <div className="flex items-center justify-between mb-6">
@@ -281,7 +312,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
-          {/* Pipeline Selection (unchanged) */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="pipeline" className="block text-sm font-medium text-gray-700">
@@ -340,8 +370,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                           <li
                             key={pipeline.id}
                             onClick={() => handleSelectPipeline(pipeline.id)}
-                            className={`px-4 py-2 text-sm cursor-pointer hover:bg-[#f5f3ff] ${selectedPipeline === pipeline.id ? 'bg-[#f5f3ff] text-[#7c3aed] font-medium' : 'text-gray-700'
-                              }`}
+                            className={`px-4 py-2 text-sm cursor-pointer hover:bg-[#f5f3ff] ${selectedPipeline === pipeline.id ? 'bg-[#f5f3ff] text-[#7c3aed] font-medium' : 'text-gray-700'}`}
                           >
                             {pipeline.name}
                           </li>
@@ -424,7 +453,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                       <tr>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">First Name</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Last Name</th>
-
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Phone</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Street</th>
                         <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">City</th>
@@ -445,17 +473,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                         <td className="px-3 py-2 border border-gray-200">kelly@example.com</td>
                         <td className="px-3 py-2 border border-gray-200">Interested in 3-bedroom</td>
                         <td className="px-3 py-2 border border-gray-200">64108</td>
-                      </tr>
-                      <tr>
-                        <td className="px-3 py-2 border border-gray-200">Cody</td>
-                        <td className="px-3 py-2 border border-gray-200">Ferrin</td>
-                        <td className="px-3 py-2 border border-gray-200"></td>
-                        <td className="px-3 py-2 border border-gray-200">Pine Street</td>
-                        <td className="px-3 py-2 border border-gray-200">Kansas City</td>
-                        <td className="px-3 py-2 border border-gray-200">Missouri</td>
-                        <td className="px-3 py-2 border border-gray-200">cody@example.com</td>
-                        <td className="px-3 py-2 border border-gray-200">Looking to sell</td>
-                        <td className="px-3 py-2 border border-gray-200">64128</td>
                       </tr>
                     </tbody>
                   </table>
@@ -501,7 +518,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                         <th scope="col" className="w-16 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Street</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
