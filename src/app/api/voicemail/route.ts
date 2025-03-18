@@ -27,15 +27,19 @@ export async function POST(request: Request) {
       message: data.message,
       phone: data.phone,
       first_name: data.first_name,
-      street_name: data.street_name
+      street_name: data.street_name,
+      from: data.from
     });
+    
+    // Use provided sender phone or default
+    const fromPhone = data.from || DEFAULT_SENDER_PHONE;
     
     // Create the payload for VoiceDrop
     const payload = {
       voice_clone_id: DEFAULT_VOICE_CLONE_ID,
       script: data.message,
       to: data.phone,
-      from: DEFAULT_SENDER_PHONE,
+      from: fromPhone,
       validate_recipient_phone: true,
       send_status_to_webhook: webhookUrl
     };

@@ -25,45 +25,44 @@ export async function GET() {
 // POST to create a new campaign
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const { contacts, script, delayMinutes, dailyLimit } = data;
+    // Generate the webhook URL for status updates
+    const baseUrl = getBaseUrl(request);
+    const webhookUrl = `${baseUrl}/api/webhook/voicemail`;
     
+    // Parse the request body
+    const data = await request.json();
+    const { contacts, script, delayMinutes = 5, dailyLimit = 50, senderPhone } = data;
+    
+    // Validate required data
     if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
       return NextResponse.json({ error: 'Contacts are required' }, { status: 400 });
     }
     
-    if (!script) {
+    if (!script || typeof script !== 'string') {
       return NextResponse.json({ error: 'Script is required' }, { status: 400 });
     }
     
-    // Generate the webhook URL based on the current request's origin
-    const baseUrl = getBaseUrl(request);
-    const webhookUrl = `${baseUrl}/api/webhook/voicemail`;
+    // Use provided sender phone number or fall back to default
+    const fromPhone = senderPhone || DEFAULT_SENDER_PHONE;
     
-    // Create campaign
+    // Generate a campaign ID
     const campaignId = uuidv4();
-    const now = new Date();
     
+    // Create the campaign object
     const campaign = {
       id: campaignId,
-      name: data.name || `Campaign ${campaignId.substring(0, 8)}`,
-      createdAt: now.toISOString(),
+      name: data.name || `Campaign ${new Date().toISOString()}`,
+      createdAt: new Date().toISOString(),
       status: 'active',
       script,
-      delayMinutes: delayMinutes || 5,
-      dailyLimit: dailyLimit || 50,
-      contacts: contacts.map((contact: any, index: number) => {
-        // Calculate scheduled time based on delay
-        const scheduledTime = new Date(now.getTime() + (index * (delayMinutes || 5) * 60 * 1000));
-        
-        return {
-          ...contact,
-          status: index === 0 ? 'sending' : 'pending',
-          scheduledTime: scheduledTime.toISOString(),
-          result: null,
-          retries: 0
-        };
-      }),
+      delayMinutes,
+      dailyLimit,
+      fromPhone,
+      contacts: contacts.map((contact: any) => ({
+        ...contact,
+        status: 'pending',
+        retries: 0
+      })),
       progress: {
         total: contacts.length,
         sent: 0,
@@ -87,7 +86,7 @@ export async function POST(request: Request) {
         voice_clone_id: DEFAULT_VOICE_CLONE_ID,
         script: personalizedScript,
         to: firstContact.phone,
-        from: DEFAULT_SENDER_PHONE,
+        from: fromPhone,
         validate_recipient_phone: true,
         send_status_to_webhook: webhookUrl,
         metadata: {

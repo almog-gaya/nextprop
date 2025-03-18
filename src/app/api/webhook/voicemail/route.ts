@@ -19,6 +19,13 @@ try {
   campaigns = [];
 }
 
+// This would be in a database in a real implementation
+interface Callback {
+  timestamp: string;
+  data: any;
+}
+const callbacks: Callback[] = [];
+
 export async function POST(request: Request) {
   try {
     // Parse the incoming webhook data

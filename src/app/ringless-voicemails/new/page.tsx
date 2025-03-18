@@ -14,10 +14,12 @@ export default function NewCampaignPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [contacts, setContacts] = useState([]);
-  const [selectedContacts, setSelectedContacts] = useState([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [script, setScript] = useState('');
+  const [phoneNumbers, setPhoneNumbers] = useState<any[]>([]);
+  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<any>(null);
   const [settings, setSettings] = useState({
     delayMinutes: 5,
     dailyLimit: 50,
@@ -74,6 +76,35 @@ export default function NewCampaignPage() {
       setIsFetching(false);
     }
   };
+
+  // Fetch phone numbers on component mount
+  useEffect(() => {
+    fetchPhoneNumbers();
+  }, []);
+
+  async function fetchPhoneNumbers() {
+    try {
+      const response = await axios.get('/api/voicemail/phone-numbers');
+      setPhoneNumbers(response.data.numbers || []);
+      if (response.data.numbers && response.data.numbers.length > 0) {
+        setSelectedPhoneNumber(response.data.numbers[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error);
+      toast.error('Failed to load phone numbers');
+      // Set default phone number
+      setPhoneNumbers([{ 
+        id: 'default',
+        phoneNumber: '+1 929-415-9655',
+        label: '+1 929-415-9655 (Default)' 
+      }]);
+      setSelectedPhoneNumber({ 
+        id: 'default',
+        phoneNumber: '+1 929-415-9655',
+        label: '+1 929-415-9655 (Default)' 
+      });
+    }
+  }
 
   // Initial fetch
   useEffect(() => {
@@ -146,6 +177,10 @@ export default function NewCampaignPage() {
       toast.error('Please enter a voicemail script');
       return;
     }
+    if (!selectedPhoneNumber) {
+      toast.error('Please select a sender phone number');
+      return;
+    }
     try {
       setLoading(true);
       const campaignData = {
@@ -160,8 +195,9 @@ export default function NewCampaignPage() {
         script,
         delayMinutes: settings.delayMinutes,
         dailyLimit: settings.dailyLimit,
+        senderPhone: selectedPhoneNumber.phoneNumber
       };
-      await axios.post('/api/voicemail/campaigns', campaignData);
+      const response = await axios.post('/api/voicemail/campaigns', campaignData);
       toast.success('Campaign created successfully');
       router.push('/ringless-voicemails');
     } catch (error) {
@@ -450,7 +486,35 @@ export default function NewCampaignPage() {
                         <span className="text-gray-500 sm:text-sm">voicemails</span>
                       </div>
                     </div>
-                    <p className="mt-2 text-sm text-gray-500">Maximum voicemails to send per day</p>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Maximum voicemails to send per day
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+                      Sender Phone Number
+                    </label>
+                    <div className="mt-1">
+                      <select
+                        id="phoneNumber"
+                        className="block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                        value={selectedPhoneNumber?.id || ''}
+                        onChange={(e) => {
+                          const selected = phoneNumbers.find(p => p.id === e.target.value);
+                          setSelectedPhoneNumber(selected || null);
+                        }}
+                      >
+                        {phoneNumbers.map(phone => (
+                          <option key={phone.id} value={phone.id}>
+                            {phone.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Phone number that will appear as the sender
+                    </p>
                   </div>
 
                   <div>

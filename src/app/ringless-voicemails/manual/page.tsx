@@ -12,6 +12,8 @@ export default function ManualVoicemailPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState<any[]>([]);
+  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<any>(null);
   const [recipient, setRecipient] = useState({
     firstName: '',
     phone: '',
@@ -24,8 +26,34 @@ export default function ManualVoicemailPage() {
     setScript(`Hi {{first_name}}, this is ${user?.firstName || 'Adforce'} from NextProp. I noticed you might be interested in properties in your area. I've got some great listings on {{street_name}} that match your criteria. Call me back when you have a chance and we can discuss your needs. Thanks!`);
   };
   
+  // Fetch phone numbers
+  async function fetchPhoneNumbers() {
+    try {
+      const response = await axios.get('/api/voicemail/phone-numbers');
+      setPhoneNumbers(response.data.numbers || []);
+      if (response.data.numbers && response.data.numbers.length > 0) {
+        setSelectedPhoneNumber(response.data.numbers[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error);
+      toast.error('Failed to load phone numbers');
+      // Set default phone number
+      setPhoneNumbers([{ 
+        id: 'default',
+        phoneNumber: '+1 929-415-9655',
+        label: '+1 929-415-9655 (Default)' 
+      }]);
+      setSelectedPhoneNumber({ 
+        id: 'default',
+        phoneNumber: '+1 929-415-9655',
+        label: '+1 929-415-9655 (Default)' 
+      });
+    }
+  }
+  
   useEffect(() => {
     generateDefaultScript();
+    fetchPhoneNumbers();
   }, [user]);
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,6 +66,11 @@ export default function ManualVoicemailPage() {
     
     if (!script.trim()) {
       toast.error('Voicemail script is required');
+      return;
+    }
+    
+    if (!selectedPhoneNumber) {
+      toast.error('Please select a sender phone number');
       return;
     }
     
@@ -54,7 +87,8 @@ export default function ManualVoicemailPage() {
         message: personalizedScript,
         phone: recipient.phone,
         first_name: recipient.firstName,
-        street_name: recipient.streetName
+        street_name: recipient.streetName,
+        from: selectedPhoneNumber.phoneNumber
       });
       
       toast.success('Voicemail sent successfully');
@@ -155,6 +189,33 @@ export default function ManualVoicemailPage() {
                     </div>
                     <p className="mt-2 text-sm text-gray-500">
                       Enter phone number in international format (e.g., +1 for US)
+                    </p>
+                  </div>
+                  
+                  <div className="sm:col-span-3">
+                    <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+                      Sender Phone Number *
+                    </label>
+                    <div className="mt-1">
+                      <select
+                        id="phoneNumber"
+                        className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        value={selectedPhoneNumber?.id || ''}
+                        onChange={(e) => {
+                          const selected = phoneNumbers.find(p => p.id === e.target.value);
+                          setSelectedPhoneNumber(selected || null);
+                        }}
+                        required
+                      >
+                        {phoneNumbers.map(phone => (
+                          <option key={phone.id} value={phone.id}>
+                            {phone.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Phone number that will appear as the sender
                     </p>
                   </div>
                   
