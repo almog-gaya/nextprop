@@ -21,7 +21,7 @@ interface Contact {
 interface Pipeline {
   id: string;
   name: string;
-  stageId: string; // Add stageId for the stage with position 0
+  stageId: string;
 }
 
 interface BulkUploadFormProps {
@@ -34,7 +34,7 @@ interface BulkUploadFormProps {
     city: string; 
     state: string; 
     pipelineId: string; 
-    stageId: string; // Add stageId
+    stageId: string;
     email?: string; 
     notes?: string; 
     zipCode?: string 
@@ -43,11 +43,31 @@ interface BulkUploadFormProps {
   pipelines?: Pipeline[];
 }
 
+interface ColumnMapping {
+  [key: string]: string; // Maps standard field name to file column name
+}
+
+const STANDARD_FIELDS = [
+  { name: 'firstName', label: 'First Name', required: false },
+  { name: 'lastName', label: 'Last Name', required: false },
+  { name: 'phone', label: 'Phone', required: true, requiresOne: ['email'] },
+  { name: 'street', label: 'Street', required: false },
+  { name: 'city', label: 'City', required: false },
+  { name: 'state', label: 'State', required: false },
+  { name: 'email', label: 'Email', required: true, requiresOne: ['phone'] },
+  { name: 'notes', label: 'Notes', required: false },
+  { name: 'zipCode', label: 'Zip Code', required: false },
+];
+
 export default function BulkUploadForm({ onContactsSelect, isLoading = false, pipelines: initialPipelines = [] }: BulkUploadFormProps) {
+  const [step, setStep] = useState<'upload' | 'mapping' | 'review'>('upload');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [fileName, setFileName] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [selectedPipeline, setSelectedPipeline] = useState<string>('');
+  const [rawData, setRawData] = useState<any[]>([]);
+  const [columnHeaders, setColumnHeaders] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -103,7 +123,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     fetchPipelines();
   }, []);
 
-  // Close dropdown when clicking outside (unchanged)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -114,7 +133,6 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // File upload handler remains unchanged
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     const file = e.target.files?.[0];
@@ -129,73 +147,18 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         const workbook = XLSX.read(binaryString, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const data = XLSX.utils.sheet_to_json(sheet);
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        if (data.length === 0) {
-          setError('The file appears to be empty.');
+        if (data.length <= 1) {
+          setError('The file appears to be empty or has no data rows.');
           return;
         }
 
-        const firstRow = data[0] as any;
-        if (
-          !firstRow['Phone'] &&
-          !firstRow['phone'] &&
-          !firstRow['Phone Number'] &&
-          !firstRow['phone number'] &&
-          !firstRow['Email'] &&
-          !firstRow['email']
-        ) {
-          setError('The file must have either a "Phone" or "Email" column.');
-          return;
-        }
-
-        const parsedContacts: Contact[] = data
-          .map((row: any) => {
-            const name = row['Contact Name'] || row['contact name'] || row['name'] || row['Name'] || '  ';
-            const nameParts = name.trim().split(/\s+/);
-            const firstName = row['First Name'] || row['first name'] || nameParts[0] || '';
-            const lastName = row['Last Name'] || row['last name'] || nameParts.slice(1).join(' ') || '';
-            const phone = row['Phone'] || row['phone'] || row['Phone Number'] || row['phone number'] || '';
-            const street = row['Street'] || row['street'] || '';
-            const city = row['City'] || row['city'] || '';
-            const state = row['State'] || row['state'] || '';
-            const email = row['Email'] || row['email'] || '';
-            const notes = row['Notes'] || row['notes'] || '';
-            const zipCode = row['Zip Code'] || row['zip code'] || row['zipcode'] || row['Zipcode'] || row['ZipCode'] || '';
-
-            return {
-              name: name.toString(),
-              firstName: firstName.toString(),
-              lastName: lastName.toString(),
-              phone: phone.toString(),
-              street: street.toString(),
-              city: city.toString(),
-              state: state.toString(),
-              email: email.toString(),
-              notes: notes.toString(),
-              selected: true,
-              zipCode: zipCode.toString()
-            };
-          })
-          .filter((contact) => {
-            const isValid = contact.phone || contact.email;
-            if (!isValid) {
-              console.warn(`Skipping contact "${contact.firstName}" due to missing phone and email.`);
-            }
-            return isValid;
-          });
-
-        if (parsedContacts.length === 0) {
-          setError('No valid contacts found. Each contact must have at least a phone or email.');
-          return;
-        }
-
-        setContacts(parsedContacts);
-        if (parsedContacts.length < data.length) {
-          setError(
-            `${data.length - parsedContacts.length} contact(s) skipped due to missing phone and email.`
-          );
-        }
+        const headers = data[0] as string[];
+        const rows = data.slice(1) as any[];
+        setColumnHeaders(headers);
+        setRawData(rows);
+        setStep('mapping');
       } catch (error) {
         console.error('Error parsing Excel file:', error);
         setError('Failed to parse the Excel file. Please ensure it’s valid.');
@@ -204,6 +167,71 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
 
     reader.onerror = () => setError('Failed to read the file. Please try again.');
     reader.readAsBinaryString(file);
+  };
+
+  const handleMappingChange = (standardField: string, fileColumn: string) => {
+    setColumnMapping(prev => {
+      const newMapping = { ...prev };
+      if (fileColumn === '') {
+        delete newMapping[standardField];
+      } else {
+        newMapping[standardField] = fileColumn;
+      }
+      return newMapping;
+    });
+  };
+
+  const handleMappingSubmit = () => {
+    if (!columnMapping.phone && !columnMapping.email) {
+      setError('You must map at least one of Phone or Email.');
+      return;
+    }
+
+    const parsedContacts: Contact[] = rawData
+      .map((row: any[]) => {
+        const contact: Partial<Contact> = { selected: true };
+        Object.entries(columnMapping).forEach(([standardField, fileColumn]) => {
+          const colIndex = columnHeaders.indexOf(fileColumn);
+          if (colIndex !== -1) {
+            contact[standardField as keyof Contact] = String(row[colIndex] || '');
+          }
+        });
+
+        // Handle name splitting if only 'name' is mapped
+        if (columnMapping.name && !columnMapping.firstName && !columnMapping.lastName) {
+          const name = contact.name || '  ';
+          const nameParts = name.trim().split(/\s+/);
+          contact.firstName = nameParts[0] || '';
+          contact.lastName = nameParts.slice(1).join(' ') || '';
+        }
+
+        // Ensure all fields are present
+        contact.firstName = contact.firstName || '';
+        contact.lastName = contact.lastName || '';
+        contact.name = `${contact.firstName} ${contact.lastName}`.trim();
+        contact.phone = contact.phone || '';
+        contact.street = contact.street || '';
+        contact.city = contact.city || '';
+        contact.state = contact.state || '';
+        contact.email = contact.email || '';
+        contact.notes = contact.notes || '';
+        contact.zipCode = contact.zipCode || '';
+        contact.selected = true;
+
+        return contact as Contact;
+      })
+      .filter(contact => contact.phone || contact.email);
+
+    if (parsedContacts.length === 0) {
+      setError('No valid contacts found after mapping. Each contact must have at least a phone or email.');
+      return;
+    }
+
+    setContacts(parsedContacts);
+    setStep('review');
+    if (parsedContacts.length < rawData.length) {
+      setError(`${rawData.length - parsedContacts.length} contact(s) skipped due to missing phone and email.`);
+    }
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -244,7 +272,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
         email,
         notes,
         pipelineId: selectedPipeline,
-        stageId: selectedPipelineData.stageId, // Include stageId
+        stageId: selectedPipelineData.stageId,
         zipCode,
       }));
 
@@ -253,30 +281,19 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
       return;
     }
 
-    const invalidContacts = selectedContacts.filter(c => !c.phone && !c.email);
-    if (invalidContacts.length > 0) {
-      setError(`The following contacts are missing both phone and email: ${invalidContacts.map(c => c.firstName).join(', ')}. At least one is required.`);
-      return;
-    }
-
     onContactsSelect(selectedContacts);
   };
 
   const handleReset = () => {
+    setStep('upload');
     setContacts([]);
     setFileName('');
     setError(null);
     setSelectedPipeline('');
+    setRawData([]);
+    setColumnHeaders([]);
+    setColumnMapping({});
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const allSelected = contacts.length > 0 && contacts.every(contact => contact.selected);
-  const someSelected = contacts.some(contact => contact.selected);
-  const hasPipelines = pipelines && pipelines.length > 0;
-
-  const handleSelectPipeline = (pipelineId: string) => {
-    setSelectedPipeline(pipelineId);
-    setDropdownOpen(false);
   };
 
   const handleDownloadSample = () => {
@@ -300,120 +317,26 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
     XLSX.writeFile(wb, 'contact_upload_template.xlsx');
   };
 
-  // JSX remains mostly unchanged
+  const allSelected = contacts.length > 0 && contacts.every(contact => contact.selected);
+  const someSelected = contacts.some(contact => contact.selected);
+  const hasPipelines = pipelines && pipelines.length > 0;
+
   return (
     <div className="nextprop-card">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-[#1e1b4b]">Bulk Upload Contacts</h3>
+        <h3 className="text-lg font-semibold text-[#1e1b4b]">
+          {step === 'upload' ? 'Bulk Upload Contacts' : 
+           step === 'mapping' ? 'Map Your Columns' : 
+           'Review Contacts'}
+        </h3>
         <div className="text-[#7c3aed] bg-purple-50 p-3 rounded-full">
           <DocumentTextIcon className="w-5 h-5" />
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={step === 'review' ? handleSubmit : (e) => e.preventDefault()}>
         <div className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="pipeline" className="block text-sm font-medium text-gray-700">
-                Select Pipeline <span className="text-red-500">*</span>
-              </label>
-              {!hasPipelines && !loadingPipelines && (
-                <span className="text-xs text-orange-500">No pipelines available. Please create a pipeline first.</span>
-              )}
-              {loadingPipelines && (
-                <span className="text-xs text-gray-500">Loading pipelines...</span>
-              )}
-            </div>
-            <div className="flex items-start">
-              <div className="relative w-64" ref={dropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  disabled={loadingPipelines}
-                  className={`w-full bg-white rounded-md border border-gray-300 hover:border-[#7c3aed] focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] transition-all shadow-sm ${loadingPipelines ? 'opacity-50 cursor-wait' : ''}`}
-                >
-                  <div className="flex items-center justify-between p-2.5">
-                    <div className="flex items-center truncate">
-                      <TagIcon className="h-5 w-5 text-[#7c3aed] mr-2 flex-shrink-0" />
-                      <span className="text-sm text-gray-700 truncate">
-                        {loadingPipelines
-                          ? 'Loading pipelines...'
-                          : selectedPipeline
-                            ? pipelines.find(p => p.id === selectedPipeline)?.name
-                            : 'Select a pipeline'}
-                      </span>
-                    </div>
-                    <ChevronDownIcon
-                      className={`h-5 w-5 text-gray-400 transition-transform flex-shrink-0 ${dropdownOpen ? 'transform rotate-180' : ''}`}
-                      aria-hidden="true"
-                    />
-                  </div>
-                </button>
-                {dropdownOpen && (
-                  <div className="fixed mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-xl z-[100] max-h-60 overflow-y-auto" style={{
-                    top: dropdownRef.current ? dropdownRef.current.getBoundingClientRect().bottom + window.scrollY : 0,
-                    left: dropdownRef.current ? dropdownRef.current.getBoundingClientRect().left + window.scrollX : 0
-                  }}>
-                    <ul className="py-1">
-                      {loadingPipelines ? (
-                        <li className="px-4 py-2 text-sm text-gray-500 flex items-center">
-                          <svg className="animate-spin h-4 w-4 mr-2 text-[#7c3aed]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Loading pipelines...
-                        </li>
-                      ) : pipelines.length === 0 ? (
-                        <li className="px-4 py-2 text-sm text-gray-500">No pipelines available</li>
-                      ) : (
-                        pipelines.map(pipeline => (
-                          <li
-                            key={pipeline.id}
-                            onClick={() => handleSelectPipeline(pipeline.id)}
-                            className={`px-4 py-2 text-sm cursor-pointer hover:bg-[#f5f3ff] ${selectedPipeline === pipeline.id ? 'bg-[#f5f3ff] text-[#7c3aed] font-medium' : 'text-gray-700'}`}
-                          >
-                            {pipeline.name}
-                          </li>
-                        ))
-                      )}
-                    </ul>
-                  </div>
-                )}
-                <select
-                  id="pipeline"
-                  value={selectedPipeline}
-                  onChange={(e) => setSelectedPipeline(e.target.value)}
-                  className="hidden"
-                  required
-                >
-                  <option value="">Select a pipeline</option>
-                  {pipelines.map((pipeline) => (
-                    <option key={pipeline.id} value={pipeline.id}>
-                      {pipeline.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {hasPipelines && (
-                <span className="text-xs text-gray-500 ml-3 pt-3">
-                  {pipelines.length} pipeline{pipelines.length !== 1 ? 's' : ''} available
-                </span>
-              )}
-            </div>
-            {selectedPipeline && (
-              <div className="flex items-center mt-2 bg-purple-50 p-2 rounded-md max-w-md">
-                <div className="w-3 h-3 rounded-full bg-[#7c3aed] mr-2"></div>
-                <p className="text-xs text-gray-700 truncate">
-                  <span className="font-medium">Selected Pipeline:</span> {pipelines.find(p => p.id === selectedPipeline)?.name || 'Unknown'}
-                </p>
-              </div>
-            )}
-            <p className="text-xs text-gray-500 italic mt-1">
-              Contacts will be tagged with the selected pipeline and saved to your contacts page
-            </p>
-          </div>
-
-          {contacts.length === 0 ? (
+          {step === 'upload' && (
             <div className="space-y-4">
               <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
                 <input
@@ -435,7 +358,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-gray-700">Required Format (Phone or Email required):</h4>
+                  <h4 className="text-sm font-medium text-gray-700">Sample Format (Phone or Email required):</h4>
                   <button
                     type="button"
                     onClick={handleDownloadSample}
@@ -451,15 +374,11 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                   <table className="min-w-full text-xs">
                     <thead>
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">First Name</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Last Name</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Phone</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Street</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">City</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">State</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Email</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Notes</th>
-                        <th className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">Zip Code</th>
+                        {STANDARD_FIELDS.map(field => (
+                          <th key={field.name} className="px-3 py-2 text-left font-medium text-gray-700 border border-gray-200">
+                            {field.label} {field.required ? '*' : ''}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
@@ -479,102 +398,175 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                 </div>
               </div>
             </div>
-          ) : (
+          )}
+
+          {step === 'mapping' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-medium text-gray-700">
-                    Uploaded: {fileName}
-                  </span>
-                  <p className="text-xs text-gray-500">
-                    {contacts.length} contacts found, {contacts.filter(c => c.selected).length} selected
-                  </p>
+              <p className="text-sm text-gray-600">
+                Match your file columns to the required fields. At least Phone or Email must be mapped.
+              </p>
+              <div className="bg-gray-50 p-4 rounded-md">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {STANDARD_FIELDS.map(field => (
+                    <div key={field.name} className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">
+                        {field.label} {field.required ? <span className="text-red-500">*</span> : ''}
+                      </label>
+                      <select
+                        value={columnMapping[field.name] || ''}
+                        onChange={(e) => handleMappingChange(field.name, e.target.value)}
+                        className="w-full rounded-md border border-gray-300 focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] p-2 text-sm"
+                      >
+                        <option value="">-- Select Column --</option>
+                        {columnHeaders.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
                 </div>
                 <button
                   type="button"
+                  onClick={handleMappingSubmit}
+                  className="mt-4 nextprop-button w-full flex justify-center items-center"
+                >
+                  <CheckCircleIcon className="w-4 h-4 mr-2" />
+                  Continue to Review
+                </button>
+                <button
+                  type="button"
                   onClick={handleReset}
-                  className="text-sm text-[#7c3aed] hover:text-[#6d28d9]"
+                  className="mt-2 w-full text-sm text-[#7c3aed] hover:text-[#6d28d9]"
                 >
                   Upload Different File
                 </button>
               </div>
-              <div className="border border-gray-200 rounded-md overflow-hidden">
-                <div className="bg-gray-50 px-4 py-3 flex items-center">
-                  <input
-                    type="checkbox"
-                    id="selectAll"
-                    checked={allSelected}
-                    onChange={handleSelectAll}
-                    className="h-4 w-4 text-[#7c3aed] rounded border-gray-300 focus:ring-[#7c3aed]"
-                  />
-                  <label htmlFor="selectAll" className="ml-2 text-sm font-medium text-gray-700">
-                    Select All
-                  </label>
-                </div>
-                <div className="max-h-60 overflow-y-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="w-16 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Street</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">State</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zip Code</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {contacts.map((contact, index) => (
-                        <tr key={index} className={contact.selected ? 'bg-[#f5f3ff]' : ''}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <input
-                              type="checkbox"
-                              checked={contact.selected}
-                              onChange={(e) => handleSelectContact(index, e.target.checked)}
-                              className="h-4 w-4 text-[#7c3aed] rounded border-gray-300 focus:ring-[#7c3aed]"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{contact.firstName || '-'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{contact.lastName || '-'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.phone || '-'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.street || '-'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.city || '-'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.state || '-'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.email || '-'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{contact.zipCode || '-'}</div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           )}
+
+          {step === 'review' && (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="pipeline" className="block text-sm font-medium text-gray-700">
+                    Select Pipeline <span className="text-red-500">*</span>
+                  </label>
+                  {!hasPipelines && !loadingPipelines && (
+                    <span className="text-xs text-orange-500">No pipelines available. Please create a pipeline first.</span>
+                  )}
+                </div>
+                <div className="relative w-64" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="w-full bg-white rounded-md border border-gray-300 hover:border-[#7c3aed] focus:border-[#7c3aed] focus:ring-1 focus:ring-[#7c3aed] p-2.5 text-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="truncate">
+                        {selectedPipeline ? pipelines.find(p => p.id === selectedPipeline)?.name : 'Select a pipeline'}
+                      </span>
+                      <ChevronDownIcon className={`h-5 w-5 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+                  {dropdownOpen && (
+                    <div className="absolute mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+                      {pipelines.map(pipeline => (
+                        <div
+                          key={pipeline.id}
+                          onClick={() => {
+                            setSelectedPipeline(pipeline.id);
+                            setDropdownOpen(false);
+                          }}
+                          className="px-4 py-2 hover:bg-[#f5f3ff] cursor-pointer"
+                        >
+                          {pipeline.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Uploaded: {fileName}
+                    </span>
+                    <p className="text-xs text-gray-500">
+                      {contacts.length} contacts found, {contacts.filter(c => c.selected).length} selected
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="text-sm text-[#7c3aed] hover:text-[#6d28d9]"
+                  >
+                    Upload Different File
+                  </button>
+                </div>
+                <div className="border border-gray-200 rounded-md overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="selectAll"
+                      checked={allSelected}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 text-[#7c3aed] rounded border-gray-300 focus:ring-[#7c3aed]"
+                    />
+                    <label htmlFor="selectAll" className="ml-2 text-sm font-medium text-gray-700">
+                      Select All
+                    </label>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="w-16 px-6 py-3"></th>
+                          {STANDARD_FIELDS.map(field => (
+                            <th key={field.name} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              {field.label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {contacts.map((contact, index) => (
+                          <tr key={index} className={contact.selected ? 'bg-[#f5f3ff]' : ''}>
+                            <td className="px-6 py-4">
+                              <input
+                                type="checkbox"
+                                checked={contact.selected}
+                                onChange={(e) => handleSelectContact(index, e.target.checked)}
+                                className="h-4 w-4 text-[#7c3aed] rounded border-gray-300 focus:ring-[#7c3aed]"
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.firstName || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.lastName || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.phone || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.street || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.city || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.state || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.email || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.notes || '-'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.zipCode || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {error && (
             <div className="bg-red-50 p-4 rounded-md text-red-800">
               <p>{error}</p>
             </div>
           )}
-          {contacts.length > 0 && (
+
+          {step === 'review' && (
             <button
               type="submit"
               disabled={isLoading || !someSelected || !selectedPipeline}
