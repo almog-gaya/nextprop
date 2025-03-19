@@ -43,7 +43,9 @@ export async function makeAutomatedCall(callData: CallData): Promise<CallLog> {
       message,
       phone: callData.phone,
       first_name: callData.first_name,
-      street_name: callData.street_name
+      street_name: callData.street_name,
+      campaignId: callData.campaignId,
+      voiceCloneId: callData.voiceCloneId
     };
     
     console.log('Sending request to server-side API:', payload);
@@ -62,6 +64,11 @@ export async function makeAutomatedCall(callData: CallData): Promise<CallLog> {
         callSid: `VD-${callId}`, // Create a placeholder ID since VoiceDrop doesn't return an ID in the immediate response
         message: `${response.data.message} View updates at /webhooks`
       };
+      
+      // If campaign was used, include that in the log
+      if (callData.campaignId) {
+        updatedCallLog.campaignId = callData.campaignId;
+      }
       
       // Update the call log in our "database"
       const index = callLogs.findIndex(log => log.id === callId);

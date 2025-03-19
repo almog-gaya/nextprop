@@ -3,7 +3,7 @@ import {
   PlayIcon, 
   PauseIcon, 
   PhoneIcon, 
-  PhoneXIcon,
+  PhoneOffIcon,
   PhoneIncomingIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -21,16 +21,28 @@ interface CampaignProgress {
   callbacks?: number;
 }
 
-// Types for campaign data
+// Updated type to match API response
 interface Campaign {
-  id: string;
-  name: string;
-  status: string;
-  createdAt: string;
-  progress: CampaignProgress;
-  script: string;
-  contacts: any[];
+  id?: string;
+  _id?: string; // API might return _id instead of id
+  Name?: string;
+  name?: string;
+  status?: string;
+  "Campaign Status"?: string;
+  createdAt?: string;
+  progress?: CampaignProgress;
+  Script?: string;
+  script?: string;
+  contacts?: any[];
   fromPhone?: string;
+  "From Phone Numbers"?: string[];
+  "Voice Clone IDs"?: string[];
+  "Type of Campaign"?: string;
+  "Sending Until"?: string;
+  "Sending From"?: string;
+  "Schedule Timezone"?: string;
+  "Hourly Max Sending Rate"?: number;
+  "Scheduled Days"?: string[];
 }
 
 interface CampaignCardProps {
@@ -41,25 +53,40 @@ interface CampaignCardProps {
   onDelete: () => void;
 }
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString?: string) => {
+  if (!dateString) return 'Unknown date';
   const date = new Date(dateString);
   return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume, onCancel, onDelete }) => {
-  const { id, name, status, createdAt, progress, script, contacts } = campaign;
+  // Handle either API response format or our local format
+  const id = campaign.id || campaign._id || '';
+  const name = campaign.name || campaign.Name || 'Unnamed Campaign';
+  const status = campaign.status || campaign["Campaign Status"]?.toLowerCase() || 'unknown';
+  const script = campaign.script || campaign.Script || '';
+  const fromPhone = campaign.fromPhone || (campaign["From Phone Numbers"] && campaign["From Phone Numbers"][0]) || '';
+  
+  // If we have the old progress format, use it directly, otherwise construct progress from API data
+  const progress = campaign.progress || {
+    total: 100, // Default values if we can't determine from API
+    sent: 0,
+    delivered: 0,
+    pending: 100,
+    failed: 0,
+    callbacks: 0
+  };
   
   // Calculate derived stats
   const deliveredCount = progress.delivered || progress.sent || 0;
-  const callbackCount = progress.callbacks || 
-    contacts.filter(c => c.status === 'callback_received').length || 0;
+  const callbackCount = progress.callbacks || 0;
   const failedCount = progress.failed || 0;
   const pendingCount = progress.pending || 0;
   
   const isCompleted = status === 'completed';
-  const isPaused = status === 'paused';
-  const isCancelled = status === 'cancelled';
-  const isActive = status === 'active';
+  const isPaused = status === 'paused' || status === 'Paused';
+  const isCancelled = status === 'cancelled' || status === 'archived' || status === 'Archived';
+  const isActive = status === 'active' || status === 'Active' || status === 'upload completed' || status === 'Upload Completed';
   
   const progressPercentage = progress.total > 0 
     ? Math.floor((deliveredCount + failedCount) / progress.total * 100) 
@@ -72,11 +99,12 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-medium leading-6 text-gray-900">{name}</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Created on {formatDate(createdAt)}
+              {campaign.createdAt ? `Created on ${formatDate(campaign.createdAt)}` : 
+                `${campaign["Type of Campaign"] || 'Campaign'}`}
             </p>
           </div>
           <div className="mt-4 flex md:mt-0 md:ml-4">
-            {!isCompleted && !isCancelled && (
+            {(!isCompleted && !isCancelled) && (
               <>
                 {isPaused ? (
                   <button
@@ -157,7 +185,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
           </div>
           
           <div className="bg-red-50 rounded-md p-3 flex items-center">
-            <PhoneXIcon className="h-5 w-5 text-red-500 mr-2" />
+            <PhoneOffIcon className="h-5 w-5 text-red-500 mr-2" />
             <div>
               <p className="text-xs font-medium text-gray-500">Failed</p>
               <p className="text-sm font-semibold">{failedCount}</p>
@@ -172,6 +200,32 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
             </div>
           </div>
         </div>
+        
+        {/* Schedule Info */}
+        {(campaign["Sending From"] || campaign["Sending Until"] || campaign["Schedule Timezone"]) && (
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {campaign["Sending From"] && (
+              <div className="bg-purple-50 rounded-md p-3">
+                <p className="text-xs font-medium text-gray-500">Sending From</p>
+                <p className="text-sm font-semibold">{campaign["Sending From"]}</p>
+              </div>
+            )}
+            
+            {campaign["Sending Until"] && (
+              <div className="bg-purple-50 rounded-md p-3">
+                <p className="text-xs font-medium text-gray-500">Sending Until</p>
+                <p className="text-sm font-semibold">{campaign["Sending Until"]}</p>
+              </div>
+            )}
+            
+            {campaign["Schedule Timezone"] && (
+              <div className="bg-purple-50 rounded-md p-3">
+                <p className="text-xs font-medium text-gray-500">Timezone</p>
+                <p className="text-sm font-semibold">{campaign["Schedule Timezone"]}</p>
+              </div>
+            )}
+          </div>
+        )}
         
         {/* Status Badge */}
         <div className="mt-4">
@@ -189,24 +243,32 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
             {isCancelled && 'Cancelled'}
           </span>
           
-          {campaign.fromPhone && (
+          {(fromPhone || (campaign["From Phone Numbers"] && campaign["From Phone Numbers"].length > 0)) && (
             <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-              <PhoneIcon className="h-3 w-3 mr-1" /> {campaign.fromPhone}
+              <PhoneIcon className="h-3 w-3 mr-1" /> {fromPhone || campaign["From Phone Numbers"]?.[0]}
+            </span>
+          )}
+          
+          {campaign["Voice Clone IDs"] && Array.isArray(campaign["Voice Clone IDs"]) && campaign["Voice Clone IDs"].length > 0 && (
+            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              Voice Clone
             </span>
           )}
         </div>
         
         {/* Script Preview (collapsed by default) */}
-        <div className="mt-4 pt-3 border-t border-gray-200">
-          <details className="text-sm">
-            <summary className="text-sm font-medium text-purple-600 cursor-pointer">
-              View Script
-            </summary>
-            <p className="mt-2 whitespace-pre-wrap text-gray-600 text-sm">
-              {script}
-            </p>
-          </details>
-        </div>
+        {script && (
+          <div className="mt-4 pt-3 border-t border-gray-200">
+            <details className="text-sm">
+              <summary className="text-sm font-medium text-purple-600 cursor-pointer">
+                View Script
+              </summary>
+              <p className="mt-2 whitespace-pre-wrap text-gray-600 text-sm">
+                {script}
+              </p>
+            </details>
+          </div>
+        )}
       </div>
     </li>
   );

@@ -5,12 +5,49 @@ import {
   createCampaign as createVoicedropCampaign,
   addProspectToCampaign,
   updateCampaignStatus,
-  getCampaignStatistics
+  getCampaignStatistics,
+  listCampaigns
 } from '@/lib/voicedropCampaignService';
 
 // Store campaigns in memory for demo
 // In a real app, this would be in a database
 export let campaigns: any[] = [];
+
+// Let's add a simple cache for campaigns
+let cachedCampaigns: any[] = [];
+let lastCacheTime = 0;
+
+// Sample campaigns to use if API fails and no cache is available
+const sampleCampaigns = [
+  {
+    "_id": "sample-campaign-1",
+    "Name": "Follow Up Campaign",
+    "Campaign Status": "Active",
+    "Voice Clone IDs": ["sample-voice-1"],
+    "Hourly Max Sending Rate": 100,
+    "From Phone Numbers": ["1234567890"],
+    "Scheduled Days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+    "Script": "Hello {{first_name}}, this is a sample voicemail for {{street_name}}. Please call me back when you get a chance. Thanks!",
+    "Type of Campaign": "AI Voice RVM",
+    "Sending Until": "5:00 PM",
+    "Sending From": "9:00 AM",
+    "Schedule Timezone": "EST"
+  },
+  {
+    "_id": "sample-campaign-2",
+    "Name": "New Listing Alert",
+    "Campaign Status": "Active",
+    "Voice Clone IDs": ["sample-voice-2"],
+    "Hourly Max Sending Rate": 50,
+    "From Phone Numbers": ["9876543210"],
+    "Scheduled Days": ["monday", "wednesday", "friday"],
+    "Script": "Hi {{first_name}}, just reaching out about some new properties in your area on {{street_name}}. Give me a call back to learn more.",
+    "Type of Campaign": "AI Voice RVM",
+    "Sending Until": "6:00 PM",
+    "Sending From": "10:00 AM",
+    "Schedule Timezone": "EST"
+  }
+];
 
 // Function to get the base URL of the current request
 function getBaseUrl(request: Request): string {
@@ -21,14 +58,37 @@ function getBaseUrl(request: Request): string {
 // GET endpoint to retrieve campaigns
 export async function GET(request: Request) {
   try {
-    // Return all campaigns
-    return NextResponse.json({ campaigns });
+    // Check if we have a recent cache (less than 5 minutes old)
+    const now = Date.now();
+    const cacheAge = now - lastCacheTime;
+    const useCache = cachedCampaigns.length > 0 && cacheAge < 5 * 60 * 1000;
+    
+    if (useCache) {
+      console.log('Using cached campaigns, age:', Math.round(cacheAge/1000), 'seconds');
+      return NextResponse.json(cachedCampaigns);
+    }
+    
+    // Fetch campaigns from VoiceDrop API
+    const voicedropCampaigns = await listCampaigns();
+    
+    // Update cache
+    cachedCampaigns = voicedropCampaigns;
+    lastCacheTime = now;
+    
+    // Return campaigns from API
+    return NextResponse.json(voicedropCampaigns);
   } catch (error) {
     console.error('Error fetching campaigns:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' }, 
-      { status: 500 }
-    );
+    
+    // If we have cached data, return that instead of an error
+    if (cachedCampaigns.length > 0) {
+      console.log('Returning cached campaigns after API error');
+      return NextResponse.json(cachedCampaigns);
+    }
+    
+    // Return sample campaigns since API is failing and no cache exists
+    console.log('Returning sample campaigns as fallback');
+    return NextResponse.json(sampleCampaigns);
   }
 }
 

@@ -42,6 +42,28 @@ export interface CampaignData {
   webhookUrl: string;
 }
 
+// Interface for voice clone
+export interface VoiceClone {
+  id: string;
+  name: string;
+}
+
+// Interface for campaign list item
+export interface Campaign {
+  _id: string;
+  Name: string;
+  "Campaign Status": string;
+  "Voice Clone IDs": string[];
+  "Hourly Max Sending Rate": number;
+  "From Phone Numbers": string[];
+  "Scheduled Days": string[];
+  "Script": string;
+  "Type of Campaign": string;
+  "Sending Until": string;
+  "Sending From": string;
+  "Schedule Timezone": string;
+}
+
 // Error handling utility
 const handleApiError = (error: any): never => {
   console.error('VoiceDrop API Error:', error);
@@ -247,23 +269,24 @@ export async function getCampaignReport(voicedropCampaignId: string): Promise<st
  */
 export async function listCampaigns(): Promise<any[]> {
   try {
-    // Make the API call to VoiceDrop
+    // Make the API call to VoiceDrop with a longer timeout
     const response = await axios.get(
       `${VOICEDROP_API_BASE_URL}/campaigns`,
       { 
         headers: {
           'Content-Type': 'application/json',
           'auth-key': VOICEDROP_API_KEY
-        }
+        },
+        timeout: 15000 // 15 second timeout to prevent long hanging requests
       }
     );
     
-    console.log('VoiceDrop campaigns:', response.data);
+    console.log('VoiceDrop campaigns API response:', response.data);
     
     return response.data;
   } catch (error) {
     console.error('Error listing campaigns:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -338,5 +361,32 @@ export async function getCampaignStatistics(voicedropCampaignId: string): Promis
       },
       details: []
     };
+  }
+}
+
+/**
+ * List all voice clones
+ */
+export async function listVoiceClones(): Promise<VoiceClone[]> {
+  try {
+    // Make the API call to VoiceDrop with a longer timeout
+    const response = await axios.get(
+      `${VOICEDROP_API_BASE_URL}/voice-clones`,
+      { 
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-key': VOICEDROP_API_KEY
+        },
+        timeout: 15000 // 15 second timeout to prevent long hanging requests
+      }
+    );
+    
+    console.log('Voice clones list response:', response.data);
+    
+    // Return the voice clones
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching voice clones:', error);
+    throw error; // Rethrow to be handled by caller
   }
 } 

@@ -17,6 +17,7 @@ export interface CallLog {
   duration?: number; // in seconds
   callSid?: string; // unique ID from the call service
   message?: string; // response message from the API
+  campaignId?: string; // ID of the campaign if sent via campaign
 }
 
 interface CallLogsListProps {
@@ -159,6 +160,12 @@ export default function CallLogsList({ calls, isLoading = false }: CallLogsListP
                     <span className="font-medium text-gray-500">Duration</span>
                     <p className="mt-1">{formatDuration(call.duration)}</p>
                   </div>
+                  {call.campaignId && (
+                    <div className="col-span-2 mt-2">
+                      <span className="font-medium text-gray-500">Campaign ID</span>
+                      <p className="mt-1 font-mono text-xs">{call.campaignId}</p>
+                    </div>
+                  )}
                   {call.message && (
                     <div className="col-span-2 mt-2">
                       <span className="font-medium text-gray-500">Message</span>
