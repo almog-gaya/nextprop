@@ -389,6 +389,7 @@ export default function RinglessVoicemailPage() {
       const results = await Promise.allSettled(
         selectedContacts.map(async (contact: any) => {
           try {
+            console.log(`CON-TACK`, JSON.stringify(contact))
             // Format contact data for the API
             const contactData = {
               campaignId: campaignId, // Use the campaign ID

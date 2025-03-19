@@ -71,7 +71,7 @@ export async function POST(request: Request) {
         console.log(`Adding prospect to campaign ${data.campaignId}:`, contact);
         
         // Add prospect to campaign
-        const result = await addProspectToCampaign(data.campaignId, contact);
+        const result = await addProspectToCampaign(data.campaignId, data);
         
         return NextResponse.json({
           status: 'success',
