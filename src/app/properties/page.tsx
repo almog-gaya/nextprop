@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import CompletionMessage from "@/components/properties/CompletionMessage";
 import PropertyTable from "@/components/properties/PropertyTable";
@@ -9,6 +9,17 @@ import ScrapingProgress from "@/components/properties/ScrapingProcess";
 import { ScrapedResult, ZillowProperty } from "@/types/properties";
 import SearchBarProperties from "@/components/properties/SearchBar";
 import toast from "react-hot-toast";
+import axios from "axios";
+
+// Define Pipeline interface
+interface Pipeline {
+  id: string;
+  name: string;
+  stages: {
+    id: string;
+    name: string;
+  }[];
+}
 
 let DAILY_LIMIT = parseInt(process.env.NEXT_PUBLIC_DAILY_LIMIT || "2", 10);
 if (isNaN(DAILY_LIMIT) || DAILY_LIMIT <= 0) {
@@ -40,6 +51,30 @@ export default function PropertiesPage() {
     actions: { label: string; href: string }[];
   } | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<ZillowProperty | null>(null);
+  
+  // Add pipeline states
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
+
+  // Fetch pipelines on mount
+  useEffect(() => {
+    fetchPipelines();
+  }, []);
+
+  const fetchPipelines = async () => {
+    try {
+      const response = await axios.get('/api/pipelines');
+      const fetchedPipelines = response.data.pipelines || [];
+      setPipelines(fetchedPipelines);
+      
+      // Set the first pipeline as default if there are pipelines
+      if (fetchedPipelines.length > 0) {
+        setSelectedPipeline(fetchedPipelines[0].id);
+      }
+    } catch (error) {
+      toast.error('Failed to load pipelines');
+    }
+  };
 
   const getScrapedToday = () => {
     try {
@@ -77,7 +112,10 @@ export default function PropertiesPage() {
 
   const addLeadsToContact = async (properties: ZillowProperty[]) => {
     try {
+      // First, create the contacts
       const transformedLeads = properties.map((prop) => transformLeadToContact(prop));
+      const createdContactIds = [];
+
       for (const lead of transformedLeads) {
         try {
           const response = await fetch("/api/contacts", {
@@ -87,13 +125,42 @@ export default function PropertiesPage() {
             },
             body: JSON.stringify(lead),
           });
+          
           if (!response.ok) {
             throw new Error(`Failed to add contact: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          if (data.id) {
+            createdContactIds.push(data.id);
           }
         } catch (error) {
           console.log("Error adding contact:", error);
         }
       }
+
+      // Then, sync the newly created contacts to the selected pipeline
+      if (createdContactIds.length > 0 && selectedPipeline) {
+        try {
+          const syncResponse = await fetch("/api/contacts/sync-to-pipeline", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contactIds: createdContactIds,
+              pipelineId: selectedPipeline
+            }),
+          });
+          
+          if (!syncResponse.ok) {
+            console.error("Failed to sync contacts to pipeline:", await syncResponse.text());
+          }
+        } catch (syncError) {
+          console.error("Error syncing contacts to pipeline:", syncError);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error("Error adding leads to contact:", error);
@@ -120,6 +187,7 @@ export default function PropertiesPage() {
         },
       ],
       tags: ["scraped-lead", "zillow-property", "Review-new-lead"],
+      pipelineId: selectedPipeline,
     };
   };
 
@@ -315,6 +383,29 @@ export default function PropertiesPage() {
 
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <h2 className="text-lg font-medium mb-4">Search Zillow Properties</h2>
+          
+          {/* Pipeline dropdown */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select Pipeline</label>
+            <select
+              value={selectedPipeline || ''}
+              onChange={(e) => setSelectedPipeline(e.target.value)}
+              disabled={isScraping}
+              className="w-full sm:w-64 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600"
+            >
+              {pipelines.length === 0 ? (
+                <option value="">Loading pipelines...</option>
+              ) : (
+                pipelines.map((pipeline) => (
+                  <option key={pipeline.id} value={pipeline.id}>
+                    {pipeline.name}
+                  </option>
+                ))
+              )}
+            </select>
+            <p className="mt-1 text-sm text-gray-500">Contacts will be added to the selected pipeline</p>
+          </div>
+          
           <SearchBarProperties
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}

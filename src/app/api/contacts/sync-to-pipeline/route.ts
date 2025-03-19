@@ -1,62 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthHeaders } from '@/lib/enhancedApi';
 
-// Known pipeline IDs from the existing application
+// Known pipeline IDs from the existing application as fallbacks
 const LEADS_PIPELINE_ID = 'uFa3Uh6Cz1iKHA8YtzhN'; 
 const REVIEW_STAGE_ID = 'MHYFVj1Q9BtfSxO6CFXC';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get contacts that need to be synced
-    const { filter } = await request.json();
+    // Get data from request
+    const { filter, contactIds, pipelineId } = await request.json();
     const { token, locationId } = await getAuthHeaders();
     
-    // Step 1: Directly fetch contacts from GHL
-    let contactsUrl = 'https://services.leadconnectorhq.com/contacts';
-    const queryParams = new URLSearchParams();
+    // Use provided pipelineId or fallback to default
+    const leadsPipelineId = pipelineId || LEADS_PIPELINE_ID;
     
-    // Add locationId
-    if (locationId) {
-      queryParams.append('locationId', locationId);
+    // Step 1: Get contacts - either by filter or specific IDs
+    let contacts = [];
+    
+    if (contactIds && Array.isArray(contactIds) && contactIds.length > 0) {
+      // If specific contact IDs are provided, use those directly
+      contacts = contactIds.map(id => ({ id }));
+    } else {
+      // Otherwise, fetch contacts using filter
+      let contactsUrl = 'https://services.leadconnectorhq.com/contacts';
+      const queryParams = new URLSearchParams();
+      
+      // Add locationId
+      if (locationId) {
+        queryParams.append('locationId', locationId);
+      }
+      
+      // Add tag filter if provided
+      if (filter && filter.tag) {
+        queryParams.append('tags', filter.tag);
+      }
+      
+      // Add query parameters
+      if (queryParams.toString()) {
+        contactsUrl += `?${queryParams.toString()}`;
+      }
+      
+      // Fetch contacts
+      const contactsResponse = await fetch(contactsUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Version: '2021-07-28',
+          Accept: 'application/json',
+        },
+      });
+      
+      if (!contactsResponse.ok) {
+        throw new Error(`Failed to fetch contacts: ${contactsResponse.status}`);
+      }
+      
+      const contactsData = await contactsResponse.json();
+      contacts = contactsData.contacts || [];
+      
+      if (!contacts || !Array.isArray(contacts)) {
+        throw new Error('Invalid contacts data received');
+      }
     }
     
-    // Add tag filter if provided
-    if (filter && filter.tag) {
-      queryParams.append('tags', filter.tag);
+    // Fetch the pipeline to get the first stage ID
+    let reviewStageId = REVIEW_STAGE_ID;
+    
+    try {
+      const pipelineResponse = await fetch(`https://services.leadconnectorhq.com/opportunities/pipelines/${leadsPipelineId}?locationId=${locationId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Version: '2021-07-28',
+          Accept: 'application/json',
+        },
+      });
+      
+      if (pipelineResponse.ok) {
+        const pipelineData = await pipelineResponse.json();
+        if (pipelineData.pipeline && pipelineData.pipeline.stages && pipelineData.pipeline.stages.length > 0) {
+          // Use the first stage ID from the pipeline
+          reviewStageId = pipelineData.pipeline.stages[0].id;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching pipeline details, using default stage ID:', error);
     }
-    
-    // Add query parameters
-    if (queryParams.toString()) {
-      contactsUrl += `?${queryParams.toString()}`;
-    }
-    
-    // Fetch contacts
-    const contactsResponse = await fetch(contactsUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Version: '2021-07-28',
-        Accept: 'application/json',
-      },
-    });
-    
-    if (!contactsResponse.ok) {
-      throw new Error(`Failed to fetch contacts: ${contactsResponse.status}`);
-    }
-    
-    const contactsData = await contactsResponse.json();
-    const contacts = contactsData.contacts || [];
-    
-    if (!contacts || !Array.isArray(contacts)) {
-      throw new Error('Invalid contacts data received');
-    }
-    
-    // We'll use the known pipeline and stage IDs
-    const leadsPipelineId = LEADS_PIPELINE_ID;
-    const reviewStageId = REVIEW_STAGE_ID;
-    
-    // Skip the check for existing opportunities and just try to create them
-    // GHL API will return an error if the opportunity already exists
     
     // Process all contacts
     const results = {
@@ -84,7 +112,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             pipelineId: leadsPipelineId,
             locationId: locationId,
-            name: `Lead: ${contact.firstName || ''} ${contact.lastName || ''}`.trim(),
+            name: `Lead: ${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'New Lead',
             pipelineStageId: reviewStageId,
             status: 'open',
             contactId: contact.id,
