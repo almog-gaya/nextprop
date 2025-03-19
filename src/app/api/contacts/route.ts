@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthHeaders } from '@/lib/enhancedApi';
 import { cookies } from 'next/headers';
 import { log } from '@/middleware';
- 
+
 
 export async function GET(request: Request) {
   const { locationId, token } = await getAuthHeaders();
@@ -22,12 +22,12 @@ export async function GET(request: Request) {
     const prodURL = new URL(`https://services.leadconnectorhq.com/contacts/`);
     prodURL.searchParams.set('locationId', locationId!);
     prodURL.searchParams.set('limit', limit.toString());
-    if (page > 1 ) {
-    prodURL.searchParams.set('page', page.toString());
+    if (page > 1) {
+      prodURL.searchParams.set('page', page.toString());
 
       // prodURL.searchParams.set('startAfter', startAfter); // Use last contact ID
     }
-    
+
     if (tag) {
       prodURL.searchParams.set('tags', tag); // Assuming 'tags' is the correct param; verify with API docs
     }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   try {
-     const response = await createContact(body);
+    const response = await createContact(body);
     return NextResponse.json(response);
   } catch (error: any) {
     console.error('Error in POST request:', error);
@@ -80,6 +80,9 @@ const createContact = async (contactData: any) => {
       delete contactData[key];
     }
   }
+  if (contactData.customFields && Object.keys(contactData.customFields).length === 0) {
+    delete contactData.customFields;
+  }
   const options = {
     method: 'POST',
     headers: {
@@ -96,8 +99,8 @@ const createContact = async (contactData: any) => {
   console.log(`[Create-Contact]: Data Response: `, JSON.stringify(data));
 
 
-   if (!response.ok) {
-    
+  if (!response.ok) {
+
     throw new Error(data.message ?? `HTTP error! status: ${response.status}`);
   }
   return data;

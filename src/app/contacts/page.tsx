@@ -11,6 +11,8 @@ import { ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbl
 import BulkAddToPipelineStage from '@/components/contacts/BulkAddToPipelineStage';
 import { Contact } from '@/types';
 import BulkUploadForm from '@/components/BulkUploadForm';
+import { useAuth } from '@/contexts/AuthContext';
+import { ConversationDisplay } from '@/types/messageThread';
 
 
 interface CustomField {
@@ -128,6 +130,134 @@ export default function ContactsPage() {
   const [totalContacts, setTotalContacts] = useState(0);
   const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
   const [lastContactId, setLastContactId] = useState<string | null>(null);
+
+  const getAppropriateType = (type: string) => {
+    switch (type) {
+      case 'TYPE_PHONE':
+        return 'SMS';
+      case 'TYPE_EMAIL':
+      case 'TYPE_CUSTOM_EMAIL':
+        return 'Email';
+      default:
+        return 'SMS';
+    }
+  };
+
+  const { user } = useAuth();
+  const hasPhoneNumbers = (user?.phoneNumbers?.length ?? 0) > 0;
+  const [selectedNumber, setSelectedNumber] = useState<string | null>(null);
+  const [smsText, setSmsText] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [isBulkInProcess, setIsBulkInProcess] = useState(false);
+  useEffect(() => {
+    if (hasPhoneNumbers) {
+      setSelectedNumber(user!.phoneNumbers![0].phoneNumber);
+    }
+  }, [hasPhoneNumbers, user?.phoneNumbers]);
+
+  const handleSend = async (contact: any) => {
+    const conversationType = selectedMessageType == 'sms' ? 'TYPE_PHONE' : 'TYPE_EMAIL';
+
+    if (!conversationType) return;
+
+    if (conversationType === 'TYPE_PHONE' && !hasPhoneNumbers) {
+      toast.error('No available phone number to send SMS');
+      return;
+    }
+    try {
+      const payload = {
+        type: getAppropriateType(conversationType),
+        body: smsText,
+        text: smsText,
+        message: smsText,
+        contactId: contact.id,
+        ...(conversationType === 'TYPE_PHONE' && {
+          toNumber: contact!.phone,
+          fromNumber: selectedNumber,
+        }),
+        ...(conversationType === 'TYPE_EMAIL' && {
+          html: emailBody,
+          emailTo: contact!.email,
+          subject: emailSubject,
+          emailFrom: 'no-reply@gmail.com',
+          body: smsText,
+          text: smsText,
+          message: smsText,
+        }),
+      };
+
+      console.log(`[payload]: ${JSON.stringify(payload)}`);
+      const response = await fetch('/api/conversations/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      return await response.json();
+
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+      toast.error('Failed to start new conversation');
+    }
+  };
+
+  const bulkSendEmailOrSMS = async () => {
+    if (selectedMessageType === 'voicemail') {
+      router.push('/ringless-voicemails');
+      return;
+    }
+    if (!selectedContacts || selectedContacts.length === 0) {
+      toast.error('No contacts selected for bulk action');
+      return;
+    }
+    if (selectedMessageType === 'sms') {
+      if (!hasPhoneNumbers) {
+        toast.error('No available phone number to send SMS');
+        return;
+      }
+      if (!selectedNumber) {
+        toast.error('Please select a phone number to send SMS');
+        return;
+      }
+    }
+
+    let successCount = 0;
+    const totalContacts = selectedContacts.length;
+
+    try {
+      setIsBulkInProcess(true);
+      // Use Promise.all to wait for all sends to complete
+      const results = await Promise.all(
+        selectedContacts.map(async (contact) => {
+          try {
+            const response = await handleSend(contact);
+            if (response && (response.msg || response.messageId)) {
+              successCount++;
+            }
+            return response;
+          } catch (error) {
+            console.error('Failed to send to contact:', contact.id, error);
+            return null;
+          }
+        })
+      );
+
+      // Show final result
+      toast.success(
+        `Bulk messaging completed! Successfully sent to ${successCount} out of ${totalContacts} contacts`
+      );
+      setIsBulkMessagingModalOpen(false)
+    } catch (error) {
+      console.error('Bulk messaging failed:', error);
+      toast.error(
+        `Bulk messaging completed with errors. Successfully sent to ${successCount} out of ${totalContacts} contacts`
+      );
+    } finally {
+      setIsBulkInProcess(false);
+    }
+  };
 
   // Load columns from localStorage
   useEffect(() => {
@@ -1157,7 +1287,7 @@ export default function ContactsPage() {
     let selectedStageId = null;
     setIsSubmitting(true);
     try {
-   
+
       const uploadResults = await Promise.all(
         contacts.map(async (contact) => {
           try {
@@ -1193,7 +1323,7 @@ export default function ContactsPage() {
           name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
         };
       });
-     
+
 
       setContacts((prev) => [...processedContacts, ...prev]);
       setTotalContacts((prev) => prev + processedContacts.length);
@@ -1224,7 +1354,7 @@ export default function ContactsPage() {
     try {
       const results = await Promise.allSettled(
         contacts.map(async (contact: any) => {
-          try { 
+          try {
             const response = await fetch('/api/opportunities', {
               method: 'POST',
               headers: {
@@ -1406,7 +1536,9 @@ export default function ContactsPage() {
           >
             <div
               className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6"
-              onClick={e => e.stopPropagation()}
+              onClick={e => {
+                return e.stopPropagation();
+              }}
             >
               <h3 className="text-xl font-semibold mb-2 text-gray-900">Send Bulk Message</h3>
               <p className="text-sm text-gray-600 mb-6">
@@ -1419,6 +1551,8 @@ export default function ContactsPage() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">SMS Message</label>
                       <textarea
+                        value={smsText}
+                        onChange={(e) => setSmsText(e.target.value)}
                         className="w-full border border-gray-300 rounded-md p-2 h-32"
                         placeholder="Enter your SMS message here..."
                       />
@@ -1431,6 +1565,8 @@ export default function ContactsPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
                         <input
                           type="text"
+                          value={emailSubject}
+                          onChange={(e) => setEmailSubject(e.target.value)}
                           className="w-full border border-gray-300 rounded-md p-2"
                           placeholder="Email subject..."
                         />
@@ -1438,6 +1574,8 @@ export default function ContactsPage() {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Email Content</label>
                         <textarea
+                          value={emailBody}
+                          onChange={(e) => setEmailBody(e.target.value)}
                           className="w-full border border-gray-300 rounded-md p-2 h-32"
                           placeholder="Enter your email content here..."
                         />
@@ -1445,18 +1583,7 @@ export default function ContactsPage() {
                     </div>
                   )}
 
-                  {selectedMessageType === 'voicemail' && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Voicemail Message</label>
-                      <p className="text-sm text-gray-500 mb-2">Upload an audio file for your ringless voicemail</p>
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        className="w-full border border-gray-300 rounded-md p-2"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Supported formats: MP3, WAV (max 2MB)</p>
-                    </div>
-                  )}
+                  {/* No voicemail section here anymore since it will redirect */}
 
                   <div className="mt-6 flex justify-between">
                     <button
@@ -1466,9 +1593,21 @@ export default function ContactsPage() {
                       Back to Options
                     </button>
                     <button
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm disabled:opacity-50"
+                      onClick={bulkSendEmailOrSMS}
+                      disabled={isBulkInProcess}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center justify-center"
                     >
-                      Send to {selectedContacts.length} Contacts
+                      {isBulkInProcess ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
+                          </svg>
+                          Sending...
+                        </>
+                      ) : (
+                        `Send to ${selectedContacts.length} Contacts`
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1497,7 +1636,7 @@ export default function ContactsPage() {
                   </button>
 
                   <button
-                    onClick={() => setSelectedMessageType('voicemail')}
+                    onClick={() => router.push('ringless-voicemails')} // Redirect to voicemail page
                     className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
                   >
                     <PhoneIcon className="h-6 w-6 text-purple-500 mr-3" />
