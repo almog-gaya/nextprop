@@ -5,7 +5,7 @@ import axios from 'axios';
 const VOICEDROP_API_KEY = 'vd_L6JGDq5Vj924Eq7k7Mb1';
 const VOICEDROP_API_BASE_URL = 'https://api.voicedrop.ai/v1';
 const DEFAULT_VOICE_CLONE_ID = 'dodUUtwsqo09HrH2RO8w';
-const DEFAULT_SENDER_PHONE = '+1 929-415-9655';
+
 
 // Function to get the base URL of the current request
 function getBaseUrl(request: Request): string {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     });
     
     // Use provided sender phone or default
-    const fromPhone = data.from || DEFAULT_SENDER_PHONE;
+    const fromPhone = data.from || 'no_phone_number';
     
     // Create the payload for VoiceDrop
     const payload = {

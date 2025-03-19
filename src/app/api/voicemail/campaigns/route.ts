@@ -1,25 +1,35 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import { 
+  createCampaign as createVoicedropCampaign,
+  addProspectToCampaign,
+  updateCampaignStatus,
+  getCampaignStatistics
+} from '@/lib/voicedropCampaignService';
 
-// VoiceDrop API configuration 
-const VOICEDROP_API_KEY = 'vd_L6JGDq5Vj924Eq7k7Mb1';
-const VOICEDROP_API_BASE_URL = 'https://api.voicedrop.ai/v1';
-const DEFAULT_VOICE_CLONE_ID = 'dodUUtwsqo09HrH2RO8w';
-const DEFAULT_SENDER_PHONE = '+1 929-415-9655';
+// Store campaigns in memory for demo
+// In a real app, this would be in a database
+export let campaigns: any[] = [];
 
-// In-memory store for campaigns (in production, use a database)
-let campaigns: any[] = [];
-
-// Helper to generate a webhook URL
+// Function to get the base URL of the current request
 function getBaseUrl(request: Request): string {
   const url = new URL(request.url);
   return `${url.protocol}//${url.host}`;
 }
 
-// GET all campaigns
-export async function GET() {
-  return NextResponse.json({ campaigns });
+// GET endpoint to retrieve campaigns
+export async function GET(request: Request) {
+  try {
+    // Return all campaigns
+    return NextResponse.json({ campaigns });
+  } catch (error) {
+    console.error('Error fetching campaigns:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Unknown error' }, 
+      { status: 500 }
+    );
+  }
 }
 
 // POST to create a new campaign
@@ -58,14 +68,49 @@ export async function POST(request: Request) {
     }
     
     // Use provided sender phone number or fall back to default
-    const fromPhone = senderPhone || DEFAULT_SENDER_PHONE;
+    const fromPhone = senderPhone;
+    if (!fromPhone) {
+      return NextResponse.json({ error: 'Sender phone number is required' }, { status: 400 });
+    }
     
-    // Generate a campaign ID
+    // Generate a campaign ID for our system
     const campaignId = uuidv4();
     
-    // Create the campaign object
+    // Create the campaign in VoiceDrop
+    const campaignSettings = {
+      startTime,
+      endTime, 
+      timezone,
+      maxPerHour,
+      daysOfWeek,
+      delayMinutes,
+      dailyLimit
+    };
+    
+    let voicedropCampaignId;
+    
+    try {
+      // Create the campaign in VoiceDrop
+      voicedropCampaignId = await createVoicedropCampaign({
+        name: data.name || `Campaign ${new Date().toISOString()}`,
+        script,
+        senderPhone: fromPhone,
+        settings: campaignSettings,
+        contacts, // Not actually used by the function, just for interface compliance
+        webhookUrl
+      });
+    } catch (error) {
+      console.error('Error creating VoiceDrop campaign:', error);
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Error creating VoiceDrop campaign' }, 
+        { status: 500 }
+      );
+    }
+    
+    // Create our local campaign object
     const campaign = {
       id: campaignId,
+      voicedropCampaignId, // Store the VoiceDrop campaign ID for future calls
       name: data.name || `Campaign ${new Date().toISOString()}`,
       createdAt: new Date().toISOString(),
       status: 'active',
@@ -88,74 +133,66 @@ export async function POST(request: Request) {
         sent: 0,
         pending: contacts.length,
         failed: 0
-      }
+      },
+      webhookUrl
     };
     
-    // Store the campaign
+    // Add prospects to the VoiceDrop campaign
+    const prospectPromises = contacts.map(async (contact: any) => {
+      try {
+        const result = await addProspectToCampaign(voicedropCampaignId, contact);
+        return {
+          contact,
+          success: true,
+          result
+        };
+      } catch (error) {
+        console.error(`Error adding prospect ${contact.id} to campaign:`, error);
+        return {
+          contact,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    });
+    
+    // Wait for all prospects to be added
+    const prospectResults = await Promise.allSettled(prospectPromises);
+    
+    // Count successes and failures
+    const successfulProspects = prospectResults.filter(
+      r => r.status === 'fulfilled' && (r.value as any).success
+    ).length;
+    
+    const failedProspects = prospectResults.filter(
+      r => r.status === 'rejected' || !(r.status === 'fulfilled' && (r.value as any).success)
+    ).length;
+    
+    // Update campaign progress
+    campaign.progress.sent = successfulProspects;
+    campaign.progress.failed = failedProspects;
+    campaign.progress.pending = campaign.progress.total - successfulProspects - failedProspects;
+    
+    // Store the campaign in our memory/database
     campaigns.push(campaign);
     
-    // Send the first voicemail immediately
-    const firstContact = campaign.contacts[0];
-    try {
-      // Create the payload for VoiceDrop
-      const personalizedScript = script
-        .replace(/{{first_name}}/g, firstContact.firstName || '')
-        .replace(/{{last_name}}/g, firstContact.lastName || '')
-        .replace(/{{street_name}}/g, firstContact.streetName || '')
-        .replace(/{{address}}/g, firstContact.address1 || '')
-        .replace(/{{city}}/g, firstContact.city || '')
-        .replace(/{{state}}/g, firstContact.state || '')
-        .replace(/{{zip}}/g, firstContact.zip || '')
-        .replace(/{{phone}}/g, firstContact.phone || '')
-        .replace(/{{email}}/g, firstContact.email || '')
-        .replace(/{{property_link}}/g, firstContact.propertyLink || '');
-      
-      const payload = {
-        voice_clone_id: DEFAULT_VOICE_CLONE_ID,
-        script: personalizedScript,
-        to: firstContact.phone,
-        from: fromPhone,
-        validate_recipient_phone: true,
-        send_status_to_webhook: webhookUrl,
-        metadata: {
-          campaignId,
-          contactId: firstContact.id
+    // Collect any errors
+    const errors = prospectResults
+      .filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !(r.value as any).success))
+      .map(r => {
+        if (r.status === 'rejected') {
+          return r.reason;
+        } else {
+          return (r.value as any).error;
         }
-      };
-      
-      // Make the API call to VoiceDrop
-      const response = await axios.post(
-        `${VOICEDROP_API_BASE_URL}/ringless_voicemail`, 
-        payload,
-        { 
-          headers: {
-            'Content-Type': 'application/json',
-            'auth-key': VOICEDROP_API_KEY
-          }
-        }
-      );
-      
-      // Update the contact with the response
-      firstContact.status = 'sent';
-      firstContact.result = response.data;
-      firstContact.sentAt = new Date().toISOString();
-      
-      // Update campaign progress
-      campaign.progress.sent = 1;
-      campaign.progress.pending = campaign.progress.total - 1;
-    } catch (error) {
-      // Handle error sending the first voicemail
-      firstContact.status = 'failed';
-      firstContact.error = error instanceof Error ? error.message : 'Unknown error';
-      firstContact.retries++;
-      firstContact.debugError = error;
-      
-      // Update campaign progress
-      campaign.progress.failed = 1;
-      campaign.progress.pending = campaign.progress.total - 1;
-    }
+      });
     
-    return NextResponse.json(campaign);
+    // Return the campaign data
+    return NextResponse.json({
+      campaign,
+      voicedropCampaignId,
+      errors: errors.length > 0 ? errors : undefined
+    });
   } catch (error) {
     console.error('Error creating campaign:', error);
     return NextResponse.json(
@@ -179,36 +216,100 @@ export async function PATCH(request: Request) {
     
     const campaign = campaigns[campaignIndex];
     
+    // Ensure the campaign has a VoiceDrop ID
+    if (!campaign.voicedropCampaignId) {
+      return NextResponse.json({ 
+        error: 'Campaign is not linked to VoiceDrop. This may be a legacy campaign.' 
+      }, { status: 400 });
+    }
+    
     // Handle different actions
     switch(action) {
       case 'pause':
         campaign.status = 'paused';
+        // Update status in VoiceDrop
+        await updateCampaignStatus(campaign.voicedropCampaignId, 'paused');
         break;
         
       case 'resume':
         campaign.status = 'active';
+        // Update status in VoiceDrop
+        await updateCampaignStatus(campaign.voicedropCampaignId, 'active');
         break;
         
       case 'cancel':
         campaign.status = 'cancelled';
-        // Mark all pending contacts as cancelled
+        // Mark contacts as cancelled
         campaign.contacts.forEach((contact: any) => {
           if (contact.status === 'pending') {
             contact.status = 'cancelled';
           }
         });
         campaign.progress.pending = 0;
+        // Update status in VoiceDrop (archive)
+        await updateCampaignStatus(campaign.voicedropCampaignId, 'archived');
         break;
         
       case 'updateDelay':
         if (delayMinutes) {
           campaign.delayMinutes = delayMinutes;
+          // Note: This doesn't update the VoiceDrop campaign as there's no endpoint for it
+          // You would need to recreate the campaign to update this
         }
         break;
         
       case 'updateLimit':
         if (dailyLimit) {
           campaign.dailyLimit = dailyLimit;
+          // Note: This doesn't update the VoiceDrop campaign as there's no endpoint for it
+        }
+        break;
+        
+      case 'refreshStats':
+        // Get the latest stats from VoiceDrop
+        try {
+          const stats = await getCampaignStatistics(campaign.voicedropCampaignId);
+          
+          // Update our campaign progress with the latest stats
+          campaign.progress = stats.stats;
+          
+          // Update contact statuses based on the detailed results
+          if (stats.details && stats.details.length > 0) {
+            stats.details.forEach((detail: any) => {
+              // Find the contact by phone number
+              const contact = campaign.contacts.find((c: any) => {
+                // Normalize phone number for comparison
+                const contactPhone = c.phone.replace(/\D/g, '');
+                const detailPhone = detail.phone?.replace(/\D/g, '') || '';
+                return contactPhone === detailPhone;
+              });
+              
+              if (contact) {
+                // Update contact status
+                if (detail.status === 'delivered' || detail.status === 'completed') {
+                  contact.status = 'delivered';
+                } else if (detail.status === 'failed' || detail.status === 'error') {
+                  contact.status = 'failed';
+                }
+                
+                // Update other details
+                contact.sentAt = detail.sent_at || contact.sentAt;
+                contact.deliveredAt = detail.delivered_at;
+                
+                // Handle callback status
+                if (detail.callback === 'true' || detail.status === 'callback') {
+                  contact.status = 'callback_received';
+                  contact.callbackAt = detail.callback_at || new Date().toISOString();
+                }
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error refreshing campaign stats:', error);
+          return NextResponse.json({ 
+            error: 'Failed to refresh campaign statistics',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          }, { status: 500 });
         }
         break;
         
@@ -239,13 +340,25 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Campaign ID is required' }, { status: 400 });
     }
     
-    // Find and remove the campaign
-    const initialLength = campaigns.length;
-    campaigns = campaigns.filter(c => c.id !== id);
+    // Find the campaign
+    const campaign = campaigns.find(c => c.id === id);
     
-    if (campaigns.length === initialLength) {
+    if (!campaign) {
       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
     }
+    
+    // If the campaign has a VoiceDrop ID, archive it in VoiceDrop
+    if (campaign.voicedropCampaignId) {
+      try {
+        await updateCampaignStatus(campaign.voicedropCampaignId, 'archived');
+      } catch (error) {
+        console.error('Error archiving VoiceDrop campaign:', error);
+        // Continue with deletion even if VoiceDrop update fails
+      }
+    }
+    
+    // Remove the campaign from our store
+    campaigns = campaigns.filter(c => c.id !== id);
     
     return NextResponse.json({ success: true, message: 'Campaign deleted' });
   } catch (error) {

@@ -186,8 +186,76 @@ export async function POST(request: Request) {
       webhookResponses.length = 50;
     }
     
-    // Process the webhook data for campaign updates
-    if (webhookData.metadata && webhookData.metadata.campaignId) {
+    // Handle different webhook formats - campaign API or legacy format
+    
+    // Campaign API format: contains campaign_id
+    if (webhookData.campaign_id) {
+      // Find our local campaign by VoiceDrop campaign ID
+      const campaign = campaigns.find((c: any) => c.voicedropCampaignId === webhookData.campaign_id);
+      
+      if (!campaign) {
+        console.log(`Campaign not found for VoiceDrop ID: ${webhookData.campaign_id}`);
+        return NextResponse.json({ success: false, message: 'Campaign not found' });
+      }
+      
+      // Find the contact by phone number
+      const recipientPhone = webhookData.to || webhookData.recipient_phone;
+      if (!recipientPhone) {
+        console.log('No recipient phone number in webhook data');
+        return NextResponse.json({ success: true });
+      }
+      
+      // Normalize phone number for comparison
+      const normalizedRecipientPhone = recipientPhone.replace(/\D/g, '');
+      
+      const contact = campaign.contacts.find((c: any) => {
+        const normalizedContactPhone = c.phone.replace(/\D/g, '');
+        return normalizedContactPhone.includes(normalizedRecipientPhone) || 
+               normalizedRecipientPhone.includes(normalizedContactPhone);
+      });
+      
+      if (!contact) {
+        console.log(`Contact not found for phone: ${recipientPhone}`);
+        return NextResponse.json({ success: true });
+      }
+      
+      // Update contact status based on webhook data
+      const status = webhookData.status || webhookData.event_type;
+      
+      if (status === 'delivered' || status === 'completed') {
+        contact.status = 'delivered';
+        contact.deliveredAt = webhookData.timestamp || new Date().toISOString();
+        
+        // Try to move opportunity
+        if (contact.id) {
+          moveOpportunityStage(contact.id, 'delivered');
+        }
+      } else if (status === 'failed' || status === 'error') {
+        contact.status = 'failed';
+        contact.error = webhookData.reason || webhookData.message || 'Unknown error';
+        
+        // Try to move opportunity
+        if (contact.id) {
+          moveOpportunityStage(contact.id, 'failed');
+        }
+      } else if (status === 'callback' || webhookData.is_callback) {
+        contact.status = 'callback_received';
+        contact.callbackAt = webhookData.timestamp || new Date().toISOString();
+        
+        // Try to move opportunity
+        if (contact.id) {
+          moveOpportunityStage(contact.id, 'callback_received');
+        }
+      }
+      
+      // Update campaign progress counts
+      updateCampaignProgress(campaign);
+      
+      return NextResponse.json({ success: true });
+    }
+    
+    // Legacy format: contains metadata with campaignId
+    else if (webhookData.metadata && webhookData.metadata.campaignId) {
       const { campaignId, contactId } = webhookData.metadata;
       
       // Find the campaign
@@ -222,50 +290,26 @@ export async function POST(request: Request) {
           }
           
           campaign.progress.pending = Math.max(0, campaign.progress.pending - 1);
-          
-          // Check if we should send the next voicemail
-          if (campaign.status === 'active') {
-            // Find the next pending contact
-            const nextContact = campaign.contacts.find((c: any) => c.status === 'pending');
-            
-            if (nextContact) {
-              // Check if we're within the daily limit
-              const sentToday = campaign.contacts.filter((c: any) => {
-                if (c.sentAt) {
-                  const sentDate = new Date(c.sentAt);
-                  const today = new Date();
-                  return sentDate.getDate() === today.getDate() &&
-                         sentDate.getMonth() === today.getMonth() &&
-                         sentDate.getFullYear() === today.getFullYear();
-                }
-                return false;
-              }).length;
-              
-              if (sentToday < campaign.dailyLimit) {
-                // We'll schedule it according to the delay - in a real app you'd use a proper job queue
-                nextContact.status = 'scheduled';
-                
-                // In a real implementation, you would set up a cron job or queue
-                // For this demo, we're just logging it
-                console.log(`Should schedule next contact ${nextContact.id} in ${campaign.delayMinutes} minutes`);
-              }
-            } else {
-              // No more pending contacts, campaign is complete
-              campaign.status = 'completed';
-            }
-          }
         }
       }
-    } else if (webhookData.callback && webhookData.phone) {
-      // This is a callback event - someone called back after receiving a voicemail
-      console.log('Callback received from', webhookData.phone);
       
+      return NextResponse.json({ success: true });
+    }
+    
+    // Callback event from custom format
+    else if (webhookData.callback && webhookData.phone) {
       // Find the contact by phone number
       let foundContact = null;
       let foundCampaign = null;
       
       for (const campaign of campaigns) {
-        const contact = campaign.contacts.find((c: any) => c.phone === webhookData.phone);
+        const contact = campaign.contacts.find((c: any) => {
+          // Normalize phone numbers for comparison
+          const contactPhone = c.phone.replace(/\D/g, '');
+          const callbackPhone = webhookData.phone.replace(/\D/g, '');
+          return contactPhone.includes(callbackPhone) || callbackPhone.includes(contactPhone);
+        });
+        
         if (contact) {
           foundContact = contact;
           foundCampaign = campaign;
@@ -281,12 +325,19 @@ export async function POST(request: Request) {
         // Move the opportunity to the "Call Back" stage
         moveOpportunityStage(foundContact.id, 'callback_received');
         
+        // Update campaign progress
+        if (foundCampaign) {
+          updateCampaignProgress(foundCampaign);
+        }
+        
         console.log(`Contact ${foundContact.id} called back, updating status and moving opportunity`);
       }
+      
+      return NextResponse.json({ success: true });
     }
     
-    // Respond to VoiceDrop with a success message
-    return NextResponse.json({ success: true, message: 'Webhook received successfully' });
+    // Unknown format
+    return NextResponse.json({ success: true, message: 'Webhook received but format not recognized' });
   } catch (error) {
     console.error('Error processing webhook:', error);
     return NextResponse.json(
@@ -294,6 +345,27 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// Helper function to update campaign progress counts
+function updateCampaignProgress(campaign: any) {
+  if (!campaign || !campaign.contacts) return;
+  
+  // Count contacts by status
+  const counts = campaign.contacts.reduce((acc: any, contact: any) => {
+    const status = contact.status || 'pending';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+  
+  // Update campaign progress
+  campaign.progress = {
+    total: campaign.contacts.length,
+    sent: counts.delivered || 0,
+    pending: counts.pending || 0,
+    failed: counts.failed || 0,
+    callbacks: counts.callback_received || 0
+  };
 }
 
 // GET endpoint to retrieve webhook responses
