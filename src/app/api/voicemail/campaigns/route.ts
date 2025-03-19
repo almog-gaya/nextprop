@@ -20,33 +20,59 @@ let lastCacheTime = 0;
 // Sample campaigns to use if API fails and no cache is available
 const sampleCampaigns = [
   {
-    "_id": "sample-campaign-1",
-    "Name": "Follow Up Campaign",
-    "Campaign Status": "Active",
-    "Voice Clone IDs": ["sample-voice-1"],
-    "Hourly Max Sending Rate": 100,
-    "From Phone Numbers": ["1234567890"],
-    "Scheduled Days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
-    "Script": "Hello {{first_name}}, this is a sample voicemail for {{street_name}}. Please call me back when you get a chance. Thanks!",
+    "Name": "Reey",
+    "_id": "1741117009238x851709874282168300",
+    "Campaign Status": "Completed",
+    "Voice Clone IDs": [
+        "Es45QkMNPudcZKVRZWPs"
+    ],
+    "Hourly Max Sending Rate": 25,
+    "From Phone Numbers": [
+        "9295953158",
+        "4155328726",
+        "9294051405",
+        "9292052968",
+        "9294159655",
+        "9294922151",
+        "7867517909"
+    ],
+    "Scheduled Days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+    ],
+    "Script": " Hai {{First Name}} uh, its Ray. I'm an investor from Toronto based in Miami. Uh, I noticed you tried selling your property in Haialea but it didn't sell ... if it’s still relevant i’d be happy to give you a cash offer with a quick closing. Whenever you have time feel free to call or text me back. Thanks.",
     "Type of Campaign": "AI Voice RVM",
-    "Sending Until": "5:00 PM",
+    "Sending Until": "3:00 PM",
     "Sending From": "9:00 AM",
-    "Schedule Timezone": "EST"
-  },
-  {
-    "_id": "sample-campaign-2",
-    "Name": "New Listing Alert",
-    "Campaign Status": "Active",
-    "Voice Clone IDs": ["sample-voice-2"],
-    "Hourly Max Sending Rate": 50,
-    "From Phone Numbers": ["9876543210"],
-    "Scheduled Days": ["monday", "wednesday", "friday"],
-    "Script": "Hi {{first_name}}, just reaching out about some new properties in your area on {{street_name}}. Give me a call back to learn more.",
-    "Type of Campaign": "AI Voice RVM",
-    "Sending Until": "6:00 PM",
-    "Sending From": "10:00 AM",
-    "Schedule Timezone": "EST"
-  }
+    "Schedule Timezone": "EST (New York)"
+},
+{
+  "Name": "Rey Divorced",
+  "_id": "1742260014630x107958174440751100",
+  "Campaign Status": "Active",
+  "Voice Clone IDs": [
+      "Es45QkMNPudcZKVRZWPs"
+  ],
+  "Hourly Max Sending Rate": 50,
+  "From Phone Numbers": [
+      "7867517909"
+  ],
+  "Scheduled Days": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+  ],
+  "Script": "Hi {{First Name}} it's Rey here, I'm an investor from Toronto based in Miami.Uh, I noticed you own a property in {{Mail City}} for quite some time now and I thought it might be interesting for you to hear an offer. Uhm, cash of course with a quick closing. Call me when you can or text me. Thanks ",
+  "Type of Campaign": "AI Voice RVM",
+  "Sending Until": "4:00 PM",
+  "Sending From": "10:00 AM",
+  "Schedule Timezone": "EST (New York)"
+},
 ];
 
 // Function to get the base URL of the current request

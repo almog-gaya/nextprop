@@ -261,7 +261,7 @@ export async function updateCampaignStatus(voicedropCampaignId: string, status: 
   try {
     // Make the API call to VoiceDrop
     const response = await axios.patch(
-      `${VOICEDROP_API_BASE_URL}/campaigns/${voicedropCampaignId}/status`,
+      `${VOICEDROP_API_BASE_URL}/campaigns/${voicedropCampaignId}`,
       { status },
       {
         headers: {
