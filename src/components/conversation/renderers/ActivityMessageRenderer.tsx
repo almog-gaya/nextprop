@@ -38,7 +38,7 @@ export const ActivityMessageRenderer = ({ message }: { message: Message }) => {
                                 )}
                             </div>
                             <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded-md border border-gray-200 flex-shrink-0 whitespace-nowrap">
-                                Sabrina SMS
+                                
                             </span>
                         </div>
                         

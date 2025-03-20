@@ -1,5 +1,5 @@
 import { PhoneNumber } from "@/contexts/AuthContext";
-import { ArrowLeft, RefreshCw, Phone, MoreVertical, AlertCircle, Send, CheckCircle, ChevronDown, StickyNote } from "lucide-react";
+import { ArrowLeft, RefreshCw, Phone, MoreVertical, AlertCircle, Send, CheckCircle, ChevronDown, StickyNote, FileText } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import Avatar from "./Avatar";
@@ -9,6 +9,8 @@ import { EmailMessageRenderer } from "./renderers/EmailMessageRenderer";
 import { NormalMessageRenderer } from "./renderers/NormalMessageRenderer";
 import { CallMessageRenderer } from "./renderers/CallMessageRenderer";
 import NoteSidebar from './NoteSidebar';
+import MessageTemplates from './MessageTemplates';
+import { useAuth } from "@/contexts/AuthContext";
 
 const getMessageRenderer = (message: Message) => {
     const isMe = message.direction
@@ -79,6 +81,8 @@ export default function MessageThread({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [isNoteSidebarOpen, setIsNoteSidebarOpen] = useState(false);
+    const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+    const { user } = useAuth();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -170,6 +174,10 @@ export default function MessageThread({
             return `(${match[1]}) ${match[2]}-${match[3]}`;
         }
         return phone;
+    };
+
+    const handleSelectTemplate = (text: string) => {
+        setNewMessage(text);
     };
 
     if (!activeConversation) {
@@ -373,14 +381,23 @@ export default function MessageThread({
                     )}
 
                     <div className="flex items-end">
-                        <textarea
-                            className="flex-grow border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px] max-h-[160px]"
-                            placeholder="Type a message..."
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            disabled={sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)}
-                        />
+                        <div className="relative flex-grow">
+                            <textarea
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px] max-h-[160px]"
+                                placeholder="Type a message..."
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                disabled={sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)}
+                            />
+                            <button
+                                onClick={() => setIsTemplatesOpen(true)}
+                                className="absolute bottom-2 right-2 text-gray-400 hover:text-purple-600 p-1 rounded-full hover:bg-gray-100"
+                                title="Use message template"
+                            >
+                                <FileText size={18} />
+                            </button>
+                        </div>
                         <button
                             onClick={handleSend}
                             disabled={!newMessage.trim() || sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)}
@@ -418,6 +435,14 @@ export default function MessageThread({
                     onClose={() => setIsNoteSidebarOpen(false)}
                 />
             )}
+
+            <MessageTemplates
+                isOpen={isTemplatesOpen}
+                onClose={() => setIsTemplatesOpen(false)}
+                onSelectTemplate={handleSelectTemplate}
+                activeConversation={activeConversation}
+                user={user}
+            />
         </div>
     );
 }
