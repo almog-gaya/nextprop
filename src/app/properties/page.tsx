@@ -51,7 +51,7 @@ export default function PropertiesPage() {
     actions: { label: string; href: string }[];
   } | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<ZillowProperty | null>(null);
-  
+
   // Add pipeline states
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export default function PropertiesPage() {
       const response = await axios.get('/api/pipelines');
       const fetchedPipelines = response.data.pipelines || [];
       setPipelines(fetchedPipelines);
-      
+
       // Set the first pipeline as default if there are pipelines
       if (fetchedPipelines.length > 0) {
         setSelectedPipeline(fetchedPipelines[0].id);
@@ -125,11 +125,11 @@ export default function PropertiesPage() {
             },
             body: JSON.stringify(lead),
           });
-          
+
           if (!response.ok) {
             throw new Error(`Failed to add contact: ${response.statusText}`);
           }
-          
+
           const data = await response.json();
           if (data.id) {
             createdContactIds.push(data.id);
@@ -152,7 +152,7 @@ export default function PropertiesPage() {
               pipelineId: selectedPipeline
             }),
           });
-          
+
           if (!syncResponse.ok) {
             console.error("Failed to sync contacts to pipeline:", await syncResponse.text());
           }
@@ -220,6 +220,12 @@ export default function PropertiesPage() {
       }),
     });
   }
+
+  const getUserLocationId = async () => {
+    const response = await fetch("/api/auth/ghl/location-id");
+    const data = await response.json();
+    return data.locationId;
+  }
   const handleScrapeProperties = async (count: number = DAILY_LIMIT) => {
     // Initial state reset
     const resetState = () => {
@@ -233,10 +239,22 @@ export default function PropertiesPage() {
     };
 
     // Check and reset daily scrape count
-    const checkDailyLimit = (): number | null => {
+    // Skipping daily limits for specific users
+    const UNLIMITED_USERS = ['s3mNHrFuDyGiI7oUVisU']; 
+
+    // Modify the checkDailyLimit function
+    const checkDailyLimit = async (): Promise<number | null> => {
       const today = new Date().toISOString().split("T")[0];
       let scrapedToday = getScrapedToday();
       const storedDate = getScrapeDate();
+
+      // Get current user email (you'll need to implement this based on your auth system)
+      const userEmail = await getUserLocationId(); // Implement this function to get current user's email
+
+      // Check if user is in unlimited list
+      if (UNLIMITED_USERS.includes(userEmail)) { 
+        return count; // Return the requested count without daily limit check
+      }
 
       if (storedDate !== today) {
         scrapedToday = 0;
@@ -345,9 +363,8 @@ export default function PropertiesPage() {
     // Main execution
     try {
       resetState();
-      const remainingCount = checkDailyLimit();
+      const remainingCount = await checkDailyLimit();
       if (remainingCount === null) return;
-
       const properties = await fetchProperties(remainingCount);
       await processProperties(properties);
     } catch (error) {
@@ -383,7 +400,7 @@ export default function PropertiesPage() {
 
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <h2 className="text-lg font-medium mb-4">Search Zillow Properties</h2>
-          
+
           {/* Pipeline dropdown */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Pipeline</label>
@@ -405,7 +422,7 @@ export default function PropertiesPage() {
             </select>
             <p className="mt-1 text-sm text-gray-500">Contacts will be added to the selected pipeline</p>
           </div>
-          
+
           <SearchBarProperties
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
