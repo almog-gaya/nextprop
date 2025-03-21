@@ -3,10 +3,6 @@ import axios from 'axios';
 import { addProspectToCampaign } from '@/lib/voicedropCampaignService';
 import { getAuthHeaders } from '@/lib/enhancedApi';
 
-// VoiceDrop API configuration 
-const VOICEDROP_API_KEY = 'vd_L6JGDq5Vj924Eq7k7Mb1';
-const VOICEDROP_API_BASE_URL = 'https://api.voicedrop.ai/v1';
-const DEFAULT_VOICE_CLONE_ID = 'dodUUtwsqo09HrH2RO8w';
 
 
 // Function to get the base URL of the current request
