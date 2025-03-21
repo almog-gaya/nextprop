@@ -31,7 +31,7 @@ export async function PUT(
     } else if (!name && contact.lastName) {
       name = contact.lastName;
     }
-
+ 
     // Ensure we have all the necessary fields
     const processedContact = {
       ...contact,
@@ -127,6 +127,9 @@ const updateContact = async (contactId: string, contactData: any) => {
   }
   if (!contactData.email) {
     delete contactData.email;
+  }
+  if (!contactData.customFields?.length) {
+    delete contactData.customFields;
   }
   const options = {
     method: 'PUT',
