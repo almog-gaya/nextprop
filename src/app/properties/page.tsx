@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import CompletionMessage from "@/components/properties/CompletionMessage";
 import PropertyTable from "@/components/properties/PropertyTable";
@@ -55,6 +55,10 @@ export default function PropertiesPage() {
   // Add pipeline states
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
+  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+
+  // Get stages for the selected pipeline
+  const selectedPipelineStages = pipelines.find(p => p.id === selectedPipeline)?.stages || [];
 
   // Fetch pipelines on mount
   useEffect(() => {
@@ -70,6 +74,7 @@ export default function PropertiesPage() {
       // Set the first pipeline as default if there are pipelines
       if (fetchedPipelines.length > 0) {
         setSelectedPipeline(fetchedPipelines[0].id);
+        setSelectedStage(fetchedPipelines[0].stages[0].id);
       }
     } catch (error) {
       toast.error('Failed to load pipelines');
@@ -110,6 +115,82 @@ export default function PropertiesPage() {
     }
   };
 
+  const addContactsToPipeline = async (pipelineId: string, stageId: string, contacts: any[]) => {
+    try {
+      const results = await Promise.allSettled(
+        contacts.map(async (contact: any) => {
+          try {
+            const response = await fetch('/api/opportunities', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                pipelineId: pipelineId,
+                pipelineStageId: stageId,
+                contactId: contact.id,
+                status: "open",
+                name: `${contact.firstName} ${contact.zipCode || contact.street || contact.city || contact.state || ' - bulk'}`.trim()
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return { contact, success: true };
+          } catch (error) {
+            console.error(`Failed to add contact ${contact.id} to pipeline:`, error);
+            return { contact, success: false, error };
+          }
+        })
+      );
+
+      const successful = results.filter(result => result.status === 'fulfilled' && result.value.success);
+      const failed = results.filter(result => result.status === 'rejected' || !result.value.success);
+
+      if (failed.length > 0) {
+        toast.error(`${failed.length} contacts failed to add to pipeline`);
+      }
+
+      if (successful.length > 0) {
+        toast.success(`${successful.length} contacts added to pipeline successfully`);
+      }
+
+      return { successful, failed };
+    } catch (error) {
+      console.error('Unexpected error in addContactsToPipeline:', error);
+      toast.error('An unexpected error occurred while adding contacts to pipeline');
+      return { successful: [], failed: contacts.map(contact => ({ contact, success: false, error })) };
+    }
+  };
+  const handleBulkUpload = async (properties:  ZillowProperty[]) => {
+     
+    try { 
+      const uploadResults = await Promise.all(
+        properties.map(async (prop: any) => {
+          try { 
+            const response = await axios.post('/api/contacts', transformLeadToContact(prop));
+            return { success: true, contact: response.data.contact };
+          } catch (error) {
+            console.warn(`Failed to upload contact "${prop?.firstName || prop?.phone}":`, error);
+            return { success: false, contact: null };
+          }
+        })
+      );
+
+      const successfulUploads = uploadResults.filter((result) => result.success);
+      const processedContacts = successfulUploads.map((result) => result.contact); 
+
+      toast.success(`${successfulUploads.length} contacts added successfully`);
+       
+      if (selectedPipeline && selectedStage) {
+        addContactsToPipeline(selectedPipeline, selectedStage, processedContacts);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to add contacts');
+    }  
+  };
   const addLeadsToContact = async (properties: ZillowProperty[]) => {
     try {
       // First, create the contacts
@@ -149,7 +230,8 @@ export default function PropertiesPage() {
             },
             body: JSON.stringify({
               contactIds: createdContactIds,
-              pipelineId: selectedPipeline
+              pipelineId: selectedPipeline,
+              stageId: selectedStage,
             }),
           });
 
@@ -167,7 +249,6 @@ export default function PropertiesPage() {
       return false;
     }
   };
-
   const transformLeadToContact = (property: ZillowProperty) => {
     const fullName = property.agentName || property.brokerName || "";
     const nameParts = fullName.split(" ");
@@ -186,8 +267,7 @@ export default function PropertiesPage() {
           field_value: "lead",
         },
       ],
-      tags: ["scraped-lead", "zillow-property", "Review-new-lead"],
-      pipelineId: selectedPipeline,
+      tags: ["scraped-lead", "zillow-property", "Review-new-lead"], 
     };
   };
 
@@ -227,6 +307,10 @@ export default function PropertiesPage() {
     return data.locationId;
   }
   const handleScrapeProperties = async (count: number = DAILY_LIMIT) => {
+    if(selectedPipeline == null || selectedStage == null) {
+      toast.error("Please select a pipeline and stage");
+      return;
+    }
     // Initial state reset
     const resetState = () => {
       setIsScraping(true);
@@ -240,7 +324,7 @@ export default function PropertiesPage() {
 
     // Check and reset daily scrape count
     // Skipping daily limits for specific users
-    const UNLIMITED_USERS = ['s3mNHrFuDyGiI7oUVisU']; 
+    const UNLIMITED_USERS = ['s3mNHrFuDyGiI7oUVisU', "rhJba4qZDxLza65WYvnW"];
 
     // Modify the checkDailyLimit function
     const checkDailyLimit = async (): Promise<number | null> => {
@@ -252,7 +336,7 @@ export default function PropertiesPage() {
       const userEmail = await getUserLocationId(); // Implement this function to get current user's email
 
       // Check if user is in unlimited list
-      if (UNLIMITED_USERS.includes(userEmail)) { 
+      if (UNLIMITED_USERS.includes(userEmail)) {
         return count; // Return the requested count without daily limit check
       }
 
@@ -318,7 +402,6 @@ export default function PropertiesPage() {
 
       return data.properties;
     };
-
     // Process scraped properties
     const processProperties = async (properties: ZillowProperty[]) => {
       const totalProperties = properties.length;
@@ -327,8 +410,7 @@ export default function PropertiesPage() {
       setProgressPercentage(50);
 
       setCurrentStatus(`Adding ${totalProperties} properties to contacts...`);
-      const contactsAdded = await addLeadsToContact(properties);
-
+      const contactsAdded = await handleBulkUpload(properties); 
       const scrapedToday = getScrapedToday() + totalProperties;
       setScrapedToday(scrapedToday);
 
@@ -338,8 +420,7 @@ export default function PropertiesPage() {
       const remaining = DAILY_LIMIT - scrapedToday;
       setCompletionMessage({
         title: "Property Scraping Complete",
-        message: `${totalProperties} properties have been scraped from Zillow and ${contactsAdded ? "added to contacts" : "failed to add to contacts"
-          } based on your query: "${searchQuery}". You have ${remaining} properties left to scrape today.`,
+        message: `${totalProperties} properties have been scraped from Zillow and based on your query: "${searchQuery}". You have ${remaining > 0? remaining : 0} properties left to scrape today.`,
         actions: [
           { label: "View Properties", href: "/properties/list" },
           { label: "View Contacts", href: "/contacts" },
@@ -398,25 +479,60 @@ export default function PropertiesPage() {
           <h2 className="text-lg font-medium mb-4">Search Zillow Properties</h2>
 
           {/* Pipeline dropdown */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Pipeline</label>
-            <select
-              value={selectedPipeline || ''}
-              onChange={(e) => setSelectedPipeline(e.target.value)}
-              disabled={isScraping}
-              className="w-full sm:w-64 rounded-md border-0 py-2 px-3 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600"
-            >
-              {pipelines.length === 0 ? (
-                <option value="">Loading pipelines...</option>
-              ) : (
-                pipelines.map((pipeline) => (
-                  <option key={pipeline.id} value={pipeline.id}>
-                    {pipeline.name}
-                  </option>
-                ))
-              )}
-            </select>
-            <p className="mt-1 text-sm text-gray-500">Contacts will be added to the selected pipeline</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Pipeline Selector */}
+            <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">Pipeline</h3>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <select
+                value={selectedPipeline || ''}
+                onChange={(e) => setSelectedPipeline(e.target.value)}
+                disabled={isScraping}
+                className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              >
+                {pipelines.length === 0 ? (
+                  <option value="">Loading pipelines...</option>
+                ) : (
+                  pipelines.map((pipeline) => (
+                    <option key={pipeline.id} value={pipeline.id} className="text-gray-700">
+                      {pipeline.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              <p className="mt-2 text-xs text-gray-500">Select where contacts will be organized</p>
+            </div>
+
+            {/* Stage Selector */}
+            <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">Stage</h3>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <select
+                value={selectedStage || ''}
+                onChange={(e) => setSelectedStage(e.target.value)}
+                disabled={isScraping || !selectedPipeline}
+                className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+              >
+                {selectedPipelineStages.length === 0 ? (
+                  <option value="">Select pipeline first</option>
+                ) : (
+                  selectedPipelineStages.map((stage) => (
+                    <option key={stage.id} value={stage.id} className="text-gray-700">
+                      {stage.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              <p className="mt-2 text-xs text-gray-500">Choose the stage for new contacts</p>
+            </div>
           </div>
 
           <SearchBarProperties

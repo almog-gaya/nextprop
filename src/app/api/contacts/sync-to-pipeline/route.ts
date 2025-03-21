@@ -8,7 +8,7 @@ const REVIEW_STAGE_ID = 'MHYFVj1Q9BtfSxO6CFXC';
 export async function POST(request: NextRequest) {
   try {
     // Get data from request
-    const { filter, contactIds, pipelineId } = await request.json();
+    const { filter, contactIds, pipelineId, stageId } = await request.json();
     const { token, locationId } = await getAuthHeaders();
     
     // Use provided pipelineId or fallback to default
