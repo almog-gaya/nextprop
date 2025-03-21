@@ -643,18 +643,7 @@ export default function ContactsPage() {
           <p className="text-sm text-gray-600 mb-6">{isEdit ? 'Update contact details below' : 'Create a new contact'}</p>
           <form onSubmit={handleSubmit}>
             <div className="space-y-5">
-              {/* Name Fields */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                  required={!formData.firstName} // Required if firstName is not provided
-                  disabled={isSubmitting}
-                />
-              </div>
+              {/* Name Fields */} 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
