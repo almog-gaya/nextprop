@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { PhoneNumber, useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
-import { 
-  XIcon,  
+import {
+  XIcon,
   FileTextIcon
 } from 'lucide-react';
 import Link from 'next/link';
@@ -30,7 +30,7 @@ export default function RinglessVoicemailPage() {
     maxPerHour: 100,
     daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri"]
   });
-  
+
   // Contact management state
   const [contacts, setContacts] = useState<any[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<any[]>([]);
@@ -39,7 +39,7 @@ export default function RinglessVoicemailPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isFetching, setIsFetching] = useState(false);
   const loaderRef = useRef(null);
-  
+
   // Campaign creation state
   const [campaignName, setCampaignName] = useState('');
   const [script, setScript] = useState('');
@@ -47,14 +47,14 @@ export default function RinglessVoicemailPage() {
   const [selectedVoiceClone, setSelectedVoiceClone] = useState<string>('');
   const [phoneNumbers, setPhoneNumbers] = useState<any[]>([]);
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<any>(null);
-  
+
   // Modal state
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Constants
   const CONTACTS_PER_PAGE = 10;
-  
+
   // Stats derived from campaigns
   const stats = useMemo(() => {
     if (!campaigns || campaigns.length === 0) {
@@ -76,7 +76,7 @@ export default function RinglessVoicemailPage() {
         return acc + (total - processed > 0 ? total - processed : 0);
       }, 0),
       failed: campaigns.reduce((acc, campaign) => acc + (campaign.failed_contacts || 0), 0),
-      activeCampaigns: campaigns.filter(c => 
+      activeCampaigns: campaigns.filter(c =>
         (c.status === 'active' || c.status === 'running') && !c.paused
       ).length
     };
@@ -84,15 +84,15 @@ export default function RinglessVoicemailPage() {
 
   useEffect(() => {
     let unsubscribe: any;
-    
+
     const fetchData = async () => {
       unsubscribe = await fetchCampaigns();
       fetchPhoneNumbers();
       fetchVoiceClones();
     };
-  
+
     fetchData();
-    
+
     return () => {
       if (unsubscribe) unsubscribe();
     };
@@ -101,7 +101,7 @@ export default function RinglessVoicemailPage() {
   useEffect(() => {
     console.log("Current campaigns state:", campaigns);
   }, [campaigns]);
-  
+
   useEffect(() => {
     console.log('Initial fetch triggered');
     fetchContacts(true);
@@ -176,40 +176,61 @@ export default function RinglessVoicemailPage() {
   };
 
   async function fetchCampaigns() {
+    setLoading(true);
+    let unsubscribe: (() => void) | undefined;
+  
     try {
-      setLoading(true);
-      const campaignsCollection = collection(db, 'campaigns');
-      const campaignsQuery = query(campaignsCollection, where("customer_id", "==", "bahadur"));
+      // Use existing user.locationId if available, otherwise fetch from API
+      const locationId = user?.locationId ?? await getLocationId();
       
-      const unsubscribe = onSnapshot(campaignsQuery, (querySnapshot) => {
+      const campaignsCollection = collection(db, 'campaigns');
+      const campaignsQuery = query(campaignsCollection, where("customer_id", "==", locationId));
+  
+      unsubscribe = onSnapshot(campaignsQuery, (querySnapshot) => {
         const campaignsData: any[] = [];
         querySnapshot.forEach((doc) => {
           campaignsData.push({ id: doc.id, ...doc.data() });
         });
-        
+  
         console.log('Fetched campaigns:', campaignsData);
         setCampaigns(campaignsData);
         setError(null);
       });
   
       return unsubscribe;
-      
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       setError('Failed to load campaign data');
       toast.error('Failed to load campaign data');
+      throw error; // Re-throw to allow caller to handle if needed
     } finally {
       setLoading(false);
+    }
+  }
+  
+  // Helper function to fetch location ID
+  async function getLocationId(): Promise<string> {
+    try {
+      const response = await fetch('/api/auth/ghl/location-id');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch location ID: ${response.status}`);
+      }
+      const data = await response.json();
+      if (!data.locationId) {
+        throw new Error('Location ID not found in response');
+      }
+      return data.locationId;
+    } catch (error) {
+      console.error('Error fetching location ID:', error);
+      throw error; // Let the caller handle the error
     }
   }
 
   async function fetchPhoneNumbers() {
     try {
-      const response = await axios.get('/api/voicemail/phone-numbers');
-      setPhoneNumbers(response.data.numbers || []);
-      if (response.data.numbers && response.data.numbers.length > 0) {
-        setSelectedPhoneNumber(response.data.numbers[0]);
-      }
+      const userNumbers = user?.phoneNumbers || [];
+      const numbersArray = userNumbers.map((number: PhoneNumber) => number.phoneNumber);
+      setPhoneNumbers(numbersArray);
     } catch (error) {
       console.error('Error fetching phone numbers:', error);
       toast.error('Failed to load phone numbers');
@@ -217,7 +238,7 @@ export default function RinglessVoicemailPage() {
       setSelectedPhoneNumber(null);
     }
   }
-  
+
   async function fetchVoiceClones() {
     try {
       const response = await axios.get('/api/voicemail/voice-clones');
@@ -244,7 +265,7 @@ export default function RinglessVoicemailPage() {
       };
       const campaignDoc = doc(db, "campaigns", id);
       setDoc(campaignDoc, { paused: action === "pause", status: "pending" }, { merge: true });
-      
+
       toast.success(actionMessages[action] || 'Campaign updated');
     } catch (error) {
       console.error(`Error ${action} campaign:`, error);
@@ -256,7 +277,7 @@ export default function RinglessVoicemailPage() {
     if (!confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
       return;
     }
-    
+
     try {
       const campaignDoc = doc(db, "campaigns", id);
       await deleteDoc(campaignDoc);
@@ -277,12 +298,12 @@ export default function RinglessVoicemailPage() {
       toast.error('Please select at least one contact');
       return;
     }
-  
+
     if (!selectedPhoneNumber) {
       toast.error('Please select a phone number');
       return;
     }
-  
+
     if (!script) {
       toast.error('Please provide a campaign script');
       return;
@@ -292,23 +313,24 @@ export default function RinglessVoicemailPage() {
       toast.error('Please provide a campaign name');
       return;
     }
-  
+
     try {
       setLoading(true);
-      
+
       const formattedContacts = selectedContacts.map(contact => ({
         phone_number: contact.phone,
         first_name: contact.firstName || contact.contactName || 'Unknown',
         street_name: contact.address1 || 'your area'
       }));
-  
+
       const campaignData = {
-        customer_id: "bahadur",
+        customer_id: user?.locationId,
         voice_clone_id: selectedVoiceClone || "dodUUtwsqo09HrH2RO8w",
         name: campaignName,
         from_number: selectedPhoneNumber.number || selectedPhoneNumber,
         interval_seconds: settings.delayMinutes * 60,
         days: settings.daysOfWeek,
+        is_paused: true,
         time_window: {
           start: settings.startTime.split(' ')[0].replace(':', ':'),
           end: settings.endTime.split(' ')[0].replace(':', ':')
@@ -317,13 +339,15 @@ export default function RinglessVoicemailPage() {
         message: script,
         contacts: formattedContacts
       };
-  
-      const response = await axios.post('https://backend.iky.link/campaigns', campaignData, {
+
+      const response = await fetch("/api/voicemail", {
+        method: "POST",
         headers: {
           'Content-Type': 'application/json'
-        }
-      });
-  
+        },
+        body: JSON.stringify(campaignData)
+      })
+      const data = await response.json();
       toast.success('Campaign created successfully');
       setSelectedContacts([]);
       setCampaignName('');
@@ -331,29 +355,29 @@ export default function RinglessVoicemailPage() {
       setSelectedPhoneNumber(phoneNumbers[0] || null);
       setSelectedVoiceClone('');
       fetchCampaigns();
-      
-      return response.data;
+
+      return data;
     } catch (error) {
       console.error('Error creating campaign:', error);
-      toast.error('Failed to create campaign');
+      toast.error(error?.message || error?.response?.data?.message || 'Failed to create campaign');
       throw error;
     } finally {
       setLoading(false);
     }
   }
-  
+
   const toggleContact = (contact: any) => {
     setSelectedContacts((prev) =>
       prev.some((c) => c.id === contact.id) ? prev.filter((c) => c.id !== contact.id) : [...prev, contact]
     );
   };
-  
+
   const generateDefaultScript = () => {
     setScript(
       `Hi {{first_name}}, this is ${user?.firstName || user?.name || 'Adforce'} from NextProp. I noticed you might be interested in properties in your area. I've got some great listings on {{street_name}} that match your criteria. Call me back when you have a chance and we can discuss your needs. Thanks!`
     );
   };
-  
+
   const handleBulkUpload = async (contacts: any) => {
     setIsSubmitting(true);
     try {
@@ -564,7 +588,7 @@ export default function RinglessVoicemailPage() {
               <div>
                 <div className="border border-gray-200 rounded-md p-4 bg-gray-50 mb-4">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Step 1: Select Contacts</h4>
-                  
+
                   {isBulkUploadModalOpen && (
                     <div
                       className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
@@ -595,7 +619,7 @@ export default function RinglessVoicemailPage() {
                         />
                       </div>
                     </div>
-                    
+
                     <button
                       onClick={() => setIsBulkUploadModalOpen(true)}
                       className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
@@ -604,7 +628,7 @@ export default function RinglessVoicemailPage() {
                       Bulk Upload
                     </button>
                   </div>
-                  
+
                   <div className="mt-4">
                     <h5 className="text-sm font-medium text-gray-700 mb-2">Available Contacts ({contacts.length})</h5>
                     <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
@@ -612,9 +636,8 @@ export default function RinglessVoicemailPage() {
                         {contacts.length > 0 ? contacts.map((contact) => (
                           <li
                             key={contact.id}
-                            className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${
-                              selectedContacts.some(c => c.id === contact.id) ? 'bg-purple-50' : ''
-                            }`}
+                            className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${selectedContacts.some(c => c.id === contact.id) ? 'bg-purple-50' : ''
+                              }`}
                             onClick={() => toggleContact(contact)}
                           >
                             <div className="flex-1 min-w-0">
@@ -627,7 +650,7 @@ export default function RinglessVoicemailPage() {
                               type="checkbox"
                               className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                               checked={selectedContacts.some(c => c.id === contact.id)}
-                              onChange={() => {}}
+                              onChange={() => { }}
                             />
                           </li>
                         )) : (
@@ -674,7 +697,7 @@ export default function RinglessVoicemailPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Right Column - Campaign Configuration */}
               <div>
                 <div className="space-y-5">
@@ -701,21 +724,21 @@ export default function RinglessVoicemailPage() {
                     <select
                       id="phoneNumber"
                       className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
-                      value={selectedPhoneNumber?.number || ''}
+                      value={selectedPhoneNumber || ''}
                       onChange={(e) => {
                         console.log(`Selected phone number: ${e.target.value}`)
-                        const phone = phoneNumbers.find(p => p.number === e.target.value);
+                        const phone = phoneNumbers.find(p => p === e.target.value);
                         setSelectedPhoneNumber(phone);
                       }}
                     >
                       <option value="" className="text-gray-500">Select a number</option>
                       {phoneNumbers.map(phone => (
-                        <option 
-                          key={phone.number} 
-                          value={phone.number}
+                        <option
+                          key={phone}
+                          value={phone}
                           className="text-gray-900"
                         >
-                          {phone.number}
+                          {phone}
                         </option>
                       ))}
                     </select>
@@ -820,9 +843,9 @@ export default function RinglessVoicemailPage() {
               <p className="mt-1 text-sm text-gray-500">
                 Manage your existing voicemail campaigns
               </p>
-            </div> 
+            </div>
           </div>
-          
+
           {loading ? (
             <div className="text-center py-8">
               <div className="spinner-border text-purple-500" role="status">
@@ -842,16 +865,16 @@ export default function RinglessVoicemailPage() {
             <ul className="divide-y divide-gray-200">
               {campaigns.map((campaign) => {
                 console.log('Processing campaign:', campaign);
-                
+
                 const campaignStats = {
                   totalContacts: campaign.total_contacts || 0,
                   delivered: campaign.processed_contacts || 0,
                   pending: (campaign.total_contacts || 0) - (campaign.processed_contacts || 0),
                   failed: campaign.failed_contacts || 0
                 };
-                
+
                 console.log('Calculated stats:', campaignStats);
-                
+
                 return (
                   <CampaignCard
                     key={campaign.id || campaign._id}
@@ -859,7 +882,6 @@ export default function RinglessVoicemailPage() {
                     stats={campaignStats}
                     onPause={() => handleCampaignAction(campaign.id || campaign._id, 'pause')}
                     onResume={() => handleCampaignAction(campaign.id || campaign._id, 'resume')}
-                    onCancel={() => handleCampaignAction(campaign.id || campaign._id, 'cancel')}
                     onDelete={() => handleDeleteCampaign(campaign.id || campaign._id)}
                   />
                 );
