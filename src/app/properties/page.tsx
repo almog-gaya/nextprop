@@ -130,7 +130,7 @@ export default function PropertiesPage() {
                 pipelineStageId: stageId,
                 contactId: contact.id,
                 status: "open",
-                name: `${contact.firstName} ${contact.zipCode || contact.street || contact.city || contact.state || ' - bulk'}`.trim()
+                name: `${contact.firstName} ${contact.lastName} - ${contact.address1 ?? `${contact.street}, ${contact.city}, ${contact.state} ${contact.zipCode}`}`.trim()
               }),
             });
 
@@ -164,12 +164,12 @@ export default function PropertiesPage() {
       return { successful: [], failed: contacts.map(contact => ({ contact, success: false, error })) };
     }
   };
-  const handleBulkUpload = async (properties:  ZillowProperty[]) => {
-     
-    try { 
+  const handleBulkUpload = async (properties: ZillowProperty[]) => {
+
+    try {
       const uploadResults = await Promise.all(
         properties.map(async (prop: any) => {
-          try { 
+          try {
             const response = await axios.post('/api/contacts', transformLeadToContact(prop));
             return { success: true, contact: response.data.contact };
           } catch (error) {
@@ -180,73 +180,15 @@ export default function PropertiesPage() {
       );
 
       const successfulUploads = uploadResults.filter((result) => result.success);
-      const processedContacts = successfulUploads.map((result) => result.contact); 
+      const processedContacts = successfulUploads.map((result) => result.contact);
 
       toast.success(`${successfulUploads.length} contacts added successfully`);
-       
+
       if (selectedPipeline && selectedStage) {
         addContactsToPipeline(selectedPipeline, selectedStage, processedContacts);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to add contacts');
-    }  
-  };
-  const addLeadsToContact = async (properties: ZillowProperty[]) => {
-    try {
-      // First, create the contacts
-      const transformedLeads = properties.map((prop) => transformLeadToContact(prop));
-      const createdContactIds = [];
-
-      for (const lead of transformedLeads) {
-        try {
-          const response = await fetch("/api/contacts", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(lead),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to add contact: ${response.statusText}`);
-          }
-
-          const data = await response.json();
-          if (data.id) {
-            createdContactIds.push(data.id);
-          }
-        } catch (error) {
-          console.log("Error adding contact:", error);
-        }
-      }
-
-      // Then, sync the newly created contacts to the selected pipeline
-      if (createdContactIds.length > 0 && selectedPipeline) {
-        try {
-          const syncResponse = await fetch("/api/contacts/sync-to-pipeline", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              contactIds: createdContactIds,
-              pipelineId: selectedPipeline,
-              stageId: selectedStage,
-            }),
-          });
-
-          if (!syncResponse.ok) {
-            console.error("Failed to sync contacts to pipeline:", await syncResponse.text());
-          }
-        } catch (syncError) {
-          console.error("Error syncing contacts to pipeline:", syncError);
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error adding leads to contact:", error);
-      return false;
     }
   };
   const transformLeadToContact = (property: ZillowProperty) => {
@@ -267,7 +209,7 @@ export default function PropertiesPage() {
           field_value: "lead",
         },
       ],
-      tags: ["scraped-lead", "zillow-property", "Review-new-lead"], 
+      tags: ["scraped-lead", "zillow-property", "Review-new-lead"],
     };
   };
 
@@ -307,7 +249,7 @@ export default function PropertiesPage() {
     return data.locationId;
   }
   const handleScrapeProperties = async (count: number = DAILY_LIMIT) => {
-    if(selectedPipeline == null || selectedStage == null) {
+    if (selectedPipeline == null || selectedStage == null) {
       toast.error("Please select a pipeline and stage");
       return;
     }
@@ -410,7 +352,7 @@ export default function PropertiesPage() {
       setProgressPercentage(50);
 
       setCurrentStatus(`Adding ${totalProperties} properties to contacts...`);
-      const contactsAdded = await handleBulkUpload(properties); 
+      const contactsAdded = await handleBulkUpload(properties);
       const scrapedToday = getScrapedToday() + totalProperties;
       setScrapedToday(scrapedToday);
 
@@ -420,7 +362,7 @@ export default function PropertiesPage() {
       const remaining = DAILY_LIMIT - scrapedToday;
       setCompletionMessage({
         title: "Property Scraping Complete",
-        message: `${totalProperties} properties have been scraped from Zillow and based on your query: "${searchQuery}". You have ${remaining > 0? remaining : 0} properties left to scrape today.`,
+        message: `${totalProperties} properties have been scraped from Zillow and based on your query: "${searchQuery}". You have ${remaining > 0 ? remaining : 0} properties left to scrape today.`,
         actions: [
           { label: "View Properties", href: "/properties/list" },
           { label: "View Contacts", href: "/contacts" },

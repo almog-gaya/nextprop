@@ -524,7 +524,7 @@ export default function RinglessVoicemailPage() {
                 pipelineStageId: stageId,
                 contactId: contact.id,
                 status: "open",
-                name: `${contact.firstName} ${contact.zipCode || contact.street || contact.city || contact.state || ' - bulk'}`.trim()
+                name: `${contact.firstName} ${contact.lastName} - ${contact.address1 ?? `${contact.street}, ${contact.city}, ${contact.state} ${contact.zipCode}`}`.trim()
               }),
             });
 
