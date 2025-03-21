@@ -385,10 +385,6 @@ export default function PropertiesPage() {
   return (
     <DashboardLayout title="Properties">
       <div className="py-6 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900">Properties</h1>
-        </div>
-
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg mb-8">
           <div className="p-6 md:p-8 text-white">
             <h2 className="text-xl md:text-2xl font-bold mb-3">Scrape Zillow Properties</h2>

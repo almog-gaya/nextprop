@@ -716,12 +716,7 @@ export default function DashboardPage() {
               </div>
               {reportData && reportData.data && reportData.data.counts && (
                 <div className="mt-2 px-4">
-                  <p className="text-sm text-gray-600">
-                    This chart shows the distribution of your opportunities by status.
-                    {reportData.data.counts.length > 0 && (
-                      <span> {reportData.data.counts[0].label.charAt(0).toUpperCase() + reportData.data.counts[0].label.slice(1)} opportunities represent <strong>{((reportData.data.counts[0].value / reportData.data.total) * 100).toFixed(1)}%</strong> of your total.</span>
-                    )}
-                  </p>
+
                 </div>
               )}
             </CardContent>
@@ -779,15 +774,7 @@ export default function DashboardPage() {
               </div>
               {reportData && reportData.data && reportData.comparisonData && (
                 <div className="mt-2 px-4">
-                  <p className="text-sm text-gray-600">
-                    {reportData.stats?.percentageChange >= 0 ? 
-                      `There has been a ${reportData.stats?.percentageChange.toFixed(1)}% increase in opportunities compared to the previous period.` :
-                      `There has been a ${Math.abs(reportData.stats?.percentageChange || 0).toFixed(1)}% decrease in opportunities compared to the previous period.`
-                    }
-                    {reportData.stats?.percentageChangeValue !== 0 && (
-                      ` The total value has ${reportData.stats?.percentageChangeValue >= 0 ? 'increased' : 'decreased'} by ${Math.abs(reportData.stats?.percentageChangeValue || 0).toFixed(1)}%.`
-                    )}
-                  </p>
+                  
                 </div>
               )}
             </CardContent>
@@ -883,28 +870,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
-              {reportData && reportData.data && reportData.comparisonData && reportData.stats && (
-                <div className="px-4 mt-4">
-                  <div className="bg-indigo-50 p-3 rounded-md">
-                    <p className="text-sm text-indigo-800">
-                      <span className="font-medium">Insight:</span> Your opportunities have 
-                      {reportData.stats.percentageChange >= 0 
-                        ? ` increased by ${reportData.stats.percentageChange.toFixed(1)}%` 
-                        : ` decreased by ${Math.abs(reportData.stats.percentageChange).toFixed(1)}%`
-                      } compared to the previous period.
-                      {reportData.data.counts.some(c => c.label === 'won') &&
-                       reportData.comparisonData.counts.some(c => c.label === 'won') && (
-                        <span> Won opportunities have 
-                          {reportData.stats.percentageChangeWonValue >= 0 
-                            ? ` increased by ${reportData.stats.percentageChangeWonValue.toFixed(1)}%` 
-                            : ` decreased by ${Math.abs(reportData.stats.percentageChangeWonValue).toFixed(1)}%`
-                          }.
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
+
             </CardContent>
           </Card>
         </div>

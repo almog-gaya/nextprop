@@ -174,8 +174,8 @@ export default function SearchBarProperties({
                 </>
               ) : (
                 <>
-                  <UserPlusIcon className="h-5 w-5" />
-                  Scrape {dailyLimit}
+                  <UserPlusIcon className="" />
+                  Scrape {dailyLimit} Properties
                 </>
               )}
             </button>
