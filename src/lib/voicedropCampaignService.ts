@@ -418,7 +418,7 @@ export async function listVoiceClones(): Promise<VoiceClone[]> {
           'Content-Type': 'application/json',
           'auth-key': VOICEDROP_API_KEY
         },
-        timeout: 15000 // 15 second timeout to prevent long hanging requests
+        timeout: 45000 // 15 second timeout to prevent long hanging requests
       }
     );
 
