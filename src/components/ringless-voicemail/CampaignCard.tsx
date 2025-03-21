@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   PlayIcon, 
   PauseIcon, 
@@ -69,13 +69,17 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
   const script = campaign.script || campaign.Script || '';
   const fromPhone = campaign.fromPhone || (campaign["From Phone Numbers"] && campaign["From Phone Numbers"][0]) || '';
   
+  useEffect(() => {
+    console.log(`campaign.progress:`, campaign.progress)
+    // Handle any side effects here, like fetching campaign data
+  }, [id]);
   // If we have the old progress format, use it directly, otherwise construct progress from API data
-  const progress = campaign.progress || {
-    total: 100, // Default values if we can't determine from API
-    sent: 0,
-    delivered: 0,
-    pending: 100,
-    failed: 0,
+  const progress = {
+    total: stats?.totalContacts || 0,
+    sent: stats?.delivered || 0,
+    delivered: stats?.delivered || 0,
+    pending: (campaign.total || 0) - (campaign.processed_contacts || 0),
+    failed: stats?.failed || 0,
     callbacks: 0
   };
   
@@ -150,14 +154,10 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
           <div className="relative pt-1">
             <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200">
               <div
-                style={{ width: `${(deliveredCount / progress.total) * 100}%` }}
+                style={{ width: `${Math.max(1, progressPercentage)}%` }}
                 className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"
               ></div>
-              <div
-                style={{ width: `${(failedCount / progress.total) * 100}%` }}
-                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-red-500"
-              ></div>
-            </div>
+            </div> 
           </div>
         </div>
           
