@@ -106,67 +106,6 @@ export async function POST(req: Request) {
             })
             .map((item: any) => {
                 const attributionInfo = item.attributionInfo || {};
-                
-                // Extract image URL from various possible fields
-                let imageUrl = null;
-                
-                // Check for images in primaryPhotos
-                if (item.primaryPhotos && item.primaryPhotos.length > 0) {
-                    try {
-                        // Parse the primaryPhotos JSON if it's a string
-                        const photos = typeof item.primaryPhotos === 'string' 
-                            ? JSON.parse(item.primaryPhotos) 
-                            : item.primaryPhotos;
-                            
-                        if (photos[0] && photos[0].url) {
-                            imageUrl = photos[0].url;
-                        }
-                    } catch (e) {
-                        console.log("[DEBUG] Error parsing primaryPhotos:", e);
-                    }
-                }
-                
-                // Try responsivePhotos if primaryPhotos didn't work
-                if (!imageUrl && item.responsivePhotos) {
-                    try {
-                        // Parse the responsivePhotos JSON if it's a string
-                        const photos = typeof item.responsivePhotos === 'string'
-                            ? JSON.parse(item.responsivePhotos)
-                            : item.responsivePhotos;
-                            
-                        if (photos && photos[0] && photos[0].url) {
-                            imageUrl = photos[0].url;
-                        }
-                    } catch (e) {
-                        console.log("[DEBUG] Error parsing responsivePhotos:", e);
-                    }
-                }
-                
-                // Try miniCardPhotos if other methods didn't work
-                if (!imageUrl && item.miniCardPhotos) {
-                    try {
-                        const photos = typeof item.miniCardPhotos === 'string'
-                            ? JSON.parse(item.miniCardPhotos)
-                            : item.miniCardPhotos;
-                            
-                        if (photos && photos[0] && photos[0].url) {
-                            imageUrl = photos[0].url;
-                        }
-                    } catch (e) {
-                        console.log("[DEBUG] Error parsing miniCardPhotos:", e);
-                    }
-                }
-                
-                // Try streetViewTileImageUrl as a last resort
-                if (!imageUrl && item.streetViewTileImageUrlMediumAddress) {
-                    imageUrl = item.streetViewTileImageUrlMediumAddress;
-                }
-                
-                // Fallback to street view if we have the latitude and longitude
-                if (!imageUrl && item.latitude && item.longitude) {
-                    imageUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x400&location=${item.latitude},${item.longitude}&key=${process.env.GOOGLE_MAPS_API_KEY || ''}`;
-                }
-                
                 const mappedItem = {
                     agentName: attributionInfo.agentName || null,
                     agentPhoneNumber: attributionInfo.agentPhoneNumber || null,
@@ -187,7 +126,6 @@ export async function POST(req: Request) {
                     description: item.description || null,
                     timeOnZillow: item.timeOnZillow || null,
                     url: item.hdpUrl? "https://www.zillow.com"+item.hdpUrl : null,
-                    imageUrl: imageUrl,
                 };
                 console.log("[DEBUG] Mapped item:", JSON.stringify(mappedItem));
                 return mappedItem;
@@ -201,7 +139,7 @@ export async function POST(req: Request) {
         console.log("[DEBUG] Final response:", JSON.stringify(response));
         return NextResponse.json(response);
 
-    } catch (error: any) {
+    } catch (error) {
         console.error("[DEBUG] Error occurred:", error);
         return NextResponse.json({
             success: false,

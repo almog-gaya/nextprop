@@ -30,7 +30,6 @@ export interface ListingSubType {
     description?: string | null;
     timeOnZillow?: string | null;
     url?: string | null;
-    imageUrl?: string | null;
   }
   
   export interface ScrapedResult {
