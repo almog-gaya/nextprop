@@ -25,11 +25,34 @@ export default function RinglessVoicemailPage() {
     delayMinutes: 5,
     dailyLimit: 50,
     startTime: "10:00 AM",
-    endTime: "4:00 PM",
+    endTime: "16:00 PM",
     timezone: "EST (New York)",
     maxPerHour: 100,
     daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri"]
   });
+
+  const dayMapping: { [key: string]: string } = {
+    Mon: "Monday",
+    Tue: "Tuesday",
+    Wed: "Wednesday",
+    Thu: "Thursday",
+    Fri: "Friday",
+    Sat: "Saturday",
+    Sun: "Sunday",
+  };
+  const convertTo24Hour = (time: string) => {
+    const [hours, minutes] = time.split(/:| /);
+    let hour = parseInt(hours, 10);
+    const isPM = time.includes("PM");
+
+    if (isPM && hour !== 12) {
+      hour += 12;
+    } else if (!isPM && hour === 12) {
+      hour = 0;
+    }
+
+    return `${String(hour).padStart(2, "0")}:${minutes}`;
+  };
 
   // Contact management state
   const [contacts, setContacts] = useState<any[]>([]);
@@ -178,25 +201,25 @@ export default function RinglessVoicemailPage() {
   async function fetchCampaigns() {
     setLoading(true);
     let unsubscribe: (() => void) | undefined;
-  
+
     try {
       // Use existing user.locationId if available, otherwise fetch from API
       const locationId = user?.locationId ?? await getLocationId();
-      
+
       const campaignsCollection = collection(db, 'campaigns');
       const campaignsQuery = query(campaignsCollection, where("customer_id", "==", locationId));
-  
+
       unsubscribe = onSnapshot(campaignsQuery, (querySnapshot) => {
         const campaignsData: any[] = [];
         querySnapshot.forEach((doc) => {
           campaignsData.push({ id: doc.id, ...doc.data() });
         });
-  
+
         console.log('Fetched campaigns:', campaignsData);
         setCampaigns(campaignsData);
         setError(null);
       });
-  
+
       return unsubscribe;
     } catch (error) {
       console.error('Error fetching campaigns:', error);
@@ -207,7 +230,7 @@ export default function RinglessVoicemailPage() {
       setLoading(false);
     }
   }
-  
+
   // Helper function to fetch location ID
   async function getLocationId(): Promise<string> {
     try {
@@ -329,11 +352,11 @@ export default function RinglessVoicemailPage() {
         name: campaignName,
         from_number: selectedPhoneNumber.number || selectedPhoneNumber,
         interval_seconds: settings.delayMinutes * 60,
-        days: settings.daysOfWeek,
+        days: settings.daysOfWeek.map(day => dayMapping[day] || day),
         is_paused: true,
         time_window: {
-          start: settings.startTime.split(' ')[0].replace(':', ':'),
-          end: settings.endTime.split(' ')[0].replace(':', ':')
+          start: convertTo24Hour(settings.startTime),
+          end: convertTo24Hour(settings.endTime)
         },
         timezone: settings.timezone === "EST (New York)" ? "America/New_York" : settings.timezone,
         message: script,
