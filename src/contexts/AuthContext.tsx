@@ -54,6 +54,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   logout: () => void;
+  loadUser: () => Promise<void>;
   setError: (error: string | null) => void;
 }
 
@@ -64,43 +65,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true); // Start as true
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const loadUser = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/auth/ghl/data');
+      const data = await response.json();
 
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/auth/ghl/data');
-        const data = await response.json();
-
-        if (!data.authenticated) {
-          router.replace('/auth/login');
-          setLoading(false);
-          return;
-        }
- 
-        // Transform the API response to match User interface
-        const userData: User = {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name || `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim(),
-          firstName: data.user.firstName,
-          lastName: data.user.lastName,
-          locationId: data.locationData?.locationId,
-          phone: data.user.phone,
-          companyId: data.user.companyId,
-          dateAdded: data.user.dateAdded,
-          phoneNumbers: data.user.numbers,
-        };
-
-        console.log('Setting User as:', userData);
-        setUser(userData);
-      } catch (e) {
-        console.error('Error loading user data:', e);
-        setError('Failed to load user data');
-      } finally {
-        setLoading(false); // Always set loading to false when done
+      if (!data.authenticated) {
+        router.replace('/auth/login');
+        setLoading(false);
+        return;
       }
-    };
+
+      // Transform the API response to match User interface
+      const userData: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name || `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim(),
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        locationId: data.locationData?.locationId,
+        phone: data.user.phone,
+        companyId: data.user.companyId,
+        dateAdded: data.user.dateAdded,
+        phoneNumbers: data.user.numbers,
+      };
+
+      console.log('Setting User as:', userData);
+      setUser(userData);
+    } catch (e) {
+      console.error('Error loading user data:', e);
+      setError('Failed to load user data');
+    } finally {
+      setLoading(false); // Always set loading to false when done
+    }
+  };
+  useEffect(() => {
+  
 
     loadUser();
   }, [router]); // Include router in dependencies
@@ -125,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, logout, setError }}>
+    <AuthContext.Provider value={{ user, loading, error, logout, setError, loadUser}}>
       {children}
     </AuthContext.Provider>
   );

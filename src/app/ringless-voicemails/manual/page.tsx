@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { PhoneNumber, useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -12,8 +12,8 @@ export default function ManualVoicemailPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [phoneNumbers, setPhoneNumbers] = useState<any[]>([]);
-  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<any>(null);
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
+  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<PhoneNumber>();
   const [recipient, setRecipient] = useState({
     firstName: '',
     phone: '',
@@ -35,26 +35,15 @@ export default function ManualVoicemailPage() {
   
   // Fetch phone numbers
   async function fetchPhoneNumbers() {
-    try {
-      const response = await axios.get('/api/voicemail/phone-numbers');
-      setPhoneNumbers(response.data.numbers || []);
-      if (response.data.numbers && response.data.numbers.length > 0) {
-        setSelectedPhoneNumber(response.data.numbers[0]);
+    try { 
+      
+      setPhoneNumbers(user?.phoneNumbers|| []);
+      if (user?.phoneNumbers && user!.phoneNumbers.length > 0) {
+        setSelectedPhoneNumber(user!.phoneNumbers[0]);
       }
     } catch (error) {
       console.error('Error fetching phone numbers:', error);
-      toast.error('Failed to load phone numbers');
-      // Set default phone number
-      setPhoneNumbers([{ 
-        id: 'default',
-        phoneNumber: '+1 929-415-9655',
-        label: '+1 929-415-9655 (Default)' 
-      }]);
-      setSelectedPhoneNumber({ 
-        id: 'default',
-        phoneNumber: '+1 929-415-9655',
-        label: '+1 929-415-9655 (Default)' 
-      });
+      toast.error('Failed to load phone numbers'); 
     }
   }
   
@@ -224,16 +213,16 @@ export default function ManualVoicemailPage() {
                       <select
                         id="phoneNumber"
                         className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                        value={selectedPhoneNumber?.id || ''}
+                        value={selectedPhoneNumber?.phoneNumber}
                         onChange={(e) => {
-                          const selected = phoneNumbers.find(p => p.id === e.target.value);
-                          setSelectedPhoneNumber(selected || null);
+                          const selected = phoneNumbers.find(p => p.phoneNumber === e.target.value);
+                          setSelectedPhoneNumber(selected);
                         }}
                         required
                       >
                         {phoneNumbers.map(phone => (
-                          <option key={phone.id} value={phone.id}>
-                            {phone.label}
+                          <option key={phone.phoneNumber} value={phone.phoneNumber}>
+                            {phone.phoneNumber}
                           </option>
                         ))}
                       </select>

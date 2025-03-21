@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface CampaignSettings {
   delayMinutes: number;
@@ -16,115 +16,146 @@ interface CampaignSettingsFormProps {
 }
 
 export default function CampaignSettingsForm({ settings, onSave }: CampaignSettingsFormProps) {
-  const [delayMinutes, setDelayMinutes] = useState(settings.delayMinutes);
-  const [dailyLimit, setDailyLimit] = useState(settings.dailyLimit);
-  const [startTime, setStartTime] = useState(settings.startTime);
-  const [endTime, setEndTime] = useState(settings.endTime);
-  const [timezone, setTimezone] = useState(settings.timezone);
-  const [maxPerHour, setMaxPerHour] = useState(settings.maxPerHour);
-  const [daysOfWeek, setDaysOfWeek] = useState<string[]>(settings.daysOfWeek);
-  
+  const [formSettings, setFormSettings] = useState<CampaignSettings>({
+    ...settings,
+    daysOfWeek: [...settings.daysOfWeek]
+  });
+
+  const timeOptions = [
+    '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM',
+    '7:00 PM', '8:00 PM', '9:00 PM'
+  ];
+
+  const timezoneOptions = [
+    { value: "America/New_York", label: "EST (New York)" },
+    { value: "America/Chicago", label: "CST (Chicago)" },
+    { value: "America/Denver", label: "MST (Denver)" },
+    { value: "America/Los_Angeles", label: "PST (Los Angeles)" },
+    { value: "America/Anchorage", label: "AKST (Alaska)" },
+    { value: "Pacific/Honolulu", label: "HST (Hawaii)" }
+  ];
+
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  // useEffect(()=>{
+  //   console.log(`formSettings: ${JSON.stringify(formSettings)}`)
+  // })
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      delayMinutes,
-      dailyLimit,
-      startTime,
-      endTime,
-      timezone,
-      maxPerHour,
-      daysOfWeek
-    });
+    onSave(formSettings);
   };
-  
+
+  const handleInputChange = (field: keyof CampaignSettings, value: string | number | string[]) => {
+    setFormSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const toggleDay = (day: string) => {
-    setDaysOfWeek(prev => 
-      prev.includes(day) 
-        ? prev.filter(d => d !== day) 
-        : [...prev, day]
-    );
+    setFormSettings(prev => ({
+      ...prev,
+      daysOfWeek: prev.daysOfWeek.includes(day)
+        ? prev.daysOfWeek.filter(d => d !== day)
+        : [...prev.daysOfWeek, day]
+    }));
   };
-  
-  const timeOptions = [
-    '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', 
-    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM'
-  ];
-  
-  const timezones = [
-    'EST (New York)', 'CST (Chicago)', 'MST (Denver)', 
-    'PST (Los Angeles)', 'AKST (Alaska)', 'HST (Hawaii)'
-  ];
-  
+
   return (
     <div>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Delivery Timing Section */}
-        <div className="bg-gray-50 rounded-md p-4 border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-800 mb-3 border-b pb-2">Delivery Timing</h3>
-          
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="startTime" className="block text-sm font-medium text-gray-700">
-                Start Time
-              </label>
-              <select
-                id="startTime"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              >
-                {timeOptions.map(time => (
-                  <option key={`start-${time}`} value={time}>{time}</option>
-                ))}
-              </select>
+        <div className="px-4 py-5 sm:p-6">
+          <div className="bg-white p-4 rounded-md border border-gray-200">
+            <div className="flex flex-wrap gap-4 mb-4">
+              <div className="w-full sm:w-auto">
+                <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                <select
+                  className="block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                  value={formSettings.startTime}
+                  onChange={(e) => handleInputChange('startTime', e.target.value)}
+                >
+                  {timeOptions.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full sm:w-auto">
+                <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                <select
+                  className="block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                  value={formSettings.endTime}
+                  onChange={(e) => handleInputChange('endTime', e.target.value)}
+                >
+                  {timeOptions.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full sm:w-auto">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                <select
+                  className="block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+                  value={formSettings.timezone}
+                  onChange={(e) => handleInputChange('timezone', e.target.value)}
+                >
+                  {timezoneOptions.map(tz => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            
-            <div>
-              <label htmlFor="endTime" className="block text-sm font-medium text-gray-700">
-                End Time
-              </label>
-              <select
-                id="endTime"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-              >
-                {timeOptions.map(time => (
-                  <option key={`end-${time}`} value={time}>{time}</option>
-                ))}
-              </select>
+
+            {/* Max voicemails per hour slider */}
+            <div className="mt-6">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Max ringless voicemails per hour</h4>
+              <div className="relative">
+                <input
+                  type="range"
+                  min="10"
+                  max="500"
+                  step="10"
+                  value={formSettings.maxPerHour}
+                  onChange={(e) => handleInputChange('maxPerHour', parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                />
+                <div className="flex justify-between text-sm text-gray-600 mt-2">
+                  <span>100</span>
+                  <span>200</span>
+                  <span>300</span>
+                  <span>400</span>
+                  <span>500</span>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center">
+                <input
+                  type="number"
+                  min="10"
+                  max="1000"
+                  value={formSettings.maxPerHour}
+                  onChange={(e) => handleInputChange('maxPerHour', parseInt(e.target.value) || 10)}
+                  className="shadow-sm focus:ring-purple-500 focus:border-purple-500 block w-32 sm:text-sm border-gray-300 rounded-md"
+                />
+                <span className="ml-3 text-sm text-purple-500 font-medium">MAX</span>
+                <span className="ml-auto text-sm text-gray-600">RVMs per hour</span>
+              </div>
             </div>
-            
-            <div>
-              <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">
-                Timezone
-              </label>
-              <select
-                id="timezone"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-              >
-                {timezones.map(tz => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-            </div>
-           
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Days of Week
-              </label>
-              <div className="grid grid-cols-7 gap-1">
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+
+            {/* Days of Week Selection */}
+            <div className="mb-6">
+              <h5 className="text-sm font-medium text-gray-700 mb-2">Select Schedule</h5>
+              <div className="flex flex-wrap gap-2">
+                {days.map((day) => (
                   <button
                     key={day}
                     type="button"
                     onClick={() => toggleDay(day)}
-                    className={`py-1 px-1 text-xs font-medium rounded-md ${
-                      daysOfWeek.includes(day)
-                        ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    className={`py-2 px-4 rounded-md ${
+                      formSettings.daysOfWeek.includes(day)
+                        ? "bg-purple-100 text-purple-700 border border-purple-200"
+                        : "bg-white text-gray-700 border border-gray-300"
                     }`}
                   >
                     {day}
@@ -134,79 +165,7 @@ export default function CampaignSettingsForm({ settings, onSave }: CampaignSetti
             </div>
           </div>
         </div>
-        
-        {/* Rate Limiting Section */}
-        <div className="bg-gray-50 rounded-md p-4 border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-800 mb-3 border-b pb-2">
-            Rate Limiting 
-            <span className="text-xs font-normal text-gray-500 ml-2">
-              (Prevents spam detection)
-            </span>
-          </h3>
-          
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <div>
-              <label htmlFor="delayMinutes" className="block text-sm font-medium text-gray-700">
-                Delay Between Calls
-              </label>
-              <div className="mt-1 relative rounded-md">
-                <input
-                  type="number"
-                  id="delayMinutes"
-                  min="1"
-                  max="60"
-                  className="block w-full pr-16 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                  value={delayMinutes}
-                  onChange={(e) => setDelayMinutes(parseInt(e.target.value, 10))}
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">minutes</span>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="dailyLimit" className="block text-sm font-medium text-gray-700">
-                Daily Limit
-              </label>
-              <div className="mt-1 relative rounded-md">
-                <input
-                  type="number"
-                  id="dailyLimit"
-                  min="1"
-                  max="500"
-                  className="block w-full pr-16 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                  value={dailyLimit}
-                  onChange={(e) => setDailyLimit(parseInt(e.target.value, 10))}
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">per day</span>
-                </div>
-              </div>
-            </div>
-        
-            <div>
-              <label htmlFor="maxPerHour" className="block text-sm font-medium text-gray-700">
-                Hourly Maximum
-              </label>
-              <div className="mt-1 relative rounded-md">
-                <input
-                  type="number"
-                  id="maxPerHour"
-                  min="10"
-                  max="500"
-                  className="block w-full pr-16 sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                  value={maxPerHour}
-                  onChange={(e) => setMaxPerHour(parseInt(e.target.value, 10))}
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">per hour</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
+
         <div className="flex justify-end">
           <button
             type="submit"
@@ -218,4 +177,4 @@ export default function CampaignSettingsForm({ settings, onSave }: CampaignSetti
       </form>
     </div>
   );
-} 
+}

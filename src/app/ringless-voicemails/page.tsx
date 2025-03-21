@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { PhoneNumber, useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
@@ -17,7 +17,7 @@ import { collection, query, onSnapshot, where, setDoc, doc, deleteDoc } from 'fi
 import { db } from '@/lib/firebaseConfig';
 
 export default function RinglessVoicemailPage() {
-  const { user } = useAuth();
+  const { user, loadUser } = useAuth();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,11 +26,21 @@ export default function RinglessVoicemailPage() {
     dailyLimit: 50,
     startTime: "10:00 AM",
     endTime: "16:00 PM",
-    timezone: "EST (New York)",
+    timezone: "America/New_York",
     maxPerHour: 100,
     daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri"]
   });
+  useEffect(() => {
+    if (!user && !loading) {
+      loadUser();
+    }
+  }, [user, loading, loadUser]);
 
+  useEffect(() => {
+    if (user && !loading) {
+      fetchPhoneNumbers();
+    }
+  }, [user, loading]);
   const dayMapping: { [key: string]: string } = {
     Mon: "Monday",
     Tue: "Tuesday",
@@ -61,6 +71,7 @@ export default function RinglessVoicemailPage() {
   const [totalContacts, setTotalContacts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isFetching, setIsFetching] = useState(false);
+  const [isSearching, setIsSearching] = useState(false); // New state for search
   const loaderRef = useRef(null);
 
   // Campaign creation state
@@ -197,6 +208,56 @@ export default function RinglessVoicemailPage() {
       setIsFetching(false);
     }
   };
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Use ref to store timeout
+  const searchContactsByName = useCallback(async (name: string) => {
+    try {
+      setIsSearching(true);
+      setError(null);
+
+      if (!name.trim()) {
+        setContacts([]);
+        setCurrentPage(1);
+        setTotalContacts(0);
+        await fetchContacts();
+        return;
+      }
+
+      const response = await fetch(`/api/contacts/search?name=${encodeURIComponent(name)}`);
+      if (!response.ok) {
+        throw new Error(`Search failed with status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const searchedContacts = data.contacts || [];
+
+      const processedContacts = searchedContacts.map((contact: any) => ({
+        ...contact,
+        name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+      }));
+
+      setContacts(processedContacts);
+      setTotalContacts(searchedContacts.length);
+      setCurrentPage(1);
+      console.log('Search results:', processedContacts);
+
+      if (searchedContacts.length === 0) {
+        toast.caller('No contacts found matching your search');
+      }
+    } catch (error) {
+      console.error('Error searching contacts:', error);
+      setError('Failed to search contacts');
+      toast.error('Failed to search contacts');
+    } finally {
+      setIsSearching(false);
+    }
+  }, [fetchContacts]);
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   async function fetchCampaigns() {
     setLoading(true);
@@ -631,9 +692,22 @@ export default function RinglessVoicemailPage() {
                       <input
                         type="text"
                         className="focus:ring-purple-500 focus:border-purple-500 block w-full pl-4 pr-12 sm:text-sm border-gray-300 rounded-md"
-                        placeholder="Search contacts by name or phone..."
+                        placeholder="Search contacts by name"
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSearchQuery(value);
+      
+                          // Clear previous timeout
+                          if (searchTimeoutRef.current) {
+                            clearTimeout(searchTimeoutRef.current);
+                          }
+      
+                          // Set new timeout
+                          searchTimeoutRef.current = setTimeout(() => {
+                            searchContactsByName(value);
+                          }, 300);
+                        }}
                       />
                       <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                         <XIcon
@@ -656,32 +730,37 @@ export default function RinglessVoicemailPage() {
                     <h5 className="text-sm font-medium text-gray-700 mb-2">Available Contacts ({contacts.length})</h5>
                     <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
                       <ul className="divide-y divide-gray-200">
-                        {contacts.length > 0 ? contacts.map((contact) => (
-                          <li
-                            key={contact.id}
-                            className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${selectedContacts.some(c => c.id === contact.id) ? 'bg-purple-50' : ''
-                              }`}
-                            onClick={() => toggleContact(contact)}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {contact.firstName || contact.contactName || 'Unnamed'} {contact.lastName || ''}
-                              </p>
-                              <p className="text-sm text-gray-500 truncate">{contact.phone || 'No phone'}</p>
-                            </div>
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                              checked={selectedContacts.some(c => c.id === contact.id)}
-                              onChange={() => { }}
-                            />
+                        {isSearching ? (
+                          <li className="px-4 py-3 text-center text-sm text-gray-500">
+                            Searching contacts...
                           </li>
-                        )) : (
+                        ) : contacts.length > 0 ? (
+                          contacts.map((contact) => (
+                            <li
+                              key={contact.id}
+                              className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${selectedContacts.some(c => c.id === contact.id) ? 'bg-purple-50' : ''}`}
+                              onClick={() => toggleContact(contact)}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {contact.firstName || contact.contactName || 'Unnamed'} {contact.lastName || ''}
+                                </p>
+                                <p className="text-sm text-gray-500 truncate">{contact.phone || 'No phone'}</p>
+                              </div>
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                checked={selectedContacts.some(c => c.id === contact.id)}
+                                onChange={() => { }}
+                              />
+                            </li>
+                          ))
+                        ) : (
                           <li className="px-4 py-3 text-center text-sm text-gray-500">
                             {searchQuery ? 'No contacts matching your search' : 'No contacts available'}
                           </li>
                         )}
-                        {isFetching && (
+                        {isFetching && !isSearching && (
                           <li className="px-4 py-3 text-center text-sm text-gray-500">
                             Loading more contacts...
                           </li>
@@ -887,7 +966,6 @@ export default function RinglessVoicemailPage() {
           ) : (
             <ul className="divide-y divide-gray-200">
               {campaigns.map((campaign) => {
-                console.log('Processing campaign:', campaign);
 
                 const campaignStats = {
                   totalContacts: campaign.total_contacts || 0,
@@ -896,7 +974,6 @@ export default function RinglessVoicemailPage() {
                   failed: campaign.failed_contacts || 0
                 };
 
-                console.log('Calculated stats:', campaignStats);
 
                 return (
                   <CampaignCard

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -354,9 +354,6 @@ export default function ContactsPage() {
     fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
 
-  useEffect(() => {
-    fetchContacts();
-  }, [currentPage, contactsPerPage, activeTagFilter]);
 
   const fetchCustomFields = async () => {
     try {
@@ -1400,6 +1397,60 @@ export default function ContactsPage() {
     }
   };
 
+  ///Search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false); // New state for search
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Use ref to store timeout
+  const searchContactsByName = useCallback(async (name: string) => {
+    try {
+      setIsSearching(true);
+      setError(null);
+
+      if (!name.trim()) {
+        setContacts([]);
+        setCurrentPage(1);
+        setTotalContacts(0);
+        await fetchContacts();
+        return;
+      }
+
+      const response = await fetch(`/api/contacts/search?name=${encodeURIComponent(name)}`);
+      if (!response.ok) {
+        throw new Error(`Search failed with status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const searchedContacts = data.contacts || [];
+
+      const processedContacts = searchedContacts.map((contact: any) => ({
+        ...contact,
+        name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+      }));
+
+      setContacts(processedContacts);
+      setTotalContacts(searchedContacts.length);
+      setCurrentPage(1);
+      console.log('Search results:', processedContacts);
+
+      if (searchedContacts.length === 0) {
+        toast.caller('No contacts found matching your search');
+      }
+    } catch (error) {
+      console.error('Error searching contacts:', error);
+      setError('Failed to search contacts');
+      toast.error('Failed to search contacts');
+    } finally {
+      setIsSearching(false);
+    }
+  }, [fetchContacts]);
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <DashboardLayout title="Contacts">
       <div className="dashboard-card">
@@ -1424,6 +1475,61 @@ export default function ContactsPage() {
             <button onClick={() => setIsAddModalOpen(true)} className="btn-primary">
               Add Contact
             </button>
+          </div>
+        </div>
+
+        {/* Search Input Moved Here */}
+        <div className="mb-6">
+          <div className="relative">
+            <div className="mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchQuery(value);
+
+                    // Clear previous timeout
+                    if (searchTimeoutRef.current) {
+                      clearTimeout(searchTimeoutRef.current);
+                    }
+
+                    // Set new timeout
+                    searchTimeoutRef.current = setTimeout(() => {
+                      searchContactsByName(value);
+                    }, 300);
+                  }}
+                  placeholder="Search contacts by name..."
+                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                  disabled={isSearching}
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  {isSearching ? (
+                    <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              {isSearching ? (
+                <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1583,8 +1689,6 @@ export default function ContactsPage() {
                     </div>
                   )}
 
-                  {/* No voicemail section here anymore since it will redirect */}
-
                   <div className="mt-6 flex justify-between">
                     <button
                       onClick={() => setSelectedMessageType(null)}
@@ -1636,7 +1740,7 @@ export default function ContactsPage() {
                   </button>
 
                   <button
-                    onClick={() => router.push('ringless-voicemails')} // Redirect to voicemail page
+                    onClick={() => router.push('ringless-voicemails')}
                     className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
                   >
                     <PhoneIcon className="h-6 w-6 text-purple-500 mr-3" />
@@ -1801,7 +1905,9 @@ export default function ContactsPage() {
             <PaginationControls />
           </div>
         ) : (
-          <p className="text-gray-500">No contacts found{activeTagFilter ? ` with the tag '${activeTagFilter}'` : ''}.</p>
+          <p className="text-gray-500">
+            No contacts found{searchQuery ? ` matching "${searchQuery}"` : activeTagFilter ? ` with the tag '${activeTagFilter}'` : ''}.
+          </p>
         )}
       </div>
     </DashboardLayout>
