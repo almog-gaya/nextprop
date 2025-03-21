@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from 'react-hot-toast';
@@ -8,6 +8,12 @@ const inter = Inter({
   subsets: ["latin"],
   display: 'swap',
   variable: '--font-inter'
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-outfit'
 });
 
 export const metadata: Metadata = {
@@ -28,7 +34,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${inter.variable}`}>
+      <body className={`${inter.className} ${inter.variable} ${outfit.variable} font-sans`}>
         <AuthProvider>
           <div className="min-h-screen bg-gray-50">
             {children}

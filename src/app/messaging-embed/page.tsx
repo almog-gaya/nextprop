@@ -778,40 +778,84 @@ function MessagingContent() {
 
   return (
     <DashboardLayout title="Messaging">
-      {state.loading ? (
-        <LoadingState />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="md:col-span-4 border-r border-gray-200 overflow-y-auto">
-            <ConversationFilters />
-            <div className="overflow-y-auto">
-              {state.conversations.length === 0 ? (
-                <div className="flex items-center justify-center h-32 text-gray-500">
-                  {state.activeTab === 'unread' && (
-                    <p>No unread messages</p>
-                  )}
-                  {state.activeTab === 'recents' && (
-                    <p>No recent messages</p>
-                  )}
-                  {state.activeTab === 'all' && (
-                    <p>No messages</p>
-                  )}
-                </div>
-              ) : (
-                <ConversationList
-                  conversations={state.conversations}
-                  activeId={state.activeConversationId}
-                  onSelect={handleConversationSelect}
-                  contacts={state.contacts}
-                />
-              )}
-            </div>
-          </div>
-          <div className="md:col-span-8 flex flex-col overflow-hidden">
-            {renderMessageThread}
+      <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="md:col-span-4 border-r border-gray-200 overflow-y-auto">
+          <ConversationFilters />
+          <div className="overflow-y-auto">
+            {state.loading ? (
+              <div className="p-4 space-y-4">
+                {Array(6).fill(0).map((_, idx) => (
+                  <div key={idx} className="flex items-center space-x-3">
+                    <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2 animate-pulse"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : state.conversations.length === 0 ? (
+              <div className="flex items-center justify-center h-32 text-gray-500">
+                {state.activeTab === 'unread' && (
+                  <p>No unread messages</p>
+                )}
+                {state.activeTab === 'recents' && (
+                  <p>No recent messages</p>
+                )}
+                {state.activeTab === 'all' && (
+                  <p>No messages</p>
+                )}
+              </div>
+            ) : (
+              <ConversationList
+                conversations={state.conversations}
+                activeId={state.activeConversationId}
+                onSelect={handleConversationSelect}
+                contacts={state.contacts}
+              />
+            )}
           </div>
         </div>
-      )}
+        <div className="md:col-span-8 flex flex-col overflow-hidden">
+          {state.loading ? (
+            <div className="flex-1 flex flex-col">
+              {/* Header loading state */}
+              <div className="border-b border-gray-200 p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-5 bg-gray-200 rounded w-1/3 mb-2 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Messages loading state */}
+              <div className="flex-1 p-4 space-y-4">
+                <div className="flex justify-start">
+                  <div className="bg-gray-200 rounded-lg p-3 w-2/3 h-16 animate-pulse"></div>
+                </div>
+                <div className="flex justify-end">
+                  <div className="bg-gray-200 rounded-lg p-3 w-1/2 h-12 animate-pulse"></div>
+                </div>
+                <div className="flex justify-start">
+                  <div className="bg-gray-200 rounded-lg p-3 w-3/4 h-20 animate-pulse"></div>
+                </div>
+              </div>
+              
+              {/* Input loading state */}
+              <div className="border-t border-gray-200 p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-1 h-12 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-12 w-12 bg-gray-200 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            renderMessageThread
+          )}
+        </div>
+      </div>
     </DashboardLayout>
   );
 }

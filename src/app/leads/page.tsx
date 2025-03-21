@@ -280,7 +280,7 @@ export default function LeadsPage() {
               opportunities: [...stage.opportunities, ...newOpportunities],
               count: opportunitiesData.total, // Update with API total
               total: `$${[...stage.opportunities, ...newOpportunities].reduce(
-                (sum: number, opp: Opportunity) => sum + (parseFloat(opp.value.replace('$', '')) || 0),
+                (sum, opp: Opportunity) => sum + (parseFloat(opp.value.replace('$', '')) || 0),
                 0
               )}`,
             };
@@ -511,92 +511,98 @@ export default function LeadsPage() {
 
   return (
     <DashboardLayout title="Leads">
-      {isLoading || loading ? (
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-gray-800 mb-2">Leads Dashboard</h1>
-            <p className="text-gray-600">Manage your leads and opportunities</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {Array(4)
-              .fill(0)
-              .map((_, i) => (
-                <StatsCardSkeleton key={i} />
-              ))}
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Current Leads</h2>
+      <div className="container mx-auto px-4 py-8">
+        <div className="h-full flex flex-col bg-gray-50">
+          <DashboardHeader
+            pipelines={pipelines}
+            selectedPipeline={selectedPipeline}
+            isDropdownOpen={isDropdownOpen}
+            setIsDropdownOpen={setIsDropdownOpen}
+            handlePipelineChange={handlePipelineChange}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            apiConfigured={apiConfigured}
+            setNotification={setNotification}
+            setNotificationActive={setNotificationActive}
+            handleCommunication={handleCommunication}
+          />
+          <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              <FilterControls
+                setIsFilterModalOpen={setIsFilterModalOpen}
+                setIsSortModalOpen={setIsSortModalOpen}
+                filters={filters}
+                sortConfig={sortConfig}
+              />
+              <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
             </div>
-            <TableSkeleton rows={5} columns={5} />
           </div>
-        </div>
-      ) : error ? (
-        <div className="container mx-auto px-4 py-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-            <div className="flex items-center">
-              <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
-              <span>{error}</span>
-            </div>
-            {!apiConfigured && (
-              <div className="mt-4">
-                <p className="mb-4">
-                  It looks like you need to configure your API integration. Please go to the settings page to set up
-                  your integration.
-                </p>
-                <Link href="/settings">
-                  <button className="nextprop-button-secondary">Go to Settings</button>
-                </Link>
+          <ActiveFilters
+            filters={filters}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            setFilters={setFilters}
+            setSortConfig={setSortConfig}
+          />
+          <div className="px-4 py-6 sm:px-6 lg:px-8 flex-1">
+            <AutomationPreview className="mb-6" />
+            
+            {isLoading || loading ? (
+              viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {Array(4).fill(0).map((_, idx) => (
+                    <div key={idx} className="bg-white p-4 rounded-lg border border-gray-200">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-4 animate-pulse"></div>
+                      <div className="space-y-3">
+                        {Array(3).fill(0).map((_, i) => (
+                          <div key={i} className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg border border-gray-200">
+                  <div className="divide-y divide-gray-200">
+                    {Array(5).fill(0).map((_, idx) => (
+                      <div key={idx} className="p-4">
+                        <div className="h-4 bg-gray-200 rounded w-1/4 mb-3 animate-pulse"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+                          <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            ) : error ? (
+              <div className="bg-red-50 p-4 rounded-md text-red-800">{error}</div>
+            ) : !apiConfigured ? (
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div className="flex items-center">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
+                  <span>API configuration required</span>
+                </div>
+                <div className="mt-4">
+                  <p className="mb-4">
+                    It looks like you need to configure your API integration. Please go to the settings page to set up
+                    your integration.
+                  </p>
+                  <Link href="/settings">
+                    <button className="nextprop-button-secondary">Go to Settings</button>
+                  </Link>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      ) : !selectedPipeline ? (
-        <div className="container mx-auto px-4 py-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-            <div className="flex items-center">
-              <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
-              <span>No pipeline selected</span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="container mx-auto px-4 py-8">
-          <div className="h-full flex flex-col bg-gray-50">
-            <DashboardHeader
-              pipelines={pipelines}
-              selectedPipeline={selectedPipeline}
-              isDropdownOpen={isDropdownOpen}
-              setIsDropdownOpen={setIsDropdownOpen}
-              handlePipelineChange={handlePipelineChange}
-              viewMode={viewMode}
-              setViewMode={setViewMode}
-              apiConfigured={apiConfigured}
-              setNotification={setNotification}
-              setNotificationActive={setNotificationActive}
-              handleCommunication={handleCommunication}
-            />
-            <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center">
-                <FilterControls
-                  setIsFilterModalOpen={setIsFilterModalOpen}
-                  setIsSortModalOpen={setIsSortModalOpen}
-                  filters={filters}
-                  sortConfig={sortConfig}
-                />
-                <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+            ) : !selectedPipeline ? (
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <div className="flex items-center">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
+                  <span>No pipeline selected</span>
+                </div>
               </div>
-            </div>
-            <ActiveFilters
-              filters={filters}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              setFilters={setFilters}
-              setSortConfig={setSortConfig}
-            />
-            <div className="px-4 py-6 sm:px-6 lg:px-8 flex-1">
-              <AutomationPreview className="mb-6" />
-              {viewMode === 'grid' ? (
+            ) : (
+              viewMode === 'grid' ? (
                 <OpportunityGrid
                   opportunities={opportunities}
                   getProcessedOpportunities={getProcessedOpportunities}
@@ -604,8 +610,8 @@ export default function LeadsPage() {
                   handleEditOpportunity={handleEditOpportunity}
                   handleMoveOpportunity={handleMoveOpportunity}
                   loadingOpportunityId={loadingOperation.id}
-                  pagination={pagination[selectedPipeline!]}
-                  loadingStates={loadingStates[selectedPipeline!]}
+                  pagination={pagination[selectedPipeline]}
+                  loadingStates={loadingStates[selectedPipeline]}
                 />
               ) : (
                 <OpportunityList
@@ -616,43 +622,43 @@ export default function LeadsPage() {
                   handleMoveOpportunity={handleMoveOpportunity}
                   loadingOpportunityId={loadingOperation.id}
                 />
-              )}
-            </div>
-            {isFilterModalOpen && (
-              <FilterModal
-                filters={filters}
-                setFilters={setFilters}
-                setIsFilterModalOpen={setIsFilterModalOpen}
-              />
+              )
             )}
-            {isSortModalOpen && (
-              <SortModal
-                sortConfig={sortConfig}
-                setSortConfig={setSortConfig}
-                setIsSortModalOpen={setIsSortModalOpen}
-              />
-            )}
-            <MessageModal
-              isOpen={messageModal.isOpen}
-              onClose={() => setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null })}
-              actionType={messageModal.actionType}
-              contact={messageModal.contact}
-              user={user}
-              messageContent={messageContent}
-              setMessageContent={setMessageContent}
-              onSend={async () => {
-               handleCommunication(messageModal.opportunityId!, messageModal.actionType!);
-              }}
-            />
-            <OpportunityEditModal
-              isOpen={isEditOpportunityModalOpen}
-              onClose={() => setIsEditOpportunityModalOpen(false)}
-              opportunityId={selectedOpportunity?.id ?? ""}
-              onUpdateOpportunity={handleUpdateOpportunityUI}
-            />
           </div>
+          {isFilterModalOpen && (
+            <FilterModal
+              filters={filters}
+              setFilters={setFilters}
+              setIsFilterModalOpen={setIsFilterModalOpen}
+            />
+          )}
+          {isSortModalOpen && (
+            <SortModal
+              sortConfig={sortConfig}
+              setSortConfig={setSortConfig}
+              setIsSortModalOpen={setIsSortModalOpen}
+            />
+          )}
+          <MessageModal
+            isOpen={messageModal.isOpen}
+            onClose={() => setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null })}
+            actionType={messageModal.actionType}
+            contact={messageModal.contact}
+            user={user}
+            messageContent={messageContent}
+            setMessageContent={setMessageContent}
+            onSend={async () => {
+              handleCommunication(messageModal.opportunityId!, messageModal.actionType!);
+            }}
+          />
+          <OpportunityEditModal
+            isOpen={isEditOpportunityModalOpen}
+            onClose={() => setIsEditOpportunityModalOpen(false)}
+            opportunityId={selectedOpportunity?.id ?? ""}
+            onUpdateOpportunity={handleUpdateOpportunityUI}
+          />
         </div>
-      )}
+      </div>
     </DashboardLayout>
   );
 }

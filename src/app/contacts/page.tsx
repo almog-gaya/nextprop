@@ -1664,7 +1664,43 @@ export default function ContactsPage() {
         )}
 
         {isLoading ? (
-          <ContactListSkeleton />
+          <div className="relative max-w-full overflow-x-auto">
+            <table className="w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+                    <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                  </th>
+                  {columns.filter(col => col.visible).map(column => (
+                    <th
+                      key={column.id}
+                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {Array(5).fill(0).map((_, idx) => (
+                  <tr key={idx}>
+                    <td className="pl-4 pr-3 py-4 whitespace-nowrap">
+                      <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                    </td>
+                    {columns.filter(col => col.visible).map(column => (
+                      <td key={column.id} className="px-4 py-4">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      </td>
+                    ))}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : error ? (
           <div className="bg-red-50 p-4 rounded-md text-red-800">{error}</div>
         ) : contacts.length > 0 ? (
