@@ -265,8 +265,11 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-medium leading-6 text-gray-900">{name}</h3>
               <p className="mt-1 text-sm text-gray-500">
-                {campaign.created_at ? `Created on ${formatDate(campaign.created_at)}` :
-                  `${campaign["Type of Campaign"] || 'Campaign'}`}
+              {campaign.created_at ? 
+                            (typeof campaign.created_at === 'object' && 'seconds' in campaign.created_at) ? 
+                              formatDate(new Date(campaign.created_at.seconds * 1000).toISOString()) : 
+                              formatDate(campaign.created_at) 
+                            : 'N/A'}
               </p>
             </div>
             <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -377,6 +380,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                 <PhoneIcon className="h-3 w-3 mr-1" /> {fromPhone || campaign["From Phone Numbers"]?.[0]}
               </span>
             )}
+ 
 
             {campaign["Voice Clone IDs"] && Array.isArray(campaign["Voice Clone IDs"]) && campaign["Voice Clone IDs"].length > 0 && (
               <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
