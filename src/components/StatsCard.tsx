@@ -2,53 +2,36 @@
 
 import React from 'react';
 import { ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
+ 
 
 interface StatsCardProps {
   title: string;
-  value: string | number;
-  change?: number;
-  trend?: 'up' | 'down' | 'neutral';
-  icon?: React.ReactNode;
-  textColor?: string;
-  onClick?: () => void;
+  value: any;
+  icon: React.ReactNode;
+  iconBgColor?: string; // Add this property
+  iconColor?: string;   // Add this property
 }
 
-const StatsCard = ({ title, value, change, trend, icon, textColor = 'text-[#7c3aed]', onClick }: StatsCardProps) => {
-  const trendIcon = trend === 'up' ? (
-    <ArrowUpIcon className="h-4 w-4 text-green-500" />
-  ) : trend === 'down' ? (
-    <ArrowDownIcon className="h-4 w-4 text-red-500" />
-  ) : null;
-
-  const cardClass = onClick 
-    ? 'stat-card cursor-pointer transition-all hover:-translate-y-1 hover:shadow'
-    : 'stat-card';
-
+export default function StatsCard({ title, value, icon, iconBgColor = "bg-purple-100", iconColor = "text-purple-600" }: StatsCardProps) {
   return (
-    <div 
-      className={cardClass}
-      onClick={onClick}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs md:text-sm font-medium text-gray-500">{title}</h3>
-        {icon && <div className="text-[#7c3aed]">{icon}</div>}
-      </div>
-      
-      <div className={`text-xl md:text-3xl font-bold ${textColor}`}>
-        {value}
-      </div>
-      
-      {(change !== undefined && trend) && (
-        <div className="flex items-center mt-2 text-xs">
-          {trendIcon}
-          <span className={`ml-1 font-medium ${trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-gray-500'}`}>
-            {change}%
-          </span>
-          <span className="ml-1 text-gray-500">from previous period</span>
+    <div className="bg-white overflow-hidden shadow rounded-lg ">
+      <div className="p-8">
+        <div className="flex items-center">
+          <div className={`flex-shrink-0 ${iconBgColor} rounded-md p-4`}>
+            <div className={`h-6 w-6 ${iconColor}`}>
+              {icon}
+            </div>
+          </div>
+          <div className="ml-5 w-0 flex-1">
+            <dl>
+              <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
+              <dd>
+                <div className="text-lg font-medium text-gray-900">{value}</div>
+              </dd>
+            </dl>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
-};
-
-export default StatsCard; 
+}

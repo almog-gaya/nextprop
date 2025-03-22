@@ -4,17 +4,26 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { PhoneNumber, useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
-import {
-  XIcon,
-  FileTextIcon
-} from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import CampaignCard from '@/components/ringless-voicemail/CampaignCard';
-import CampaignSettingsForm from '@/components/ringless-voicemail/CampaignSettingsForm';
+import StatsCard from '@/components/StatsCard';
 import BulkUploadForm from '@/components/BulkUploadForm';
 import { collection, query, onSnapshot, where, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
+import ContactSelector from '@/components/ringless-voicemail/ContactSelector';
+import CampaignForm from '@/components/ringless-voicemail/CampaignForm';
+import CampaignList from '@/components/ringless-voicemail/CampaignList';
+import {
+  PlayIcon,
+  PauseIcon,
+  PhoneIcon,
+  PhoneOffIcon,
+  PhoneIncomingIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ClockIcon,
+  TrashIcon
+} from 'lucide-react';
 
 export default function RinglessVoicemailPage() {
   const { user, loadUser } = useAuth();
@@ -25,11 +34,12 @@ export default function RinglessVoicemailPage() {
     delayMinutes: 5,
     dailyLimit: 50,
     startTime: "10:00 AM",
-    endTime: "16:00 PM",
+    endTime: "5:00 PM",
     timezone: "America/New_York",
     maxPerHour: 100,
     daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri"]
   });
+
   useEffect(() => {
     if (!user && !loading) {
       loadUser();
@@ -41,6 +51,7 @@ export default function RinglessVoicemailPage() {
       fetchPhoneNumbers();
     }
   }, [user, loading]);
+
   const dayMapping: { [key: string]: string } = {
     Mon: "Monday",
     Tue: "Tuesday",
@@ -50,19 +61,24 @@ export default function RinglessVoicemailPage() {
     Sat: "Saturday",
     Sun: "Sunday",
   };
-  const convertTo24Hour = (time: string) => {
-    const [hours, minutes] = time.split(/:| /);
-    let hour = parseInt(hours, 10);
-    const isPM = time.includes("PM");
 
-    if (isPM && hour !== 12) {
-      hour += 12;
-    } else if (!isPM && hour === 12) {
-      hour = 0;
+  const convertTo24Hour = (time: string) => {
+    if (/^\d{2}:\d{2}$/.test(time)) {
+        // Already in 24-hour format, return as-is
+        return time;
     }
 
-    return `${String(hour).padStart(2, "0")}:${minutes}`;
-  };
+    const [hourStr, minuteStr, period] = time.split(/:| /);
+    let hour = parseInt(hourStr, 10);
+
+    if (period?.toUpperCase() === "PM" && hour !== 12) {
+        hour += 12;
+    } else if (period?.toUpperCase() === "AM" && hour === 12) {
+        hour = 0;
+    }
+
+    return `${String(hour).padStart(2, "0")}:${minuteStr}`;
+};
 
   // Contact management state
   const [contacts, setContacts] = useState<any[]>([]);
@@ -71,7 +87,7 @@ export default function RinglessVoicemailPage() {
   const [totalContacts, setTotalContacts] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isFetching, setIsFetching] = useState(false);
-  const [isSearching, setIsSearching] = useState(false); // New state for search
+  const [isSearching, setIsSearching] = useState(false);
   const loaderRef = useRef(null);
 
   // Campaign creation state
@@ -208,7 +224,8 @@ export default function RinglessVoicemailPage() {
       setIsFetching(false);
     }
   };
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Use ref to store timeout
+
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchContactsByName = useCallback(async (name: string) => {
     try {
       setIsSearching(true);
@@ -245,12 +262,11 @@ export default function RinglessVoicemailPage() {
       }
     } catch (error) {
       console.error('Error searching contacts:', error);
-      setError('Failed to search contacts');
-      toast.error('Failed to search contacts');
     } finally {
       setIsSearching(false);
     }
   }, [fetchContacts]);
+
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
@@ -264,9 +280,7 @@ export default function RinglessVoicemailPage() {
     let unsubscribe: (() => void) | undefined;
 
     try {
-      // Use existing user.locationId if available, otherwise fetch from API
       const locationId = user?.locationId ?? await getLocationId();
-
       const campaignsCollection = collection(db, 'campaigns');
       const campaignsQuery = query(campaignsCollection, where("customer_id", "==", locationId));
 
@@ -286,13 +300,12 @@ export default function RinglessVoicemailPage() {
       console.error('Error fetching campaigns:', error);
       setError('Failed to load campaign data');
       toast.error('Failed to load campaign data');
-      throw error; // Re-throw to allow caller to handle if needed
+      throw error;
     } finally {
       setLoading(false);
     }
   }
 
-  // Helper function to fetch location ID
   async function getLocationId(): Promise<string> {
     try {
       const response = await fetch('/api/auth/ghl/location-id');
@@ -306,7 +319,7 @@ export default function RinglessVoicemailPage() {
       return data.locationId;
     } catch (error) {
       console.error('Error fetching location ID:', error);
-      throw error; // Let the caller handle the error
+      throw error;
     }
   }
 
@@ -347,10 +360,15 @@ export default function RinglessVoicemailPage() {
         resume: 'Campaign resumed',
         stop: 'Campaign stopped',
       };
-      const campaignDoc = doc(db, "campaigns", id);
-      setDoc(campaignDoc, { paused: action === "pause", status: "pending" }, { merge: true });
+      console.log(`Handling ${action} action for campaign with ID:`, id);
+      // return;
+
+      const result = await fetch(`/api/voicemail/action?campaignId=${id}&action=${action}`, {
+        
+      })
 
       toast.success(actionMessages[action] || 'Campaign updated');
+
     } catch (error) {
       console.error(`Error ${action} campaign:`, error);
       toast.error(`Failed to ${action} campaign`);
@@ -373,6 +391,7 @@ export default function RinglessVoicemailPage() {
   }
 
   async function handleUpdateSettings(newSettings: any) {
+    console.log('Updating settings:', newSettings);
     setSettings(newSettings);
     toast.success('Settings saved');
   }
@@ -406,15 +425,15 @@ export default function RinglessVoicemailPage() {
         first_name: contact.firstName || contact.contactName || 'Unknown',
         street_name: contact.address1 || 'your area'
       }));
-
+      console.log(`settings: ${JSON.stringify(settings)}`);
       const campaignData = {
         customer_id: user?.locationId,
         voice_clone_id: selectedVoiceClone || "dodUUtwsqo09HrH2RO8w",
         name: campaignName,
         from_number: selectedPhoneNumber.number || selectedPhoneNumber,
-        interval_seconds: settings.delayMinutes * 60,
+        max_calls_per_hour: settings.maxPerHour,
         days: settings.daysOfWeek.map(day => dayMapping[day] || day),
-        is_paused: true,
+        is_paused: false,
         time_window: {
           start: convertTo24Hour(settings.startTime),
           end: convertTo24Hour(settings.endTime)
@@ -423,14 +442,13 @@ export default function RinglessVoicemailPage() {
         message: script,
         contacts: formattedContacts
       };
-
       const response = await fetch("/api/voicemail", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(campaignData)
-      })
+      });
       const data = await response.json();
       toast.success('Campaign created successfully');
       setSelectedContacts([]);
@@ -559,6 +577,12 @@ export default function RinglessVoicemailPage() {
     }
   };
 
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => searchContactsByName(value), 300);
+  }, [searchContactsByName]);
+
   return (
     <DashboardLayout title="Ringless Voicemails">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -583,412 +607,137 @@ export default function RinglessVoicemailPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-purple-100 rounded-md p-3">
-                  <svg className="h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Contacts</dt>
-                    <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stats.totalContacts}</div>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-green-100 rounded-md p-3">
-                  <svg className="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Delivered</dt>
-                    <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stats.delivered}</div>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-yellow-100 rounded-md p-3">
-                  <svg className="h-6 w-6 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Pending</dt>
-                    <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stats.pending}</div>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-purple-100 rounded-md p-3">
-                  <svg className="h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Active Campaigns</dt>
-                    <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">{stats.activeCampaigns}</div>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="Total Contacts"
+            value={stats.totalContacts}
+            icon={
+              <svg className="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            }
+            iconBgColor="bg-purple-100"
+            iconColor="text-purple-600"
+          />
+          <StatsCard
+            title="Delivered"
+            value={stats.delivered}
+            icon={<PhoneIcon className="w-6 h-6" />}
+            iconBgColor="bg-green-100"
+            iconColor="text-green-600"
+          />
+          <StatsCard
+            title="Pending"
+            value={stats.pending}
+            icon={<PhoneIncomingIcon className="w-6 h-6" />}
+            iconBgColor="bg-yellow-100"
+            iconColor="text-yellow-600"
+          />
+          <StatsCard
+            title="Failed"
+            value={stats.failed}
+            icon={<PhoneOffIcon className="w-6 h-6" />}
+            iconBgColor="bg-red-100"
+            iconColor="text-red-600"
+          />
         </div>
-
+        {/* Create New Campaign */}
         <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-6">Create New Campaign</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column - Contact Selection */}
-              <div>
-                <div className="border border-gray-200 rounded-md p-4 bg-gray-50 mb-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Step 1: Select Contacts</h4>
-
-                  {isBulkUploadModalOpen && (
-                    <div
-                      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-                      onClick={() => setIsBulkUploadModalOpen(false)}
-                    >
-                      <div
-                        className="bg-white rounded-xl shadow-xl w-full max-w-4xl p-6"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <BulkUploadForm onContactsSelect={handleBulkUpload} isLoading={isSubmitting} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex space-x-2 mb-3">
-                    <div className="flex-1 relative rounded-md shadow-sm">
-                      <input
-                        type="text"
-                        className="focus:ring-purple-500 focus:border-purple-500 block w-full pl-4 pr-12 sm:text-sm border-gray-300 rounded-md"
-                        placeholder="Search contacts by name"
-                        value={searchQuery}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setSearchQuery(value);
-      
-                          // Clear previous timeout
-                          if (searchTimeoutRef.current) {
-                            clearTimeout(searchTimeoutRef.current);
-                          }
-      
-                          // Set new timeout
-                          searchTimeoutRef.current = setTimeout(() => {
-                            searchContactsByName(value);
-                          }, 300);
-                        }}
-                      />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                        <XIcon
-                          className={`h-5 w-5 text-gray-400 hover:text-gray-500 cursor-pointer ${!searchQuery && 'hidden'}`}
-                          onClick={() => setSearchQuery('')}
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setIsBulkUploadModalOpen(true)}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                    >
-                      <FileTextIcon className="h-4 w-4 mr-2" />
-                      Bulk Upload
-                    </button>
-                  </div>
-
-                  <div className="mt-4">
-                    <h5 className="text-sm font-medium text-gray-700 mb-2">Available Contacts ({contacts.length})</h5>
-                    <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
-                      <ul className="divide-y divide-gray-200">
-                        {isSearching ? (
-                          <li className="px-4 py-3 text-center text-sm text-gray-500">
-                            Searching contacts...
-                          </li>
-                        ) : contacts.length > 0 ? (
-                          contacts.map((contact) => (
-                            <li
-                              key={contact.id}
-                              className={`px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${selectedContacts.some(c => c.id === contact.id) ? 'bg-purple-50' : ''}`}
-                              onClick={() => toggleContact(contact)}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {contact.firstName || contact.contactName || 'Unnamed'} {contact.lastName || ''}
-                                </p>
-                                <p className="text-sm text-gray-500 truncate">{contact.phone || 'No phone'}</p>
-                              </div>
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                checked={selectedContacts.some(c => c.id === contact.id)}
-                                onChange={() => { }}
-                              />
-                            </li>
-                          ))
-                        ) : (
-                          <li className="px-4 py-3 text-center text-sm text-gray-500">
-                            {searchQuery ? 'No contacts matching your search' : 'No contacts available'}
-                          </li>
-                        )}
-                        {isFetching && !isSearching && (
-                          <li className="px-4 py-3 text-center text-sm text-gray-500">
-                            Loading more contacts...
-                          </li>
-                        )}
-                        <li ref={loaderRef} className="h-1" />
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h5 className="text-sm font-medium text-gray-700">Selected Contacts ({selectedContacts.length})</h5>
-                      {selectedContacts.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedContacts([])}
-                          className="text-sm text-red-600 hover:text-red-500"
-                        >
-                          Clear All
-                        </button>
-                      )}
-                    </div>
-                    <div className="bg-white rounded border border-gray-200 p-2 min-h-[4rem]">
-                      {selectedContacts.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {selectedContacts.map(contact => (
-                            <span key={contact.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                              {contact.firstName || contact.contactName || contact.phone}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-500">No contacts selected yet</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column - Campaign Configuration */}
-              <div>
-                <div className="space-y-5">
-                  {/* Campaign Name */}
-                  <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-                    <label htmlFor="campaignName" className="block text-sm font-medium text-gray-700 mb-2">
-                      Step 2: Campaign Name
-                    </label>
-                    <input
-                      id="campaignName"
-                      type="text"
-                      className="flex-1 block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                      value={campaignName}
-                      onChange={(e) => setCampaignName(e.target.value)}
-                      placeholder="Enter campaign name"
-                    />
-                  </div>
-
-                  {/* Phone Number Selection */}
-                  <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-                    <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                      Step 3: Select From Number
-                    </label>
-                    <select
-                      id="phoneNumber"
-                      className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
-                      value={selectedPhoneNumber || ''}
-                      onChange={(e) => {
-                        console.log(`Selected phone number: ${e.target.value}`)
-                        const phone = phoneNumbers.find(p => p === e.target.value);
-                        setSelectedPhoneNumber(phone);
-                      }}
-                    >
-                      <option value="" className="text-gray-500">Select a number</option>
-                      {phoneNumbers.map(phone => (
-                        <option
-                          key={phone}
-                          value={phone}
-                          className="text-gray-900"
-                        >
-                          {phone}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Voice Clone Selection */}
-                  <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-                    <label htmlFor="voiceClone" className="block text-sm font-medium text-gray-700 mb-2">
-                      Step 4: Select Voice Clone (Optional)
-                    </label>
-                    <div className="flex space-x-2">
-                      <select
-                        id="voiceClone"
-                        className="flex-1 block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                        value={selectedVoiceClone}
-                        onChange={(e) => setSelectedVoiceClone(e.target.value)}
-                      >
-                        <option value="">Use default system voice</option>
-                        {voiceClones.map(clone => (
-                          <option key={clone.id} value={clone.id}>
-                            {clone.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          fetchVoiceClones();
-                          toast.success("Loading voice clones...");
-                        }}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refresh
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Script Input */}
-                  <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-                    <label htmlFor="script" className="block text-sm font-medium text-gray-700 mb-2">
-                      Step 5: Campaign Script
-                    </label>
-                    <textarea
-                      id="script"
-                      className="flex-1 block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-                      value={script}
-                      onChange={(e) => setScript(e.target.value)}
-                      rows={4}
-                      placeholder="Enter your voicemail script here. Use {{first_name}} and {{street_name}} as placeholders."
-                    />
-                    <button
-                      onClick={generateDefaultScript}
-                      className="mt-2 text-sm text-purple-600 hover:text-purple-500"
-                    >
-                      Generate Default Script
-                    </button>
-                  </div>
-
-                  {/* Campaign Settings */}
-                  <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">
-                      Step 6: Campaign Settings
-                    </h4>
-                    <CampaignSettingsForm settings={settings} onSave={handleUpdateSettings} />
-                  </div>
-
-                  {/* Create Campaign Button */}
-                  <div className="border border-gray-200 rounded-md p-4 bg-green-50">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">
-                      Step 7: Launch Campaign
-                    </h4>
-                    <button
-                      onClick={async () => {
-                        if (confirm(`Create "${campaignName}" with ${selectedContacts.length} contacts?`)) {
-                          await createCampaign();
-                        }
-                      }}
-                      disabled={selectedContacts.length === 0 || !selectedPhoneNumber || !script || !campaignName}
-                      className={`w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                        ${selectedContacts.length > 0 && selectedPhoneNumber && script && campaignName
-                          ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                          : 'bg-gray-400 cursor-not-allowed'} 
-                        focus:outline-none focus:ring-2 focus:ring-offset-2`}
-                    >
-                      Create Campaign with {selectedContacts.length} Contact{selectedContacts.length !== 1 ? 's' : ''}
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Create New Campaign</h3>
+              <button
+                onClick={() => setIsBulkUploadModalOpen(true)}
+                className="inline-flex items-center px-3 py-2 border border-purple-300 text-sm leading-4 font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                Bulk Upload Contacts
+              </button>
             </div>
-          </div>
-        </div>
 
-        {/* Existing Campaigns List */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-            <div>
-              <h3 className="text-lg leading-6 font-medium text-gray-900">Current Campaigns</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Manage your existing voicemail campaigns
-              </p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="spinner-border text-purple-500" role="status">
-                <span className="sr-only">Loading...</span>
-              </div>
-              <p className="mt-2 text-sm text-gray-500">Loading campaigns...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-500">{error}</p>
-            </div>
-          ) : campaigns.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">No campaigns found. Create your first campaign above.</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-gray-200">
-              {campaigns.map((campaign) => {
-
-                const campaignStats = {
-                  totalContacts: campaign.total_contacts || 0,
-                  delivered: campaign.processed_contacts || 0,
-                  pending: (campaign.total_contacts || 0) - (campaign.processed_contacts || 0),
-                  failed: campaign.failed_contacts || 0
-                };
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Contact Selection - 5 columns */}
+              <div className="lg:col-span-5 flex flex-col h-full">
 
 
-                return (
-                  <CampaignCard
-                    key={campaign.id || campaign._id}
-                    campaign={campaign}
-                    stats={campaignStats}
-                    onPause={() => handleCampaignAction(campaign.id || campaign._id, 'pause')}
-                    onResume={() => handleCampaignAction(campaign.id || campaign._id, 'resume')}
-                    onDelete={() => handleDeleteCampaign(campaign.id || campaign._id)}
+                <div className="flex-grow overflow-hidden border border-gray-200 rounded-lg">
+                  <ContactSelector
+                    contacts={contacts}
+                    selectedContacts={selectedContacts}
+                    searchQuery={searchQuery}
+                    isSearching={isSearching}
+                    isFetching={isFetching}
+                    totalContacts={totalContacts}
+                    onSearchChange={handleSearchChange}
+                    onToggleContact={toggleContact}
+                    onClearSelected={() => setSelectedContacts([])}
+                    onOpenBulkUpload={() => setIsBulkUploadModalOpen(true)}
+                    loaderRef={loaderRef}
                   />
-                );
-              })}
-            </ul>
-          )}
+                </div>
+              </div>
+
+              {/* Campaign Settings - 7 columns */}
+              <div className="lg:col-span-7">
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <h4 className="font-medium text-gray-700 mb-2 flex items-center justify-between">
+                    <span>Campaign Settings</span>
+                    <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                      {selectedContacts.length} contacts selected
+                    </span>
+                  </h4>
+                </div>
+
+                <CampaignForm
+                  campaignName={campaignName}
+                  script={script}
+                  phoneNumbers={phoneNumbers}
+                  selectedPhoneNumber={selectedPhoneNumber}
+                  voiceClones={voiceClones}
+                  selectedVoiceClone={selectedVoiceClone}
+                  settings={settings}
+                  selectedContacts={selectedContacts}
+                  onNameChange={setCampaignName}
+                  onScriptChange={setScript}
+                  onPhoneNumberChange={(value) => setSelectedPhoneNumber(phoneNumbers.find((p) => p === value) || null)}
+                  onVoiceCloneChange={setSelectedVoiceClone}
+                  onSettingsSave={handleUpdateSettings}
+                  onGenerateScript={generateDefaultScript}
+                  onCreateCampaign={async () => {
+                    if (confirm(`Create "${campaignName}" with ${selectedContacts.length} contacts?`)) {
+                      await createCampaign();
+                    }
+                  }}
+                  onRefreshVoiceClones={() => {
+                    fetchVoiceClones();
+                    toast.success("Loading voice clones...");
+                  }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
+
+        {isBulkUploadModalOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setIsBulkUploadModalOpen(false)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-xl w-full max-w-4xl p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <BulkUploadForm onContactsSelect={handleBulkUpload} isLoading={isSubmitting} />
+            </div>
+          </div>
+        )}
+
+        <CampaignList
+          campaigns={campaigns}
+          loading={loading}
+          error={error}
+          onPause={(id) => handleCampaignAction(id, 'pause')}
+          onResume={(id) => handleCampaignAction(id, 'resume')}
+          onDelete={handleDeleteCampaign}
+        />
       </div>
     </DashboardLayout>
   );
