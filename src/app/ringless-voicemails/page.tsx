@@ -704,10 +704,10 @@ export default function RinglessVoicemailPage() {
         </div>
 
         {/* Pipeline Selector */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
-          <div className="px-4 py-5 sm:p-6">
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg mb-8">
+          <div className="px-4 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
+              <div className="flex-1 min-w-0">
                 <PipelineSelector
                   pipelines={pipelines}
                   selectedPipeline={selectedPipeline}

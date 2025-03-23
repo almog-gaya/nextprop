@@ -100,7 +100,7 @@ export function Dropdown({
       )}
 
       {isOpen && (
-        <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
+        <div className="absolute z-50 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
           <ul className="py-1 max-h-60 overflow-auto">
             {options.map((option) => (
               <li key={option.value}>
