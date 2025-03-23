@@ -22,13 +22,15 @@ export default function PipelineSelector({
   }))
 
   return (
-    <Dropdown
-      value={selectedPipeline || ''}
-      onChange={handlePipelineChange}
-      options={options}
-      placeholder="Select Pipeline"
-      width="md"
-      className="font-medium"
-    />
+    <div className="w-full max-w-md">
+      <Dropdown
+        value={selectedPipeline || ''}
+        onChange={handlePipelineChange}
+        options={options}
+        placeholder="Select Pipeline"
+        width="full"
+        className="font-medium"
+      />
+    </div>
   )
 }
