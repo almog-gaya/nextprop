@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { fetchWithErrorHandling, getAuthHeaders } from '@/lib/enhancedApi';
+import axios from 'axios';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { getContactById } from '@/lib/ghl';
 
 export async function PUT(
   request: Request,
@@ -89,15 +93,17 @@ export async function GET(
     console.log('GHL get response:', response);
     if (response.error) {
       console.error('GHL get error:', response.error);
-      return NextResponse.json({})
+      return NextResponse.json({ error: response.error }, { status: 500 });
     }
 
     return NextResponse.json(response.contact);
   } catch (error: any) {
     console.error('Error fetching contact:', error);
-    return NextResponse.json({})
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch contact' },
+      { status: 500 }
+    );
   }
-
 }
 
 const deleteContactById = async (contactId: string) => {
@@ -149,21 +155,5 @@ const updateContact = async (contactId: string, contactData: any) => {
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status} ${data.message}`);
   }
-  return data;
-};
-
-const getContactById = async (contactId: string) => {
-  const { token } = await getAuthHeaders();
-  const url = 'https://services.leadconnectorhq.com/contacts/' + contactId;
-
-  const options = {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}`, Version: '2021-07-28', Accept: 'application/json' }
-  };
-
-  const response = await fetch(url, options);
-  const data = await response.json();
-
-  console.log(`[Get-Contact]: Data Response: `, JSON.stringify(data));
   return data;
 };

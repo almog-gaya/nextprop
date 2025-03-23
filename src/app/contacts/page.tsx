@@ -7,7 +7,7 @@ import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { timezones } from '@/utils/timezones';
 import { ContactListSkeleton } from '@/components/SkeletonLoaders';
-import { ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, PhoneIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, PhoneIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon, DocumentTextIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import BulkAddToPipelineStage from '@/components/contacts/BulkAddToPipelineStage';
 import { Contact } from '@/types';
 import BulkUploadForm from '@/components/BulkUploadForm';
@@ -1094,37 +1094,55 @@ export default function ContactsPage() {
     }
   };
 
-  const renderCell = (contact: Contact, column: TableColumn) => {
-    const value = contact[column.key as keyof Contact];
-    if (column.id === 'name') {
-      return (
-        <button
-          onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
-          className="text-left font-medium text-blue-600 hover:text-blue-800 hover:underline"
-        >
-          {value?.toString() || 'N/A'}
-        </button>
-      );
-    } else if (column.id === 'tags') {
-      return (
-        <div className="flex flex-wrap gap-1">
-          {contact.tags?.map((tag, idx) => (
-            <span
-              key={idx}
-              className={`px-2 py-1 text-xs rounded-full ${tag === 'scraped-lead' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      );
-    } else if (column.id === 'dnd') {
-      return contact.dnd ? 'Do Not Disturb' : 'Available';
-    } else if (customFields.some(field => field.fieldKey === column.key)) {
-      const customField = contact.customFields?.[column.key];
-      return customField?.toString() || 'N/A';
+  const renderCell = (column: TableColumn, contact: Contact) => {
+    switch (column.key) {
+      case 'name':
+        return (
+          <div 
+            onClick={() => router.push(`/contacts/${contact.id}`)}
+            className="text-purple-600 hover:text-purple-800 font-medium cursor-pointer hover:underline"
+          >
+            {contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact')}
+          </div>
+        );
+      case 'email':
+        return contact.email || '-';
+      case 'phone':
+        return contact.phone || '-';
+      case 'tags':
+        return contact.tags?.length ? (
+          <div className="flex flex-wrap gap-1">
+            {contact.tags.map((tag, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : '-';
+      case 'type':
+        return contact.type || '-';
+      case 'timezone':
+        return contact.timezone || '-';
+      case 'dnd':
+        return contact.dnd ? 'Yes' : 'No';
+      case 'source':
+        return contact.source || '-';
+      case 'address1':
+        return contact.address1 || '-';
+      case 'city':
+        return contact.city || '-';
+      case 'state':
+        return contact.state || '-';
+      case 'country':
+        return contact.country || '-';
+      case 'postalCode':
+        return contact.postalCode || '-';
+      default:
+        return '-';
     }
-    return typeof value === 'object' && value !== null ? JSON.stringify(value) : (value?.toString() || 'N/A');
   };
 
   const lookupPhoneNumber = async (phone: string) => {
@@ -1850,8 +1868,8 @@ export default function ContactsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {contacts.map(contact => (
-                    <tr key={contact.id}>
+                  {contacts.map((contact: Contact) => (
+                    <tr key={contact.id} className="hover:bg-gray-50">
                       <td className="pl-4 pr-3 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
@@ -1862,29 +1880,33 @@ export default function ContactsPage() {
                       </td>
                       {columns.filter(col => col.visible).map(column => (
                         <td key={column.id} className="px-4 py-4 truncate max-w-[200px]">
-                          {renderCell(contact, column)}
+                          {renderCell(column, contact)}
                         </td>
                       ))}
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
-                          className="text-blue-600 hover:text-blue-800 mr-2"
-                          title="Message this contact"
-                        >
-                          <ChatBubbleLeftRightIcon className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(contact)}
-                          className="text-purple-600 hover:text-purple-900 mr-2"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(contact)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
+                            className="text-purple-600 hover:text-purple-800 transition-colors"
+                            title="Message this contact"
+                          >
+                            <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(contact)}
+                            className="text-purple-600 hover:text-purple-800 transition-colors"
+                            title="Edit contact"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(contact)}
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            title="Delete contact"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
