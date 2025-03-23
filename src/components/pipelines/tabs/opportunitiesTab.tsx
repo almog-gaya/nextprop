@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { OpportunityListSkeleton } from '@/components/SkeletonLoaders';
 import axios from 'axios';
-import { Pipeline, Opportunity } from '@/types';
+import { Pipeline, Opportunity, Contact } from '@/types';
+import { Dropdown } from '../../ui/dropdown'
+
+interface FormData {
+    pipelineId: string;
+    stageId: string;
+    name: string;
+    monetaryValue: number;
+    status: string;
+    contact: Contact | null;
+    assignedTo?: string;
+    customFields: Record<string, string>;
+}
+
+interface CustomField {
+    name: string;
+    value: string;
+}
 
 const OpportunitiesTab: React.FC<{
     pipelines: Pipeline[];
@@ -31,79 +48,53 @@ const OpportunitiesTab: React.FC<{
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         pipelineId: '',
+        stageId: '',
         name: '',
-        pipelineStageId: '',
-        status: 'open',
-        contactId: '',
         monetaryValue: 0,
+        status: 'open',
+        contact: null as unknown as Contact,
         assignedTo: '',
-        customFields: [
-            { id: 'PBMP8z9C1uqXL0Vk05ia', key: 'contact.email', field_value: '' },
-            { id: 'F6IwLG9XCBQZyIbvDIRW', key: 'contact.phone', field_value: '' }
-        ]
+        customFields: {}
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Validate required fields
-        if (!formData.contactId) {
+        if (!formData.contact) {
             setError("Please select a contact before creating an opportunity");
             return;
         }
         
         setIsSubmitting(true);
         try {
-            // Add debug log for form data
-            console.log("Form data being submitted:", JSON.stringify(formData, null, 2));
+            const response = await axios.post('/api/opportunities', {
+                ...formData,
+                contact: formData.contact // Ensure contact is included
+            });
             
-            const response = await axios.post('/api/opportunities', formData);
-            setIsModalOpen(false);
-            
-            console.log(`Received Data:`, response.data.opportunity);
-            
-            // Option 1: Add to local state
             const newOpportunity = response.data?.opportunity;
             if (newOpportunity) {
-                // Make sure all required fields exist to prevent rendering errors
-                const formattedOpportunity = {
+                const formattedOpportunity: Opportunity = {
                     id: newOpportunity.id || `temp-${Date.now()}`,
-                    name: newOpportunity.name || formData.name || 'New Opportunity',
-                    monetaryValue: newOpportunity.monetaryValue || formData.monetaryValue || 0,
-                    status: newOpportunity.status || formData.status || 'open',
+                    name: newOpportunity.name || formData.name,
+                    monetaryValue: newOpportunity.monetaryValue || formData.monetaryValue,
+                    status: newOpportunity.status || formData.status,
                     pipelineId: newOpportunity.pipelineId || formData.pipelineId,
-                    stageId: newOpportunity.pipelineStageId || formData.pipelineStageId, // Ensure stageId is set
+                    stageId: newOpportunity.stageId || formData.stageId,
+                    contact: newOpportunity.contact || formData.contact,
+                    assignedTo: newOpportunity.assignedTo || formData.assignedTo,
+                    customFields: newOpportunity.customFields || formData.customFields,
                     createdAt: newOpportunity.createdAt || new Date().toISOString(),
-                    contact: newOpportunity.contact || { id: formData.contactId, name: 'Contact' }
+                    updatedAt: newOpportunity.updatedAt || new Date().toISOString()
                 };
                 
-                console.log("Formatted opportunity to add:", formattedOpportunity);
-                setOpportunities(prevOpportunities => {
-                    console.log("Current opportunities count:", prevOpportunities?.length || 0);
-                    return [...(prevOpportunities || []), formattedOpportunity];
-                });
-                
-                // Option 2: Refresh data from server
-                if (selectedPipelineId) {
-                    setIsLoading(true);
-                    try {
-                        console.log("Refreshing data from pipeline:", selectedPipelineId);
-                        const refreshResponse = await axios.get(`/api/pipelines/${selectedPipelineId}/opportunities`);
-                        console.log("Refresh response:", refreshResponse.data);
-                        if (refreshResponse.data && Array.isArray(refreshResponse.data.opportunities)) {
-                            console.log("Refresh found opportunities:", refreshResponse.data.opportunities.length);
-                            setOpportunities(refreshResponse.data.opportunities || []);
-                        }
-                    } catch (refreshErr) {
-                        console.error('Failed to refresh opportunities:', refreshErr);
-                    } finally {
-                        setIsLoading(false);
-                    }
-                }
+                const newOpportunities = [...opportunities, formattedOpportunity];
+                setOpportunities(newOpportunities);
             }
             
+            setIsModalOpen(false);
             setError(null);
             resetForm();
         } catch (err: any) {
@@ -118,24 +109,13 @@ const OpportunitiesTab: React.FC<{
         setSelectedOpportunity(opportunity);
         setFormData({
             pipelineId: opportunity.pipelineId,
+            stageId: opportunity.stageId || '',
             name: opportunity.name,
-            pipelineStageId: opportunity.stageId || '',
-            status: opportunity.status,
-            contactId: opportunity.contact?.id || '',
             monetaryValue: opportunity.monetaryValue,
+            status: opportunity.status,
+            contact: opportunity.contact || null,
             assignedTo: opportunity.assignedTo || '',
-            customFields: [
-                { 
-                    id: 'PBMP8z9C1uqXL0Vk05ia', 
-                    key: 'contact.email', 
-                    field_value: opportunity.customFields?.find(cf => cf.key === 'contact.email')?.field_value || '' 
-                },
-                { 
-                    id: 'F6IwLG9XCBQZyIbvDIRW', 
-                    key: 'contact.phone', 
-                    field_value: opportunity.customFields?.find(cf => cf.key === 'contact.phone')?.field_value || '' 
-                }
-            ]
+            customFields: opportunity.customFields || {}
         });
         setIsEditModalOpen(true);
     };
@@ -150,24 +130,23 @@ const OpportunitiesTab: React.FC<{
             setIsEditModalOpen(false);
             
             // Construct the updated opportunity object with the form data
-            const updatedOpportunity = {
+            const updatedOpportunity: Opportunity = {
                 ...selectedOpportunity,
                 pipelineId: formData.pipelineId,
                 name: formData.name,
-                stageId: formData.pipelineStageId,
+                stageId: formData.stageId,
                 status: formData.status,
-                contact: contacts.find(c => c.id === formData.contactId) || selectedOpportunity.contact,
+                contact: formData.contact,
                 monetaryValue: formData.monetaryValue,
                 assignedTo: formData.assignedTo,
                 customFields: formData.customFields
             };
 
             // Update the opportunities array with the new data
-            setOpportunities(prevOpportunities =>
-                prevOpportunities.map(opp =>
-                    opp.id === selectedOpportunity.id ? updatedOpportunity : opp
-                )
+            const updatedOpportunities = opportunities.map(opp => 
+                opp.id === selectedOpportunity.id ? updatedOpportunity : opp
             );
+            setOpportunities(updatedOpportunities);
             
             setError(null);
             resetForm();
@@ -190,9 +169,10 @@ const OpportunitiesTab: React.FC<{
         try {
             await axios.delete(`/api/opportunities/${selectedOpportunity.id}`);
             setIsDeleteModalOpen(false);
-            setOpportunities(prevOpportunities =>
-                prevOpportunities.filter(opp => opp.id !== selectedOpportunity.id)
+            const remainingOpportunities = opportunities.filter(opp => 
+                opp.id !== selectedOpportunity.id
             );
+            setOpportunities(remainingOpportunities);
             setError(null);
         } catch (err: any) {
             setError(err.message || 'Failed to delete opportunity');
@@ -205,22 +185,29 @@ const OpportunitiesTab: React.FC<{
     const resetForm = () => {
         setFormData({
             pipelineId: '',
+            stageId: '',
             name: '',
-            pipelineStageId: '',
             status: 'open',
-            contactId: '',
             monetaryValue: 0,
+            contact: null as unknown as Contact,
             assignedTo: '',
-            customFields: [
-                { id: 'PBMP8z9C1uqXL0Vk05ia', key: 'contact.email', field_value: '' },
-                { id: 'F6IwLG9XCBQZyIbvDIRW', key: 'contact.phone', field_value: '' }
-            ]
+            customFields: {}
         });
         setSelectedOpportunity(null);
     };
 
     const selectedPipeline = pipelines.find(p => p.id === formData.pipelineId);
     const stages = selectedPipeline?.stages || [];
+
+    const handleCustomFieldChange = (field: string, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            customFields: {
+                ...prev.customFields,
+                [field]: value
+            }
+        }));
+    };
 
     useEffect(() => {
         // Debug log for opportunities
@@ -238,18 +225,16 @@ const OpportunitiesTab: React.FC<{
                     <p className="text-gray-600">Manage your sales opportunities and deals</p>
                 </div>
                 <div className="flex space-x-4 mt-4 md:mt-0">
-                    <select
-                        className="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <Dropdown
                         value={selectedPipelineId || ''}
-                        onChange={(e) => setSelectedPipelineId(e.target.value)}
+                        onChange={setSelectedPipelineId}
+                        options={pipelines.map(pipeline => ({
+                            value: pipeline.id,
+                            label: pipeline.name
+                        }))}
+                        placeholder="Select Pipeline"
                         disabled={pipelines.length === 0}
-                    >
-                        {pipelines.map(pipeline => (
-                            <option key={pipeline.id} value={pipeline.id}>
-                                {pipeline.name}
-                            </option>
-                        ))}
-                    </select>
+                    />
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -281,14 +266,14 @@ const OpportunitiesTab: React.FC<{
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Primary Contact Name <span className="text-red-600">*</span>
-                                                {!formData.contactId && (
+                                                {!formData.contact && (
                                                     <span className="text-red-500 text-xs ml-1">(required)</span>
                                                 )}
                                             </label>
                                             <select
-                                                value={formData.contactId}
-                                                onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
-                                                className={`w-full border ${!formData.contactId ? 'border-red-300' : 'border-gray-200'} rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                                value={formData.contact?.id || ''}
+                                                onChange={(e) => setFormData({ ...formData, contact: contacts.find(c => c.id === e.target.value) || undefined })}
+                                                className={`w-full border ${!formData.contact ? 'border-red-300' : 'border-gray-200'} rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                                 disabled={isSubmitting}
                                                 required
                                             >
@@ -299,7 +284,7 @@ const OpportunitiesTab: React.FC<{
                                                     </option>
                                                 ))}
                                             </select>
-                                            {!formData.contactId && (
+                                            {!formData.contact && (
                                                 <p className="mt-1 text-sm text-red-600">A contact is required to create an opportunity</p>
                                             )}
                                         </div>
@@ -308,11 +293,11 @@ const OpportunitiesTab: React.FC<{
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Primary Email</label>
                                                 <input
                                                     type="email"
-                                                    value={formData.customFields.find(cf => cf.key === 'contact.email')?.field_value || ''}
+                                                    value={formData.customFields.find(cf => cf.name === 'contact.email')?.value || ''}
                                                     onChange={(e) => setFormData({
                                                         ...formData,
                                                         customFields: formData.customFields.map(cf =>
-                                                            cf.key === 'contact.email' ? { ...cf, field_value: e.target.value } : cf
+                                                            cf.name === 'contact.email' ? { ...cf, value: e.target.value } : cf
                                                         )
                                                     })}
                                                     className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -324,11 +309,11 @@ const OpportunitiesTab: React.FC<{
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Primary Phone</label>
                                                 <input
                                                     type="tel"
-                                                    value={formData.customFields.find(cf => cf.key === 'contact.phone')?.field_value || ''}
+                                                    value={formData.customFields.find(cf => cf.name === 'contact.phone')?.value || ''}
                                                     onChange={(e) => setFormData({
                                                         ...formData,
                                                         customFields: formData.customFields.map(cf =>
-                                                            cf.key === 'contact.phone' ? { ...cf, field_value: e.target.value } : cf
+                                                            cf.name === 'contact.phone' ? { ...cf, value: e.target.value } : cf
                                                         )
                                                     })}
                                                     className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -356,27 +341,10 @@ const OpportunitiesTab: React.FC<{
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Pipeline</label>
-                                                <select
-                                                    value={formData.pipelineId}
-                                                    onChange={(e) => setFormData({ ...formData, pipelineId: e.target.value, pipelineStageId: '' })}
-                                                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    required
-                                                    disabled={isSubmitting}
-                                                >
-                                                    <option value="">Select a Pipeline</option>
-                                                    {pipelines.map(pipeline => (
-                                                        <option key={pipeline.id} value={pipeline.id}>
-                                                            {pipeline.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Stage</label>
                                                 <select
-                                                    value={formData.pipelineStageId}
-                                                    onChange={(e) => setFormData({ ...formData, pipelineStageId: e.target.value })}
+                                                    value={formData.stageId}
+                                                    onChange={(e) => setFormData({ ...formData, stageId: e.target.value })}
                                                     className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     required
                                                     disabled={isSubmitting || !formData.pipelineId}
@@ -433,11 +401,9 @@ const OpportunitiesTab: React.FC<{
                                 <button
                                     type="submit"
                                     className={`px-4 py-2 rounded text-white transition-colors ${
-                                        !formData.contactId 
-                                            ? 'bg-gray-400 cursor-not-allowed' 
-                                            : 'bg-purple-600 hover:bg-blue-700'
+                                        !formData.contact ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-blue-700'
                                     }`}
-                                    disabled={isSubmitting || !formData.contactId}
+                                    disabled={isSubmitting || !formData.contact}
                                 >
                                     {isSubmitting ? (
                                         <>
@@ -475,8 +441,8 @@ const OpportunitiesTab: React.FC<{
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Primary Contact Name *</label>
                                             <select
-                                                value={formData.contactId}
-                                                onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
+                                                value={formData.contact?.id || ''}
+                                                onChange={(e) => setFormData({ ...formData, contact: contacts.find(c => c.id === e.target.value) || undefined })}
                                                 className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 disabled={isSubmitting}
                                             >
@@ -493,11 +459,11 @@ const OpportunitiesTab: React.FC<{
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Primary Email</label>
                                                 <input
                                                     type="email"
-                                                    value={formData.customFields.find(cf => cf.key === 'contact.email')?.field_value || ''}
+                                                    value={formData.customFields.find(cf => cf.name === 'contact.email')?.value || ''}
                                                     onChange={(e) => setFormData({
                                                         ...formData,
                                                         customFields: formData.customFields.map(cf =>
-                                                            cf.key === 'contact.email' ? { ...cf, field_value: e.target.value } : cf
+                                                            cf.name === 'contact.email' ? { ...cf, value: e.target.value } : cf
                                                         )
                                                     })}
                                                     className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -509,11 +475,11 @@ const OpportunitiesTab: React.FC<{
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Primary Phone</label>
                                                 <input
                                                     type="tel"
-                                                    value={formData.customFields.find(cf => cf.key === 'contact.phone')?.field_value || ''}
+                                                    value={formData.customFields.find(cf => cf.name === 'contact.phone')?.value || ''}
                                                     onChange={(e) => setFormData({
                                                         ...formData,
                                                         customFields: formData.customFields.map(cf =>
-                                                            cf.key === 'contact.phone' ? { ...cf, field_value: e.target.value } : cf
+                                                            cf.name === 'contact.phone' ? { ...cf, value: e.target.value } : cf
                                                         )
                                                     })}
                                                     className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -541,27 +507,10 @@ const OpportunitiesTab: React.FC<{
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Pipeline</label>
-                                                <select
-                                                    value={formData.pipelineId}
-                                                    onChange={(e) => setFormData({ ...formData, pipelineId: e.target.value, pipelineStageId: '' })}
-                                                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    required
-                                                    disabled={isSubmitting}
-                                                >
-                                                    <option value="">Select a Pipeline</option>
-                                                    {pipelines.map(pipeline => (
-                                                        <option key={pipeline.id} value={pipeline.id}>
-                                                            {pipeline.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">Stage</label>
                                                 <select
-                                                    value={formData.pipelineStageId}
-                                                    onChange={(e) => setFormData({ ...formData, pipelineStageId: e.target.value })}
+                                                    value={formData.stageId}
+                                                    onChange={(e) => setFormData({ ...formData, stageId: e.target.value })}
                                                     className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     required
                                                     disabled={isSubmitting || !formData.pipelineId}
