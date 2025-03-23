@@ -169,7 +169,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         <div className="flex items-center justify-center">
           <div className="flex flex-col items-center">
             <span className="text-2xl font-extrabold tracking-tight nextprop-gradient-text drop-shadow-sm">
-              nextprop
+              Nextprop
             </span>
             <span className="text-xs font-semibold text-white tracking-[0.3em] uppercase mt-1">
               ai platform
