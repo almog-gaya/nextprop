@@ -130,7 +130,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
     // killed that for now , no need atm
     // { icon: <CurrencyDollarIcon className="w-5 h-5" />, text: 'Opportunities', href: '/opportunities' },
-    { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' },
+    // { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' },
   ];
 
  
@@ -211,13 +211,13 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         </SidebarDropdown>
         */}
 
-        <SidebarLink
+        {/* <SidebarLink
           icon={<EnvelopeIcon className="w-5 h-5" />}
           text="Email Campaigns"
           href="/emails"
           active={pathname === '/emails' || pathname.startsWith('/emails/')}
           onClick={isMobile ? onClose : undefined}
-        />
+        /> */}
       </div>
       
       <div className="mt-auto mb-6 px-6">
