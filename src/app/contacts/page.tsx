@@ -13,6 +13,7 @@ import { Contact } from '@/types';
 import BulkUploadForm from '@/components/BulkUploadForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConversationDisplay } from '@/types/messageThread';
+import { IconButton } from '@/components/ui/iconButton';
 
 
 interface CustomField {
@@ -1885,27 +1886,22 @@ export default function ContactsPage() {
                       ))}
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-3">
-                          <button
+                          <IconButton
+                            icon={<ChatBubbleLeftRightIcon className="h-5 w-5" />}
                             onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
-                            className="text-purple-600 hover:text-purple-800 transition-colors"
-                            title="Message this contact"
-                          >
-                            <ChatBubbleLeftRightIcon className="h-5 w-5" />
-                          </button>
-                          <button
+                            tooltip="Message this contact"
+                          />
+                          <IconButton
+                            icon={<PencilIcon className="h-5 w-5" />}
                             onClick={() => handleEdit(contact)}
-                            className="text-purple-600 hover:text-purple-800 transition-colors"
-                            title="Edit contact"
-                          >
-                            <PencilIcon className="h-5 w-5" />
-                          </button>
-                          <button
+                            tooltip="Edit contact"
+                          />
+                          <IconButton
+                            icon={<TrashIcon className="h-5 w-5" />}
                             onClick={() => handleDelete(contact)}
-                            className="text-red-600 hover:text-red-800 transition-colors"
-                            title="Delete contact"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
+                            tooltip="Delete contact"
+                            variant="destructive"
+                          />
                         </div>
                       </td>
                     </tr>

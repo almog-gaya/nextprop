@@ -9,6 +9,7 @@ import {
   XMarkIcon,
   EllipsisHorizontalIcon,
 } from '@heroicons/react/24/outline';
+import { IconButton } from '../ui/iconButton';
 
 interface Opportunity {
   id: string;
@@ -23,7 +24,7 @@ interface Opportunity {
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
-  handleCommunication: (opportunityId: string, actionType: 'voicemail' | 'sms' | 'call' | 'email' | 'optout') => void;
+  handleCommunication: (id: string, type: 'call' | 'sms' | 'email' | 'optout') => void;
   handleEditOpportunity: (opportunity: Opportunity) => void;
   isDragging?: boolean;
 }
@@ -35,83 +36,49 @@ export default function OpportunityCard({
   isDragging = false,
 }: OpportunityCardProps) {
   return (
-    <div className={`bg-white mb-3 rounded-md border ${isDragging ? 'border-blue-400 shadow-md' : 'border-gray-200'} hover:shadow-sm transition-shadow`}>
-      <div className="p-3 flex justify-between items-start">
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-center">
-            <button 
-              onClick={() => handleEditOpportunity(opportunity)}
-              className="font-medium text-gray-800 truncate text-left hover:text-blue-600 hover:underline focus:outline-none"
-            >
-              {opportunity.name || '-'}
-            </button>
-            <button className="text-gray-400 hover:text-gray-600 ml-2">
-              <EllipsisHorizontalIcon className="h-5 w-5" />
-            </button>
-          </div>
-
-          {opportunity.businessName && (
-            <div className="text-sm mt-1">
-              <span className="text-gray-500">Business:</span>
-              <span className="ml-1 text-gray-700">{opportunity.businessName}</span>
-            </div>
-          )}
-
-          {opportunity.source && (
-            <div className="text-sm mt-1">
-              <span className="text-gray-500">Source:</span>
-              <span className="ml-1 text-gray-700">{opportunity.source}</span>
-            </div>
-          )}
-
-          <div className="text-sm mt-1">
-            <span className="text-gray-500">Value:</span>
-            <button 
-              onClick={() => handleEditOpportunity(opportunity)}
-              className="ml-1 text-gray-700 hover:text-blue-600 hover:underline focus:outline-none"
-            >
-              {opportunity.value}
-            </button>
-          </div>
+    <div
+      className={`bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden ${
+        isDragging ? 'opacity-50' : ''
+      }`}
+    >
+      <div className="p-3">
+        <h3 className="font-medium text-gray-900">{opportunity.name}</h3>
+        <p className="text-sm text-gray-500">{opportunity.businessName}</p>
+        <p className="text-sm font-medium text-purple-600">{opportunity.value}</p>
+        <div className="mt-2">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            {opportunity.stage}
+          </span>
         </div>
       </div>
 
       <div className="flex justify-between px-3 py-2 border-t border-gray-100 bg-gray-50 rounded-b-md">
-        <button
-          className="text-gray-500 hover:text-purple-600 p-1"
+        <IconButton
+          icon={<PhoneIcon className="h-4 w-4" />}
           onClick={() => handleCommunication(opportunity.id, 'call')}
-          title="Simulate a returned call"
-        >
-          <PhoneIcon className="h-4 w-4" />
-        </button>
-        <button
-          className="text-gray-500 hover:text-purple-600 p-1"
+          tooltip="Simulate a returned call"
+        />
+        <IconButton
+          icon={<ChatBubbleLeftRightIcon className="h-4 w-4" />}
           onClick={() => handleCommunication(opportunity.id, 'sms')}
-          title="Simulate a returned SMS"
-        >
-          <ChatBubbleLeftRightIcon className="h-4 w-4" />
-        </button>
-        <button
-          className="text-gray-500 hover:text-purple-600 p-1"
+          tooltip="Simulate a returned SMS"
+        />
+        <IconButton
+          icon={<EnvelopeIcon className="h-4 w-4" />}
           onClick={() => handleCommunication(opportunity.id, 'email')}
-          title="Send email"
-        >
-          <EnvelopeIcon className="h-4 w-4" />
-        </button>
-        <button
-          className="text-gray-500 hover:text-purple-600 p-1"
+          tooltip="Send email"
+        />
+        <IconButton
+          icon={<PencilIcon className="h-4 w-4" />}
           onClick={() => handleEditOpportunity(opportunity)}
-          title="Edit opportunity"
-        >
-          <PencilIcon className="h-4 w-4" />
-        </button>
-        {/* <button
-          className="text-gray-500 hover:text-red-600 p-1"
+          tooltip="Edit opportunity"
+        />
+        {/* <IconButton
+          icon={<XMarkIcon className="h-4 w-4" />}
           onClick={() => handleCommunication(opportunity.id, 'optout')}
-          title="Mark as opted out"
-        >
-          <XMarkIcon className="h-4 w-4" />
-        </button> */}
+          tooltip="Mark as opted out"
+          variant="destructive"
+        /> */}
       </div>
     </div>
   );
