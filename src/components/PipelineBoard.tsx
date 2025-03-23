@@ -17,6 +17,7 @@ import {
   PlusIcon,
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
+import { IconButton } from '@/components/ui/iconButton';
 
 interface Opportunity {
   id: string;
@@ -215,24 +216,30 @@ export default function PipelineBoard() {
         </div>
         
         <div className="flex justify-around p-2">
-          <button className="text-gray-500 hover:text-purple-600 p-1">
-            <PhoneIcon className="h-4 w-4" />
-          </button>
-          <button className="text-gray-500 hover:text-purple-600 p-1">
-            <EnvelopeIcon className="h-4 w-4" />
-          </button>
-          <button className="text-gray-500 hover:text-purple-600 p-1">
-            <ChatBubbleLeftRightIcon className="h-4 w-4" />
-          </button>
-          <button className="text-gray-500 hover:text-purple-600 p-1">
-            <CalendarIcon className="h-4 w-4" />
-          </button>
-          <button className="text-gray-500 hover:text-purple-600 p-1">
-            <PencilIcon className="h-4 w-4" />
-          </button>
-          <button className="text-gray-500 hover:text-purple-600 p-1">
-            <UserCircleIcon className="h-4 w-4" />
-          </button>
+          <IconButton
+            icon={<PhoneIcon className="h-4 w-4" />}
+            tooltip="Call contact"
+          />
+          <IconButton
+            icon={<EnvelopeIcon className="h-4 w-4" />}
+            tooltip="Send email"
+          />
+          <IconButton
+            icon={<ChatBubbleLeftRightIcon className="h-4 w-4" />}
+            tooltip="Send SMS"
+          />
+          <IconButton
+            icon={<CalendarIcon className="h-4 w-4" />}
+            tooltip="Schedule"
+          />
+          <IconButton
+            icon={<PencilIcon className="h-4 w-4" />}
+            tooltip="Edit opportunity"
+          />
+          <IconButton
+            icon={<UserCircleIcon className="h-4 w-4" />}
+            tooltip="View contact"
+          />
         </div>
       </div>
     );

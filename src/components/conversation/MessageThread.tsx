@@ -11,6 +11,7 @@ import { CallMessageRenderer } from "./renderers/CallMessageRenderer";
 import NoteSidebar from './NoteSidebar';
 import MessageTemplates from './MessageTemplates';
 import { useAuth } from "@/contexts/AuthContext";
+import { IconButton } from '@/components/ui/iconButton';
 
 const getMessageRenderer = (message: Message) => {
     const isMe = message.direction
@@ -232,36 +233,29 @@ export default function MessageThread({
                         </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <button
-                            className="p-2 rounded-full hover:bg-gray-100"
+                        <IconButton
+                            icon={<div className={`${refreshing ? 'animate-spin' : ''}`}>
+                                <RefreshCw size={20} className="text-gray-600" />
+                            </div>}
                             onClick={handleRefresh}
                             disabled={loading || refreshing}
-                            title="Refresh messages"
-                        >
-                            <div className={`${refreshing ? 'animate-spin' : ''}`}>
-                                <RefreshCw size={20} className="text-gray-600" />
-                            </div>
-                        </button>
-                        <button
-                            className="p-2 rounded-full hover:bg-gray-100"
+                            tooltip="Refresh messages"
+                        />
+                        <IconButton
+                            icon={<Phone size={20} className="text-gray-600" />}
                             onClick={handleCall}
-                            title="Call contact"
-                        >
-                            <Phone size={20} className="text-gray-600" />
-                        </button>
-                        <button 
+                            tooltip="Call contact"
+                        />
+                        <IconButton 
+                            icon={<StickyNote size={20} className={isNoteSidebarOpen ? 'text-purple-600' : 'text-gray-600'} />}
                             onClick={() => setIsNoteSidebarOpen(true)}
-                            className={`p-2 rounded-full ${isNoteSidebarOpen ? 'bg-purple-100 text-purple-600' : 'hover:bg-gray-100'}`}
-                            title="Contact notes"
-                        >
-                            <StickyNote size={20} className={isNoteSidebarOpen ? 'text-purple-600' : 'text-gray-600'} />
-                        </button>
-                        <button 
-                            className="p-2 rounded-full hover:bg-gray-100"
-                            title="More options"
-                        >
-                            <MoreVertical size={20} className="text-gray-600" />
-                        </button>
+                            tooltip="Contact notes"
+                            className={isNoteSidebarOpen ? 'bg-purple-100 text-purple-600' : ''}
+                        />
+                        <IconButton 
+                            icon={<MoreVertical size={20} className="text-gray-600" />}
+                            tooltip="More options"
+                        />
                     </div>
                 </div>
             </div>
