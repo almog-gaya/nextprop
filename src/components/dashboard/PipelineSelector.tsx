@@ -8,8 +8,6 @@ import { Dropdown } from '../ui/dropdown'
 interface PipelineSelectorProps {
   pipelines: PipelineData[];
   selectedPipeline: string | null;
-  isDropdownOpen: boolean;
-  setIsDropdownOpen: (open: boolean) => void;
   handlePipelineChange: (pipelineId: string) => void;
 }
 

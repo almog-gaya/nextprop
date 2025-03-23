@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { PhoneNumber, useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import axios from 'axios';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -24,12 +25,20 @@ import {
   ClockIcon,
   TrashIcon
 } from 'lucide-react';
+import PipelineSelector from '@/components/dashboard/PipelineSelector';
+import ViewToggle from '@/components/dashboard/ViewToggel';
 
 export default function RinglessVoicemailPage() {
   const { user, loadUser } = useAuth();
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pipelines, setPipelines] = useState<any[]>([]);
+  const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [apiConfigured, setApiConfigured] = useState(true);
+  const [notification, setNotification] = useState({ message: '', type: '' });
+  const [notificationActive, setNotificationActive] = useState(false);
   const [settings, setSettings] = useState({
     delayMinutes: 5,
     dailyLimit: 50,
@@ -199,6 +208,7 @@ export default function RinglessVoicemailPage() {
         page: pageToFetch.toString(),
         limit: CONTACTS_PER_PAGE.toString(),
         ...(searchQuery && { search: searchQuery }),
+        ...(selectedPipeline && { pipelineId: selectedPipeline }),
       });
 
       console.log('Fetching contacts with params:', params.toString());
@@ -224,6 +234,14 @@ export default function RinglessVoicemailPage() {
       setIsFetching(false);
     }
   };
+
+  // Add effect to refetch contacts when pipeline changes
+  useEffect(() => {
+    setContacts([]);
+    setCurrentPage(1);
+    setTotalContacts(0);
+    fetchContacts(true);
+  }, [selectedPipeline]);
 
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchContactsByName = useCallback(async (name: string) => {
@@ -397,6 +415,11 @@ export default function RinglessVoicemailPage() {
   }
 
   async function createCampaign() {
+    if (!selectedPipeline) {
+      toast.error('Please select a pipeline first');
+      return;
+    }
+
     if (selectedContacts.length === 0) {
       toast.error('Please select at least one contact');
       return;
@@ -420,11 +443,20 @@ export default function RinglessVoicemailPage() {
     try {
       setLoading(true);
 
-      const formattedContacts = selectedContacts.map(contact => ({
+      // Filter contacts to ensure they're from the selected pipeline
+      const pipelineContacts = selectedContacts.filter(contact => contact.pipelineId === selectedPipeline);
+      
+      if (pipelineContacts.length === 0) {
+        toast.error('No contacts from the selected pipeline');
+        return;
+      }
+
+      const formattedContacts = pipelineContacts.map(contact => ({
         phone_number: contact.phone,
         first_name: contact.firstName || contact.contactName || 'Unknown',
         street_name: contact.address1 || 'your area'
       }));
+
       console.log(`settings: ${JSON.stringify(settings)}`);
       const campaignData = {
         customer_id: user?.locationId,
@@ -440,7 +472,8 @@ export default function RinglessVoicemailPage() {
         },
         timezone: settings.timezone === "EST (New York)" ? "America/New_York" : settings.timezone,
         message: script,
-        contacts: formattedContacts
+        contacts: formattedContacts,
+        pipelineId: selectedPipeline // Add pipeline ID to campaign data
       };
       const response = await fetch("/api/voicemail", {
         method: "POST",
@@ -583,6 +616,35 @@ export default function RinglessVoicemailPage() {
     searchTimeoutRef.current = setTimeout(() => searchContactsByName(value), 300);
   }, [searchContactsByName]);
 
+  const handlePipelineChange = (pipelineId: string) => {
+    setSelectedPipeline(pipelineId);
+  };
+
+  const handleCommunication = async (opportunityId: string, actionType: 'voicemail' | 'sms' | 'call' | 'email' | 'optout') => {
+    // Handle communication actions here
+    console.log('Communication action:', actionType, 'for opportunity:', opportunityId);
+  };
+
+  useEffect(() => {
+    const fetchPipelines = async () => {
+      try {
+        const response = await fetch('/api/pipelines');
+        if (!response.ok) {
+          throw new Error('Failed to fetch pipelines');
+        }
+        const data = await response.json();
+        const pipelinesArray = Array.isArray(data) ? data : Array.isArray(data.pipelines) ? data.pipelines : [];
+        setPipelines(pipelinesArray);
+      } catch (error) {
+        console.error('Error fetching pipelines:', error);
+        toast.error('Failed to load pipelines');
+        setPipelines([]);
+      }
+    };
+
+    fetchPipelines();
+  }, []);
+
   return (
     <DashboardLayout title="Ringless Voicemails">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -640,6 +702,31 @@ export default function RinglessVoicemailPage() {
             iconColor="text-red-600"
           />
         </div>
+
+        {/* Pipeline Selector */}
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <PipelineSelector
+                  pipelines={pipelines}
+                  selectedPipeline={selectedPipeline}
+                  handlePipelineChange={handlePipelineChange}
+                />
+                <span className="ml-3 text-purple-600 font-medium">
+                  {selectedPipeline
+                    ? (pipelines.find((p) => p.id === selectedPipeline)?.totalOpportunities || 0) +
+                      ' leads'
+                    : '0 leads'}
+                </span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Create New Campaign */}
         <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
           <div className="px-4 py-5 sm:p-6">
@@ -656,8 +743,6 @@ export default function RinglessVoicemailPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Contact Selection - 5 columns */}
               <div className="lg:col-span-5 flex flex-col h-full">
-
-
                 <div className="flex-grow overflow-hidden border border-gray-200 rounded-lg">
                   <ContactSelector
                     contacts={contacts}

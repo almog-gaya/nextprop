@@ -691,20 +691,6 @@ export default function ContactsPage() {
                   />
                 </div>
               </div>
-
-              {/* Tags */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
-                <input
-                  type="text"
-                  value={formData.tags?.join(', ') || ''}
-                  onChange={handleTagChange}
-                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                  placeholder="e.g., lead, customer"
-                  disabled={isSubmitting}
-                />
-              </div>
-
               {/* Timezone and DND */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
