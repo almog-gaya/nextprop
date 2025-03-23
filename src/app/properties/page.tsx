@@ -412,7 +412,7 @@ export default function PropertiesPage() {
           <div className="p-6 md:p-8 text-white">
             <h2 className="text-xl md:text-2xl font-bold mb-3">Scrape Zillow Properties</h2>
             <p className="mb-4">
-              Enter a search query and generate up to {DAILY_LIMIT} property listings at a time from Zillow per day, powered by Apify.
+              Enter a search query and generate up to {DAILY_LIMIT} property listings at a time from Zitllow per day
             </p>
           </div>
         </div>
