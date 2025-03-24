@@ -29,21 +29,18 @@ if (isNaN(DAILY_LIMIT) || DAILY_LIMIT <= 0) {
 console.log("DAILY_LIMIT in production:", DAILY_LIMIT);
 
 export default function PropertiesPage() {
-  const [searchMode, setSearchMode] = useState<"query" | "zipcode">("query"); // Add this line
+  const [searchMode, setSearchMode] = useState<"query" | "zipcode">("zipcode"); // Add this line
   const [isScraping, setIsScraping] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(0);
   const [successCount, setSuccessCount] = useState(0);
   const [failureCount, setFailureCount] = useState(0);
   const [currentStatus, setCurrentStatus] = useState("");
-  const [searchQuery, setSearchQuery] = useState("Miami");
-  const [zipCodes, setZipCodes] = useState<string[]>(["33101"]);
+  // const [searchQuery, setSearchQuery] = useState("Miami");
+  const [zipCode, setZipCode] = useState<string>("33125");
   const [priceMin, setPriceMin] = useState<number>(500000);
   const [priceMax, setPriceMax] = useState<number>(700000);
-  const [daysOnZillow, setDaysOnZillow] = useState<string>("90");
-  const [forSaleByAgent, setForSaleByAgent] = useState<boolean>(true);
-  const [forSaleByOwner, setForSaleByOwner] = useState<boolean>(false);
-  const [forRent, setForRent] = useState<boolean>(false);
-  const [sold, setSold] = useState<boolean>(false);
+  const [types, setTypes] = useState<string>('');
+  const [daysOnZillow, setDaysOnZillow] = useState<string>("3mo");
   const [scrapedProperties, setScrapedProperties] = useState<ZillowProperty[]>([]);
   const [completionMessage, setCompletionMessage] = useState<{
     title: string;
@@ -214,31 +211,27 @@ export default function PropertiesPage() {
   };
 
   const _searchByQuery = async (limit: number) => {
-    return await fetch("/api/properties", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: searchQuery,
-        limit,
-      }),
-    });
+    // return await fetch("/api/properties", {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({
+    //     query: searchQuery,
+    //     limit,
+    //   }),
+    // });
   }
 
   const _searchByZipCodes = async (limit: number) => {
     return await fetch("/api/properties/search-by-zipcode", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: searchQuery,
+      body: JSON.stringify({ 
         limit,
-        zipCodes,
+        zipCode: zipCode,
         priceMin,
         priceMax,
+        types,
         daysOnZillow,
-        forSaleByAgent,
-        forSaleByOwner,
-        forRent,
-        sold,
       }),
     });
   }
@@ -305,44 +298,16 @@ export default function PropertiesPage() {
 
     // Fetch properties from Zillow API
     const fetchProperties = async (limit: number): Promise<ZillowProperty[]> => {
-      if (searchMode == "zipcode") {
-        if (zipCodes.length <= 0) {
-          toast.error("No zip codes provided");
-          throw new Error("No zip code(s) provided");
-        }
-      } else if (searchMode == "query") {
-        if (searchQuery.length <= 0) {
-          toast.error("No search query provided");
-          throw new Error("No search query provided");
-        }
+
+      if (!zipCode) {
+        toast.error("No zip code provided");
+        throw new Error("No zip code provided");
       }
+
       setCurrentStatus(`Starting to scrape ${limit} properties...`);
-      const searchResponse = searchMode === "zipcode" ? await _searchByZipCodes(limit) : await _searchByQuery(limit);
+      const searchResponse = await _searchByZipCodes(limit);
       const searchURLbody = await searchResponse.json();
-      const searchURLs = searchURLbody.urls;
-
-      if (!searchResponse.ok || !searchURLs) {
-        console.error("Search API error response:", searchURLbody);
-        throw new Error(
-          searchURLbody.error ||
-          `Failed to scrape properties: ${searchResponse.statusText} (Status: ${searchResponse.status})`
-        );
-      }
-
-      const detailResponse = await fetch("/api/properties/detail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls: searchURLs, limit }),
-      });
-
-      const data: ScrapedResult = await detailResponse.json();
-      console.log("Scraped data:", data);
-
-      if (!data.success || !data.properties) {
-        throw new Error(data.error || "No properties returned from Apify");
-      }
-
-      return data.properties;
+      return convertToZillowProperty(searchURLbody.data).properties || [];
     };
     // Process scraped properties
     const processProperties = async (properties: ZillowProperty[]) => {
@@ -362,7 +327,7 @@ export default function PropertiesPage() {
       const remaining = DAILY_LIMIT - scrapedToday;
       setCompletionMessage({
         title: "Property Scraping Complete",
-        message: `${totalProperties} properties have been scraped from Zillow and based on your query: "${searchQuery}". You have ${remaining > 0 ? remaining : 0} properties left to scrape today.`,
+        message: `${totalProperties} properties have been scraped from Redfin and based on your zipcode: "${zipCode}". You have ${remaining > 0 ? remaining : 0} properties left to scrape today.`,
         actions: [
           { label: "View Properties", href: "/properties/list" },
           { label: "View Contacts", href: "/contacts" },
@@ -405,12 +370,86 @@ export default function PropertiesPage() {
     setSelectedProperty(null);
   };
 
+  const getPhoto = (photos: any) => {
+    try {
+      const url = photos[0].photoUrls || {};
+      return url.fullScreenPhotoUrl;
+
+    } catch (e) {
+      console.error("Error getting photo:", e);
+      return null;
+    }
+  }
+  function convertToZillowProperty(results: any[]): ScrapedResult {
+    try {
+      const properties: ZillowProperty[] = (results || []).map((result = {}) => {
+        const priceValue = result.price || {};
+        const mainHouseInfo = result.mainHouseInfo || {};
+        const photos = result.mediaBrowserInfo.photos || [];
+        const publicRecords = result.publicRecordsInfo?.latestListingInfo || {};
+        const listingAgents = Array.isArray(mainHouseInfo.listingAgents) ? mainHouseInfo.listingAgents : [];
+        const listingAgent = listingAgents[0]?.agentInfo || {};
+        const listingBroker = listingAgents[0] || {};
+        const propertyAddress = mainHouseInfo.propertyAddress || {};
+
+        // Safely construct street address from propertyAddress components
+        const streetComponents = [
+          propertyAddress.streetNumber,
+          propertyAddress.directionalPrefix,
+          propertyAddress.streetName,
+          propertyAddress.streetType,
+          propertyAddress.directionalSuffix
+        ].filter(Boolean); // Remove null/undefined values
+        const constructedStreetAddress = streetComponents.length > 0 ? streetComponents.join(' ').trim() : null;
+
+        // Fallback address parsing
+        const fullAddress = mainHouseInfo.fullStreetAddress || '';
+        const addressParts = fullAddress.split(', ').filter(Boolean);
+        const stateZip = (addressParts[2] || '').split(' ').filter(Boolean);
+
+        return {
+          agentName: listingAgent.agentName ?? null,
+          agentPhoneNumber: listingBroker.agentPhoneNumber?.phoneNumber ?? null,
+          brokerName: listingBroker.brokerName ?? null,
+          brokerPhoneNumber: listingBroker.brokerPhoneNumber?.phoneNumber ?? null,
+          agentEmail: listingBroker.agentEmailAddress ?? null,
+          brokerEmail: listingBroker.brokerEmailAddress ?? null,
+          homeType: publicRecords.propertyTypeName ?? null,
+          streetAddress: constructedStreetAddress ?? mainHouseInfo.streetAddress ?? null,
+          city: propertyAddress.city ?? (addressParts[1] || null),
+          state: propertyAddress.stateOrProvinceCode ?? (stateZip[0] || null),
+          zipcode: propertyAddress.postalCode ?? (stateZip[1] || null),
+          price: priceValue.value ?? null,
+          listingSubType: null,
+          zestimate: null,
+          bedrooms: publicRecords.beds != null ? String(publicRecords.beds) : null,
+          bathrooms: publicRecords.baths != null ? String(publicRecords.baths) : null,
+          description: result.listingRemarks,
+          timeOnZillow: (result?.addressSectionInfo?.cumulativeDaysOnMarket) ?? 'N/A' + ' days',
+          url: 'https://www.redfin.com/' + result.url,
+          imageUrl: getPhoto(photos),
+
+        };
+      });
+
+      return {
+        success: true,
+        properties: properties
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred during conversion'
+      };
+    }
+  }
+
   return (
     <DashboardLayout title="Properties">
       <div className="py-6 px-4 sm:px-6 lg:px-8">
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg mb-8">
           <div className="p-6 md:p-8 text-white">
-            <h2 className="text-xl md:text-2xl font-bold mb-3">Scrape Zillow Properties</h2>
+            <h2 className="text-xl md:text-2xl font-bold mb-3">Scrape Redfin Properties</h2>
             <p className="mb-4">
               Enter a search query and generate up to {DAILY_LIMIT} property listings at a time
             </p>
@@ -418,7 +457,7 @@ export default function PropertiesPage() {
         </div>
 
         <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-medium mb-4">Search Zillow Properties</h2>
+          <h2 className="text-lg font-medium mb-4">Search Redfin Properties</h2>
 
           {/* Pipeline dropdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -477,30 +516,22 @@ export default function PropertiesPage() {
             </div>
           </div>
 
-          <SearchBarProperties
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            zipCodes={zipCodes}
-            setZipCodes={setZipCodes}
+          <SearchBarProperties 
+            zipCode={zipCode}
+            setZipCode={setZipCode}
             priceMin={priceMin}
             setPriceMin={setPriceMin}
             priceMax={priceMax}
             setPriceMax={setPriceMax}
             daysOnZillow={daysOnZillow}
             setDaysOnZillow={setDaysOnZillow}
-            forSaleByAgent={forSaleByAgent}
-            setForSaleByAgent={setForSaleByAgent}
-            forSaleByOwner={forSaleByOwner}
-            setForSaleByOwner={setForSaleByOwner}
-            forRent={forRent}
-            setForRent={setForRent}
-            sold={sold}
-            setSold={setSold}
             isScraping={isScraping}
             handleScrapeProperties={handleScrapeProperties}
             dailyLimit={DAILY_LIMIT}
             searchMode={searchMode} // Pass searchMode
             setSearchMode={setSearchMode} // Pass setSearchMode
+            types={types}
+            setTypes={setTypes}
           />
           <CompletionMessage completionMessage={completionMessage} />
           <PropertyTable scrapedProperties={scrapedProperties} handleRowClick={handleRowClick} />
