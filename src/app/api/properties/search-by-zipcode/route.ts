@@ -11,34 +11,14 @@ export async function POST(req: Request) {
     }
 
     try {
-        const {
-            limit,
-            zipCodes,
-            priceMin,
-            priceMax,
-            daysOnZillow,
-            forSaleByAgent,
-            forSaleByOwner,
-            forRent,
-            sold,
-        } = await req.json();
-        const payload = { 
-            zipCodes,
-            priceMin,
-            priceMax,
-            daysOnZillow,
-            forSaleByAgent,
-            forSaleByOwner,
-            forRent,
-            sold,
-        };
+        const params = await req.json();
+        const { limit } = params;
 
-        const searchURLs = await zillowSearchScraper(API_TOKEN, limit, payload);
+        const data = await redfinSearchScraper(API_TOKEN, limit, params);
 
-        console.log(`[SearchURLS]: ${JSON.stringify(searchURLs)}`);
         return NextResponse.json({
             success: true,
-            urls: searchURLs,
+            data,
         });
 
 
@@ -53,9 +33,33 @@ export async function POST(req: Request) {
         );
     }
 }
+interface Payload {
+    zipCode: string;
+    daysOnZillow: string;
+    types?: string | null;
+}
+const buildURL = (payload: Payload): string => {
+    const { zipCode, daysOnZillow, types } = payload;
 
-const zillowSearchScraper = async (API_TOKEN: string, limit: number, payload: any) => {
-    const API_URL = 'https://api.apify.com/v2/acts/l7auNT3I30CssRrvO/runs';
+    // Base URL with required zipCode
+    const baseURL = `https://www.redfin.com/zipcode/${zipCode}/filter`;
+
+    // Build filter parameters array
+    const filters: string[] = [];
+
+    // Add days on market filter (always included as it's required)
+    filters.push(`min-days-on-market=${daysOnZillow}`);
+
+    // Add property type filter only if it exists and is not null/undefined
+    if (types) {
+        filters.push(`property-type=${types}`);
+    }
+
+    // Combine base URL with filters
+    return `${baseURL}/${filters.join(',')}`;
+};
+const redfinSearchScraper = async (API_TOKEN: string, limit: number, payload: any) => {
+    const API_URL = 'https://api.apify.com/v2/acts/CrtAGwgI5gNhHTCKL/runs';
 
     /// delete null or empty values from payload
     for (const key in payload) {
@@ -63,13 +67,29 @@ const zillowSearchScraper = async (API_TOKEN: string, limit: number, payload: an
             delete payload[key];
         }
     }
+    const _payload = {
+        "maxItems": limit,
+        "maxRequestRetries": 2,
+        "proxy": {
+            "useApifyProxy": true,
+            "apifyProxyGroups": [
+                "RESIDENTIAL"
+            ]
+        },
+        "startUrls": [
+            buildURL(payload)
+        ],
+        "maxConcurrency": limit > 50 ? 50 : limit,
+        "minConcurrency": 1
+    } 
     try {
+
         const runResponse = await fetch(`${API_URL}?token=${API_TOKEN}&maxItems=${limit ?? 2}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(_payload)
         });
 
         if (!runResponse.ok) {
@@ -112,12 +132,7 @@ const zillowSearchScraper = async (API_TOKEN: string, limit: number, payload: an
         const items = await itemsResponse.json();
         console.log(`Fetched from Search URLs`, JSON.stringify(items));
 
-        const filteredSearchResults = items
-            .map((item) => item.detailUrl)
-            .filter(Boolean);
-
-        console.log(`[zillowSearchScraper] filteredSearchResults: ${JSON.stringify(filteredSearchResults)} [zillowSearchScraper]`)
-        return filteredSearchResults;
+        return items;
     } catch (error) {
         console.error('Error in Zillow search scraper:', error);
         throw error;
