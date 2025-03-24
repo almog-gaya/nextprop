@@ -35,6 +35,7 @@ export default function RinglessVoicemailPage() {
   const [error, setError] = useState<string | null>(null);
   const [pipelines, setPipelines] = useState<any[]>([]);
   const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
+  const [totalLeadsByPipeline, setTotalLeadsByPipeline] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [apiConfigured, setApiConfigured] = useState(true);
   const [notification, setNotification] = useState({ message: '', type: '' });
@@ -202,17 +203,24 @@ export default function RinglessVoicemailPage() {
     if (isFetching) return;
 
     try {
+      if(!selectedPipeline) {
+        console.log('No pipeline selected, skipping fetch');
+        return;
+      }
       setIsFetching(true);
       const pageToFetch = reset ? 1 : currentPage;
       const params = new URLSearchParams({
         page: pageToFetch.toString(),
+        type: "pipeline",
+        "pipelineName": pipelines.find(p => p.id === selectedPipeline)?.name,
+        "pipelineId": selectedPipeline,
         limit: CONTACTS_PER_PAGE.toString(),
         ...(searchQuery && { search: searchQuery }),
         ...(selectedPipeline && { pipelineId: selectedPipeline }),
       });
 
       console.log('Fetching contacts with params:', params.toString());
-      const response = await axios.get(`/api/contacts?${params.toString()}`);
+      const response = await axios.get(`/api/contacts/search?${params.toString()}`);
       const newContacts = response.data.contacts || [];
       const total = response.data.total || 0;
 
@@ -244,6 +252,7 @@ export default function RinglessVoicemailPage() {
   }, [selectedPipeline]);
 
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const searchContactsByName = useCallback(async (name: string) => {
     try {
       setIsSearching(true);
@@ -635,13 +644,42 @@ export default function RinglessVoicemailPage() {
         const data = await response.json();
         const pipelinesArray = Array.isArray(data) ? data : Array.isArray(data.pipelines) ? data.pipelines : [];
         setPipelines(pipelinesArray);
+    
+        // Flatten all pipeline-stage pairs into an array of fetch promises
+        const stageFetchPromises = pipelinesArray.flatMap((pipeline: any) =>
+          pipeline.stages.map((stage: any) =>
+            fetch(`/api/pipelines/search?pipelineId=${pipeline.id}&stageId=${stage.id}`)
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch stage ${stage.id} for pipeline ${pipeline.id}`);
+                }
+                return response.json();
+              })
+              .then((dataResponse) => ({
+                pipelineId: pipeline.id,
+                total: dataResponse.total,
+              }))
+          )
+        );
+    
+        // Execute all stage fetches concurrently
+        const stageResults = await Promise.all(stageFetchPromises);
+    
+        // Aggregate totals into a single object
+        const updatedTotalLeads = stageResults.reduce((acc, { pipelineId, total }) => {
+          acc[pipelineId] = (acc[pipelineId] || 0) + total;
+          return acc;
+        }, { ...totalLeadsByPipeline }); // Spread existing state to preserve other pipeline totals
+    
+        // Update state once with all aggregated totals
+        setTotalLeadsByPipeline(updatedTotalLeads);
+    
       } catch (error) {
         console.error('Error fetching pipelines:', error);
         toast.error('Failed to load pipelines');
         setPipelines([]);
       }
     };
-
     fetchPipelines();
   }, []);
 
@@ -713,12 +751,9 @@ export default function RinglessVoicemailPage() {
                   selectedPipeline={selectedPipeline}
                   handlePipelineChange={handlePipelineChange}
                 />
-                <span className="ml-3 text-purple-600 font-medium">
-                  {selectedPipeline
-                    ? (pipelines.find((p) => p.id === selectedPipeline)?.totalOpportunities || 0) +
-                      ' leads'
-                    : '0 leads'}
-                </span>
+                {selectedPipeline && <span className="ml-3 text-purple-600 font-medium">
+                  {totalLeadsByPipeline[selectedPipeline] || 0} leads
+                </span>}
               </div>
               <div className="flex items-center space-x-3">
                 <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
