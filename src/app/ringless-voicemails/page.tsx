@@ -450,17 +450,9 @@ export default function RinglessVoicemailPage() {
     }
 
     try {
-      setLoading(true);
+      setLoading(true); 
 
-      // Filter contacts to ensure they're from the selected pipeline
-      const pipelineContacts = selectedContacts.filter(contact => contact.pipelineId === selectedPipeline);
-      
-      if (pipelineContacts.length === 0) {
-        toast.error('No contacts from the selected pipeline');
-        return;
-      }
-
-      const formattedContacts = pipelineContacts.map(contact => ({
+      const formattedContacts = selectedContacts.map(contact => ({
         phone_number: contact.phone,
         first_name: contact.firstName || contact.contactName || 'Unknown',
         street_name: contact.address1 || 'your area'
