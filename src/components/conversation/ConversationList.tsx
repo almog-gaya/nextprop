@@ -27,6 +27,11 @@ interface ConversationListProps {
   activeId: string | null;
   onSelect: (id: string) => void;
   contacts: Contact[];
+  totalItems: number;
+  itemsPerPage: number;
+  hasMore: boolean;
+  onLoadMore: () => void;
+  loading: boolean;
   onConversationStarted?: () => void;
 }
 
@@ -212,27 +217,29 @@ const ConversationList = memo(function ConversationList({
   activeId,
   onSelect,
   contacts,
+  totalItems,
+  itemsPerPage,
+  hasMore,
+  onLoadMore,
+  loading,
   onConversationStarted,
 }: ConversationListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(1);
   const [isNewConversationModalOpen, setIsNewConversationModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const conversationListRef = useRef<HTMLDivElement>(null);
   const conversationRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const conversationsPerPage = 15;
-  const totalPages = Math.ceil((conversations?.length || 0) / conversationsPerPage);
 
   const [newConversation, setNewConversation] = useState({
     contactId: '',
     message: '',
     type: 'SMS' as 'SMS' | 'Email',
-    fromNumber: user?.phoneNumbers?.[0]?.phoneNumber,
+    fromNumber: user?.phoneNumbers?.find((pn) => pn.isDefaultNumber)?.phoneNumber || '',
     subject: '',
     scheduledTimestamp: '',
   });
-
 
   // Scroll to active conversation when it changes
   useEffect(() => {
@@ -243,37 +250,36 @@ const ConversationList = memo(function ConversationList({
       });
     }
   }, [activeId]);
-
   const filteredConversations = useMemo(
     () =>
-      searchTerm
-        ? conversations.filter(
-          (conv) =>
-            conv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (conv.lastMessage && conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase()))
-        )
-        : conversations,
+      conversations.filter(
+        (conv) =>
+          conv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (conv.lastMessage && conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase()))
+      ),
     [conversations, searchTerm]
   );
 
-  const displayedConversations = useMemo(
-    () => filteredConversations.slice((page - 1) * conversationsPerPage, page * conversationsPerPage),
-    [filteredConversations, page]
-  );
+  const handleScroll = useCallback(() => {
+    const element = conversationListRef.current;
+    if (!element || !hasMore || loading) return;
+
+    if (element.scrollHeight - element.scrollTop - element.clientHeight < 100) {
+      onLoadMore();
+    }
+  }, [hasMore, loading, onLoadMore]);
+
+  useEffect(() => {
+    const element = conversationListRef.current;
+    if (element) {
+      element.addEventListener('scroll', handleScroll);
+      return () => element.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
 
   const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setPage(1);
-    searchInputRef.current?.focus();
   }, []);
-
-  const handleNextPage = useCallback(() => {
-    if (page < totalPages) setPage(page + 1);
-  }, [page, totalPages]);
-
-  const handlePrevPage = useCallback(() => {
-    if (page > 1) setPage(page - 1);
-  }, [page]);
 
   const truncateMessage = useCallback((message: string) => {
     return message?.length > 50 ? message.substring(0, 50) + '...' : message || 'No messages yet';
@@ -370,15 +376,16 @@ const ConversationList = memo(function ConversationList({
     [newConversation, contacts, user, onSelect, onConversationStarted]
   );
 
-  const convertTimeStampToDate = useCallback((timestamp: number) => {
-    const date = new Date(timestamp );
-    const options: Intl.DateTimeFormatOptions = {
-     
-      month: 'short',
-      day: 'numeric', 
-    };
-    return date.toLocaleString('en-US', options);
+  const convertTimeStampToDate = useCallback((timestamp: string) => {
+    console.log("timestamp:", timestamp); // e.g., timestamp: 1742309328399
+    const date = new Date(Number(timestamp)); // Interpret timestamp as UTC milliseconds
+    return date.toLocaleString("en-US", {
+      day: "numeric", // Day of the month (e.g., "24")
+      month: "long", // Full month name (e.g., "March")
+      timeZone: "UTC", // Force UTC time zone
+    });
   }, []);
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="p-3 border-b border-gray-200 sticky top-0 z-10 bg-white">
@@ -398,33 +405,35 @@ const ConversationList = memo(function ConversationList({
             onClick={() => setIsNewConversationModalOpen(true)}
             className="ml-3 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
-            Start Conversation
+            New Conversation
           </button>
         </div>
       </div>
 
-      <div className="overflow-y-auto flex-grow" style={{ maxHeight: 'calc(100vh - 170px)' }}>
-        {displayedConversations.length > 0 ? (
-          displayedConversations.map((conversation: Conversation) => (
+      <div 
+        ref={conversationListRef}
+        className="overflow-y-auto flex-grow"
+        style={{ maxHeight: 'calc(100vh - 170px)' }}
+      >
+        {filteredConversations.length > 0 ? (
+          filteredConversations.map((conversation: Conversation) => (
             <div
               key={conversation.id}
               ref={(el) => (conversationRefs.current[conversation.id] = el)}
-              className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${activeId === conversation.id ? 'bg-gray-100' : ''
-                }`}
+              className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${activeId === conversation.id ? 'bg-gray-100' : ''}`}
               onClick={() => onSelect(conversation.id)}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2 py-5">
                 <Avatar initials={conversation.avatar} />
                 <div className="flex-grow min-w-0">
                   <div className="flex justify-between items-baseline">
-                    <h3 className="font-medium text-gray-900 truncate">{conversation.name}</h3>
+                    <p className="text-sm text-gray-900 truncate">{conversation.name}</p>
                     <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
                       {convertTimeStampToDate(conversation.timestamp)}
                     </span>
                   </div>
                   <p
-                    className={`text-sm truncate ${conversation.unread ? 'font-medium text-gray-900' : 'text-gray-500'
-                      }`}
+                    className={`text-xs truncate ${conversation.unread ? 'font-medium text-gray-900' : 'text-gray-500'}`}
                   >
                     {truncateMessage(conversation.lastMessage)}
                   </p>
@@ -440,31 +449,23 @@ const ConversationList = memo(function ConversationList({
             {searchTerm ? 'No conversations match your search' : 'No conversations found'}
           </div>
         )}
+        {loading && (
+          <div className="p-4 text-center text-gray-500">
+            Loading more conversations...
+          </div>
+        )}
+        {!hasMore && filteredConversations.length > 0 && (
+          <div className="p-4 text-center text-gray-500">
+            No more conversations
+          </div>
+        )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="p-2 border-t border-gray-200 flex items-center justify-between sticky bottom-0 bg-white">
-          <button
-            onClick={handlePrevPage}
-            disabled={page === 1}
-            className={`px-3 py-1 text-sm rounded ${page === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'
-              }`}
-          >
-            Previous
-          </button>
-          <span className="text-sm text-gray-500">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={handleNextPage}
-            disabled={page === totalPages}
-            className={`px-3 py-1 text-sm rounded ${page === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-purple-600 hover:bg-purple-50'
-              }`}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <div className="p-2 border-t border-gray-200 sticky bottom-0 bg-white">
+        <span className="text-sm text-gray-500">
+          Showing {filteredConversations.length} of {totalItems}
+        </span>
+      </div>
 
       <NewConversationModal
         isOpen={isNewConversationModalOpen}
@@ -478,18 +479,15 @@ const ConversationList = memo(function ConversationList({
     </div>
   );
 }, (prevProps, nextProps) => {
-  const conversationsEqual = prevProps.conversations === nextProps.conversations ||
-    (prevProps.conversations.length === nextProps.conversations.length &&
-      prevProps.conversations.every((prevConv, index) =>
-        prevConv.id === nextProps.conversations[index].id &&
-        prevConv.lastMessage === nextProps.conversations[index].lastMessage &&
-        prevConv.unread === nextProps.conversations[index].unread
-      ));
   return (
-    conversationsEqual &&
+    prevProps.conversations === nextProps.conversations &&
     prevProps.activeId === nextProps.activeId &&
     prevProps.contacts === nextProps.contacts &&
+    prevProps.totalItems === nextProps.totalItems &&
+    prevProps.hasMore === nextProps.hasMore &&
+    prevProps.loading === nextProps.loading &&
     prevProps.onSelect === nextProps.onSelect &&
+    prevProps.onLoadMore === nextProps.onLoadMore &&
     prevProps.onConversationStarted === nextProps.onConversationStarted
   );
 });

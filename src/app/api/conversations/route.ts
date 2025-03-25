@@ -34,9 +34,10 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'all';
     const sort = searchParams.get('sort') || 'desc';
     const sortBy = searchParams.get('sortBy') || 'last_message_date';
+    const startAfterDate = searchParams.get('startAfterDate');
 
     log('Fetching conversations from GHL API'); 
-    let data = await getConversations(status, sort, sortBy); 
+    let data = await getConversations(status, sort, sortBy, startAfterDate); 
     
     return NextResponse.json(data);
   } catch (error) {
@@ -51,7 +52,8 @@ export async function GET(request: NextRequest) {
 const getConversations = async (
   status: string = "all",
   sort: string = "desc",
-  sortBy: string = "last_message_date"
+  sortBy: string = "last_message_date",
+  startAfterDate: string | null = null,
 ) => {
   try {
     const cookieStore = await cookies();
@@ -67,8 +69,11 @@ const getConversations = async (
       return { error: 'No location ID available' };
     }
 
-    const url = `https://services.leadconnectorhq.com/conversations/search?locationId=${locationId}&status=${status}&sort=${sort}&sortBy=${sortBy}&type=SMS`;
+    let url = `https://services.leadconnectorhq.com/conversations/search?locationId=${locationId}&status=${status}&sort=${sort}&sortBy=${sortBy}&type=SMS`;
 
+    if (startAfterDate) {
+      url += `&startAfterDate=${startAfterDate}`;
+    }
     const headers = {
       accept: "application/json, text/plain, */*",
       "accept-language": "en-US,en;q=0.9",

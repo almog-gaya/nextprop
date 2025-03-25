@@ -12,6 +12,7 @@ import NoteSidebar from './NoteSidebar';
 import MessageTemplates from './MessageTemplates';
 import { useAuth } from "@/contexts/AuthContext";
 import { IconButton } from '@/components/ui/iconButton';
+import { DNDMessageRenderer } from "./renderers/DNDMessageRenderer";
 
 const getMessageRenderer = (message: Message) => {
     const isMe = message.direction
@@ -19,6 +20,10 @@ const getMessageRenderer = (message: Message) => {
         : message.meta?.email?.direction === 'outbound';
 
     if ((message.activity?.title?.length ?? 0) > 0) {
+        if(message.activity?.type === "user_dnd_disabled" || message.activity?.type === "user_dnd_enabled" || message.activity?.type === "contact_dnd_enabled" || message.activity?.type === "contact_dnd_disabled") {
+            const isDisabled = message.activity?.type === "user_dnd_disabled" || message.activity?.type === "contact_dnd_disabled";
+            return <DNDMessageRenderer message={message} isMe={isMe} isDisabled={isDisabled} />;
+        }
         return <ActivityMessageRenderer message={message} />;
     } else if (message.type == "1") {
         return <CallMessageRenderer message={message} />;
@@ -211,6 +216,9 @@ export default function MessageThread({
 
     const conversationType = getConversationAppropriateType(getConvoType(activeConversation!)!);
 
+    useEffect(() => {
+      console.log(`Active Conversation Type: ${JSON.stringify(activeConversation)}`);
+    });
     return (
         <div className="flex flex-col h-full relative">
             <div className="border-b border-gray-200 p-3 sticky top-0 z-10 bg-white">
@@ -222,7 +230,7 @@ export default function MessageThread({
                     </div>
                     <Avatar initials={getInitials(activeConversation.name)} />
                     <div className="ml-3 flex-grow">
-                        <h2 className="font-medium">{activeConversation.name || 'Unknown Contact'}</h2>
+                        <p className="font-medium">{activeConversation.name || 'Unknown Contact'}</p>
                         <div className="flex items-center text-sm text-gray-500">
                             {activeConversation.phone && (
                                 <span className="mr-2">{activeConversation.phone}</span>
@@ -258,26 +266,7 @@ export default function MessageThread({
                         />
                     </div>
                 </div>
-            </div>
-
-            <div className="border-b border-gray-200 py-1 px-3 bg-white text-sm text-gray-500">
-                {activeConversation.originalData?.address || 
-                  (activeConversation.originalData?.address1 ? 
-                    `${activeConversation.originalData.address1}, ${activeConversation.originalData.city || ''} ${activeConversation.originalData.state || ''} ${activeConversation.originalData.postalCode || ''}` : 
-                    (activeConversation.originalData?.city && activeConversation.originalData?.state ? 
-                      `${activeConversation.originalData.city}, ${activeConversation.originalData.state}` : 
-                      activeConversation.originalData?.contact?.address || 
-                      activeConversation.originalData?.mls_address ||
-                      (activeConversation.name === 'Amir' || activeConversation.name === 'Amir Test' ? 
-                        "123 street, miami FL 33138" :
-                        activeConversation.name === 'Test Usa' ?
-                        "public api, stage New Lead" : 
-                        'No address available'
-                      )
-                    )
-                  )
-                }
-            </div>
+            </div> 
 
             <div className="flex-grow overflow-y-auto p-4 relative">
                 {hasMore && (
