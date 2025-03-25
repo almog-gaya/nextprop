@@ -208,7 +208,7 @@ export default function DashboardPage() {
       labels: ['Current Period', 'Previous Period'],
       datasets: [
         {
-          label: 'Total Opportunities',
+          label: 'Total Leads',
           data: [reportData.data.total, reportData.comparisonData.total],
           backgroundColor: ['rgba(99, 102, 241, 0.8)', 'rgba(156, 163, 175, 0.8)'],
           borderColor: ['rgba(99, 102, 241, 1)', 'rgba(156, 163, 175, 1)'],
@@ -323,7 +323,7 @@ export default function DashboardPage() {
               <div className="bg-white p-4 border-l-4 border-indigo-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Total Opportunities</p>
+                    <p className="text-sm font-medium text-gray-500">Total Leads</p>
                     <p className="text-2xl font-bold text-gray-900">{reportData?.data?.total || '—'}</p>
                   </div>
                   <div className="h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -343,8 +343,8 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="px-4 py-3 bg-white">
-                <Link href="/opportunities" className="text-xs text-indigo-600 hover:underline font-medium flex items-center justify-end">
-                  View all opportunities
+                <Link href="/leads" className="text-xs text-indigo-600 hover:underline font-medium flex items-center justify-end">
+                  View all leads
                   <svg className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
@@ -419,7 +419,7 @@ export default function DashboardPage() {
               <div className="bg-white p-4 border-l-4 border-purple-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Open Opportunities</p>
+                    <p className="text-sm font-medium text-gray-500">Open Leads</p>
                     <p className="text-2xl font-bold text-gray-900">
                       {reportData?.data?.counts?.find(c => c.label === 'open')?.value || '—'}
                     </p>
@@ -466,7 +466,7 @@ export default function DashboardPage() {
           <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="pb-0">
               <CardTitle className="text-lg font-semibold">Status Distribution</CardTitle>
-              <CardDescription>Current period opportunity statuses</CardDescription>
+              <CardDescription>Current period leads statuses</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px] flex justify-center items-center p-4">
@@ -495,7 +495,7 @@ export default function DashboardPage() {
                               const value = context.raw as number;
                               const total = reportData.data.total;
                               const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-                              return `${value} opportunities (${percentage}%)`;
+                              return `${value} leads (${percentage}%)`;
                             }
                           }
                         }
