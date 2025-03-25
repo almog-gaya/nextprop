@@ -455,7 +455,11 @@ export default function RinglessVoicemailPage() {
       const formattedContacts = selectedContacts.map(contact => ({
         phone_number: contact.phone,
         first_name: contact.firstName || contact.contactName || 'Unknown',
-        street_name: contact.address1 || 'your area'
+        street_name: contact.address1 || 'your area',
+        city: contact.city,
+        state: contact.state,
+        country: contact.country,
+        postalCode: contact.postalCode,
       }));
 
       console.log(`settings: ${JSON.stringify(settings)}`);
@@ -476,6 +480,9 @@ export default function RinglessVoicemailPage() {
         contacts: formattedContacts,
         pipelineId: selectedPipeline // Add pipeline ID to campaign data
       };
+
+      console.log('Creating campaign with data:', JSON.stringify(campaignData));
+      return;
       const response = await fetch("/api/voicemail", {
         method: "POST",
         headers: {
