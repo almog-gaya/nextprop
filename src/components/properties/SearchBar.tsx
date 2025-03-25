@@ -9,8 +9,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 interface SearchBarProps { 
-  zipCode: string;
-  setZipCode: (zipCode: string) => void;
+  link: string;
+  setLink: (link: string) => void;
   priceMin: number;
   setPriceMin: (price: number) => void;
   priceMax: number;
@@ -27,8 +27,8 @@ interface SearchBarProps {
 }
 
 export default function SearchBarProperties({
-  zipCode,
-  setZipCode,
+  link,
+  setLink,
   priceMin,
   setPriceMin,
   priceMax,
@@ -105,12 +105,12 @@ export default function SearchBarProperties({
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="flex-grow w-full">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Zip Codes</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Redfin Link</label>
             <input
               type="text"
-              placeholder="e.g.,33102"
-              value={zipCode}
-              onChange={(e) => setZipCode(e.target.value)}
+              placeholder="e.g., https://www.redfin.com/zipcode/32754/filter/min-days-on-market=3mo"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
               disabled={isScraping}
               className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
             />
@@ -150,7 +150,7 @@ export default function SearchBarProperties({
           </div>
         </div>
 
-        {searchMode === "zipcode" && showFilters && (
+        {/* {searchMode === "zipcode" && showFilters && (
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 transition-all duration-300">
             <h3 className="text-lg font-semibold text-gray-800 mb-6">Advanced Filters</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -197,7 +197,7 @@ export default function SearchBarProperties({
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
 
       <style jsx>{`

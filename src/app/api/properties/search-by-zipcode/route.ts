@@ -12,9 +12,9 @@ export async function POST(req: Request) {
 
     try {
         const params = await req.json();
-        const { limit } = params;
+        const { limit, link } = params;
 
-        const data = await redfinSearchScraper(API_TOKEN, limit, params);
+        const data = await redfinSearchScraperByLink(API_TOKEN, limit, link);
 
         return NextResponse.json({
             success: true,
@@ -138,3 +138,79 @@ const redfinSearchScraper = async (API_TOKEN: string, limit: number, payload: an
         throw error;
     }
 };
+
+const redfinSearchScraperByLink = async (API_TOKEN: string, limit: number, link: string) => {
+    const API_URL = 'https://api.apify.com/v2/acts/CrtAGwgI5gNhHTCKL/runs';
+
+
+    const _payload = {
+        "maxItems": limit,
+        "maxRequestRetries": 2,
+        "proxy": {
+            "useApifyProxy": true,
+            "apifyProxyGroups": [
+                "RESIDENTIAL"
+            ]
+        },
+        "startUrls": [
+            link
+        ],
+        "maxConcurrency": limit > 50 ? 50 : limit,
+        "minConcurrency": 1
+    } 
+    try {
+        const runResponse = await fetch(`${API_URL}?token=${API_TOKEN}&maxItems=${limit ?? 2}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(_payload)
+        });
+
+        if (!runResponse.ok) {
+            const errorText = await runResponse.text();
+            throw new Error(`Run failed with status: ${runResponse.status} - ${errorText}`);
+        }
+
+        const runData = await runResponse.json();
+        const runId = runData.data.id;
+
+        let runStatus;
+        do {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const statusResponse = await fetch(
+                `https://api.apify.com/v2/actor-runs/${runId}?token=${API_TOKEN}`
+            );
+
+            if (!statusResponse.ok) {
+                const errorText = await statusResponse.text();
+                throw new Error(`Status check failed: ${statusResponse.status} - ${errorText}`);
+            }
+
+            runStatus = await statusResponse.json();
+        } while (runStatus.data.status === "RUNNING" || runStatus.data.status === "READY");
+
+        if (runStatus.data.status !== "SUCCEEDED") {
+            throw new Error(`Run failed with status: ${runStatus.data.status}`);
+        }
+
+        const datasetId = runStatus.data.defaultDatasetId;
+        const itemsResponse = await fetch(
+            `https://api.apify.com/v2/datasets/${datasetId}/items?token=${API_TOKEN}`
+        );
+
+        if (!itemsResponse.ok) {
+            const errorText = await itemsResponse.text();
+            throw new Error(`Failed to fetch items: ${itemsResponse.status} - ${errorText}`);
+        }
+
+        const items = await itemsResponse.json();
+        console.log(`Fetched from Search URLs`, JSON.stringify(items));
+
+        return items;
+    } catch (error) {
+        console.error('Error in Zillow search scraper:', error);
+        throw error;
+    }
+    
+}

@@ -36,7 +36,7 @@ export default function PropertiesPage() {
   const [failureCount, setFailureCount] = useState(0);
   const [currentStatus, setCurrentStatus] = useState("");
   // const [searchQuery, setSearchQuery] = useState("Miami");
-  const [zipCode, setZipCode] = useState<string>("33125");
+  const [link, setLink] = useState<string>("https://www.redfin.com/zipcode/32754/filter/min-days-on-market=3m");
   const [priceMin, setPriceMin] = useState<number>(500000);
   const [priceMax, setPriceMax] = useState<number>(700000);
   const [types, setTypes] = useState<string>('');
@@ -227,11 +227,12 @@ export default function PropertiesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
         limit,
-        zipCode: zipCode,
-        priceMin,
-        priceMax,
-        types,
-        daysOnZillow,
+        link
+        // zipCode: zipCode,
+        // priceMin,
+        // priceMax,
+        // types,
+        // daysOnZillow,
       }),
     });
   }
@@ -299,10 +300,15 @@ export default function PropertiesPage() {
     // Fetch properties from Zillow API
     const fetchProperties = async (limit: number): Promise<ZillowProperty[]> => {
 
-      if (!zipCode) {
-        toast.error("No zip code provided");
-        throw new Error("No zip code provided");
+      if (!link) {
+        toast.error("No link provided");
+        throw new Error("No link provided");
       }
+      /// validate link
+      if (!link.includes("redfin.com")) {
+        toast.error("Invalid link");
+        throw new Error("Invalid link");
+      } 
 
       setCurrentStatus(`Starting to scrape ${limit} properties...`);
       const searchResponse = await _searchByZipCodes(limit);
@@ -327,7 +333,7 @@ export default function PropertiesPage() {
       const remaining = DAILY_LIMIT - scrapedToday;
       setCompletionMessage({
         title: "Property Scraping Complete",
-        message: `${totalProperties} properties have been scraped from Redfin and based on your zipcode: "${zipCode}". You have ${remaining > 0 ? remaining : 0} properties left to scrape today.`,
+        message: `${totalProperties} properties have been scraped from Redfin and based on your link: "${link}". You have ${remaining > 0 ? remaining : 0} properties left to scrape today.`,
         actions: [
           { label: "View Properties", href: "/properties/list" },
           { label: "View Contacts", href: "/contacts" },
@@ -517,8 +523,8 @@ export default function PropertiesPage() {
           </div>
 
           <SearchBarProperties 
-            zipCode={zipCode}
-            setZipCode={setZipCode}
+            link={link}
+            setLink={setLink}
             priceMin={priceMin}
             setPriceMin={setPriceMin}
             priceMax={priceMax}
