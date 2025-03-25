@@ -97,8 +97,7 @@ function MessagingContent() {
                   type: msg.type,
                   altId: msg.altId,
                 });
-            })
-            .sort((a: any, b: any) => new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime());
+            });
 
         setState((prev) => {
           const newMessages = append ? [...formattedMessages, ...prev.messages] : formattedMessages;
@@ -416,9 +415,7 @@ function MessagingContent() {
               lastMessageType: conv.lastMessageType,
               lastMessageDate: conv.lastMessageDate,
             };
-          }).sort((a: ConversationDisplay, b: ConversationDisplay) =>
-            (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0)
-          );
+          });
 
           const contacts = Array.isArray(contactsData?.contacts) ? contactsData.contacts : [];
 
@@ -468,6 +465,7 @@ function MessagingContent() {
       fetchMessages(state.activeConversationId);
     }
   }, [state.activeConversationId, fetchMessages]);
+
   const handleConversationCreated = useCallback((newConversation: ConversationDisplay) => {
     setState((prev) => ({
       ...prev,
@@ -477,6 +475,7 @@ function MessagingContent() {
       creatingConversation: false,
     }));
   }, []);
+
   const renderMessageThread = useMemo(() => {
     if (state.pendingNewContactId) {
       return (
@@ -584,7 +583,7 @@ function MessagingContent() {
             type: conv.type,
             lastMessageType: conv.lastMessageType,
           };
-        }).sort((a: any, b: any) => (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0));
+        });
 
         setState((prev) => {
           const isEqual = prev.conversations.length === formattedConversations.length &&
@@ -671,110 +670,10 @@ function MessagingContent() {
   );
 
   useEffect(() => {
-    const checkForNewMessages = async () => {
-      if (state.loading || state.loadingConversations) return;
-
-      try {
-        const response = await fetch('/api/conversations?status=all&sort=desc&sortBy=last_message_date');
-        const data = await response.json();
-
-        if (Array.isArray(data.conversations)) {
-          const newConversations = data.conversations.map((conv: Conversation) => {
-            const name = conv.fullName || conv.contactName || 'Unknown Contact';
-            const initials = name
-              .split(' ')
-              .filter((n: string) => n.length > 0)
-              .map((n: string) => n[0])
-              .join('')
-              .toUpperCase()
-              .substring(0, 2);
-            return {
-              id: conv.id,
-              name,
-              avatar: initials,
-              contactId: conv.contactId,
-              email: conv.email,
-              phone: conv.phone,
-              lastMessage: conv.lastMessageBody || 'No messages yet',
-              timestamp: conv.dateUpdated,
-              unread: conv.unreadCount > 0,
-              unreadCount: conv.unreadCount || 0,
-              originalData: conv,
-              lastMessageDate: conv.lastMessageDate,
-            };
-          });
-
-          const hasNewUnreadMessages = newConversations.some((newConv: ConversationDisplay) => {
-            const existingConv = state.conversations.find((conv) => conv.id === newConv.id);
-            return (
-              newConv.unread &&
-              (!existingConv || newConv.unreadCount > (existingConv?.unreadCount || 0))
-            );
-          });
-
-          if (hasNewUnreadMessages) {
-            toast.info('You have new unread messages', {
-              description: 'Check your conversations for new messages',
-              duration: 4000,
-            });
-            setState((prev) => ({ ...prev, hasPendingNewMessage: true }));
-            try {
-              const audio = new Audio('/notification.mp3');
-              audio.play().catch((e) => log('Could not play notification sound', e));
-            } catch (e) {
-              log('Audio not supported');
-            }
-          }
-
-          setState((prev) => {
-            const updatedConversations = newConversations.map((newConv: ConversationDisplay) => {
-              if (newConv.id === state.activeConversationId) {
-                return { ...newConv, unread: false, unreadCount: 0 };
-              }
-              return newConv;
-            });
-            const isEqual = prev.conversations.length === updatedConversations.length &&
-              prev.conversations.every((prevConv, index) =>
-                prevConv.id === updatedConversations[index].id &&
-                prevConv.lastMessage === updatedConversations[index].lastMessage &&
-                prevConv.unread === updatedConversations[index].unread
-              );
-            return isEqual ? prev : {
-              ...prev,
-              conversations: updatedConversations.sort((a: any, b: any) => (a.unread && !b.unread ? -1 : !a.unread && b.unread ? 1 : 0)),
-            };
-          });
-        }
-      } catch (error) {
-        log('Error checking for new messages:', error);
-      }
-    };
-
-    const interval = setInterval(checkForNewMessages, 120000);
-    return () => clearInterval(interval);
-  }, [state.loading, state.loadingConversations, state.activeConversationId, state.conversations]);
-
-  useEffect(() => {
     if (state.hasPendingNewMessage) {
       setState((prev) => ({ ...prev, hasPendingNewMessage: false }));
     }
   }, [state.activeConversationId, state.hasPendingNewMessage]);
-
-  const LoadingState = () => (
-    <div className="h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden flex flex-col items-center justify-center">
-      <div className="text-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <h3 className="text-lg font-medium mb-2 text-gray-900">
-          {state.creatingConversation ? 'Creating conversation...' : 'Loading messages...'}
-        </h3>
-        <p className="text-gray-500 max-w-md">
-          {state.creatingConversation
-            ? 'We\'re setting up your conversation. This will just take a moment.'
-            : 'Loading your conversation history. Please wait.'}
-        </p>
-      </div>
-    </div>
-  );
 
   return (
     <DashboardLayout title="Messaging">

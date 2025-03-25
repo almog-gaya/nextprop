@@ -40,12 +40,10 @@ const markMessageAsRead = async (messageId: string) => {
     },
     body: JSON.stringify({ "unreadCount": 0, "locationId": locationId }),
   });
-
-  console.log(`Response from markMessageAsRead: ${JSON.stringify(response)}`);
+ 
 
   const data = await response.json();
-
-  console.log(`Response from markMessageAsRead: ${JSON.stringify(data)}`);
+ 
 
   return NextResponse.json(data);
 
