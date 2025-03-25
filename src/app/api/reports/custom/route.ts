@@ -265,7 +265,7 @@ const getCustomCharts = async ({
     
     // Try to map custom type names to expected enum values
     if (chartType.toLowerCase().includes('opportunity') || chartType.toLowerCase().includes('status')) {
-        validChartType = 'OPPORTUNITY_STATUS';
+        validChartType = 'opportunity_status';
     }
 
     // Fix 2: Convert all dates to timestamps
