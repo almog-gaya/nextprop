@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithErrorHandling } from '@/lib/enhancedApi';
 import { cookies } from 'next/headers';
+import { refreshTokenIdBackend } from '@/utils/authUtils';
 
 // Add logging control to reduce console noise
-const ENABLE_VERBOSE_LOGGING = false;
+const ENABLE_VERBOSE_LOGGING = true;
 
 const log = (message: string, data?: any) => {
   if (ENABLE_VERBOSE_LOGGING) {
@@ -34,115 +35,18 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort') || 'desc';
     const sortBy = searchParams.get('sortBy') || 'last_message_date';
 
-    log('Fetching conversations from GHL API');
-    // Try to get real data
-    let data = await getConversations(status, sort, sortBy);
-    
-    // // Check if there's an error and fall back to mock data
-    // if (data.statusCode === 401 || data.error) {
-    //   log("Falling back to mock data due to API error:", data);
-    //   data = await getMockConversations(status, sort, sortBy);
-    // }
+    log('Fetching conversations from GHL API'); 
+    let data = await getConversations(status, sort, sortBy); 
     
     return NextResponse.json(data);
   } catch (error) {
-    logError("Error fetching conversations:", error);
-    // Fallback to mock data
-    // const mockData = await getMockConversations('all', 'desc', 'last_message_date');
+    logError("Error fetching conversations:", error); 
     return NextResponse.json({
       "data" : [],
     })
   }
 }
-
-const getMockConversations = async (
-  status: string,
-  sort: string,
-  sortBy: string
-) => {
-  // Simulate a mock API response with more realistic data
-  return {
-    conversations: [
-      {
-        id: "mock-conv-1",
-        contactId: "mock-contact-1",
-        locationId: "mock-location-1",
-        lastMessageBody: "Hello, I'm interested in scheduling a viewing for the property on Oak Street.",
-        lastMessageType: "text",
-        type: "direct",
-        unreadCount: 2,
-        fullName: "John Doe",
-        contactName: "John Doe",
-        email: "john@example.com",
-        phone: "+1234567890",
-        dateAdded: new Date(Date.now() - 1000 * 60 * 5).toISOString() // 5 minutes ago
-      },
-      {
-        id: "mock-conv-2",
-        contactId: "mock-contact-2",
-        locationId: "mock-location-1",
-        lastMessageBody: "What are the dimensions of the master bedroom?",
-        lastMessageType: "text",
-        type: "direct",
-        unreadCount: 0,
-        fullName: "Jane Smith",
-        contactName: "Jane Smith",
-        email: "jane@example.com",
-        phone: "+1987654321",
-        dateAdded: new Date(Date.now() - 1000 * 60 * 60).toISOString() // 1 hour ago
-      },
-      {
-        id: "mock-conv-3",
-        contactId: "mock-contact-3",
-        locationId: "mock-location-1",
-        lastMessageBody: "Is the property still available for the asking price?",
-        lastMessageType: "text",
-        type: "direct",
-        unreadCount: 1,
-        fullName: "Robert Johnson",
-        contactName: "Robert Johnson",
-        email: "robert@example.com",
-        phone: "+1567891234",
-        dateAdded: new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30 minutes ago
-      },
-      {
-        id: "mock-conv-4",
-        contactId: "mock-contact-4",
-        locationId: "mock-location-1",
-        lastMessageBody: "Thank you for your quick response. I'll get back to you soon.",
-        lastMessageType: "text",
-        type: "direct",
-        unreadCount: 0,
-        fullName: "Alice Williams",
-        contactName: "Alice Williams",
-        email: "alice@example.com",
-        phone: "+1456789012",
-        dateAdded: new Date(Date.now() - 1000 * 60 * 120).toISOString() // 2 hours ago
-      },
-      {
-        id: "mock-conv-5",
-        contactId: "mock-contact-5",
-        locationId: "mock-location-1",
-        lastMessageBody: "Can we schedule a viewing for this weekend?",
-        lastMessageType: "text",
-        type: "direct",
-        unreadCount: 3,
-        fullName: "Michael Brown",
-        contactName: "Michael Brown",
-        email: "michael@example.com",
-        phone: "+1321654987",
-        dateAdded: new Date(Date.now() - 1000 * 60 * 10).toISOString() // 10 minutes ago
-      }
-    ],
-    pagination: {
-      total: 5,
-      count: 5,
-      per_page: 20,
-      current_page: 1,
-      total_pages: 1
-    }
-  };
-};
+ 
 
 const getConversations = async (
   status: string = "all",
@@ -156,25 +60,41 @@ const getConversations = async (
     if (!token) {
       return { error: 'No access token available' };
     }
-
+    const tokenId = (await refreshTokenIdBackend()).id_token;
     const locationId = cookieStore.get('ghl_location_id')?.value;
     
     if (!locationId) {
       return { error: 'No location ID available' };
     }
 
-    const url = `https://services.leadconnectorhq.com/conversations/search?locationId=${locationId}&status=${status}&sort=${sort}&sortBy=${sortBy}`;
-    
-    log(`url: `, url);
-    log(`header:`, JSON.stringify({ Authorization: `Bearer ${token}`, Version: '2021-04-15', Accept: 'application/json' }));
-    
+    const url = `https://services.leadconnectorhq.com/conversations/search?locationId=${locationId}&status=${status}&sort=${sort}&sortBy=${sortBy}&type=SMS`;
+
+    const headers = {
+      accept: "application/json, text/plain, */*",
+      "accept-language": "en-US,en;q=0.9",
+      channel: "APP",
+      "developer_version": "",
+      dnt: "1",
+      'token-id': tokenId,
+      baggage: "sentry-environment=production,sentry-release=86dd6da2d904e841613a262a22a5a8e48c10f0d8,sentry-public_key=c67431ff70d6440fb529c2705792425f,sentry-trace_id=58e01ac401b5416fb7301d9f8fe6343c,sentry-sample_rate=0.1,sentry-transaction=conversations-id-v2,sentry-sampled=false",
+
+      "if-none-match": 'W/"1ea5-Hr1V1mBae01Fj8XIZ+5BjH3ejlg"',
+      origin: "https://app.gohighlevel.com",
+      priority: "u=1, i",
+      referer: "https://app.gohighlevel.com/",
+      "sec-ch-ua": '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": '"macOS"',
+      "sec-fetch-dest": "empty",
+      "sec-fetch-mode": "cors",
+      "sec-fetch-site": "cross-site",
+      source: "WEB_USER",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+      Version: "2021-04-15",
+  };
     const options = {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Version: '2021-04-15',
-        Accept: 'application/json'
-      }
+      headers,
     };
     
     const response = await fetch(url, options);

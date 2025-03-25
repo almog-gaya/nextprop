@@ -135,7 +135,7 @@ async function fetchMessagesFromAPI(conversationId: string, token: string, pageT
 }
 async function fetchMessagesFromBackend(conversationId: string, token: string, pageToken?: string | null) {
     const tokenId = (await refreshTokenIdBackend()).id_token;
-    let url = `https://services.leadconnectorhq.com/conversations/${conversationId}/messages`;
+    let url = `https://services.leadconnectorhq.com/conversations/${conversationId}/messages?limit=100`;
     const queryParams = new URLSearchParams();
     if (pageToken) {
         queryParams.append('lastMessageId', pageToken);
@@ -201,20 +201,15 @@ async function getConversationMessages(conversationId: string, token: string, pa
         const data = await response.json();
 
         if (data && data.messages && Array.isArray(data.messages.messages)) {
-            const sortedMessages = [...data.messages.messages].sort(
-                (a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
-            );
+            
             return {
                 lastMessageId: data.messages.lastMessageId,
                 nextPage: data.messages.nextPage,
-                messages: sortedMessages,
+                messages: data.messages.messages,
             };
-        } else if (data && Array.isArray(data.messages)) {
-            const sortedMessages = [...data.messages].sort(
-                (a, b) => new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
-            );
+        } else if (data && Array.isArray(data.messages)) { 
             return {
-                messages: sortedMessages,
+                messages: data.messages,
                 lastMessageId: data.lastMessageId || null,
                 nextPage: data.nextPage || false,
             };
