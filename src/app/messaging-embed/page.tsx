@@ -38,7 +38,13 @@ function MessagingContent() {
     loading: true,
     loadingConversations: false,
     loadingMessages: false,
-    messagesPage: null as string | null,
+    lastConversationDate: null as number | null,
+    lastMessageDate: null as number | null,
+    conversationsPerPage: 15,
+    messagesPerPage: 20,
+    totalConversations: 0,
+    totalMessages: 0,
+    hasMoreConversations: false,
     hasMoreMessages: false,
     hasPendingNewMessage: false,
     activeTab: 'all' as 'unread' | 'recents' | 'all',
@@ -59,49 +65,115 @@ function MessagingContent() {
     }
   }, [user]);
 
-  const fetchMessages = useCallback(async (conversationId: string, pageToken?: string, append = false) => {
+  const fetchConversations = useCallback(async (
+    tab: 'unread' | 'recents' | 'all',
+    startAfterDate?: number,
+    sortOrder: 'asc' | 'desc' = 'desc'
+  ) => {
+    setState((prev) => ({ ...prev, loadingConversations: true }));
+    try {
+      const tabMapping = { unread: 'unread', recents: 'recent', all: 'all' };
+      const status = tabMapping[tab] || 'all';
+      let url = `/api/conversations?status=${status}&sort=${sortOrder}&sortBy=last_message_date&limit=${state.conversationsPerPage}`;
+      if (startAfterDate) {
+        url += `&startAfterDate=${startAfterDate}`;
+      }
+
+      log(`Fetching conversations: ${url}`);
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (Array.isArray(data?.conversations)) {
+        const formattedConversations = data.conversations.map((conv: Conversation) => {
+          const name = conv.fullName || conv.contactName || conv.email || conv.phone || 'Unknown Contact';
+          const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
+          return {
+            id: conv.id,
+            name,
+            avatar: initials,
+            lastMessage: conv.lastMessageBody || 'No messages yet',
+            timestamp: conv.lastMessageDate.toString(),
+            unread: conv.unreadCount > 0,
+            contactId: conv.contactId,
+            email: conv.email,
+            phone: conv.phone,
+            originalData: conv,
+            type: conv.type,
+            lastMessageType: conv.lastMessageType,
+            lastMessageDate: conv.lastMessageDate,
+          };
+        });
+
+        const newLastDate = formattedConversations.length > 0 
+          ? formattedConversations[formattedConversations.length - 1].lastMessageDate 
+          : state.lastConversationDate;
+
+        setState((prev) => ({
+          ...prev,
+          conversations: startAfterDate ? [...prev.conversations, ...formattedConversations] : formattedConversations,
+          lastConversationDate: newLastDate,
+          totalConversations: data.total || formattedConversations.length,
+          hasMoreConversations: formattedConversations.length > 0 && prev.conversations.length + formattedConversations.length < data.total,
+          loadingConversations: false,
+        }));
+      } else {
+        setState((prev) => ({ ...prev, conversations: [], loadingConversations: false }));
+      }
+    } catch (error) {
+      log('Failed to fetch conversations:', error);
+      setState((prev) => ({ ...prev, loadingConversations: false }));
+    }
+  }, [state.conversationsPerPage]);
+
+  const fetchMessages = useCallback(async (conversationId: string, startAfterDate?: number, append = false) => {
     if (!conversationId) return;
 
     setState((prev) => ({ ...prev, loadingMessages: !append }));
 
     try {
-      let url = `/api/conversations/${conversationId}/messages`;
-      if (pageToken) url += `?page=${pageToken}`;
+      let url = `/api/conversations/${conversationId}/messages?limit=${state.messagesPerPage}`;
+      if (startAfterDate) {
+        url += `&startAfterDate=${startAfterDate}`;
+      }
 
-      log(`Fetching messages for conversation: ${conversationId}`);
+      log(`Fetching messages for conversation: ${conversationId}, startAfterDate: ${startAfterDate}`);
       const response = await fetch(url);
       const data = await response.json();
 
       if (Array.isArray(data?.messages)) {
-        const formattedMessages =
+        // Format the messages
+        const formattedMessages = data.messages.map((msg: Message) => ({
+          id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+          senderId: msg.direction === 'inbound' ? 'client' : 'user',
+          text: msg.body || msg.text || msg.meta?.email?.subject || msg.activity?.data.name || '[No message content]',
+          timestamp: msg.dateAdded
+            ? new Date(msg.dateAdded).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : 'Recent',
+          dateAdded: msg.dateAdded || new Date().toISOString(),
+          status: msg.status,
+          direction: msg.direction,
+          messageType: msg.messageType,
+          activity: msg.activity,
+          meta: msg.meta,
+          attachments: msg.attachments,
+          type: msg.type,
+          altId: msg.altId,
+        }));
 
+        // Reverse the messages to show newest at the bottom
+        const reversedMessages = [...formattedMessages].reverse();
 
-          data.messages
-            .map((msg: Message) => {
-              return (
-
-                {
-                  id: msg.id || `msg-${Date.now()}-${Math.random()}`,
-                  senderId: msg.direction === 'inbound' ? 'client' : 'user',
-                  text: msg.body || msg.text || msg.meta?.email?.subject || msg.activity?.data.name || '[No message content]',
-                  timestamp: msg.dateAdded
-                    ? new Date(msg.dateAdded).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    : 'Recent',
-                  dateAdded: msg.dateAdded || new Date().toISOString(),
-                  status: msg.status,
-                  direction: msg.direction,
-                  messageType: msg.messageType,
-                  activity: msg.activity,
-                  meta: msg.meta,
-                  attachments: msg.attachments,
-                  type: msg.type,
-                  altId: msg.altId,
-                });
-            });
+        const newLastDate = formattedMessages.length > 0 
+          ? Number(formattedMessages[formattedMessages.length - 1].dateAdded) 
+          : state.lastMessageDate;
 
         setState((prev) => {
-          const newMessages = append ? [...formattedMessages, ...prev.messages] : formattedMessages;
-          const latestMessage = formattedMessages[formattedMessages.length - 1];
+          // When appending, add new messages to the beginning since they're older
+          const newMessages = append 
+            ? [...reversedMessages, ...prev.messages] 
+            : reversedMessages;
+            
+          const latestMessage = formattedMessages[0]; // First message is now the latest
           const shouldUpdateConversation = latestMessage && prev.conversations.some((conv) =>
             conv.id === conversationId && conv.lastMessage !== latestMessage.text
           );
@@ -109,15 +181,16 @@ function MessagingContent() {
           return {
             ...prev,
             messages: newMessages,
-            hasMoreMessages: !!data.nextPage,
-            messagesPage: data.lastMessageId || null,
+            lastMessageDate: newLastDate,
+            totalMessages: data.total || newMessages.length,
+            hasMoreMessages: formattedMessages.length > 0 && newMessages.length < (data.total || newMessages.length),
             loadingMessages: false,
             conversations: shouldUpdateConversation
               ? prev.conversations.map((conv) =>
-                conv.id === conversationId
-                  ? { ...conv, lastMessage: latestMessage.text, lastMessageBody: latestMessage.text }
-                  : conv
-              )
+                  conv.id === conversationId
+                    ? { ...conv, lastMessage: latestMessage.text, lastMessageBody: latestMessage.text }
+                    : conv
+                )
               : prev.conversations,
           };
         });
@@ -126,11 +199,6 @@ function MessagingContent() {
           ...prev,
           messages: append ? prev.messages : [],
           loadingMessages: false,
-          conversations: prev.conversations.map((conv) =>
-            conv.id === conversationId && prev.messages.length === 0 && !append
-              ? { ...conv, lastMessage: 'No messages yet', lastMessageBody: "No messages yet" }
-              : conv
-          ),
         }));
       }
     } catch (error) {
@@ -141,18 +209,23 @@ function MessagingContent() {
         loadingMessages: false,
       }));
     }
-  }, []);
+  }, [state.messagesPerPage]);
+
+  const loadMoreConversations = useCallback(() => {
+    if (state.hasMoreConversations && !state.loadingConversations && state.lastConversationDate) {
+      fetchConversations(state.activeTab, state.lastConversationDate, state.sortOrder);
+    }
+  }, [state.activeTab, state.lastConversationDate, state.sortOrder, state.hasMoreConversations, state.loadingConversations, fetchConversations]);
 
   const loadMoreMessages = useCallback((isRefresh = false) => {
-    if (!state.activeConversationId || (state.loadingMessages && !isRefresh)) return;
+    if (!state.activeConversationId || state.loadingMessages) return;
 
     if (isRefresh) {
       fetchMessages(state.activeConversationId);
-    } else if (state.messagesPage) {
-      fetchMessages(state.activeConversationId, state.messagesPage, true);
+    } else if (state.hasMoreMessages && state.lastMessageDate) {
+      fetchMessages(state.activeConversationId, state.lastMessageDate, true);
     }
-  }, [state.activeConversationId, state.loadingMessages, state.messagesPage, fetchMessages]);
-
+  }, [state.activeConversationId, state.loadingMessages, state.lastMessageDate, state.hasMoreMessages, fetchMessages]);
 
   const getActiveConversationType = useCallback(() => {
     const conversation = state.conversations.find((conv) => conv.id === state.activeConversationId);
@@ -163,14 +236,11 @@ function MessagingContent() {
   }, [state.conversations, state.activeConversationId]);
 
   const getActiveConversation = useCallback(() => {
-    const conversation = state.conversations.find((conv) => conv.id === state.activeConversationId);
-    return conversation;
+    return state.conversations.find((conv) => conv.id === state.activeConversationId);
   }, [state.conversations, state.activeConversationId]);
 
   const handleSendMessage = useCallback(async (text: string, fromNumber?: string) => {
-    if (!state.activeConversationId || !text) {
-      return;
-    }
+    if (!state.activeConversationId || !text) return;
 
     const tempId = `temp-${Date.now()}`;
     const tempMessage = {
@@ -201,32 +271,16 @@ function MessagingContent() {
 
     const getAppropriateType = (type: string) => {
       switch (type) {
-        case 'TYPE_PHONE':
-          return 'SMS';
+        case 'TYPE_PHONE': return 'SMS';
         case 'TYPE_EMAIL':
-        case 'TYPE_CUSTOM_EMAIL':
-          return 'Email';
-        default:
-          return 'SMS';
+        case 'TYPE_CUSTOM_EMAIL': return 'Email';
+        default: return 'SMS';
       }
     };
 
     try {
-      function getConvoType(convo: ConversationDisplay) {
-        /// if phone and email both are available go for lastMessageType ?? type
-        /// if phone is available only return Sms
-        /// if email is avialable only return Email
-        if (convo.email && convo.phone) {
-          return convo.lastMessageType ?? convo.type;
-        } else if (convo.email) {
-          return 'TYPE_EMAIL'
-        } else {
-          return 'TYPE_PHONE'
-        }
-
-      }
-      const currentContact = state.conversations.find((conv) => conv.id === state.activeConversationId);
-      const messageType = getAppropriateType(getConvoType(currentContact!)!);
+      const currentContact = getActiveConversation();
+      const messageType = getAppropriateType(currentContact?.lastMessageType ?? currentContact?.type ?? 'TYPE_PHONE');
 
       const payload = {
         conversationId: state.activeConversationId,
@@ -260,34 +314,22 @@ function MessagingContent() {
         setState((prev) => ({
           ...prev,
           messages: prev.messages.map((msg) =>
-            msg.id === tempId
-              ? { ...msg, id: data.id || msg.id, status: 'sent' }
-              : msg
+            msg.id === tempId ? { ...msg, id: data.id || msg.id, status: 'sent' } : msg
           ),
         }));
       } else {
-        setState((prev) => ({
-          ...prev,
-          messages: prev.messages.map((msg) =>
-            msg.id === tempId
-              ? { ...msg, status: 'failed' }
-              : msg
-          ),
-        }));
-        toast.error('Failed to send message');
+        throw new Error('Failed to send message');
       }
     } catch (error) {
       setState((prev) => ({
         ...prev,
         messages: prev.messages.map((msg) =>
-          msg.id === tempId
-            ? { ...msg, status: 'failed' }
-            : msg
+          msg.id === tempId ? { ...msg, status: 'failed' } : msg
         ),
       }));
       toast.error('Error sending message');
     }
-  }, [state.activeConversationId, getActiveConversationType]);
+  }, [state.activeConversationId, getActiveConversation]);
 
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     log('Marking conversation as read:', conversationId);
@@ -326,7 +368,7 @@ function MessagingContent() {
         ...prev,
         activeConversationId: id,
         messages: [],
-        messagesPage: null,
+        lastMessageDate: null,
         loadingMessages: true,
       };
     });
@@ -343,122 +385,45 @@ function MessagingContent() {
     return state.conversations.find((conv) => conv.id === state.activeConversationId) || null;
   }, [state.activeConversationId, state.conversations]);
 
-  const ContactNotFoundMessage = () => {
-    if (!state.pendingNewContactId) return null;
-
-    return (
-      <div className="flex flex-col h-full items-center justify-center text-gray-500 p-8">
-        <div className="text-center">
-          <svg
-            className="w-16 h-16 text-gray-400 mx-auto mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-            />
-          </svg>
-          <h3 className="text-lg font-medium mb-2">No Conversation Found</h3>
-          <p className="mb-4">
-            There's no existing conversation with this contact.
-            Conversations cannot be created at this time.
-          </p>
-          <p className="text-sm text-gray-400">
-            Contact ID: {state.pendingNewContactId}
-          </p>
-        </div>
-      </div>
-    );
-  };
-
   useEffect(() => {
-    log('Message Embed rendered');
-
     const fetchInitialData = async () => {
       setState((prev) => ({ ...prev, loading: true }));
       try {
-        const [convResponse, contactsResponse] = await Promise.all([
-          fetch(`/api/conversations?status=all&sort=desc&sortBy=last_message_date`),
+        const [contactsResponse] = await Promise.all([
           axios.get('/api/contacts'),
         ]);
-
-        const convData = await convResponse.json();
-        const contactsData = contactsResponse.data;
-
-        if (Array.isArray(convData?.conversations)) {
-          const formattedConversations = convData.conversations.map((conv: Conversation) => {
-            const name = conv.fullName || conv.contactName || conv.email || conv.phone || 'Unknown Contact';
-            const initials = name
-              .split(' ')
-              .map((n: string) => n[0])
-              .join('')
-              .toUpperCase()
-              .substring(0, 2);
-
-
-            return {
-              id: conv.id,
-              name,
-              avatar: initials,
-              lastMessage: conv.lastMessageBody || 'No messages yet',
-              timestamp: conv.dateUpdated,
-              unread: conv.unreadCount > 0,
-              contactId: conv.contactId,
-              email: conv.email,
-              phone: conv.phone,
-              originalData: conv,
-              type: conv.type,
-              lastMessageType: conv.lastMessageType,
-              lastMessageDate: conv.lastMessageDate,
-            };
-          });
-
-          const contacts = Array.isArray(contactsData?.contacts) ? contactsData.contacts : [];
-
-          let matchingConversation = null;
-          if (contactIdParam) {
-            matchingConversation = formattedConversations.find(
-              (conv: ConversationDisplay) => conv.contactId === contactIdParam
-            );
-          }
-
-          setState((prev) => ({
+        
+        await fetchConversations('all');
+        const contacts = contactsResponse.data?.contacts || [];
+        
+        setState((prev) => {
+          const matchingConversation = contactIdParam 
+            ? prev.conversations.find((conv) => conv.contactId === contactIdParam)
+            : null;
+          
+          return {
             ...prev,
-            conversations: formattedConversations,
             contacts,
             activeConversationId: matchingConversation ? matchingConversation.id :
-              (formattedConversations.length > 0 ? formattedConversations[0].id : null),
+              (prev.conversations.length > 0 ? prev.conversations[0].id : null),
             pendingNewContactId: matchingConversation ? null : contactIdParam,
             loading: false,
-            creatingConversation: false
-          }));
-        } else {
-          setState((prev) => ({
-            ...prev,
-            conversations: [],
-            contacts: Array.isArray(contactsData?.contacts) ? contactsData.contacts : [],
-            pendingNewContactId: contactIdParam,
-            loading: false,
-            creatingConversation: false
-          }));
-        }
+            creatingConversation: false,
+          };
+        });
       } catch (error) {
+        log('Failed to fetch initial data:', error);
         setState((prev) => ({
           ...prev,
           conversations: [],
           contacts: [],
           loading: false,
-          creatingConversation: false
+          creatingConversation: false,
         }));
       }
     };
-
     fetchInitialData();
-  }, [contactIdParam]);
+  }, [contactIdParam, fetchConversations]);
 
   useEffect(() => {
     if (state.activeConversationId) {
@@ -544,67 +509,9 @@ function MessagingContent() {
     state.pendingNewContactId,
     state.selectedNumber,
     user?.phoneNumbers,
-    handleNumberSelect
+    handleNumberSelect,
+    handleConversationCreated,
   ]);
-
-  const fetchConversations = useCallback(async (tab: 'unread' | 'recents' | 'all', sortOrder: 'asc' | 'desc') => {
-    setState((prev) => ({ ...prev, loadingConversations: true }));
-    try {
-      const tabMapping = {
-        unread: 'unread',
-        recents: 'recent',
-        all: 'all',
-      };
-
-      const status = tabMapping[tab] || 'all';
-      const response = await fetch(`/api/conversations?status=${status}&sort=${sortOrder}&sortBy=last_message_date`);
-      const data = await response.json();
-
-      if (Array.isArray(data?.conversations)) {
-        const formattedConversations = data.conversations.map((conv: Conversation) => {
-          const name = conv.fullName || conv.contactName || conv.email || conv.phone || 'Unknown Contact';
-          const initials = name
-            .split(' ')
-            .map((n: string) => n[0])
-            .join('')
-            .toUpperCase()
-            .substring(0, 2);
-          return {
-            id: conv.id,
-            name,
-            avatar: initials,
-            lastMessage: conv.lastMessageBody || 'No messages yet',
-            timestamp: conv.dateUpdated,
-            unread: conv.unreadCount > 0,
-            contactId: conv.contactId,
-            email: conv.email,
-            phone: conv.phone,
-            originalData: conv,
-            type: conv.type,
-            lastMessageType: conv.lastMessageType,
-          };
-        });
-
-        setState((prev) => {
-          const isEqual = prev.conversations.length === formattedConversations.length &&
-            prev.conversations.every((prevConv, index) =>
-              prevConv.id === formattedConversations[index].id &&
-              prevConv.lastMessage === formattedConversations[index].lastMessage &&
-              prevConv.unread === formattedConversations[index].unread
-            );
-          return isEqual ? { ...prev, loadingConversations: false } : {
-            ...prev,
-            conversations: formattedConversations,
-            loadingConversations: false,
-          };
-        });
-      } else {
-        setState((prev) => ({ ...prev, conversations: [], loadingConversations: false }));
-      }
-    } catch (error) {
-      setState((prev) => ({ ...prev, loadingConversations: false }));
-    }
-  }, []);
 
   const ConversationFilters = () => (
     <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
@@ -615,13 +522,13 @@ function MessagingContent() {
             <button
               key={tab}
               onClick={() => {
-                setState((prev) => ({ ...prev, activeTab: tabValue }));
-                fetchConversations(tabValue, state.sortOrder);
+                setState((prev) => ({ ...prev, activeTab: tabValue, lastConversationDate: null, conversations: [] }));
+                fetchConversations(tabValue);
               }}
               className={`px-3 py-2 text-sm font-medium rounded-md ${state.activeTab === tabValue
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-500 hover:text-gray-700'
-                }`}
+              }`}
             >
               {tab}
             </button>
@@ -654,8 +561,10 @@ function MessagingContent() {
                       ...prev,
                       sortOrder: newSortOrder,
                       showSortDropdown: false,
+                      lastConversationDate: null,
+                      conversations: [],
                     }));
-                    fetchConversations(state.activeTab, newSortOrder);
+                    fetchConversations(state.activeTab, undefined, newSortOrder);
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
@@ -693,24 +602,17 @@ function MessagingContent() {
                   </div>
                 ))}
               </div>
-            ) : state.conversations.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-gray-500">
-                {state.activeTab === 'unread' && (
-                  <p>No unread messages</p>
-                )}
-                {state.activeTab === 'recents' && (
-                  <p>No recent messages</p>
-                )}
-                {state.activeTab === 'all' && (
-                  <p>No messages</p>
-                )}
-              </div>
             ) : (
               <ConversationList
                 conversations={state.conversations}
                 activeId={state.activeConversationId}
                 onSelect={handleConversationSelect}
                 contacts={state.contacts}
+                totalItems={state.totalConversations}
+                itemsPerPage={state.conversationsPerPage}
+                hasMore={state.hasMoreConversations}
+                onLoadMore={loadMoreConversations}
+                loading={state.loadingConversations}
               />
             )}
           </div>
@@ -718,7 +620,6 @@ function MessagingContent() {
         <div className="md:col-span-8 flex flex-col overflow-hidden">
           {state.loading ? (
             <div className="flex-1 flex flex-col">
-              {/* Header loading state */}
               <div className="border-b border-gray-200 p-4">
                 <div className="flex items-center space-x-3">
                   <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
@@ -728,8 +629,6 @@ function MessagingContent() {
                   </div>
                 </div>
               </div>
-              
-              {/* Messages loading state */}
               <div className="flex-1 p-4 space-y-4">
                 <div className="flex justify-start">
                   <div className="bg-gray-200 rounded-lg p-3 w-2/3 h-16 animate-pulse"></div>
@@ -741,8 +640,6 @@ function MessagingContent() {
                   <div className="bg-gray-200 rounded-lg p-3 w-3/4 h-20 animate-pulse"></div>
                 </div>
               </div>
-              
-              {/* Input loading state */}
               <div className="border-t border-gray-200 p-4">
                 <div className="flex items-center space-x-3">
                   <div className="flex-1 h-12 bg-gray-200 rounded animate-pulse"></div>
