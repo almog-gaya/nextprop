@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import classNames from 'classnames';
 import { 
@@ -165,17 +166,9 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         </button>
       )}
       
-      <div className="mt-6 mb-10 px-4">
-        <div className="flex items-center justify-center">
-          <div className="flex flex-col items-center">
-            <span className="text-2xl font-extrabold tracking-tight nextprop-gradient-text drop-shadow-sm">
-              Nextprop
-            </span>
-            <span className="text-xs font-semibold text-white tracking-[0.3em] uppercase mt-1">
-              ai platform
-            </span>
-          </div>
-        </div>
+      {/* logo from public folder */}
+      <div className="flex items-center justify-center py-4">
+        <Image src="/logo_black.png" alt="Logo" width={200} height={100} />
       </div>
       
       <div className="flex flex-col w-full px-2 overflow-y-auto">
