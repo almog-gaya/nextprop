@@ -86,7 +86,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const contactId = params?.id;
+    const contactId = (await params)?.id;
     const response = await fetchWithErrorHandling(() => getContactById(contactId));
     if (response.error) {
       console.error('GHL get error:', response.error);
