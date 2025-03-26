@@ -58,28 +58,20 @@ export default function SortableOpportunityCard({
         <div
             ref={setNodeRef}
             style={style}
-            className={`relative ${isLoading ? 'animate-pulse' : ''} group`}
-            data-opportunity-id={opportunity.id}
-            data-from-stage={opportunity.stage}
+            className={`group relative transition-all duration-200 ${
+                isDragging ? 'opacity-50 scale-105 shadow-lg' : ''
+            }`}
+            {...attributes}
+            {...listeners}
         >
-            <div className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-10 transition-opacity rounded-md pointer-events-none"></div>
+            <div className="absolute inset-0 bg-purple-50/0 group-hover:bg-purple-50/50 transition-colors duration-200 rounded-lg pointer-events-none" />
             
-            <div className="relative">
-                <div 
-                    {...attributes}
-                    {...listeners}
-                    className="absolute right-2 top-2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-move z-10"
-                >
-                    <GripVertical className="w-4 h-4" />
-                </div>
-                
-                <OpportunityCard
-                    opportunity={opportunity}
-                    handleCommunication={handleCommunication}
-                    handleEditOpportunity={handleEditOpportunity}
-                    isDragging={isDragging}
-                />
-            </div>
+            <OpportunityCard
+                opportunity={opportunity}
+                handleCommunication={handleCommunication}
+                handleEditOpportunity={handleEditOpportunity}
+                isDragging={isDragging}
+            />
             
             {isLoading && (
                 <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center">

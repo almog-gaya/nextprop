@@ -185,23 +185,23 @@ export default function OpportunityGrid({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex overflow-x-auto pb-4 space-x-4 h-full">
+      <div className="flex overflow-x-auto pb-6 space-x-6 h-full px-1">
         {opportunities.map((stage) => (
           <div
             key={stage.id}
-            className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col min-w-[300px] h-full"
+            className="bg-gray-50/50 rounded-xl shadow-sm border border-gray-200 flex flex-col min-w-[320px] h-full"
           >
-            <div className="p-3 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-[5]">
-              <h3 className="font-medium text-gray-900 truncate">{stage.name}</h3>
-              <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                {stage.count}
-              </span>
+            <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-gray-50/50 backdrop-blur-sm z-[5] rounded-t-xl">
+                <h3 className="font-medium text-gray-900 truncate w-full pt-5">{stage.name}</h3>
+                <span className="bg-white text-gray-600 px-1.5 rounded-full text-xs font-medium border border-gray-200 min-w-[20px] h-5 inline-flex items-center justify-center shrink-0">
+                  {stage.count}
+                </span>
             </div>
             <DroppableStage
               id={stage.id}
               isEmpty={getProcessedOpportunities(stage.id).length === 0}
             >
-              <div className="flex-1 overflow-auto max-h-[500px]">
+              <div className="flex-1 overflow-auto max-h-[calc(100vh-280px)] p-4 space-y-3">
                 <SortableContext items={getProcessedOpportunities(stage.id).map(opp => opp.id)} strategy={rectSortingStrategy}>
                   {getProcessedOpportunities(stage.id).map((opportunity) => (
                     <SortableOpportunityCard
@@ -215,12 +215,20 @@ export default function OpportunityGrid({
                 </SortableContext>
                 {getProcessedOpportunities(stage.id).length === 0 && (
                   <div className="text-center py-8 text-gray-500 h-full flex items-center justify-center">
-                    <p>No leads in this stage</p>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">No leads in this stage</p>
+                      <p className="text-xs text-gray-400">Drag and drop leads here</p>
+                    </div>
                   </div>
                 )}
                 <div id={`load-more-${stage.id}`} className="h-10">
                   {loadingStates?.[stage.id] && pagination?.[stage.id]?.hasMore && (
-                    <div className="text-center text-gray-500 py-2">Loading more...</div>
+                    <div className="text-center text-gray-500 py-2">
+                      <div className="inline-flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
+                        <span className="text-sm">Loading more...</span>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
