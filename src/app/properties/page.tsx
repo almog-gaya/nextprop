@@ -432,7 +432,7 @@ export default function PropertiesPage() {
           bathrooms: publicRecords.baths != null ? String(publicRecords.baths) : null,
           description: result.listingRemarks,
           timeOnZillow: (result?.addressSectionInfo?.cumulativeDaysOnMarket) ?? 'N/A' + ' days',
-          url: 'https://www.redfin.com/' + result.url,
+          url: 'https://www.redfin.com' + result.url,
           imageUrl: getPhoto(photos),
 
         };

@@ -104,8 +104,9 @@ export default function PropertyPopup({ selectedProperty, closePopup }: Property
                   <div className="inline-block bg-purple-100 text-purple-800 text-sm px-2 py-1 rounded">
                     {selectedProperty.homeType || "Single Family"}
                   </div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    {selectedProperty.timeOnZillow || "Recently Listed"}
+                  <div className="text-sm text-gray-500 mt-1"> 
+                    {selectedProperty.timeOnZillow ? selectedProperty.timeOnZillow + " Days" : "Recently Listed"}
+                  </div>
                   </div>
                 </div>
               </div>
@@ -122,11 +123,7 @@ export default function PropertyPopup({ selectedProperty, closePopup }: Property
                     <div className="text-lg font-semibold">{selectedProperty.bathrooms}</div>
                     <div className="text-xs text-gray-500">Baths</div>
                   </div>
-                )}
-                <div className="text-center">
-                  <div className="text-lg font-semibold">{getListingType()}</div>
-                  <div className="text-xs text-gray-500">Listing Type</div>
-                </div>
+                )} 
               </div>
               
               <div className="mb-6">
