@@ -2,8 +2,9 @@ export interface ContactNote {
   id: string;
   body: string;
   userId?: string;
-  createdAt: string;
-  updatedAt: string;
+  dateAdded?: string;
+  contactId: string;
+  relations: []
 }
 
 export interface NotesResponse {
