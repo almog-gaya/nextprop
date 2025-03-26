@@ -18,6 +18,21 @@ import {
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { IconButton } from '@/components/ui/iconButton';
+import { useRouter } from 'next/navigation';
+import {
+  DndContext,
+  DragOverlay,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+  useDroppable,
+  rectIntersection
+} from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 
 interface Opportunity {
   id: string;
@@ -174,75 +189,212 @@ const samplePipelines: PipelineData[] = [
   }
 ];
 
+const DroppableStage = ({ id, children }: { id: string; children: React.ReactNode }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+    data: {
+      type: 'stage',
+      id
+    }
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`p-2 overflow-y-auto max-h-[calc(100vh-240px)] ${isOver ? 'bg-blue-50' : ''}`}
+    >
+      {children}
+    </div>
+  );
+};
+
+const SortableOpportunityCard = ({ opportunity }: { opportunity: Opportunity }) => {
+  const router = useRouter();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({
+    id: opportunity.id,
+    data: {
+      type: 'opportunity',
+      opportunity,
+      fromStage: opportunity.stage
+    }
+  });
+
+  const handleNameClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/contacts/${opportunity.id}`);
+  };
+
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative' as const,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-white mb-3 rounded-md shadow group"
+    >
+      <div className="p-3 border-b border-gray-100">
+        <div className="flex justify-between items-center">
+          <a 
+            onClick={handleNameClick}
+            className="font-medium text-gray-800 hover:text-purple-600 hover:underline transition-colors duration-200 text-left cursor-pointer z-10"
+          >
+            {opportunity.name}
+          </a>
+          <div className="flex items-center gap-2">
+            <button className="text-gray-400 hover:text-gray-600 rounded-full p-1">
+              <EllipsisHorizontalIcon className="h-5 w-5" />
+            </button>
+            <div 
+              {...attributes} 
+              {...listeners}
+              className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-move"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        
+        {opportunity.businessName && (
+          <div className="text-sm mt-1">
+            <span className="text-gray-500">Business Name:</span>
+            <span className="ml-1">{opportunity.businessName}</span>
+          </div>
+        )}
+        
+        {opportunity.source && (
+          <div className="text-sm mt-1">
+            <span className="text-gray-500">Lead Source:</span>
+            <span className="ml-1">{opportunity.source}</span>
+          </div>
+        )}
+        
+        <div className="text-sm mt-1">
+          <span className="text-gray-500">Lead Value:</span>
+          <span className="ml-1">{opportunity.value}</span>
+        </div>
+      </div>
+      
+      <div className="flex justify-around p-2">
+        <IconButton
+          icon={<PhoneIcon className="h-4 w-4" />}
+          tooltip="Call contact"
+        />
+        <IconButton
+          icon={<EnvelopeIcon className="h-4 w-4" />}
+          tooltip="Send email"
+        />
+        <IconButton
+          icon={<ChatBubbleLeftRightIcon className="h-4 w-4" />}
+          tooltip="Send SMS"
+        />
+        <IconButton
+          icon={<CalendarIcon className="h-4 w-4" />}
+          tooltip="Schedule"
+        />
+        <IconButton
+          icon={<PencilIcon className="h-4 w-4" />}
+          tooltip="Edit opportunity"
+        />
+        <IconButton
+          icon={<UserCircleIcon className="h-4 w-4" />}
+          tooltip="View contact"
+        />
+      </div>
+    </div>
+  );
+};
+
 export default function PipelineBoard() {
   const [selectedPipeline, setSelectedPipeline] = useState<PipelineData>(samplePipelines[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [activeOpportunity, setActiveOpportunity] = useState<Opportunity | null>(null);
+  const router = useRouter();
+
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 10,
+    },
+  });
+
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 250,
+      tolerance: 5,
+    },
+  });
+
+  const sensors = useSensors(mouseSensor, touchSensor);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const opportunityId = active.id as string;
+
+    for (const stage of selectedPipeline.stages) {
+      const foundOpportunity = stage.opportunities.find(opp => opp.id === opportunityId);
+      if (foundOpportunity) {
+        setActiveOpportunity(foundOpportunity);
+        break;
+      }
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) {
+      setActiveOpportunity(null);
+      return;
+    }
+
+    const opportunityId = active.id as string;
+    const targetStageId = over.id as string;
+
+    // Update the pipeline stages (you can implement your own logic here)
+    const updatedStages = selectedPipeline.stages.map(stage => {
+      if (stage.id === targetStageId) {
+        const opportunity = selectedPipeline.stages
+          .flatMap(s => s.opportunities)
+          .find(opp => opp.id === opportunityId);
+        
+        if (opportunity) {
+          return {
+            ...stage,
+            opportunities: [...stage.opportunities, { ...opportunity, stage: stage.id }]
+          };
+        }
+      }
+      return {
+        ...stage,
+        opportunities: stage.opportunities.filter(opp => opp.id !== opportunityId)
+      };
+    });
+
+    setSelectedPipeline({
+      ...selectedPipeline,
+      stages: updatedStages
+    });
+    setActiveOpportunity(null);
+  };
 
   const handlePipelineChange = (pipeline: PipelineData) => {
     setSelectedPipeline(pipeline);
     setIsDropdownOpen(false);
-  };
-
-  const OpportunityCard = ({ opportunity }: { opportunity: Opportunity }) => {
-    return (
-      <div className="bg-white mb-3 rounded-md shadow">
-        <div className="p-3 border-b border-gray-100">
-          <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-800">{opportunity.name}</span>
-            <button className="text-gray-400 hover:text-gray-600 rounded-full p-1">
-              <EllipsisHorizontalIcon className="h-5 w-5" />
-            </button>
-          </div>
-          
-          {opportunity.businessName && (
-            <div className="text-sm mt-1">
-              <span className="text-gray-500">Business Name:</span>
-              <span className="ml-1">{opportunity.businessName}</span>
-            </div>
-          )}
-          
-          {opportunity.source && (
-            <div className="text-sm mt-1">
-              <span className="text-gray-500">Lead Source:</span>
-              <span className="ml-1">{opportunity.source}</span>
-            </div>
-          )}
-          
-          <div className="text-sm mt-1">
-            <span className="text-gray-500">Lead Value:</span>
-            <span className="ml-1">{opportunity.value}</span>
-          </div>
-        </div>
-        
-        <div className="flex justify-around p-2">
-          <IconButton
-            icon={<PhoneIcon className="h-4 w-4" />}
-            tooltip="Call contact"
-          />
-          <IconButton
-            icon={<EnvelopeIcon className="h-4 w-4" />}
-            tooltip="Send email"
-          />
-          <IconButton
-            icon={<ChatBubbleLeftRightIcon className="h-4 w-4" />}
-            tooltip="Send SMS"
-          />
-          <IconButton
-            icon={<CalendarIcon className="h-4 w-4" />}
-            tooltip="Schedule"
-          />
-          <IconButton
-            icon={<PencilIcon className="h-4 w-4" />}
-            tooltip="Edit opportunity"
-          />
-          <IconButton
-            icon={<UserCircleIcon className="h-4 w-4" />}
-            tooltip="View contact"
-          />
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -345,25 +497,46 @@ export default function PipelineBoard() {
       </div>
       
       {/* Pipeline Board */}
-      <div className="flex overflow-x-auto space-x-4 pb-6">
-        {selectedPipeline.stages.map(stage => (
-          <div key={stage.id} className="min-w-[250px] max-w-[250px] bg-gray-100 rounded-md">
-            <div className="p-3 border-b border-gray-200 bg-white rounded-t-md">
-              <div className="flex justify-between items-center">
-                <h3 className="font-medium text-gray-900">{stage.name}</h3>
-                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs">${stage.count}</span>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={rectIntersection}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex overflow-x-auto space-x-4 pb-6">
+          {selectedPipeline.stages.map(stage => (
+            <div key={stage.id} className="min-w-[250px] max-w-[250px] bg-gray-100 rounded-md">
+              <div className="p-3 border-b border-gray-200 bg-white rounded-t-md">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium text-gray-900">{stage.name}</h3>
+                  <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs">${stage.count}</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">{stage.total}</div>
               </div>
-              <div className="text-xs text-gray-500 mt-1">{stage.total}</div>
+              
+              <DroppableStage id={stage.id}>
+                <SortableContext items={stage.opportunities.map(opp => opp.id)} strategy={rectSortingStrategy}>
+                  {stage.opportunities.map(opportunity => (
+                    <SortableOpportunityCard key={opportunity.id} opportunity={opportunity} />
+                  ))}
+                </SortableContext>
+              </DroppableStage>
             </div>
-            
-            <div className="p-2 overflow-y-auto max-h-[calc(100vh-240px)]">
-              {stage.opportunities.map(opportunity => (
-                <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-              ))}
+          ))}
+        </div>
+        
+        <DragOverlay>
+          {activeOpportunity && (
+            <div className="bg-white shadow-lg border-2 border-blue-500 rounded-md p-3">
+              <div className="font-medium text-gray-800">{activeOpportunity.name}</div>
+              {activeOpportunity.businessName && (
+                <div className="text-sm text-gray-500">{activeOpportunity.businessName}</div>
+              )}
+              <div className="text-sm text-purple-600">{activeOpportunity.value}</div>
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 } 

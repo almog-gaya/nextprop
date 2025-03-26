@@ -4,6 +4,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import OpportunityCard from './OpportunityCard';
+import { GripVertical } from 'lucide-react';
 
 interface Opportunity {
     id: string;
@@ -57,20 +58,28 @@ export default function SortableOpportunityCard({
         <div
             ref={setNodeRef}
             style={style}
-            {...attributes}
-            {...listeners}
-            className={`relative ${isLoading ? 'animate-pulse' : ''} cursor-grab group`}
+            className={`relative ${isLoading ? 'animate-pulse' : ''} group`}
             data-opportunity-id={opportunity.id}
             data-from-stage={opportunity.stage}
         >
             <div className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-10 transition-opacity rounded-md pointer-events-none"></div>
             
-            <OpportunityCard
-                opportunity={opportunity}
-                handleCommunication={handleCommunication}
-                handleEditOpportunity={handleEditOpportunity}
-                isDragging={isDragging}
-            />
+            <div className="relative">
+                <div 
+                    {...attributes}
+                    {...listeners}
+                    className="absolute right-2 top-2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-move z-10"
+                >
+                    <GripVertical className="w-4 h-4" />
+                </div>
+                
+                <OpportunityCard
+                    opportunity={opportunity}
+                    handleCommunication={handleCommunication}
+                    handleEditOpportunity={handleEditOpportunity}
+                    isDragging={isDragging}
+                />
+            </div>
             
             {isLoading && (
                 <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center">

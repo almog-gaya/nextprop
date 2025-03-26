@@ -24,12 +24,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AddLeadRequest, BulkAddLeadsRequest } from '@/types/instantly';
+import { useRouter } from 'next/navigation';
 
 interface CampaignLeadsProps {
   campaignId: string;
 }
 
 export default function CampaignLeads({ campaignId }: CampaignLeadsProps) {
+  const router = useRouter();
   const { leads, loading, error, fetchLeads, addLead, addLeadsBulk } = useInstantly();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -159,6 +161,10 @@ export default function CampaignLeads({ campaignId }: CampaignLeadsProps) {
     }).format(date);
   };
 
+  const handleLeadClick = (leadId: string) => {
+    router.push(`/contacts/${leadId}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -254,9 +260,14 @@ export default function CampaignLeads({ campaignId }: CampaignLeadsProps) {
                     <TableRow key={lead.id}>
                       <TableCell className="font-medium">{lead.email}</TableCell>
                       <TableCell>
-                        {lead.first_name || lead.last_name 
-                          ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() 
-                          : '-'}
+                        <button
+                          onClick={() => handleLeadClick(lead.id)}
+                          className="text-left hover:text-purple-600 transition-colors"
+                        >
+                          {lead.first_name || lead.last_name 
+                            ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim() 
+                            : '-'}
+                        </button>
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getLeadStatusClass(lead.status)}`}>
