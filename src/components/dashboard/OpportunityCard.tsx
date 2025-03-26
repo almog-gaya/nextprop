@@ -72,9 +72,6 @@ export default function OpportunityCard({
           <p className="text-sm font-medium text-gray-700">{opportunity.value}</p>
         )}
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {/* <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-            {opportunity.stage}
-          </span> */}
           {opportunity.contact?.tags?.map((tag, index) => (
             <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-100">
               {tag}

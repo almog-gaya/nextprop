@@ -189,13 +189,12 @@ export default function OpportunityGrid({
         {opportunities.map((stage) => (
           <div
             key={stage.id}
-            className="bg-gray-50/50 rounded-xl shadow-sm border border-gray-200 flex flex-col min-w-[320px] h-full"
+            className="bg-white rounded-xl shadow-sm border border-purple-100 flex flex-col min-w-[320px] h-full"
           >
-            <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-gray-50/50 backdrop-blur-sm z-[5] rounded-t-xl">
-                <h3 className="font-medium text-gray-900 truncate w-full pt-5">{stage.name}</h3>
-                <span className="bg-white text-gray-600 px-1.5 rounded-full text-xs font-medium border border-gray-200 min-w-[20px] h-5 inline-flex items-center justify-center shrink-0">
-                  {stage.count}
-                </span>
+            <div className="px-4 py-2.5 flex justify-between items-center">
+              <div className="text-base font-semibold text-gray-900">
+                {stage.name} <span className="text-gray-600">({stage.count})</span>
+              </div>
             </div>
             <DroppableStage
               id={stage.id}
