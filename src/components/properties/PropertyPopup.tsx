@@ -107,6 +107,7 @@ export default function PropertyPopup({ selectedProperty, closePopup }: Property
                   <div className="text-sm text-gray-500 mt-1"> 
                     {selectedProperty.timeOnZillow ? selectedProperty.timeOnZillow + " Days" : "Recently Listed"}
                   </div>
+                  </div>
                 </div>
               </div>
               
@@ -206,7 +207,7 @@ export default function PropertyPopup({ selectedProperty, closePopup }: Property
               onClick={handleOpenUrl}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
             >
-              View Asset
+              View on Zillow
             </button>
           )}
           <button
