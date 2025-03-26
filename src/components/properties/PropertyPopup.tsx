@@ -130,8 +130,7 @@ export default function PropertyPopup({ selectedProperty, closePopup }: Property
                 <p className="text-gray-700 text-sm leading-relaxed max-h-32 overflow-y-auto">
                   {selectedProperty.description || "No description available."}
                 </p>
-              </div>
-            </div>
+              </div> 
           </div>
           
           {/* Agent and broker information */}

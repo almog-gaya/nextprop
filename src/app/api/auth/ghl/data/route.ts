@@ -85,8 +85,7 @@ export async function GET() {
 
 const getUserData = async () => {
   const { locationId } = await getAuthHeaders();
-  const userData = await getUserDataAPI();
-  console.log(`USER DATA: ${JSON.stringify(userData)}`);
+  const userData = await getUserDataAPI(); 
   let numbers = [];
   try {
     numbers = await loadPhoneNumbers(locationId!);
