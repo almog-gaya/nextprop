@@ -61,15 +61,15 @@ export default function OpportunityCard({
       <div className="p-4">
         <button 
           onClick={handleNameClick}
-          className="block w-full text-left hover:text-purple-600 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 rounded"
+          className="block w-full text-left hover:text-gray-700 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-opacity-50 rounded"
         >
-          <h3 className="font-semibold text-gray-900 hover:text-purple-600 text-base">{opportunity.name}</h3>
+          <h3 className="font-medium text-gray-900 hover:text-gray-700">{opportunity.name}</h3>
         </button>
         {opportunity.businessName && (
-          <p className="text-sm text-gray-600 mt-1">{opportunity.businessName}</p>
+          <p className="text-sm text-gray-500">{opportunity.businessName}</p>
         )}
         {opportunity.value && (
-          <p className="text-sm font-medium text-purple-600 mt-2">{opportunity.value}</p>
+          <p className="text-sm font-medium text-gray-700">{opportunity.value}</p>
         )}
         <div className="mt-3 flex flex-wrap gap-1.5">
           {/* <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
@@ -89,13 +89,13 @@ export default function OpportunityCard({
             icon={<ChatBubbleLeftRightIcon className="h-4 w-4" />}
             onClick={() => handleCommunication(opportunity.id, 'sms')}
             tooltip="Simulate a returned SMS"
-            className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 w-7 h-7 flex items-center justify-center"
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 w-7 h-7 flex items-center justify-center"
           />
           <IconButton
             icon={<EnvelopeIcon className="h-4 w-4" />}
             onClick={() => handleCommunication(opportunity.id, 'email')}
             tooltip="Send email"
-            className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 w-7 h-7 flex items-center justify-center"
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 w-7 h-7 flex items-center justify-center"
           />
         </div>
         <div className="-mr-1">
@@ -103,7 +103,7 @@ export default function OpportunityCard({
             icon={<PencilIcon className="h-4 w-4" />}
             onClick={() => handleEditOpportunity(opportunity)}
             tooltip="Edit opportunity"
-            className="text-gray-600 hover:text-purple-600 hover:bg-purple-50 w-7 h-7 flex items-center justify-center"
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 w-7 h-7 flex items-center justify-center"
           />
         </div>
       </div>

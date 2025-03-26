@@ -64,7 +64,7 @@ export default function SortableOpportunityCard({
             {...attributes}
             {...listeners}
         >
-            <div className="absolute inset-0 bg-purple-50/0 group-hover:bg-purple-50/50 transition-colors duration-200 rounded-lg pointer-events-none" />
+            <div className="absolute inset-0 bg-gray-50/0 transition-colors duration-200 rounded-lg pointer-events-none" />
             
             <OpportunityCard
                 opportunity={opportunity}
