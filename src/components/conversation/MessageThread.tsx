@@ -215,10 +215,6 @@ export default function MessageThread({
     };
 
     const conversationType = getConversationAppropriateType(getConvoType(activeConversation!)!);
-
-    useEffect(() => {
-      console.log(`Active Conversation Type: ${JSON.stringify(activeConversation)}`);
-    });
     return (
         <div className="flex flex-col h-full relative">
             <div className="border-b border-gray-200 p-3 sticky top-0 z-10 bg-white">

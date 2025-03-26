@@ -377,7 +377,6 @@ const ConversationList = memo(function ConversationList({
   );
 
   const convertTimeStampToDate = useCallback((timestamp: string) => {
-    console.log("timestamp:", timestamp); // e.g., timestamp: 1742309328399
     const date = new Date(Number(timestamp)); // Interpret timestamp as UTC milliseconds
     return date.toLocaleString("en-US", {
       day: "numeric", // Day of the month (e.g., "24")
