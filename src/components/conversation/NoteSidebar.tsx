@@ -241,43 +241,40 @@ export default function NoteSidebar({ contactId, isOpen, onClose }: NoteSidebarP
           </div>
         ) : notes.length > 0 ? (
           <div className="space-y-3">
-            {notes.map((note) => {
-              console.log(`note: ${JSON.stringify(note)}`)
-              return (
-                <div
-                  key={note.id}
-                  onClick={() => setSelectedNote(note)}
-                  className="border border-gray-200 rounded-md p-3 cursor-pointer hover:border-purple-300"
-                >
-                  <div className="flex justify-between">
-                    <span className="text-xs text-gray-500">
-                      {formatDate(note.dateAdded ?? "")}
-                    </span>
-                    <div className="flex space-x-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditNote(note);
-                        } }
-                        className="p-1 rounded-full hover:bg-gray-100"
-                      >
-                        <Edit2 size={14} className="text-gray-500" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteNote(note.id);
-                        } }
-                        className="p-1 rounded-full hover:bg-gray-100"
-                      >
-                        <Trash2 size={14} className="text-gray-500" />
-                      </button>
-                    </div>
+            {notes.map((note) => (
+              <div
+                key={note.id}
+                onClick={() => setSelectedNote(note)}
+                className="border border-gray-200 rounded-md p-3 cursor-pointer hover:border-purple-300"
+              >
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">
+                    {formatDate(note.dateAdded ?? "")}
+                  </span>
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditNote(note);
+                      } }
+                      className="p-1 rounded-full hover:bg-gray-100"
+                    >
+                      <Edit2 size={14} className="text-gray-500" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteNote(note.id);
+                      } }
+                      className="p-1 rounded-full hover:bg-gray-100"
+                    >
+                      <Trash2 size={14} className="text-gray-500" />
+                    </button>
                   </div>
-                  <p className="text-sm truncate mt-1">{note.body}</p>
                 </div>
-              );
-            })}
+                <p className="text-sm truncate mt-1">{note.body}</p>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-10 text-gray-500">

@@ -12,6 +12,7 @@ import { ChevronDown } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { NewConversationCreator } from '@/components/conversation/NewConversationStarter';
+import ContactSidebar from '@/components/conversation/ContactSidebar';
 
 const ENABLE_VERBOSE_LOGGING = true;
 
@@ -32,6 +33,7 @@ function MessagingContent() {
 
   const [state, setState] = useState({
     activeConversationId: null as string | null,
+    activeContactId: null as string | null,
     messages: [] as any[],
     conversations: [] as ConversationDisplay[],
     contacts: [] as any[],
@@ -227,13 +229,6 @@ function MessagingContent() {
     }
   }, [state.activeConversationId, state.loadingMessages, state.lastMessageDate, state.hasMoreMessages, fetchMessages]);
 
-  const getActiveConversationType = useCallback(() => {
-    const conversation = state.conversations.find((conv) => conv.id === state.activeConversationId);
-    return {
-      type: conversation?.type || null,
-      lastMessageType: conversation?.lastMessageType || null
-    };
-  }, [state.conversations, state.activeConversationId]);
 
   const getActiveConversation = useCallback(() => {
     return state.conversations.find((conv) => conv.id === state.activeConversationId);
@@ -370,6 +365,7 @@ function MessagingContent() {
         messages: [],
         lastMessageDate: null,
         loadingMessages: true,
+        activeContactId: conversation?.contactId || '',
       };
     });
   }, [state.activeConversationId, markConversationAsRead]);
@@ -587,7 +583,8 @@ function MessagingContent() {
   return (
     <DashboardLayout title="Messaging">
       <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="md:col-span-4 border-r border-gray-200 overflow-y-auto">
+        {/* Conversation List Section */}
+        <div className="md:col-span-3 border-r border-gray-200 overflow-y-auto">
           <ConversationFilters />
           <div className="overflow-y-auto">
             {state.loading ? (
@@ -609,7 +606,7 @@ function MessagingContent() {
                 onSelect={handleConversationSelect}
                 contacts={state.contacts}
                 totalItems={state.totalConversations}
-                itemsPerPage={state.conversationsPerPage}
+                itemsPerPage={ state.conversationsPerPage}
                 hasMore={state.hasMoreConversations}
                 onLoadMore={loadMoreConversations}
                 loading={state.loadingConversations}
@@ -617,7 +614,9 @@ function MessagingContent() {
             )}
           </div>
         </div>
-        <div className="md:col-span-8 flex flex-col overflow-hidden">
+  
+        {/* Message Thread Section */}
+        <div className="md:col-span-6 flex flex-col overflow-hidden">
           {state.loading ? (
             <div className="flex-1 flex flex-col">
               <div className="border-b border-gray-200 p-4">
@@ -650,6 +649,15 @@ function MessagingContent() {
           ) : (
             renderMessageThread
           )}
+        </div>
+  
+        {/* Contact Details Column */}
+        <div className="md:col-span-3 border-l border-gray-200 overflow-y-auto">
+          <ContactSidebar
+            contactId={state.activeContactId || ''} // Adjust based on your data structure
+            isOpen={true} // Always open since it's a column now
+            onClose={() => {}} // No-op since it's not a closable sidebar anymore
+          />
         </div>
       </div>
     </DashboardLayout>

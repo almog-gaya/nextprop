@@ -66,10 +66,6 @@ export const ActivityMessageRenderer = ({ message }: { message: Message }) => {
     return pipeline || "Unknown Pipeline";
   };
 
-  useEffect(() => {
-    console.log(`Activity Message Renderer: ${JSON.stringify(message.activity)}`);
-  }, [message]);
-
   const stageDisplay = message.activity?.title?.toLowerCase().includes("updated")
     ? "Tested Sabrina SMS"
     : "New Lead";

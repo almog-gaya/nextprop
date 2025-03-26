@@ -86,11 +86,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`params: ${JSON.stringify(params)}`)
     const contactId = params?.id;
-    console.log('Fetching contact in GHL:', contactId);
     const response = await fetchWithErrorHandling(() => getContactById(contactId));
-    console.log('GHL get response:', response);
     if (response.error) {
       console.error('GHL get error:', response.error);
       return NextResponse.json({ error: response.error }, { status: 500 });
@@ -153,7 +150,7 @@ const updateContact = async (contactId: string, contactData: any) => {
 
   console.log(`[Update-Contact]: Data Response: `, JSON.stringify(data));
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status} ${data.message}`);
+    throw new Error(`${data.message}`);
   }
   return data;
 };

@@ -3,7 +3,7 @@ import { getAuthHeaders } from '@/lib/enhancedApi';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     try {
-        const { id: contactId } = params;
+        const { id: contactId } = await params;
         const result = await getAllNotes(contactId);
 
         if ('error' in result) {

@@ -778,3 +778,35 @@ export async function deleteContactNote(contactId: string, noteId: string) {
     throw error;
   }
 } 
+
+export async function getContactById(contactId: string) {
+  try {
+
+    const response = await fetch(`/api/contacts/${contactId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error('Failed to get contact');
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting contact:', error);
+    throw error;
+  }
+}
+
+export async function updateContactById(contactId: string, contactData: any) {
+  try {
+    const response = await fetch(`/api/contacts/${contactId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contactData),
+    });
+    const resp = await response.json();
+    console.log(`[Update-Contact]: Data Response: `, JSON.stringify(resp));
+    if (!response.ok) throw new Error(resp.message || resp.msg || resp.error || 'Failed to update contact');
+    return resp;
+  } catch (error) {
+    console.error('Error updating contact:', error);
+    throw error;
+  }
+}
