@@ -207,7 +207,7 @@ export default function PropertyPopup({ selectedProperty, closePopup }: Property
               onClick={handleOpenUrl}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
             >
-              View on Zillow
+              View Asset
             </button>
           )}
           <button
