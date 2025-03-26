@@ -107,7 +107,6 @@ export default function PropertyPopup({ selectedProperty, closePopup }: Property
                   <div className="text-sm text-gray-500 mt-1"> 
                     {selectedProperty.timeOnZillow ? selectedProperty.timeOnZillow + " Days" : "Recently Listed"}
                   </div>
-                  </div>
                 </div>
               </div>
               
