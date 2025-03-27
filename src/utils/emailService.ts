@@ -63,7 +63,7 @@ export async function sendPropertyInquiryEmail({ contactData, propertyDetails }:
   // Generate the email content (for future implementation)
   const subject = `Property Inquiry: ${propertyDetails.address.line}`;
   const senderName = contactData.name;
-  const companyName = process.env.NEXT_PUBLIC_COMPANY_NAME || 'Gaya';
+  const companyName = process.env.NEXT_PUBLIC_COMPANY_NAME || ' ';
   
   // For documentation purposes only - this won't actually send an email
   const emailData = {

@@ -292,7 +292,7 @@ export default function DashboardPage() {
         {/* Welcome Header with Time Filters - always shown */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="mb-4 md:mb-0">
-            <h1 className="text-3xl font-bold">{getGreeting()}, {userLoading ? 'Almog Elmaliah' : (user?.name || 'Almog Elmaliah')}</h1>
+            <h1 className="text-3xl font-bold">{getGreeting()}, {userLoading ? ' ' : (user?.name || ' ')}</h1>
             <p className="text-gray-500">Here's what's happening with your real estate business</p>
           </div>
         </div>
