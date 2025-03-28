@@ -106,8 +106,8 @@ function MessagingContent() {
           };
         });
 
-        const newLastDate = formattedConversations.length > 0 
-          ? formattedConversations[formattedConversations.length - 1].lastMessageDate 
+        const newLastDate = formattedConversations.length > 0
+          ? formattedConversations[formattedConversations.length - 1].lastMessageDate
           : state.lastConversationDate;
 
         setState((prev) => ({
@@ -163,15 +163,15 @@ function MessagingContent() {
 
         const reversedMessages = [...formattedMessages].reverse();
 
-        const newLastDate = formattedMessages.length > 0 
-          ? Number(formattedMessages[formattedMessages.length - 1].dateAdded) 
+        const newLastDate = formattedMessages.length > 0
+          ? Number(formattedMessages[formattedMessages.length - 1].dateAdded)
           : state.lastMessageDate;
 
         setState((prev) => {
-          const newMessages = append 
-            ? [...reversedMessages, ...prev.messages] 
+          const newMessages = append
+            ? [...reversedMessages, ...prev.messages]
             : reversedMessages;
-          
+
           const latestMessage = formattedMessages[0];
           const shouldUpdateConversation = latestMessage && prev.conversations.some((conv) =>
             conv.id === conversationId && conv.lastMessage !== latestMessage.text
@@ -186,10 +186,10 @@ function MessagingContent() {
             loadingMessages: false,
             conversations: shouldUpdateConversation
               ? prev.conversations.map((conv) =>
-                  conv.id === conversationId
-                    ? { ...conv, lastMessage: latestMessage.text, lastMessageBody: latestMessage.text }
-                    : conv
-                )
+                conv.id === conversationId
+                  ? { ...conv, lastMessage: latestMessage.text, lastMessageBody: latestMessage.text }
+                  : conv
+              )
               : prev.conversations,
           };
         });
@@ -322,6 +322,43 @@ function MessagingContent() {
     }
   }, [state.activeConversationId, getActiveConversation]);
 
+  const handleRetrySendMessage = useCallback(async (message: any) => {
+    if (!message || !message.id) return;
+    try {
+      const response = await fetch(
+        `/api/conversations/retry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageId: message.id,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        const updatedMessage = data.message.message;   
+        if (updatedMessage.status === "failed") {
+          toast.error("Error retrying message");
+        }
+        if (updatedMessage.status === "sent") {
+          toast.success("Message sent successfully");
+        }
+        setState((prev) => ({
+          ...prev,
+          messages: prev.messages.map((msg) =>
+            msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+          ),
+        }));
+      } else {
+        throw new Error('Failed to retry message');
+      }
+
+      //refresh messages by calling api
+    } catch (error) {
+
+    }
+
+  }, [state.activeConversationId, getActiveConversation])
+
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     log('Marking conversation as read:', conversationId);
     try {
@@ -361,7 +398,7 @@ function MessagingContent() {
         messages: [],
         lastMessageDate: null,
         loadingMessages: true,
-        activeContactId: conversation?.contactId || '', 
+        activeContactId: conversation?.contactId || '',
       };
     });
   }, [state.activeConversationId, markConversationAsRead]);
@@ -384,21 +421,21 @@ function MessagingContent() {
         const [contactsResponse] = await Promise.all([
           axios.get('/api/contacts'),
         ]);
-        
+
         await fetchConversations('all');
         const contacts = contactsResponse.data?.contacts || [];
-        
+
         setState((prev) => {
-          const matchingConversation = contactIdParam 
+          const matchingConversation = contactIdParam
             ? prev.conversations.find((conv) => conv.contactId === contactIdParam)
             : null;
           const defaultConversation = prev.conversations.length > 0 ? prev.conversations[0] : null;
-          
+
           return {
             ...prev,
             contacts,
             activeConversationId: matchingConversation ? matchingConversation.id : (defaultConversation ? defaultConversation.id : null),
-            activeContactId: matchingConversation ? matchingConversation.contactId : (defaultConversation ? defaultConversation.contactId : null),  
+            activeContactId: matchingConversation ? matchingConversation.contactId : (defaultConversation ? defaultConversation.contactId : null),
             pendingNewContactId: matchingConversation ? null : contactIdParam,
             loading: false,
             creatingConversation: false,
@@ -429,7 +466,7 @@ function MessagingContent() {
       ...prev,
       conversations: [newConversation, ...prev.conversations],
       activeConversationId: newConversation.id,
-      activeContactId: newConversation.contactId || '', 
+      activeContactId: newConversation.contactId || '',
       pendingNewContactId: null,
       creatingConversation: false,
     }));
@@ -490,6 +527,7 @@ function MessagingContent() {
         selectedNumber={state.selectedNumber}
         phoneNumbers={user?.phoneNumbers || []}
         onNumberSelect={handleNumberSelect}
+        handleRetrySendMessage={handleRetrySendMessage}
       />
     );
   }, [
@@ -522,7 +560,7 @@ function MessagingContent() {
               className={`px-3 py-2 text-sm font-medium rounded-md ${state.activeTab === tabValue
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               {tab}
             </button>
@@ -581,7 +619,7 @@ function MessagingContent() {
   return (
     <DashboardLayout title="Messaging">
       <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
-      
+
         {/* Conversation List Section */}
         <div className="md:col-span-3 border-r border-gray-200 overflow-y-auto">
           <ConversationFilters />
@@ -613,7 +651,7 @@ function MessagingContent() {
             )}
           </div>
         </div>
-  
+
         {/* Message Thread Section */}
         <div className="md:col-span-6 flex flex-col overflow-hidden">
           {state.loading ? (
@@ -649,13 +687,13 @@ function MessagingContent() {
             renderMessageThread
           )}
         </div>
-  
+
         {/* Contact Details Column */}
         <div className="md:col-span-3 border-l border-gray-200 overflow-y-auto">
           <ContactSidebar
             contactId={state.activeContactId || ''}
             isOpen={true}
-            onClose={() => {}}
+            onClose={() => { }}
           />
         </div>
       </div>
