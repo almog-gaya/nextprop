@@ -107,12 +107,14 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
   });
 
   // Handle either API response format or our local format
+  const voicedropCampagin = campaign.channels.voicedrop;
   const id = campaign.id || campaign._id || '';
   const name = campaign.name || campaign.Name || 'Unnamed Campaign';
   const status = campaign.status || campaign["Campaign Status"]?.toLowerCase() || 'unknown';
   const isCampaignPaused = campaign.paused;
   const script = campaign.message;
-  const fromPhone = campaign.from_number || (campaign["From Phone Numbers"] && campaign["From Phone Numbers"][0]) || '';
+  const fromPhone = voicedropCampagin.from_number;
+  const maxCallsPerHour = voicedropCampagin.max_calls_per_hour;
 
   useEffect(() => {
     console.log(`campaign.progress:`, campaign.progress)
@@ -497,11 +499,11 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                           </span>
                         </div>
                       )}
-                      {campaign.max_calls_per_hour && (
+                      {maxCallsPerHour && (
                         <div>
                           <span className="text-xs font-medium text-gray-500 block">Max Calls Per Hour:</span>
                           <span className="text-sm text-gray-900">
-                            {campaign.max_calls_per_hour}
+                            {maxCallsPerHour}
                           </span>
                         </div>
                       )}

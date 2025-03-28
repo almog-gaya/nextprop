@@ -455,40 +455,39 @@ export default function RinglessVoicemailPage() {
       const formattedContacts = selectedContacts.map(contact => ({
         phone_number: contact.phone,
         first_name: contact.firstName || contact.contactName || 'Unknown',
-        street_name: contact.address1 || 'your area',
+        street_name: contact.address1 || contact.street || 'your area',
         city: contact.city,
         state: contact.state,
         country: contact.country,
         postalCode: contact.postalCode,
       }));
-
-      console.log(`settings: ${JSON.stringify(settings)}`);
-      const campaignData = {
-        customer_id: user?.locationId,
-        voice_clone_id: selectedVoiceClone || "dodUUtwsqo09HrH2RO8w",
-        name: campaignName,
-        from_number: selectedPhoneNumber.number || selectedPhoneNumber,
-        max_calls_per_hour: settings.maxPerHour,
-        days: settings.daysOfWeek.map(day => dayMapping[day] || day),
-        is_paused: false,
-        time_window: {
+ 
+      const campaignPayload = {
+        'customer_id': user?.locationId,
+        'name': campaignName,
+        'days': settings.daysOfWeek.map(day => dayMapping[day] || day),
+        'timezone': settings.timezone === "EST (New York)"? "America/New_York" : settings.timezone,
+        'time_window': {
           start: convertTo24Hour(settings.startTime),
           end: convertTo24Hour(settings.endTime)
         },
-        timezone: settings.timezone === "EST (New York)" ? "America/New_York" : settings.timezone,
-        message: script,
-        contacts: formattedContacts,
-        pipelineId: selectedPipeline // Add pipeline ID to campaign data
-      };
-
-      console.log('Creating campaign with data:', JSON.stringify(campaignData));
-      return;
+        'channels': {
+          'voicedrop': {
+            'enabled': true,
+            'message': script,
+            'voice_clone_id': selectedVoiceClone || "dodUUtwsqo09HrH2RO8w",
+            'from_number':selectedPhoneNumber.number || selectedPhoneNumber,
+            'max_calls_per_hour': settings.maxPerHour,
+          }
+        },
+        'contacts': formattedContacts,
+      }  
       const response = await fetch("/api/voicemail", {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(campaignData)
+        body: JSON.stringify(campaignPayload)
       });
       const data = await response.json();
       toast.success('Campaign created successfully');
