@@ -394,7 +394,7 @@ const ConversationList = memo(function ConversationList({
               ref={searchInputRef}
               type="text"
               placeholder="Search conversations"
-              className="w-full py-2 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="text-sm  w-full py-2 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={searchTerm}
               onChange={handleSearch}
             />
@@ -402,9 +402,9 @@ const ConversationList = memo(function ConversationList({
           </div>
           <button
             onClick={() => setIsNewConversationModalOpen(true)}
-            className="ml-2 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="ml-2 px-2 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
-            <MessageSquarePlus className="h-6 w-6" />
+            <MessageSquarePlus className="h-5 w-5" />
           </button>
         </div>
       </div>
