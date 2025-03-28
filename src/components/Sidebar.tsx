@@ -61,34 +61,7 @@ const SidebarLink = ({ icon, text, href, active, onClick }: SidebarLinkProps) =>
     </Link>
   );
 };
-
-const SidebarDropdown = ({ icon, text, active, open, onClick, children }: SidebarDropdownProps) => {
-  const dropdownClass = classNames('flex items-center w-full px-4 py-3 my-1 rounded-lg mx-2 transition-all duration-200 cursor-pointer', {
-    'text-white font-medium': active,
-    'text-gray-300 hover:bg-gray-800 hover:text-white': !active
-  });
-
-  return (
-    <div>
-      <div className={dropdownClass} onClick={onClick}>
-        <div className="w-5 h-5 mr-3">{icon}</div>
-        <span className="text-sm">{text}</span>
-        <div className="ml-auto">
-          {open ? (
-            <ChevronUpIcon className="w-4 h-4" />
-          ) : (
-            <ChevronDownIcon className="w-4 h-4" />
-          )}
-        </div>
-      </div>
-      {open && (
-        <div className="pl-8 pr-2 py-1">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
+ 
 
 export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
@@ -127,6 +100,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     { icon: <UserIcon className="w-5 h-5" />, text: 'Leads', href: '/leads' },
     { icon: <UserGroupIcon className="w-5 h-5" />, text: 'Contacts', href: '/contacts' },
     { icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, text: 'Messaging', href: '/messaging-embed' },
+    { icon: <EnvelopeIcon className="w-5 h-5" />, text: 'SMS Campaigns', href: '/messaging-embed/campaigns' },
     { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
     // killed that for now , no need atm
