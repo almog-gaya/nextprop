@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { IconButton } from '@/components/ui/iconButton';
 import { DNDMessageRenderer } from "./renderers/DNDMessageRenderer";
 
-const getMessageRenderer = (message: Message) => {
+const getMessageRenderer = (message: Message, handleRetrySendMessage: any) => {
     const isMe = message.direction
         ? message.direction === 'outbound'
         : message.meta?.email?.direction === 'outbound';
@@ -33,7 +33,7 @@ const getMessageRenderer = (message: Message) => {
     }
 
     else if (message.text || message.type == "2") {
-        return <NormalMessageRenderer message={message} isMe={isMe} />;
+        return <NormalMessageRenderer message={message} isMe={isMe} onRetry={(msg)=>handleRetrySendMessage(msg)} />;
     }
     return null;
 };
@@ -48,6 +48,7 @@ interface MessageThreadProps {
     selectedNumber: string | null;
     phoneNumbers: PhoneNumber[];
     onNumberSelect?: (number: string) => void;
+    handleRetrySendMessage?: (message: Message) => void;
 }
 
 const getConversationAppropriateType = (type: string) => {
@@ -79,7 +80,8 @@ export default function MessageThread({
     loading,
     selectedNumber,
     phoneNumbers,
-    onNumberSelect
+    onNumberSelect,
+    handleRetrySendMessage,
 }: MessageThreadProps) {
     const [newMessage, setNewMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
@@ -292,7 +294,7 @@ export default function MessageThread({
                                     : 'justify-start'
                                 }`}
                         >
-                            {getMessageRenderer(message)}
+                            {getMessageRenderer(message, handleRetrySendMessage)}
                         </div>
                     ))
                 ) : (

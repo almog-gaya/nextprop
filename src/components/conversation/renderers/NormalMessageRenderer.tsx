@@ -1,9 +1,9 @@
 import { Message } from "@/types/messageThread";
 import { AlertCircle, MoreVertical, Phone, User, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 
-export const NormalMessageRenderer = ({ message, isMe }: { message: Message; isMe: boolean }) => {
-    console.log(`message: ${JSON.stringify(message)}`);
+export const NormalMessageRenderer = ({ message, isMe, onRetry }: { message: Message; isMe: boolean, onRetry: (message: Message) => void }) => {
 
     const { meta = {}, status, dateAdded, text } = message;
     const { from = "", to = "" } = meta;
@@ -39,10 +39,10 @@ export const NormalMessageRenderer = ({ message, isMe }: { message: Message; isM
                 style={{ backdropFilter: 'blur(10px)' }} // Glassmorphism effect
             >
                 {/* Three-Dot Menu (Top Right) */}
-                {status !== 'failed' && (
+                {(
                     <button
                         onClick={() => setIsPopupOpen(!isPopupOpen)}
-                        className={`absolute top-2 right-2 focus:outline-none hover:opacity-75 ${isMe ? 'text-white' : 'text-gray-500'}`}
+                        className={`absolute top-2 right-2 focus:outline-none hover:opacity-75 ${isMe && status !== 'failed' ? 'text-white' : 'text-gray-500'}`}
                     >
                         <MoreVertical size={16} />
                     </button>
@@ -71,7 +71,12 @@ export const NormalMessageRenderer = ({ message, isMe }: { message: Message; isM
                         })}
                     </span>
                     {status === 'failed' && (
-                        <span className="ml-3 flex items-center text-red-500">
+                        <span 
+                            className="ml-3 flex items-center text-red-500 cursor-pointer hover:underline"
+                            onClick={() => { 
+                                onRetry(message);
+                            }}
+                        >
                             <AlertCircle size={12} className="mr-1" /> Failed to send
                         </span>
                     )}
@@ -101,11 +106,7 @@ export const NormalMessageRenderer = ({ message, isMe }: { message: Message; isM
                         <div className="flex items-center gap-2">
                             <Phone size={14} className="text-blue-500" />
                             <span>To: {to || "N/A"}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <User size={14} className="text-green-500" />
-                            <span>Sender: {message?.senderId ?? ''}</span>
-                        </div>
+                        </div> 
                         <div className="flex items-center gap-2">
                             <AlertCircle size={14} className="text-purple-500" />
                             <span>Status: {status}</span>
