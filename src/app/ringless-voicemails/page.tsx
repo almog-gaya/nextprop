@@ -9,7 +9,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import StatsCard from '@/components/StatsCard';
 import BulkUploadForm from '@/components/BulkUploadForm';
-import { collection, query, onSnapshot, where, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, setDoc, doc, deleteDoc, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
 import ContactSelector from '@/components/ringless-voicemail/ContactSelector';
 import CampaignForm from '@/components/ringless-voicemail/CampaignForm';
@@ -74,21 +74,21 @@ export default function RinglessVoicemailPage() {
 
   const convertTo24Hour = (time: string) => {
     if (/^\d{2}:\d{2}$/.test(time)) {
-        // Already in 24-hour format, return as-is
-        return time;
+      // Already in 24-hour format, return as-is
+      return time;
     }
 
     const [hourStr, minuteStr, period] = time.split(/:| /);
     let hour = parseInt(hourStr, 10);
 
     if (period?.toUpperCase() === "PM" && hour !== 12) {
-        hour += 12;
+      hour += 12;
     } else if (period?.toUpperCase() === "AM" && hour === 12) {
-        hour = 0;
+      hour = 0;
     }
 
     return `${String(hour).padStart(2, "0")}:${minuteStr}`;
-};
+  };
 
   // Contact management state
   const [contacts, setContacts] = useState<any[]>([]);
@@ -203,7 +203,7 @@ export default function RinglessVoicemailPage() {
     if (isFetching) return;
 
     try {
-      if(!selectedPipeline) {
+      if (!selectedPipeline) {
         console.log('No pipeline selected, skipping fetch');
         return;
       }
@@ -309,7 +309,11 @@ export default function RinglessVoicemailPage() {
     try {
       const locationId = user?.locationId ?? await getLocationId();
       const campaignsCollection = collection(db, 'campaigns');
-      const campaignsQuery = query(campaignsCollection, where("customer_id", "==", locationId));
+      const campaignsQuery = query(campaignsCollection, 
+        where("customer_id", "==", locationId),
+        where("channels.voicedrop.enabled", "==", true),
+        orderBy("created_at", "desc")
+    );
 
       unsubscribe = onSnapshot(campaignsQuery, (querySnapshot) => {
         const campaignsData: any[] = [];
@@ -391,7 +395,7 @@ export default function RinglessVoicemailPage() {
       // return;
 
       const result = await fetch(`/api/voicemail/action?campaignId=${id}&action=${action}`, {
-        
+
       })
 
       toast.success(actionMessages[action] || 'Campaign updated');
@@ -450,7 +454,7 @@ export default function RinglessVoicemailPage() {
     }
 
     try {
-      setLoading(true); 
+      setLoading(true);
 
       const formattedContacts = selectedContacts.map(contact => ({
         phone_number: contact.phone,
@@ -461,12 +465,12 @@ export default function RinglessVoicemailPage() {
         country: contact.country,
         postalCode: contact.postalCode,
       }));
- 
+
       const campaignPayload = {
         'customer_id': user?.locationId,
         'name': campaignName,
         'days': settings.daysOfWeek.map(day => dayMapping[day] || day),
-        'timezone': settings.timezone === "EST (New York)"? "America/New_York" : settings.timezone,
+        'timezone': settings.timezone === "EST (New York)" ? "America/New_York" : settings.timezone,
         'time_window': {
           start: convertTo24Hour(settings.startTime),
           end: convertTo24Hour(settings.endTime)
@@ -476,12 +480,12 @@ export default function RinglessVoicemailPage() {
             'enabled': true,
             'message': script,
             'voice_clone_id': selectedVoiceClone || "dodUUtwsqo09HrH2RO8w",
-            'from_number':selectedPhoneNumber.number || selectedPhoneNumber,
+            'from_number': selectedPhoneNumber.number || selectedPhoneNumber,
             'max_calls_per_hour': settings.maxPerHour,
           }
         },
         'contacts': formattedContacts,
-      }  
+      }
       const response = await fetch("/api/voicemail", {
         method: "POST",
         headers: {
@@ -642,7 +646,7 @@ export default function RinglessVoicemailPage() {
         const data = await response.json();
         const pipelinesArray = Array.isArray(data) ? data : Array.isArray(data.pipelines) ? data.pipelines : [];
         setPipelines(pipelinesArray);
-    
+
         // Flatten all pipeline-stage pairs into an array of fetch promises
         const stageFetchPromises = pipelinesArray.flatMap((pipeline: any) =>
           pipeline.stages.map((stage: any) =>
@@ -659,19 +663,19 @@ export default function RinglessVoicemailPage() {
               }))
           )
         );
-    
+
         // Execute all stage fetches concurrently
         const stageResults = await Promise.all(stageFetchPromises);
-    
+
         // Aggregate totals into a single object
         const updatedTotalLeads = stageResults.reduce((acc, { pipelineId, total }) => {
           acc[pipelineId] = (acc[pipelineId] || 0) + total;
           return acc;
         }, { ...totalLeadsByPipeline }); // Spread existing state to preserve other pipeline totals
-    
+
         // Update state once with all aggregated totals
         setTotalLeadsByPipeline(updatedTotalLeads);
-    
+
       } catch (error) {
         console.error('Error fetching pipelines:', error);
         toast.error('Failed to load pipelines');
@@ -794,17 +798,10 @@ export default function RinglessVoicemailPage() {
               </div>
 
               {/* Campaign Settings - 7 columns */}
-              <div className="lg:col-span-7">
-                <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                  <h4 className="font-medium text-gray-700 mb-2 flex items-center justify-between">
-                    <span>Campaign Settings</span>
-                    <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                      {selectedContacts.length} contacts selected
-                    </span>
-                  </h4>
-                </div>
+              <div className="lg:col-span-7"> 
 
                 <CampaignForm
+                  isVoiceMailModule={true}
                   campaignName={campaignName}
                   script={script}
                   phoneNumbers={phoneNumbers}
@@ -849,6 +846,7 @@ export default function RinglessVoicemailPage() {
         )}
 
         <CampaignList
+          isVoiceMailModule={true}
           campaigns={campaigns}
           loading={loading}
           error={error}

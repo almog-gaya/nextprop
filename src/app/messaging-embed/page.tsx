@@ -8,7 +8,7 @@ import { Conversation, ConversationDisplay, Message } from '@/types/messageThrea
 import MessageThread from '@/components/conversation/MessageThread';
 import ConversationList from '@/components/conversation/ConversationList';
 import axios from 'axios';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { NewConversationCreator } from '@/components/conversation/NewConversationStarter';
@@ -581,6 +581,7 @@ function MessagingContent() {
   return (
     <DashboardLayout title="Messaging">
       <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
+      
         {/* Conversation List Section */}
         <div className="md:col-span-3 border-r border-gray-200 overflow-y-auto">
           <ConversationFilters />

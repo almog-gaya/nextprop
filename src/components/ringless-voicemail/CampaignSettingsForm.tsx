@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 interface CampaignSettings {
   delayMinutes: number;
@@ -12,10 +12,11 @@ interface CampaignSettings {
 
 interface CampaignSettingsFormProps {
   settings: CampaignSettings;
+  isVoiceMailModule: boolean;
   onSave: (settings: CampaignSettings) => void;
 }
 
-export default function CampaignSettingsForm({ settings, onSave }: CampaignSettingsFormProps) {
+export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSave }: CampaignSettingsFormProps) {
   const [formSettings, setFormSettings] = useState<CampaignSettings>({
     ...settings,
     daysOfWeek: [...settings.daysOfWeek]
@@ -103,7 +104,7 @@ export default function CampaignSettingsForm({ settings, onSave }: CampaignSetti
           </div>
 
           {/* Max Per Hour */}
-          <div className="border-t border-gray-200 pt-6">
+          {isVoiceMailModule && <div className="border-t border-gray-200 pt-6">
             <h4 className="text-sm font-medium text-gray-700 mb-4">Max Ringless Voicemails Per Hour</h4>
             <input
               type="range"
@@ -146,7 +147,55 @@ export default function CampaignSettingsForm({ settings, onSave }: CampaignSetti
               />
               <span className="text-sm text-gray-600">voicemails/hour</span>
             </div>
-          </div>
+          </div>}
+
+          {/* Interval between SMS */}
+          {!isVoiceMailModule && <div className="border-t border-gray-200 pt-6">
+            <h4 className="text-sm font-medium text-gray-700 mb-4">Interval between each SMS</h4>
+            <input
+
+              type="range"
+              min="1"
+              max="59"
+              step="1"
+              value={formSettings.delayMinutes}
+              onChange={(e) => {
+                const value = Math.max(1, Math.min(59, parseInt(e.target.value)));
+                handleInputChange('delayMinutes', value);
+              }}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+            />
+            <div className="flex justify-between text-sm text-gray-500 mt-2 mb-4">
+              <span>1</span>  
+              <span>15</span> 
+              <span>30</span> 
+              <span>45</span> 
+              <span>60</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <input
+                type="number"
+                min="1"
+                max="59"
+                value={formSettings.delayMinutes}
+                onChange={(e) => {
+                  let value = parseInt(e.target.value);
+                  if (isNaN(value)) value = 1;
+                  value = Math.max(1, Math.min(59, value));
+                  handleInputChange('delayMinutes', value); 
+                }}
+              
+                onBlur={(e) => {
+                  let value = parseInt(e.target.value);
+                  if (isNaN(value)) value = 1;
+                  value = Math.max(1, Math.min(59, value));
+                  handleInputChange('delayMinutes', value);
+                }}
+                className="w-24 p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+              />
+              <span className="text-sm text-gray-600">minutes</span>
+            </div>
+          </div>} 
 
           {/* Days of Week */}
           <div className="border-t border-gray-200 pt-6 mt-6">

@@ -8,15 +8,17 @@ interface CampaignListProps {
   onPause: (id: string) => void;
   onResume: (id: string) => void;
   onDelete: (id: string) => void;
+  isVoiceMailModule: boolean;
 }
 
-export default function CampaignList({ campaigns, loading, error, onPause, onResume, onDelete }: CampaignListProps) {
+export default function CampaignList({ campaigns, loading, error, onPause, onResume, onDelete, isVoiceMailModule }: CampaignListProps) {
   return (
     <div className="bg-white shadow overflow-hidden sm:rounded-lg">
       <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
         <div>
           <h3 className="text-lg leading-6 font-medium text-gray-900">Current Campaigns</h3>
-          <p className="mt-1 text-sm text-gray-500">Manage your existing voicemail campaigns</p>
+          {isVoiceMailModule && <p className="mt-1 text-sm text-gray-500">Manage your existing voicemail campaigns</p>}
+          {!isVoiceMailModule && <p className="mt-1 text-sm text-gray-500">Manage your existing SMS campaigns</p>}
         </div>
       </div>
 
@@ -47,6 +49,7 @@ export default function CampaignList({ campaigns, loading, error, onPause, onRes
             return (
               <CampaignCard
                 key={campaign.id || campaign._id}
+                isVoiceMailModule={isVoiceMailModule}
                 campaign={campaign}
                 stats={campaignStats}
                 onPause={() => onPause(campaign.id || campaign._id)}

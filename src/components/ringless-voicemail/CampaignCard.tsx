@@ -6,8 +6,11 @@ import {
   PhoneOffIcon,
   PhoneIncomingIcon,
   TrashIcon,
-  XIcon
-} from 'lucide-react';
+  XIcon,
+  MessageCircleIcon,
+  MessageCircleDashedIcon,
+  MessageCircleOffIcon
+} from 'lucide-react'; 
 import StatsCard from '../StatsCard';
 import { collection, getDocs, query, where, getFirestore } from 'firebase/firestore';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -73,6 +76,7 @@ interface CampaignCardProps {
     pending: number;
     failed: number;
   };
+  isVoiceMailModule: boolean;
 }
 
 // Helper function to format date
@@ -95,7 +99,7 @@ interface EditingContact {
   field: 'name' | 'phone';
 }
 // Update the CampaignCard component
-const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume, onDelete, stats }) => {
+const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume, onDelete, stats, isVoiceMailModule }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
@@ -107,19 +111,17 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
   });
 
   // Handle either API response format or our local format
-  const voicedropCampagin = campaign.channels.voicedrop;
+  const voicedropCampagin = campaign?.channels?.voicedrop;
+  const smsCampaign = campaign?.channels?.sms;
   const id = campaign.id || campaign._id || '';
   const name = campaign.name || campaign.Name || 'Unnamed Campaign';
   const status = campaign.status || campaign["Campaign Status"]?.toLowerCase() || 'unknown';
   const isCampaignPaused = campaign.paused;
-  const script = campaign.message;
-  const fromPhone = voicedropCampagin.from_number;
-  const maxCallsPerHour = voicedropCampagin.max_calls_per_hour;
-
-  useEffect(() => {
-    console.log(`campaign.progress:`, campaign.progress)
-    // Handle any side effects here, like fetching campaign data
-  }, [id]);
+  const script =voicedropCampagin?.message || smsCampaign?.message;
+  const fromPhone = voicedropCampagin?.from_number || smsCampaign?.from_number;
+  const maxCallsPerHour = voicedropCampagin?.max_calls_per_hour;
+  const intervalBetweenCalls = smsCampaign?.time_interval;
+ 
 
   // If we have the old progress format, use it directly, otherwise construct progress from API data
   const progress = {
@@ -339,8 +341,9 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
             />
             <StatsCard
               title="Delivered"
-              value={stats?.delivered ?? campaign.processed_contacts ?? 0}
-              icon={<PhoneIcon className="w-6 h-6" />}
+              value={stats?.delivered ?? campaign.processed_contacts ?? 0} 
+              icon={isVoiceMailModule ? <PhoneIcon className="w-6 h-6" /> : <MessageCircleIcon className="w-6 h-6" />}
+
               iconBgColor="bg-green-100"
               iconColor="text-green-600"
             />
@@ -348,15 +351,16 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
               title="Pending"
               value={stats?.pending ??
                 ((stats?.totalContacts ?? campaign.total_contacts ?? 0) -
-                  (stats?.delivered ?? campaign.processed_contacts ?? 0))}
-              icon={<PhoneIncomingIcon className="w-6 h-6" />}
+                  (stats?.delivered ?? campaign.processed_contacts ?? 0))} 
+              icon={isVoiceMailModule ? <PhoneIncomingIcon className="w-6 h-6" /> : <MessageCircleDashedIcon className="w-6 h-6" />}
+
               iconBgColor="bg-yellow-100"
               iconColor="text-yellow-600"
             />
             <StatsCard
               title="Failed"
               value={stats?.failed ?? campaign.failed_contacts ?? 0}
-              icon={<PhoneOffIcon className="w-6 h-6" />}
+              icon={isVoiceMailModule ? <PhoneOffIcon className="w-6 h-6" /> : <MessageCircleOffIcon className="w-6 h-6" />}
               iconBgColor="bg-red-100"
               iconColor="text-red-600"
             />
@@ -377,9 +381,9 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
               {isCancelled && 'Cancelled'}
             </span>
 
-            {(fromPhone || (campaign["From Phone Numbers"] && campaign["From Phone Numbers"].length > 0)) && (
+            {(fromPhone ) && (
               <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                <PhoneIcon className="h-3 w-3 mr-1" /> {fromPhone || campaign["From Phone Numbers"]?.[0]}
+                <PhoneIcon className="h-3 w-3 mr-1" /> {fromPhone}
               </span>
             )}
  
@@ -504,6 +508,14 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                           <span className="text-xs font-medium text-gray-500 block">Max Calls Per Hour:</span>
                           <span className="text-sm text-gray-900">
                             {maxCallsPerHour}
+                          </span>
+                        </div>
+                      )}
+                      {intervalBetweenCalls && (
+                        <div>
+                          <span className="text-xs font-medium text-gray-500 block">Interval Between Calls (Minutes):</span>
+                          <span className="text-sm text-gray-900">
+                            {intervalBetweenCalls}
                           </span>
                         </div>
                       )}

@@ -18,6 +18,7 @@ interface CampaignFormProps {
   onGenerateScript: () => void;
   onCreateCampaign: () => void;
   onRefreshVoiceClones: () => void;
+  isVoiceMailModule: boolean;
 }
 
 export default function CampaignForm({
@@ -37,13 +38,18 @@ export default function CampaignForm({
   onGenerateScript,
   onCreateCampaign,
   onRefreshVoiceClones,
+  isVoiceMailModule,
 }: CampaignFormProps) {
+  // Counter for step numbers
+  let stepNumber = 2;
+
   return (
     <div className="space-y-5">
       {/* Campaign Name */}
       <div className="border border-gray-200 rounded-md p-5 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
         <label htmlFor="campaignName" className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-          Step 3: Campaign Name
+          
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Step {stepNumber++}: Campaign Name</h4>
         </label>
         <input
           id="campaignName"
@@ -58,7 +64,9 @@ export default function CampaignForm({
       {/* Phone Number Selection */}
       <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
         <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
-          Step 3: Select From Number
+          
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Step {stepNumber++}: Select From Number</h4>
+
         </label>
         <select
           id="phoneNumber"
@@ -75,42 +83,45 @@ export default function CampaignForm({
         </select>
       </div>
 
-      {/* Voice Clone Selection */}
-      <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-        <label htmlFor="voiceClone" className="block text-sm font-medium text-gray-700 mb-2">
-          Step 4: Select Voice Clone (Optional)
-        </label>
-        <div className="flex space-x-2">
-          <select
-            id="voiceClone"
-            className="flex-1 block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
-            value={selectedVoiceClone}
-            onChange={(e) => onVoiceCloneChange(e.target.value)}
-          >
-            <option value="">Use default system voice</option>
-            {voiceClones.map((clone) => (
-              <option key={clone.id} value={clone.id}>
-                {clone.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={onRefreshVoiceClones}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
-          </button>
+      {/* Voice Clone Selection - Only shown if isVoiceMailModule is true */}
+      {isVoiceMailModule && (
+        <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+          <label htmlFor="voiceClone" className="block text-sm font-medium text-gray-700 mb-2">
+            
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Step {stepNumber++}: Select Voice Clone (Optional)</h4>
+          </label>
+          <div className="flex space-x-2">
+            <select
+              id="voiceClone"
+              className="flex-1 block w-full sm:text-sm border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+              value={selectedVoiceClone}
+              onChange={(e) => onVoiceCloneChange(e.target.value)}
+            >
+              <option value="">Use default system voice</option>
+              {voiceClones.map((clone) => (
+                <option key={clone.id} value={clone.id}>
+                  {clone.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={onRefreshVoiceClones}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Script Input */}
       <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
         <label htmlFor="script" className="block text-sm font-medium text-gray-700 mb-2">
-          Step 5: Campaign Script
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Step {stepNumber++}: Campaign Script</h4>
         </label>
         <textarea
           id="script"
@@ -130,14 +141,14 @@ export default function CampaignForm({
 
       {/* Campaign Settings */}
       <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Step 6: Campaign Settings</h4>
-        <CampaignSettingsForm settings={settings} onSave={onSettingsSave} />
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Step {stepNumber++}: Campaign Settings</h4>
+        <CampaignSettingsForm settings={settings} onSave={onSettingsSave} isVoiceMailModule={isVoiceMailModule} />
       </div>
 
       {/* Create Campaign Button */}
       <div className="border border-gray-200 rounded-md p-6 bg-gradient-to-r from-green-50 to-green-100 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-medium text-gray-800">Step 7: Launch Campaign</h4>
+          <h4 className="text-sm font-medium text-gray-800">Step {stepNumber}: Launch Campaign</h4>
           <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-green-200">
             {selectedContacts.length} Contact{selectedContacts.length !== 1 ? 's' : ''} Selected
           </span>
