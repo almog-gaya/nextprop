@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { Search, MessageSquarePlus } from 'lucide-react';
 import { useState, useMemo, useCallback, useRef, useEffect, memo } from 'react';
 import Avatar from './Avatar';
 import axios from 'axios';
@@ -402,9 +402,9 @@ const ConversationList = memo(function ConversationList({
           </div>
           <button
             onClick={() => setIsNewConversationModalOpen(true)}
-            className="ml-3 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="ml-2 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
-            New Conversation
+            <MessageSquarePlus className="h-6 w-6" />
           </button>
         </div>
       </div>

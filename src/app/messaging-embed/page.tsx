@@ -143,7 +143,6 @@ function MessagingContent() {
       const data = await response.json();
 
       if (Array.isArray(data?.messages)) {
-        // Format the messages
         const formattedMessages = data.messages.map((msg: Message) => ({
           id: msg.id || `msg-${Date.now()}-${Math.random()}`,
           senderId: msg.direction === 'inbound' ? 'client' : 'user',
@@ -162,7 +161,6 @@ function MessagingContent() {
           altId: msg.altId,
         }));
 
-        // Reverse the messages to show newest at the bottom
         const reversedMessages = [...formattedMessages].reverse();
 
         const newLastDate = formattedMessages.length > 0 
@@ -170,12 +168,11 @@ function MessagingContent() {
           : state.lastMessageDate;
 
         setState((prev) => {
-          // When appending, add new messages to the beginning since they're older
           const newMessages = append 
             ? [...reversedMessages, ...prev.messages] 
             : reversedMessages;
-            
-          const latestMessage = formattedMessages[0]; // First message is now the latest
+          
+          const latestMessage = formattedMessages[0];
           const shouldUpdateConversation = latestMessage && prev.conversations.some((conv) =>
             conv.id === conversationId && conv.lastMessage !== latestMessage.text
           );
@@ -228,7 +225,6 @@ function MessagingContent() {
       fetchMessages(state.activeConversationId, state.lastMessageDate, true);
     }
   }, [state.activeConversationId, state.loadingMessages, state.lastMessageDate, state.hasMoreMessages, fetchMessages]);
-
 
   const getActiveConversation = useCallback(() => {
     return state.conversations.find((conv) => conv.id === state.activeConversationId);
@@ -365,7 +361,7 @@ function MessagingContent() {
         messages: [],
         lastMessageDate: null,
         loadingMessages: true,
-        activeContactId: conversation?.contactId || '',
+        activeContactId: conversation?.contactId || '', 
       };
     });
   }, [state.activeConversationId, markConversationAsRead]);
@@ -396,12 +392,13 @@ function MessagingContent() {
           const matchingConversation = contactIdParam 
             ? prev.conversations.find((conv) => conv.contactId === contactIdParam)
             : null;
+          const defaultConversation = prev.conversations.length > 0 ? prev.conversations[0] : null;
           
           return {
             ...prev,
             contacts,
-            activeConversationId: matchingConversation ? matchingConversation.id :
-              (prev.conversations.length > 0 ? prev.conversations[0].id : null),
+            activeConversationId: matchingConversation ? matchingConversation.id : (defaultConversation ? defaultConversation.id : null),
+            activeContactId: matchingConversation ? matchingConversation.contactId : (defaultConversation ? defaultConversation.contactId : null),  
             pendingNewContactId: matchingConversation ? null : contactIdParam,
             loading: false,
             creatingConversation: false,
@@ -432,6 +429,7 @@ function MessagingContent() {
       ...prev,
       conversations: [newConversation, ...prev.conversations],
       activeConversationId: newConversation.id,
+      activeContactId: newConversation.contactId || '', 
       pendingNewContactId: null,
       creatingConversation: false,
     }));
@@ -606,7 +604,7 @@ function MessagingContent() {
                 onSelect={handleConversationSelect}
                 contacts={state.contacts}
                 totalItems={state.totalConversations}
-                itemsPerPage={ state.conversationsPerPage}
+                itemsPerPage={state.conversationsPerPage}
                 hasMore={state.hasMoreConversations}
                 onLoadMore={loadMoreConversations}
                 loading={state.loadingConversations}
@@ -654,9 +652,9 @@ function MessagingContent() {
         {/* Contact Details Column */}
         <div className="md:col-span-3 border-l border-gray-200 overflow-y-auto">
           <ContactSidebar
-            contactId={state.activeContactId || ''} // Adjust based on your data structure
-            isOpen={true} // Always open since it's a column now
-            onClose={() => {}} // No-op since it's not a closable sidebar anymore
+            contactId={state.activeContactId || ''}
+            isOpen={true}
+            onClose={() => {}}
           />
         </div>
       </div>
