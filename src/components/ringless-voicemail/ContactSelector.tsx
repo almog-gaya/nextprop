@@ -128,11 +128,16 @@ function ContactSelector({
               })
             ) : (
               <li className="px-4 py-3 text-center text-sm text-gray-500">
-                {searchQuery ? 'No contacts matching your search' : 'No contacts available'}
+                {isFetching? 'Please wait...' : searchQuery ? 'No contacts matching your search' : 'No contacts available'}
               </li>
             )}
             {isFetching && !isSearching && (
-              <li className="px-4 py-3 text-center text-sm text-gray-500">Loading more contacts...</li>
+              <li className="px-4 py-3 flex justify-center">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                  <span className="text-sm text-gray-500">Loading contacts...</span>
+                </div>
+              </li>
             )}
             <li ref={loaderRef} className="h-1" />
           </ul>
