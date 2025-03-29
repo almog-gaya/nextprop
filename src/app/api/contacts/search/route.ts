@@ -32,7 +32,7 @@ const searchByPipelineId = async (pipelineId: string ,pipelineName: string, loca
     const payload = {
         "locationId": locationId,
         "page": parseInt(currentPage),
-        "pageLimit": parseInt(limit),
+        "pageLimit": 500,
         "sort": [],
         "filters": [
             {

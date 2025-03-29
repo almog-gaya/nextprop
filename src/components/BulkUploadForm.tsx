@@ -314,17 +314,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label htmlFor="pipeline" className="block text-sm font-medium text-gray-700">
-                Select Pipeline <span className="text-red-500">*</span>
-              </label>
-              {!hasPipelines && !loadingPipelines && (
-                <span className="text-xs text-orange-500">No pipelines available. Please create a pipeline first.</span>
-              )}
-              {loadingPipelines && (
-                <span className="text-xs text-gray-500">Loading pipelines...</span>
-              )}
-            </div>
+           
             <div className="flex items-start">
               <Dropdown
                 label="Select Pipeline"
