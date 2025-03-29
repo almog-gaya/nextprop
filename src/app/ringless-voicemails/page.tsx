@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import PipelineSelector from '@/components/dashboard/PipelineSelector';
 import ViewToggle from '@/components/dashboard/ViewToggel';
+import EnhancedBulkUploadForm from '@/components/EnhancedBulkUploadForm';
 
 export default function RinglessVoicemailPage() {
   const { user, loadUser } = useAuth();
@@ -157,10 +158,7 @@ export default function RinglessVoicemailPage() {
       if (unsubscribe) unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    console.log("Current campaigns state:", campaigns);
-  }, [campaigns]);
+ 
 
   useEffect(() => {
     console.log('Initial fetch triggered');
@@ -182,59 +180,76 @@ export default function RinglessVoicemailPage() {
     }
   }, [searchQuery]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isFetching && contacts.length < totalContacts) {
-          console.log('Fetching page:', currentPage);
-          fetchContacts();
-        }
-      },
-      { threshold: 0.1 }
-    );
+  // useEffect(() => {
+  //   const observer = new IntersectionObserver(
+  //     (entries) => {
+  //       if (entries[0].isIntersecting && !isFetching && contacts.length < totalContacts) {
+  //         console.log('Fetching page:', currentPage);
+  //         fetchContacts();
+  //       }
+  //     },
+  //     { threshold: 0.1 }
+  //   );
 
-    if (loaderRef.current) observer.observe(loaderRef.current);
-    return () => {
-      if (loaderRef.current) observer.unobserve(loaderRef.current);
-    };
-  }, [contacts.length, totalContacts, isFetching, currentPage]);
+  //   if (loaderRef.current) observer.observe(loaderRef.current);
+  //   return () => {
+  //     if (loaderRef.current) observer.unobserve(loaderRef.current);
+  //   };
+  // }, [contacts.length, totalContacts, isFetching, currentPage]);
 
   const fetchContacts = async (reset = false) => {
     if (isFetching) return;
-
+  
     try {
       if (!selectedPipeline) {
         console.log('No pipeline selected, skipping fetch');
         return;
       }
+  
       setIsFetching(true);
-      const pageToFetch = reset ? 1 : currentPage;
-      const params = new URLSearchParams({
-        page: pageToFetch.toString(),
-        type: "pipeline",
-        "pipelineName": pipelines.find(p => p.id === selectedPipeline)?.name,
-        "pipelineId": selectedPipeline,
-        limit: CONTACTS_PER_PAGE.toString(),
-        ...(searchQuery && { search: searchQuery }),
-        ...(selectedPipeline && { pipelineId: selectedPipeline }),
-      });
-
-      console.log('Fetching contacts with params:', params.toString());
-      const response = await axios.get(`/api/contacts/search?${params.toString()}`);
-      const newContacts = response.data.contacts || [];
-      const total = response.data.total || 0;
-
-      const processedContacts = newContacts.map((contact: any) => ({
-        ...contact,
-        name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
-      }));
-
-      setContacts((prev) => (reset ? processedContacts : [...prev, ...processedContacts]));
-      setTotalContacts(total);
-
-      if (newContacts.length > 0 && newContacts.length === CONTACTS_PER_PAGE) {
-        setCurrentPage(pageToFetch + 1);
-      }
+  
+      // Start from page 1 if reset, otherwise continue from currentPage (though we'll fetch all)
+      const initialPage = reset ? 1 : currentPage;
+  
+      // Recursive helper function to fetch all pages
+      const fetchAllContacts = async (page: number, accumulatedContacts: any[] = []): Promise<any[]> => {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          type: 'pipeline',
+          pipelineName: pipelines.find((p) => p.id === selectedPipeline)?.name || '',
+          pipelineId: selectedPipeline,
+          limit: CONTACTS_PER_PAGE.toString(),
+          ...(searchQuery && { search: searchQuery }),
+        });
+  
+        console.log('Fetching contacts with params:', params.toString());
+        const response = await axios.get(`/api/contacts/search?${params.toString()}`);
+        const newContacts = response.data.contacts || [];
+   
+        const processedContacts = newContacts.map((contact: any) => ({
+          ...contact,
+          name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+        }));
+  
+        const updatedContacts = [...accumulatedContacts, ...processedContacts];
+  
+        // If we got fewer contacts than the limit, we've reached the end
+        if (newContacts.length < CONTACTS_PER_PAGE) {
+          return updatedContacts; // Return all accumulated contacts
+        }
+  
+        // Otherwise, fetch the next page recursively
+        return fetchAllContacts(page + 1, updatedContacts);
+      };
+  
+      // Fetch all contacts starting from the initial page
+      const allContacts = await fetchAllContacts(initialPage);
+  
+      // Update state with all contacts at once
+      setContacts(allContacts);
+      setTotalContacts(allContacts.length); // Use the length of fetched contacts, or use API's total if accurate
+      setCurrentPage(1); // Reset to 1 since we fetched everything
+      setSelectedContacts(allContacts);
     } catch (error) {
       console.error('Error fetching contacts:', error);
       toast.error('Failed to load contacts');
@@ -630,11 +645,7 @@ export default function RinglessVoicemailPage() {
   const handlePipelineChange = (pipelineId: string) => {
     setSelectedPipeline(pipelineId);
   };
-
-  const handleCommunication = async (opportunityId: string, actionType: 'voicemail' | 'sms' | 'call' | 'email' | 'optout') => {
-    // Handle communication actions here
-    console.log('Communication action:', actionType, 'for opportunity:', opportunityId);
-  };
+ 
 
   useEffect(() => {
     const fetchPipelines = async () => {
@@ -840,7 +851,7 @@ export default function RinglessVoicemailPage() {
               className="bg-white rounded-xl shadow-xl w-full max-w-4xl p-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <BulkUploadForm onContactsSelect={handleBulkUpload} isLoading={isSubmitting} />
+              <EnhancedBulkUploadForm onContactsSelect={handleBulkUpload} isLoading={isSubmitting} />
             </div>
           </div>
         )}
