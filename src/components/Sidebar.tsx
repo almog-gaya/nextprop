@@ -20,7 +20,8 @@ import {
   ClockIcon,
   UserIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  ClipboardDocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarLinkProps {
@@ -103,6 +104,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     { icon: <EnvelopeIcon className="w-5 h-5" />, text: 'SMS Campaigns', href: '/messaging-embed/campaigns' },
     { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
+    { icon: <ClipboardDocumentCheckIcon className="w-5 h-5" />, text: 'Bulk Actions', href: '/bulk-actions' },
     // killed that for now , no need atm
     // { icon: <CurrencyDollarIcon className="w-5 h-5" />, text: 'Opportunities', href: '/opportunities' },
     // { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' },
