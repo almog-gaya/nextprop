@@ -481,7 +481,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
               </button>
               <button
                 onClick={handleCheckProgress}
-                className="py-2 px-4 bg-[#7c3aed] text-white rounded-md hover:bg-[#6d28d9]"
+                className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
               >
                 Check Progress
               </button>
