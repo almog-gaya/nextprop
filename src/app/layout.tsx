@@ -40,7 +40,31 @@ export default function RootLayout({
             {children}
           </div>
         </AuthProvider>
-        <Toaster position="top-right" />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: 'white',
+              color: '#1e293b',
+              border: '1px solid #e2e8f0',
+              borderRadius: '0.5rem',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: 'white',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: 'white',
+              },
+            },
+          }}
+        />
       </body>
     </html>
   );

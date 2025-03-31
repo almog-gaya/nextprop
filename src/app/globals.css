@@ -95,14 +95,14 @@ h6 {
   .sidebar-icon {
     @apply relative flex items-center justify-center h-12 w-12 mt-2 mb-2 mx-auto 
       bg-gray-100 hover:bg-purple-600 hover:text-white
-      text-purple-600 rounded-xl transition-all duration-300 ease-linear;
+      text-purple-600 rounded-xl transition-all duration-200 ease-in-out;
   }
 
   .sidebar-tooltip {
     @apply absolute w-auto p-2 m-2 min-w-max left-14 rounded-md shadow-md
       text-white bg-gray-900 
       text-xs font-bold 
-      transition-all duration-100 scale-0 origin-left;
+      transition-all duration-150 scale-0 origin-left;
   }
 
   .sidebar-icon:hover .sidebar-tooltip {
@@ -110,11 +110,11 @@ h6 {
   }
 
   .main-content {
-    @apply flex-1 p-6 bg-white shadow-lg rounded-lg m-4;
+    @apply flex-1 p-6 bg-white shadow-sm rounded-lg m-4 hover:shadow-md transition-shadow duration-200;
   }
 
   .dashboard-card {
-    @apply bg-white rounded-lg shadow-md p-6 mb-6 border-t-4 border-[#7c3aed];
+    @apply bg-white rounded-lg shadow-sm p-6 mb-6 border-t-4 border-[#7c3aed] hover:shadow-md transition-shadow duration-200;
   }
 
   .dashboard-card-title {
@@ -122,7 +122,7 @@ h6 {
   }
 
   .stat-card {
-    @apply bg-white border rounded-lg p-5 flex flex-col shadow-sm hover:shadow-md transition-shadow duration-300;
+    @apply bg-white border rounded-lg p-5 flex flex-col shadow-sm hover:shadow-md transition-all duration-200;
   }
 
   .stat-value {
@@ -134,7 +134,7 @@ h6 {
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-[#7c3aed] text-white rounded-md hover:bg-[#6d28d9] transition-colors hover:shadow-md;
+    @apply px-4 py-2 bg-[#7c3aed] text-white rounded-md hover:bg-[#6d28d9] transition-all duration-200 hover:shadow-sm;
   }
   
   /* NextProp branded elements */
@@ -161,22 +161,22 @@ h6 {
 
   /* NextProp card styles */
   .nextprop-card {
-    @apply bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border-b-4 border-b-[#7c3aed];
+    @apply bg-white rounded-lg shadow-sm p-6 border-b-4 border-b-[#7c3aed] hover:shadow-md transition-all duration-200;
   }
 
   /* NextProp button styles */
   .nextprop-button {
-    @apply inline-flex items-center justify-center px-5 py-3 bg-[#7c3aed] text-white text-sm font-medium rounded-md shadow hover:bg-[#6d28d9] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed];
+    @apply inline-flex items-center justify-center px-5 py-2.5 bg-[#7c3aed] text-white text-sm font-medium rounded-md shadow-sm hover:bg-[#6d28d9] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed];
   }
 
   /* NextProp text input styles */
   .nextprop-input {
-    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-[#7c3aed] focus:ring focus:ring-[#7c3aed];
+    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-[#7c3aed] focus:ring focus:ring-[#7c3aed] transition-all duration-200;
   }
   
   /* Mobile responsive utilities */
   .sidebar-mobile {
-    @apply fixed top-0 left-0 h-screen w-full z-50 bg-[#1e1b4b] transform transition-transform duration-300 ease-in-out;
+    @apply fixed top-0 left-0 h-screen w-full z-50 bg-[#1e1b4b] transform transition-transform duration-200 ease-in-out;
   }
 
   .sidebar-mobile-closed {
@@ -188,7 +188,7 @@ h6 {
   }
 
   .sidebar-toggle-button {
-    @apply fixed top-4 left-4 z-50 bg-[#7c3aed] text-white p-2 rounded-md shadow-md md:hidden;
+    @apply fixed top-4 left-4 z-50 bg-[#7c3aed] text-white p-2 rounded-md shadow-sm md:hidden hover:shadow-md transition-all duration-200;
   }
 
   .mobile-header-padding {
@@ -196,7 +196,7 @@ h6 {
   }
 
   .main-content-mobile {
-    @apply md:ml-64 ml-0 w-full transition-all duration-300 ease-in-out;
+    @apply md:ml-64 ml-0 w-full transition-all duration-200 ease-in-out;
   }
 }
 
@@ -205,6 +205,7 @@ table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  margin: 1rem 0;
 }
 
 th {
@@ -212,10 +213,121 @@ th {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
+  color: #64748b;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
 }
 
 tr:hover td {
   background-color: #f8fafc;
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* Form element enhancements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+select,
+textarea {
+  @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-[#7c3aed] focus:ring focus:ring-[#7c3aed] transition-all duration-200;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+input[type="text"]:disabled,
+input[type="email"]:disabled,
+input[type="password"]:disabled,
+input[type="number"]:disabled,
+input[type="tel"]:disabled,
+input[type="url"]:disabled,
+select:disabled,
+textarea:disabled {
+  @apply bg-gray-50 cursor-not-allowed;
+}
+
+/* Enhanced select styles */
+select {
+  @apply appearance-none bg-white pr-8;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+}
+
+/* Enhanced checkbox styles */
+input[type="checkbox"] {
+  @apply h-4 w-4 rounded border-gray-300 text-[#7c3aed] focus:ring-[#7c3aed] transition-all duration-200;
+}
+
+/* Enhanced radio styles */
+input[type="radio"] {
+  @apply h-4 w-4 border-gray-300 text-[#7c3aed] focus:ring-[#7c3aed] transition-all duration-200;
+}
+
+/* Label styles */
+label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+/* Form group spacing */
+.form-group {
+  @apply mb-4;
+}
+
+/* Error state for form elements */
+.error input,
+.error select,
+.error textarea {
+  @apply border-red-300 focus:border-red-500 focus:ring-red-500;
+}
+
+.error-text {
+  @apply mt-1 text-sm text-red-600;
+}
+
+/* Success state for form elements */
+.success input,
+.success select,
+.success textarea {
+  @apply border-green-300 focus:border-green-500 focus:ring-green-500;
+}
+
+.success-text {
+  @apply mt-1 text-sm text-green-600;
+}
+
+/* Help text styles */
+.help-text {
+  @apply mt-1 text-sm text-gray-500;
+}
+
+/* Required field indicator */
+.required::after {
+  content: "*";
+  @apply text-red-500 ml-1;
+}
+
+/* Form section styles */
+.form-section {
+  @apply bg-white rounded-lg shadow-sm p-6 mb-6;
+}
+
+.form-section-title {
+  @apply text-lg font-medium text-gray-900 mb-4;
+}
+
+.form-section-description {
+  @apply text-sm text-gray-500 mb-4;
 }
 
 /* Mobile responsive overrides */
@@ -234,5 +346,13 @@ tr:hover td {
   
   .stat-value {
     @apply text-2xl;
+  }
+
+  .form-section {
+    @apply p-4;
+  }
+
+  th, td {
+    @apply px-3 py-2;
   }
 }
