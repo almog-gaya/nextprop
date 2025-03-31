@@ -22,7 +22,9 @@ import {
   Bars3Icon,
   XMarkIcon,
   ClipboardDocumentCheckIcon,
+  ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarLinkProps {
   icon: React.ReactNode;
@@ -30,6 +32,7 @@ interface SidebarLinkProps {
   href: string;
   active: boolean;
   onClick?: () => void;
+  rightIcon?: React.ReactNode;
 }
 
 interface SidebarDropdownProps {
@@ -47,54 +50,26 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-const SidebarLink = ({ icon, text, href, active, onClick }: SidebarLinkProps) => {
+const SidebarLink = ({ icon, text, href, active, onClick, rightIcon }: SidebarLinkProps) => {
   const linkClass = classNames('flex items-center w-full px-4 py-3 my-1 rounded-lg mx-2 transition-all duration-200', {
-    'bg-[#7c3aed] text-white font-medium': active,
-    'text-gray-300 hover:bg-gray-800 hover:text-white': !active
+    'bg-[#7c3aed] text-white font-medium shadow-md': active,
+    'text-white/80 hover:bg-white/10 hover:text-white': !active
   });
 
   return (
     <Link href={href} passHref onClick={onClick}>
       <div className={linkClass}>
         <div className="w-5 h-5 mr-3">{icon}</div>
-        <span className="text-sm">{text}</span>
+        <span className="text-sm flex-grow">{text}</span>
+        {rightIcon && <div className="w-5 h-5">{rightIcon}</div>}
       </div>
     </Link>
   );
 };
- 
 
 export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const [pipelinesOpen, setPipelinesOpen] = useState(pathname.startsWith('/pipelines'));
-  const [userType, setUserType] = useState<string | null>(null);
-
-  useEffect(() => {
-     
-    // Check if document.cookie is accessible
-    if (typeof document.cookie === 'undefined') {
-      console.error('document.cookie is undefined - possible SSR issue');
-      return;
-    }
-
-    // Split and log all cookies
-    const cookies = document.cookie.split(';');
- 
-    // Look for our specific cookie
-    const ghlCookie = cookies.find(cookie => {
-      const trimmed = cookie.trim();
-       return trimmed.startsWith('ghl_user_type=');
-    });
-
- 
-    if (ghlCookie) {
-      const value = ghlCookie.split('=')[1]?.trim();
-       setUserType(value);
-    } else {
-      console.log('No ghl_user_type cookie found');
-      setUserType(null);
-    } 
-  }, []);
+  const { user } = useAuth();
 
   const links = [
     { icon: <HomeIcon className="w-5 h-5" />, text: 'Dashboard', href: '/' },
@@ -105,27 +80,10 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
     { icon: <ClipboardDocumentCheckIcon className="w-5 h-5" />, text: 'Bulk Actions', href: '/bulk-actions' },
-    // killed that for now , no need atm
-    // { icon: <CurrencyDollarIcon className="w-5 h-5" />, text: 'Opportunities', href: '/opportunities' },
-    // { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' },
-  ];
-
- 
-  if (userType === 'Company') {
-    links.push({
-      icon: <ChartBarIcon className="w-5 h-5" />,
-      text: 'Create Sub Acc',
-      href: '/auth/signup'
-    });
-  }
-
-  const pipelineLinks = [
-    { text: 'All Pipelines', href: '/pipelines' },
-    { text: 'Distressed Homeowners', href: '/pipelines/distressed-homeowners' }
   ];
 
   const sidebarClass = classNames({
-    "fixed top-0 left-0 h-screen w-64 flex flex-col bg-[#1e1b4b] shadow-lg z-40": !isMobile,
+    "fixed top-0 left-0 h-screen w-64 flex flex-col bg-gradient-to-br from-[#1e1b4b] via-[#2e1065] to-[#1e1b4b] shadow-xl z-40": !isMobile,
     "sidebar-mobile": isMobile,
     "sidebar-mobile-open": isMobile && isOpen,
     "sidebar-mobile-closed": isMobile && !isOpen
@@ -136,18 +94,19 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
       {isMobile && (
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-white hover:bg-[#322b70] rounded-md transition-colors"
+          className="absolute top-4 right-4 p-2 text-white hover:bg-white/10 rounded-md transition-colors"
         >
           <XMarkIcon className="h-6 w-6" />
         </button>
       )}
       
       {/* logo from public folder */}
-      <div className="flex items-center justify-center py-4">
+      <div className="flex items-center justify-center py-4 bg-black/10 backdrop-blur-sm">
         <Image src="/logo_black.png" alt="Logo" width={200} height={100} />
       </div>
       
-      <div className="flex flex-col w-full px-2 overflow-y-auto">
+      {/* Navigation Links */}
+      <div className="flex flex-col w-full px-2 overflow-y-auto py-4 flex-grow">
         {links.map((link) => (
           <SidebarLink
             key={link.href}
@@ -158,48 +117,22 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
             onClick={isMobile ? onClose : undefined}
           />
         ))}
-        
-        {/* Uncomment if you want the Pipelines dropdown back
-        <SidebarDropdown
-          icon={<ChartBarIcon className="w-5 h-5" />}
-          text="Pipelines"
-          active={pathname.startsWith('/pipelines')}
-          open={pipelinesOpen}
-          onClick={() => setPipelinesOpen(!pipelinesOpen)}
-        >
-          {pipelineLinks.map((link) => (
-            <SidebarLink
-              key={link.href}
-              icon={<div className="w-1 h-1 rounded-full bg-gray-400" />}
-              text={link.text}
-              href={link.href}
-              active={pathname === link.href}
-              onClick={isMobile ? onClose : undefined}
-            />
-          ))}
-        </SidebarDropdown>
-        */}
+      </div>
 
-        {/* <SidebarLink
-          icon={<EnvelopeIcon className="w-5 h-5" />}
-          text="Email Campaigns"
-          href="/emails"
-          active={pathname === '/emails' || pathname.startsWith('/emails/')}
-          onClick={isMobile ? onClose : undefined}
-        /> */}
-      </div>
-      
-      <div className="mt-auto mb-6 px-6">
-        <div className="border-t border-gray-800 pt-4">
-          <SidebarLink
-            icon={<Cog6ToothIcon className="w-5 h-5" />}
-            text="Settings"
-            href="/settings"
-            active={pathname === '/settings'}
-            onClick={isMobile ? onClose : undefined}
-          />
+      {/* User Profile Footer */}
+      <Link href="/settings">
+        <div className="px-4 py-4 border-t border-white/10 hover:bg-white/5 transition-colors cursor-pointer mt-auto">
+          <div className="flex items-center space-x-3">
+            <div className="h-9 w-9 rounded-full bg-[#7c3aed] flex items-center justify-center">
+              <UserIcon className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white font-medium text-sm">{user?.name || 'User'}</span>
+              <span className="text-white/60 text-xs">{user?.email}</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </Link>
     </div>
   );
 }
