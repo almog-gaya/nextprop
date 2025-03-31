@@ -1494,7 +1494,7 @@ export default function ContactsPage() {
                       searchContactsByName(value);
                     }, 300);
                   }}
-                  placeholder="Search contacts by name..."
+                  placeholder="      Search contacts by name..."
                   className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
                   disabled={isSearching}
                 />
