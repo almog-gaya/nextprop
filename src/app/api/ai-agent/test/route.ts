@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateResponse, loadAIAgentConfig, AGENT_INSTRUCTIONS } from '@/lib/ai-agent';
+import { generateResponse, loadAIAgentConfig, generateAgentInstructions, ensureValidRepresentation } from '@/lib/ai-agent';
 import { addDebugLog } from '../debug/route';
 import OpenAI from 'openai';
 
@@ -55,8 +55,48 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // Get AI agent config
-    const config = await loadAIAgentConfig();
+    // Get AI agent config directly from helpers instead of API call
+    const { getConfigFromServerCookie, getServerCachedConfig } = await import('@/lib/ai-agent');
+    
+    // First try to get from cookie
+    let config = await getConfigFromServerCookie();
+    
+    // If not in cookie, try server cache
+    if (!config) {
+      const userId = 'anonymous'; // Simplified
+      config = getServerCachedConfig(userId);
+    }
+    
+    // If still no config, use default values
+    if (!config) {
+      config = {
+        isEnabled: process.env.ENABLE_AI_AGENT === 'true',
+        tone: 'friendly',
+        length: 'medium',
+        customInstructions: '',
+        updatedAt: new Date(),
+        agentName: 'Jane Smith',
+        speakingOnBehalfOf: 'NextProp Real Estate', 
+        contactPhone: '(415) 555-1234',
+        contactEmail: 'contact@nextprop.ai',
+        buyingCriteria: 'Properties up to $2 million in the Bay Area, single-family homes, cosmetic rehabs only, no long-term projects',
+        dealObjective: 'creative-finance',
+      };
+    }
+    
+    // Log the loaded config for debugging
+    console.log('🧪 Test route loaded config:', {
+      agentName: config.agentName,
+      speakingOnBehalfOf: config.speakingOnBehalfOf || '(empty)',
+      tone: config.tone,
+      length: config.length,
+      isEnabled: config.isEnabled,
+      contactPhone: config.contactPhone || '(not set)',
+      contactEmail: config.contactEmail || '(not set)',
+      buyingCriteria: config.buyingCriteria || '(not set)',
+      dealObjective: config.dealObjective || 'creative-finance',
+      configSource: 'direct-access'
+    });
     
     // Log the test request
     addDebugLog('info', 'Test message received', { 
@@ -84,23 +124,38 @@ export async function POST(req: NextRequest) {
         // Use conversation history for context
         const client = getOpenAIClient();
         
-        // Construct the system prompt with the Jane Smith instructions
-        const systemPrompt = `You are a helpful AI assistant for a real estate company. Your role is to engage with potential clients in a professional and friendly manner.
+        // Use the ensureValidRepresentation function for consistency
+        const representationString = ensureValidRepresentation(config);
+        
+        // Log the representation being used
+        console.log('🧪 Test route using representation:', representationString);
 
-Key guidelines:
-- Always be respectful and professional
-- Focus on understanding the client's needs
-- Provide relevant information about properties and services
-- Be concise but informative
-- Maintain a positive and helpful tone
+        // Generate agent instructions with all UI fields
+        const customInstructions = generateAgentInstructions(config);
 
-${AGENT_INSTRUCTIONS}
+        const systemPrompt = `You are an AI assistant named {agentName} representing {representation}. You will respond to the user's message. You MUST follow these instructions EXACTLY.
 
-Please respond to the following message in a ${config.tone} tone, keeping the response ${config.length}:`;
+YOU MUST FOLLOW THESE CRITICAL RULES:
+- You ALWAYS represent {representation} and MUST state this when asked
+- NEVER EVER claim to represent "your own practice" or "an independent real estate practice"
+- When asked who you are, ALWAYS say "I'm {agentName} representing {representation}"
+- Be respectful, professional, and helpful at all times
+- Keep responses clear and concise
+
+${customInstructions}
+
+Please respond to the following message in a {tone} tone, keeping the response {length}:`;
+        
+        // Replace all placeholders with actual values
+        const finalSystemPrompt = systemPrompt
+          .replace(/{agentName}/g, config.agentName || 'Jane Smith')
+          .replace(/{representation}/g, representationString)
+          .replace(/{tone}/g, config.tone || 'friendly')
+          .replace(/{length}/g, config.length || 'medium');
         
         // Convert history to OpenAI format
         const messages = [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: finalSystemPrompt },
           ...history.map((item: {text: string, isUser: boolean}) => ({
             role: item.isUser ? "user" : "assistant",
             content: item.text
@@ -166,13 +221,23 @@ Please respond to the following message in a ${config.tone} tone, keeping the re
       tokens: response.metadata.tokens
     });
     
-    // Return the response
+    // Return the response with full agent configuration
     return NextResponse.json({
       success: true,
       isEnabled: config.isEnabled,
       message,
       response: response.response,
-      metadata: response.metadata
+      metadata: response.metadata,
+      agentConfig: {
+        agentName: config.agentName,
+        speakingOnBehalfOf: config.speakingOnBehalfOf,
+        tone: config.tone,
+        length: config.length,
+        contactPhone: config.contactPhone,
+        contactEmail: config.contactEmail,
+        buyingCriteria: config.buyingCriteria,
+        dealObjective: config.dealObjective
+      }
     });
   } catch (error) {
     console.error('Error in AI agent test endpoint:', error);
