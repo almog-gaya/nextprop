@@ -5,6 +5,15 @@ import { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
 import { saveAIAgentConfig, loadAIAgentConfig } from '@/lib/ai-agent';
 import toast from 'react-hot-toast';
 
+// Create a custom event to signal config changes
+export const triggerConfigRefresh = () => {
+  // Use a custom event to notify other components about the config change
+  if (typeof window !== 'undefined') {
+    const event = new CustomEvent('ai-agent-config-changed');
+    window.dispatchEvent(event);
+  }
+};
+
 export default function AIAgentConfig() {
   const [config, setConfig] = useState<AIAgentConfigType>({
     isEnabled: false,
@@ -32,7 +41,27 @@ export default function AIAgentConfig() {
   };
 
   const handleToggle = (checked: boolean) => {
+    // Update local state immediately
     setConfig(prev => ({ ...prev, isEnabled: checked }));
+    
+    // Auto-save when the toggle changes for better UX
+    // Use the checked value directly to avoid race condition with the state update
+    setTimeout(() => {
+      saveAIAgentConfig({ 
+        ...config, 
+        isEnabled: checked // Use the checked parameter directly
+      })
+        .then(() => {
+          toast.success(`AI Agent ${checked ? 'enabled' : 'disabled'}`);
+          triggerConfigRefresh();
+        })
+        .catch(error => {
+          console.error('Error auto-saving config:', error);
+          toast.error('Failed to update AI Agent status');
+          // Revert the state if the save failed
+          setConfig(prev => ({ ...prev, isEnabled: !checked }));
+        });
+    }, 0);
   };
 
   const handleToneChange = (tone: AIAgentConfigType['tone']) => {
@@ -52,6 +81,12 @@ export default function AIAgentConfig() {
     try {
       await saveAIAgentConfig(config);
       toast.success('AI Agent configuration saved successfully');
+      
+      // Force a refresh of the debug panel
+      triggerConfigRefresh();
+      
+      // After saving, fetch again to ensure we have the latest
+      await loadConfig();
     } catch (error) {
       console.error('Error saving config:', error);
       toast.error('Failed to save configuration. Please try again.');
@@ -138,6 +173,7 @@ export default function AIAgentConfig() {
         </div>
       </div>
 
+      {/* Custom Instructions section is removed */}
 
       {/* Save Button */}
       <div className="flex justify-end">
