@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ArrowPathIcon, PaperAirplaneIcon, ClipboardIcon } from '@heroicons/react/24/outline';
 import AIAgentConfig from '@/components/ai-agent/AIAgentConfig';
-import AIAgentDebug from '@/components/ai-agent/AIAgentDebug';
+// import AIAgentDebug from '@/components/ai-agent/AIAgentDebug';
 
 // Example scenarios to test the real estate agent
 const EXAMPLE_MESSAGES = [
@@ -25,7 +25,6 @@ export default function AIAgentTestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversation, setConversation] = useState<{text: string, isUser: boolean}[]>([]);
-  const [useContextMemory, setUseContextMemory] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +48,8 @@ export default function AIAgentTestPage() {
         },
         body: JSON.stringify({ 
           message,
-          // Only send conversation history if context memory is enabled
-          history: useContextMemory ? updatedConversation : []
+          // Always send conversation history since context memory is always enabled
+          history: updatedConversation
         }),
       });
       
@@ -142,31 +141,6 @@ export default function AIAgentTestPage() {
             ))}
           </div>
         </div>
-
-        {/* Context Memory Toggle */}
-        <div className="mb-4 flex items-center">
-          <label className="inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer"
-              checked={useContextMemory}
-              onChange={() => setUseContextMemory(!useContextMemory)}
-            />
-            <div className={`relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-300 
-              ${useContextMemory ? 'peer-checked:bg-purple-600' : ''} 
-              after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all 
-              ${useContextMemory ? 'peer-checked:after:translate-x-full' : ''}`}>
-            </div>
-            <span className="ml-3 text-sm font-medium text-gray-900">
-              {useContextMemory ? 'Context Memory Enabled' : 'Context Memory Disabled'}
-            </span>
-          </label>
-          <div className="ml-2 text-xs text-gray-500">
-            {useContextMemory 
-              ? 'Jane will remember the entire conversation context' 
-              : 'Jane will respond to each message independently'}
-          </div>
-        </div>
         
         {/* Conversation History */}
         {conversation.length > 0 && (
@@ -242,9 +216,6 @@ export default function AIAgentTestPage() {
           </div>
         )}
       </div>
-      
-      {/* Debug Logs */}
-      <AIAgentDebug />
     </div>
   );
 } 
