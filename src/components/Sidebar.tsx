@@ -23,6 +23,7 @@ import {
   XMarkIcon,
   ClipboardDocumentCheckIcon,
   ArrowRightOnRectangleIcon,
+  BoltIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -80,6 +81,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
     { icon: <ClipboardDocumentCheckIcon className="w-5 h-5" />, text: 'Bulk Actions', href: '/bulk-actions' },
+    { icon: <BoltIcon className="w-5 h-5" />, text: 'AI Agent', href: '/ai-agent' },
   ];
 
   const sidebarClass = classNames({
