@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { refreshTokenIdBackend } from '@/utils/authUtils';
+import { generateResponse, loadAIAgentConfig } from '@/lib/ai-agent';
+import { addDebugLog } from '@/app/api/ai-agent/debug/route';
 
-// Add logging control to reduce console noise
-const ENABLE_VERBOSE_LOGGING = false;
+// Add logging control to reduce console noise - Set to true to see AI agent logs
+const ENABLE_VERBOSE_LOGGING = true;
 
-const log = (message: string, data?: any) => {
+// Use our own log functions instead of the imported ones
+function log(message: string, data?: any) {
     if (ENABLE_VERBOSE_LOGGING) {
         if (data) {
             console.log(message, data);
@@ -13,12 +16,12 @@ const log = (message: string, data?: any) => {
             console.log(message);
         }
     }
-};
+}
 
 // Only show actual errors in console
-const logError = (message: string, error?: any) => {
+function logError(message: string, error?: any) {
     console.error(message, error);
-};
+}
 
 export async function GET(
     request: NextRequest,
@@ -76,7 +79,7 @@ export async function POST(
         }
 
         const body = await request.json();
-        const { text, contactId } = body;
+        const { text, contactId, direction, messageType } = body;
 
         if (!text || text.trim() === '') {
             return NextResponse.json({ error: 'Message text is required' }, { status: 400 });
@@ -87,9 +90,61 @@ export async function POST(
         if (result.error) {
             return NextResponse.json({ error: result.error || 'Couldnt send your message' }, { status: 400 });
         }
+        
+        // For debugging, always log when message is sent
+        addDebugLog('info', 'Message sent', { text, direction, messageType, contactId });
+
+        // Process AI response only for inbound messages (messages from contacts to us)
+        // Our outbound messages should not trigger AI responses to prevent loops
+        const isInboundMessage = direction === 'inbound';
+        addDebugLog('info', 'Message direction check', { isInbound: isInboundMessage, direction });
+        
+        // Only process if this is an inbound message - don't respond to our own messages
+        if (isInboundMessage) {
+            try {
+                // Load AI agent config to see if it's enabled
+                const aiConfig = await loadAIAgentConfig();
+                addDebugLog('info', 'AI Agent config loaded', aiConfig);
+                
+                if (aiConfig.isEnabled) {
+                    addDebugLog('info', 'AI Agent is enabled, generating response');
+                    
+                    try {
+                        // Generate AI response
+                        const aiResponse = await generateResponse(text, aiConfig);
+                        addDebugLog('success', 'AI response generated', { 
+                            prompt: text, 
+                            response: aiResponse.response 
+                        });
+                        
+                        // Send the AI response as a reply with slight delay to seem more human
+                        setTimeout(async () => {
+                            try {
+                                addDebugLog('info', 'Sending AI response to conversation');
+                                const aiResult = await sendMessage(conversationId, aiResponse.response, accessToken, contactId);
+                                addDebugLog('success', 'AI response sent successfully', aiResult);
+                            } catch (aiError) {
+                                addDebugLog('error', 'Error sending AI response', aiError);
+                            }
+                        }, 3000); // Add a 3-second delay to make it feel more natural
+                    } catch (genError) {
+                        addDebugLog('error', 'Error generating AI response', genError);
+                    }
+                } else {
+                    addDebugLog('info', 'AI Agent is disabled, not responding');
+                }
+            } catch (aiError) {
+                // Don't fail the original message if AI processing fails
+                addDebugLog('error', 'Error in AI agent processing', aiError);
+            }
+        } else {
+            addDebugLog('info', 'Skipping AI response for outbound message');
+        }
+        
         return NextResponse.json(result);
     } catch (error) {
         logError('Error in conversation message POST:', error);
+        addDebugLog('error', 'Error in conversation message POST', error);
         return NextResponse.json(
             { error: 'Internal server error', message: 'Failed to send message' },
             { status: 500 }
