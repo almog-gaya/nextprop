@@ -10,6 +10,7 @@ NextProp is a comprehensive real estate lead generation platform that integrates
 - **Dashboard Analytics**: Track leads, conversions, and revenue
 - **Contact Management**: View and manage all your real estate leads
 - **Automated Ringless Voicemails**: Send personalized voicemails to leads without disturbing them
+- **AI Agent**: Configure an AI assistant to automatically respond to client messages
 
 ## Zillow API Integration
 
@@ -17,6 +18,81 @@ The platform integrates with the Zillow Working API to fetch property data using
 
 1. **City-Based Search**: Find properties in specific cities like Miami, New York, etc.
 2. **AI-Powered Search**: Use natural language to describe exactly what you're looking for, such as "Houses for sale built after 2001 within price 500000, minimum lotsize 5000 sqft, 3 beds, 3 baths, in Miami Florida"
+
+## AI Agent
+
+The platform includes an AI agent capable of automatically responding to client messages. The agent can be configured with different tones and response lengths to match your communication style.
+
+### AI Agent Features
+
+- **Customizable Tone**: Choose between friendly, professional, or casual communication styles
+- **Response Length Control**: Set responses to be short, medium, or long based on your preferences
+- **Custom Instructions**: Add specific guidelines for how the AI should communicate
+- **Enable/Disable Toggle**: Easily turn the AI agent on or off as needed
+
+The AI agent uses OpenAI's GPT models to generate human-like responses focused on real estate communication, helping you maintain client engagement even when you're not available.
+
+## AI Agent Integration
+
+The AI agent is fully integrated with the messaging platform to provide intelligent conversation assistance. This integration enables:
+
+### Automated Response System
+
+- **Smart Response Generation**: The AI analyzes incoming messages and generates appropriate responses based on the message content, contact history, and property details
+- **Context Awareness**: Responses account for previous messages in the conversation thread
+- **Human-in-the-Loop**: All AI responses are presented as suggestions that can be edited or approved by human agents
+- **Learning Capability**: The system learns from manual edits to improve future suggestions
+
+### Integration Points
+
+- **Messaging Interface**: AI suggestions appear directly in the message composition area
+- **Configuration Dashboard**: Customize AI behavior through the dedicated AI Agent configuration page
+- **Contact-Specific Learning**: The AI adapts to individual contact communication styles and preferences
+- **Property-Aware Responses**: Responses can automatically incorporate relevant property details from the database
+
+### Advanced Features
+
+- **Multi-Intent Recognition**: The system can identify multiple questions or requests in a single message
+- **Sentiment Analysis**: Detects customer sentiment to adjust tone and escalate as needed
+- **Handoff Protocol**: Automatically suggests when a conversation should be escalated to a human agent
+- **Follow-up Generation**: Suggests appropriate times and content for follow-up messages
+
+### Performance Metrics
+
+The system provides detailed analytics on AI agent performance:
+
+- Response acceptance rate
+- Average response time
+- Customer satisfaction correlation
+- Conversation completion metrics
+- Learning curve visualization
+
+## Unified Messaging Platform
+
+The application includes a comprehensive multi-channel messaging system that consolidates all client communications in one place.
+
+### Messaging Features
+
+- **Conversation Management**: View, organize, and respond to client conversations from a single interface
+- **Multi-Channel Support**: Handle SMS, email, and voice messages in a unified conversation view
+- **Contact Sidebar**: Access contact details and notes without leaving the conversation
+- **Message Templates**: Use pre-defined templates to quickly respond to common inquiries
+- **Real-Time Status Updates**: See message delivery and read status in real-time
+- **File Attachments**: Send and receive documents, images, and other files within conversations
+- **AI Integration**: Optional AI-powered automatic responses based on configured preferences
+- **Phone Number Selection**: Choose which business number to use when messaging clients
+- **Conversation Search**: Quickly find specific conversations using advanced search options
+- **Note Taking**: Add private notes to contacts for internal reference
+
+### Conversation History
+
+The system maintains a complete history of all client interactions across channels, providing:
+
+- Chronological view of all interactions
+- Message type identification (SMS, email, voice, system)
+- Delivery status tracking
+- Activity tracking for calls, voicemails, and system events
+- Automated DND (Do Not Disturb) status tracking
 
 ## NextProp Ringless Voicemail Integration
 
@@ -158,6 +234,33 @@ npm run dev
 3. View detailed information about each lead
 4. Update lead status as you progress through your sales pipeline
 
+### Messaging and Communication
+
+1. Navigate to the Messaging page to view all client conversations
+2. On the left panel, browse and filter your conversation list
+3. Select a conversation to view the complete message history
+4. View contact details in the right sidebar without leaving the conversation
+5. Send messages via the input field at the bottom of the conversation
+6. For SMS messages, select your sending number from the dropdown
+7. Access message templates by clicking the document icon in the composer
+8. Add notes to contacts via the notes icon in the conversation header
+9. Make calls directly from the conversation by clicking the phone icon
+10. Refresh conversation history using the refresh icon
+11. File attachments can be added using the attachment button in the composer
+12. View message delivery status indicators next to each sent message
+13. Create a new conversation by clicking "New Conversation" in the top left
+14. Search conversations using the search field above the conversation list
+
+#### AI-Assisted Messaging
+
+1. Navigate to the AI Agent page from the main menu
+2. Configure your AI assistant's tone, response length, and custom instructions
+3. Toggle the AI agent on/off using the switch at the top
+4. When enabled, the AI will automatically suggest responses to incoming messages
+5. Review and edit AI suggestions before sending
+6. Fine-tune the AI with custom instructions for specific communication scenarios
+7. Monitor AI usage and performance from the dashboard
+
 ## API Endpoints
 
 The platform includes several API endpoints:
@@ -186,6 +289,50 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Technical Architecture
+
+NextProp is built on a modern, scalable architecture using the following technologies:
+
+### Frontend
+- **Framework**: Next.js 13+ with App Router
+- **UI Library**: React with Tailwind CSS for styling
+- **State Management**: React Context API and custom hooks
+- **API Communication**: Axios for RESTful API requests
+- **Authentication**: JWT-based authentication with secure HTTP-only cookies
+- **Form Handling**: React Hook Form with Zod validation
+
+### Backend
+- **Runtime**: Node.js with Next.js API routes
+- **Database**: MongoDB for flexible document storage
+- **Authentication**: NextAuth.js for secure, flexible authentication
+- **File Storage**: AWS S3 for document and media storage
+- **Search**: MongoDB Atlas Search for text-based searching
+- **Caching**: Redis for performance optimization
+
+### External Services
+- **Property Data**: Zillow Working API via RapidAPI
+- **SMS & Voice**: Twilio for SMS and voice communication
+- **Email**: SendGrid for transactional emails
+- **Voicemail**: VoiceDrop API for ringless voicemail delivery
+- **AI**: OpenAI's GPT models for AI agent capabilities
+- **Analytics**: Vercel Analytics for usage metrics
+
+### Performance Optimizations
+- Server-side rendering for improved SEO and initial load times
+- Image optimization and lazy loading
+- Code splitting and dynamic imports
+- Edge caching for static assets
+- Incremental Static Regeneration for dynamic content
+- Optimistic UI updates for a responsive feel
+
+### Security Measures
+- CSRF protection
+- XSS prevention
+- Input validation on both client and server
+- Rate limiting on API routes
+- Data encryption in transit and at rest
+- Environment variable isolation
 
 # VoiceDrop API Reference
 

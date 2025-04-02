@@ -3,6 +3,7 @@ import { Switch } from '@headlessui/react';
 import { BoltIcon } from '@heroicons/react/24/outline';
 import { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
 import { saveAIAgentConfig, loadAIAgentConfig } from '@/lib/ai-agent';
+import toast from 'react-hot-toast';
 
 export default function AIAgentConfig() {
   const [config, setConfig] = useState<AIAgentConfigType>({
@@ -50,8 +51,10 @@ export default function AIAgentConfig() {
     setIsSaving(true);
     try {
       await saveAIAgentConfig(config);
+      toast.success('AI Agent configuration saved successfully');
     } catch (error) {
       console.error('Error saving config:', error);
+      toast.error('Failed to save configuration. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -135,23 +138,6 @@ export default function AIAgentConfig() {
         </div>
       </div>
 
-      {/* Custom Instructions */}
-      <div className="mb-8">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Custom Instructions</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          Add any specific instructions for the AI agent (optional)
-        </p>
-        <textarea
-          value={config.customInstructions}
-          onChange={handleCustomInstructionsChange}
-          placeholder="Enter any additional instructions for the AI agent..."
-          className="w-full h-32 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          maxLength={500}
-        />
-        <p className="text-sm text-gray-500 mt-2 text-right">
-          {config.customInstructions.length}/500 characters
-        </p>
-      </div>
 
       {/* Save Button */}
       <div className="flex justify-end">

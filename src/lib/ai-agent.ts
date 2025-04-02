@@ -43,11 +43,15 @@ export async function generateResponse(
   config: AIAgentConfig
 ): Promise<AIResponse> {
   try {
+    console.log('🤖 AI Agent Request:', { message, config });
+    
     // Construct the full prompt
     const fullPrompt = BASE_PROMPT
       .replace('{tone}', config.tone)
       .replace('{length}', config.length)
       .replace('{customInstructions}', config.customInstructions || '');
+    
+    console.log('🤖 AI Agent Prompt:', fullPrompt);
 
     // Generate response using OpenAI
     const client = getOpenAIClient();
@@ -62,6 +66,9 @@ export async function generateResponse(
     });
 
     const response = completion.choices[0]?.message?.content || '';
+    
+    console.log('🤖 AI Agent Response:', response);
+    console.log('🤖 AI Agent Usage:', completion.usage);
 
     // Create response object
     const aiResponse: AIResponse = {
@@ -78,7 +85,7 @@ export async function generateResponse(
 
     return aiResponse;
   } catch (error) {
-    console.error('Error generating AI response:', error);
+    console.error('🔴 Error generating AI response:', error);
     throw error;
   }
 }
