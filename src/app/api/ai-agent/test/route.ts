@@ -8,8 +8,8 @@ const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
 
 // Validate API key format - simple check for basic format
 const isValidAPIKey = (key: string) => {
-  // Check if it's not empty and follows a basic pattern
-  return key && (key.startsWith('sk-') || key.includes('sk-proj-'));
+  // Just check if the key exists and has a reasonable length
+  return key && key.length > 20;
 };
 
 // Lazy initialization of OpenAI client

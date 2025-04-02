@@ -182,7 +182,16 @@ let openai: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
   if (!openai) {
-    openai = new OpenAI({ apiKey: API_KEY });
+    try {
+      // Gracefully handle missing or invalid API key
+      if (!API_KEY || API_KEY.length < 20) {
+        console.warn('Missing or invalid OpenAI API key');
+      }
+      openai = new OpenAI({ apiKey: API_KEY });
+    } catch (error) {
+      console.error('Error initializing OpenAI client:', error);
+      throw new Error('Failed to initialize OpenAI client. Please check your API key.');
+    }
   }
   return openai;
 }
@@ -203,7 +212,7 @@ export async function generateResponse(
   try {
     console.log('🤖 AI Agent Request:', { message, config });
     
-    // Always use the JANE_SMITH_INSTRUCTIONS regardless of what's in config.customInstructions
+    // Always use the AGENT_INSTRUCTIONS regardless of what's in config.customInstructions
     const customInstructions = AGENT_INSTRUCTIONS;
     
     // Construct the full prompt
@@ -216,35 +225,55 @@ export async function generateResponse(
 
     // Generate response using OpenAI
     const client = getOpenAIClient();
-    const completion = await client.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: fullPrompt },
-        { role: "user", content: message }
-      ],
-      temperature: 0.7,
-      max_tokens: config.length === 'short' ? 100 : config.length === 'medium' ? 200 : 300,
-    });
+    try {
+      const completion = await client.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: fullPrompt },
+          { role: "user", content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: config.length === 'short' ? 100 : config.length === 'medium' ? 200 : 300,
+      });
 
-    const response = completion.choices[0]?.message?.content || '';
-    
-    console.log('🤖 AI Agent Response:', response);
-    console.log('🤖 AI Agent Usage:', completion.usage);
+      const response = completion.choices[0]?.message?.content || '';
+      
+      console.log('🤖 AI Agent Response:', response);
+      console.log('🤖 AI Agent Usage:', completion.usage);
 
-    // Create response object
-    const aiResponse: AIResponse = {
-      id: crypto.randomUUID(),
-      conversationId: '', // This should be provided by the calling context
-      prompt: message,
-      response,
-      metadata: {
-        tokens: completion.usage?.total_tokens || 0,
-        timestamp: new Date(),
-        success: true,
-      },
-    };
+      // Create response object
+      const aiResponse: AIResponse = {
+        id: crypto.randomUUID(),
+        conversationId: '', // This should be provided by the calling context
+        prompt: message,
+        response,
+        metadata: {
+          tokens: completion.usage?.total_tokens || 0,
+          timestamp: new Date(),
+          success: true,
+        },
+      };
 
-    return aiResponse;
+      return aiResponse;
+    } catch (openaiError) {
+      console.error('🔴 OpenAI API error:', openaiError);
+      
+      // Create error response
+      const errorResponse: AIResponse = {
+        id: crypto.randomUUID(),
+        conversationId: '',
+        prompt: message,
+        response: 'Sorry, I encountered an error while generating a response. Please check your API key and try again.',
+        metadata: {
+          tokens: 0,
+          timestamp: new Date(),
+          success: false,
+          error: String(openaiError)
+        },
+      };
+      
+      return errorResponse;
+    }
   } catch (error) {
     console.error('🔴 Error generating AI response:', error);
     throw error;
