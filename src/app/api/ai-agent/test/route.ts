@@ -120,20 +120,19 @@ export async function POST(req: NextRequest) {
     let response;
     
     try {
-      if (history.length > 0) {
-        // Use conversation history for context
-        const client = getOpenAIClient();
-        
-        // Use the ensureValidRepresentation function for consistency
-        const representationString = ensureValidRepresentation(config);
-        
-        // Log the representation being used
-        console.log('🧪 Test route using representation:', representationString);
+      // Always use conversation history for context (removed condition)
+      const client = getOpenAIClient();
+      
+      // Use the ensureValidRepresentation function for consistency
+      const representationString = ensureValidRepresentation(config);
+      
+      // Log the representation being used
+      console.log('🧪 Test route using representation:', representationString);
 
-        // Generate agent instructions with all UI fields
-        const customInstructions = generateAgentInstructions(config);
+      // Generate agent instructions with all UI fields
+      const customInstructions = generateAgentInstructions(config);
 
-        const systemPrompt = `You are an AI assistant named {agentName} representing {representation}. You will respond to the user's message. You MUST follow these instructions EXACTLY.
+      const systemPrompt = `You are an AI assistant named {agentName} representing {representation}. You will respond to the user's message. You MUST follow these instructions EXACTLY.
 
 YOU MUST FOLLOW THESE CRITICAL RULES:
 - You ALWAYS represent {representation} and MUST state this when asked
@@ -145,49 +144,45 @@ YOU MUST FOLLOW THESE CRITICAL RULES:
 ${customInstructions}
 
 Please respond to the following message in a {tone} tone, keeping the response {length}:`;
-        
-        // Replace all placeholders with actual values
-        const finalSystemPrompt = systemPrompt
-          .replace(/{agentName}/g, config.agentName || 'Jane Smith')
-          .replace(/{representation}/g, representationString)
-          .replace(/{tone}/g, config.tone || 'friendly')
-          .replace(/{length}/g, config.length || 'medium');
-        
-        // Convert history to OpenAI format
-        const messages = [
-          { role: "system", content: finalSystemPrompt },
-          ...history.map((item: {text: string, isUser: boolean}) => ({
-            role: item.isUser ? "user" : "assistant",
-            content: item.text
-          })),
-          { role: "user", content: message }
-        ];
-        
-        // Generate response with conversation history
-        const completion = await client.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          messages: messages as any,
-          temperature: 0.7,
-          max_tokens: config.length === 'short' ? 100 : config.length === 'medium' ? 200 : 300,
-        });
-        
-        response = {
-          response: completion.choices[0]?.message?.content || '',
-          metadata: {
-            tokens: completion.usage?.total_tokens || 0,
-            timestamp: new Date(),
-            success: true,
-          }
-        };
-        
-        addDebugLog('info', 'Using conversation history for context', { 
-          historyLength: history.length,
-          tokens: completion.usage?.total_tokens
-        });
-      } else {
-        // Use standard single message response
-        response = await generateResponse(message, config);
-      }
+      
+      // Replace all placeholders with actual values
+      const finalSystemPrompt = systemPrompt
+        .replace(/{agentName}/g, config.agentName || 'Jane Smith')
+        .replace(/{representation}/g, representationString)
+        .replace(/{tone}/g, config.tone || 'friendly')
+        .replace(/{length}/g, config.length || 'medium');
+      
+      // Convert history to OpenAI format and prepare messages array regardless of history length
+      const messages = [
+        { role: "system", content: finalSystemPrompt },
+        ...history.map((item: {text: string, isUser: boolean}) => ({
+          role: item.isUser ? "user" : "assistant",
+          content: item.text
+        })),
+        { role: "user", content: message }
+      ];
+      
+      // Generate response with conversation history
+      const completion = await client.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: messages as any,
+        temperature: 0.7,
+        max_tokens: config.length === 'short' ? 100 : config.length === 'medium' ? 200 : 300,
+      });
+      
+      response = {
+        response: completion.choices[0]?.message?.content || '',
+        metadata: {
+          tokens: completion.usage?.total_tokens || 0,
+          timestamp: new Date(),
+          success: true,
+        }
+      };
+      
+      addDebugLog('info', 'Using conversation history for context', { 
+        historyLength: history.length,
+        tokens: completion.usage?.total_tokens
+      });
     } catch (openaiError) {
       console.error('OpenAI API error:', openaiError);
       addDebugLog('error', 'OpenAI API error', { error: String(openaiError) });

@@ -43,7 +43,7 @@ const DEFAULT_BUYING_CRITERIA = "Properties up to $2 million in the Bay Area, si
 export default function AIAgentConfig() {
   const { user } = useAuth();
   const [config, setConfig] = useState<AIAgentConfigType>({
-    isEnabled: false,
+    isEnabled: true,
     tone: 'friendly',
     length: 'medium',
     customInstructions: '',
@@ -143,6 +143,7 @@ export default function AIAgentConfig() {
       // Ensure all defaults are set
       const configWithDefaults = {
         ...savedConfig,
+        isEnabled: true,
         agentName: savedConfig.agentName || 'Jane Smith',
         buyingCriteria: savedConfig.buyingCriteria || DEFAULT_BUYING_CRITERIA,
         dealObjective: savedConfig.dealObjective || 'creative-finance',
@@ -189,30 +190,6 @@ export default function AIAgentConfig() {
     }
   };
 
-  const handleToggle = (checked: boolean) => {
-    // Update local state immediately
-    setConfig(prev => ({ ...prev, isEnabled: checked }));
-    
-    // Auto-save when the toggle changes for better UX
-    // Use the checked value directly to avoid race condition with the state update
-    setTimeout(() => {
-      saveAIAgentConfig({ 
-        ...config, 
-        isEnabled: checked // Use the checked parameter directly
-      })
-        .then(() => {
-          toast.success(`AI Agent ${checked ? 'enabled' : 'disabled'}`);
-          triggerConfigRefresh();
-        })
-        .catch(error => {
-          console.error('Error auto-saving config:', error);
-          toast.error('Failed to update AI Agent status');
-          // Revert the state if the save failed
-          setConfig(prev => ({ ...prev, isEnabled: !checked }));
-        });
-    }, 0);
-  };
-
   const handleDealObjectiveChange = (dealObjective: AIAgentConfigType['dealObjective']) => {
     setConfig(prev => ({ ...prev, dealObjective }));
   };
@@ -225,11 +202,17 @@ export default function AIAgentConfig() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Ensure isEnabled is always true before saving
+      const configToSave = {
+        ...config,
+        isEnabled: true
+      };
+      
       // Save to local storage first
-      await saveAIAgentConfig(config);
+      await saveAIAgentConfig(configToSave);
       
       // Then sync with server
-      await syncConfigWithServer(config);
+      await syncConfigWithServer(configToSave);
       
       toast.success('AI Agent configuration saved successfully');
       
@@ -249,7 +232,7 @@ export default function AIAgentConfig() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--nextprop-primary)]"></div>
       </div>
     );
   }
@@ -263,52 +246,29 @@ export default function AIAgentConfig() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-white to-blue-50 rounded-lg shadow-lg p-6 border border-blue-100">
+    <div className="bg-gradient-to-br from-[var(--nextprop-surface)] to-[var(--nextprop-surface-hover)] rounded-lg shadow-lg p-6 border border-[var(--nextprop-border)]">
       <div className="flex items-center space-x-4 mb-8">
-        <div className="bg-blue-600 p-3 rounded-full shadow-md">
+        <div className="bg-[var(--nextprop-primary)] p-3 rounded-full shadow-md">
           <BoltIcon className="h-8 w-8 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold text-[var(--nextprop-text-primary)] bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] bg-clip-text text-transparent">
             AI Agent Configuration
           </h1>
-          <p className="text-gray-600 text-sm">Configure your automated real estate assistant</p>
-        </div>
-      </div>
-
-      {/* Enable/Disable Toggle */}
-      <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-200 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">Enable AI Agent</h3>
-            <p className="text-gray-600">Allow the AI agent to automatically respond to messages</p>
-          </div>
-          <Switch
-            checked={config.isEnabled}
-            onChange={handleToggle}
-            className={`${
-              config.isEnabled ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-gray-200'
-            } relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-inner`}
-          >
-            <span
-              className={`${
-                config.isEnabled ? 'translate-x-8' : 'translate-x-1'
-              } inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md`}
-            />
-          </Switch>
+          <p className="text-[var(--nextprop-text-secondary)] text-sm">Configure your automated real estate assistant</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Agent Identity */}
-        <div className="bg-white rounded-lg border border-blue-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-gray-100">
-            <UserCircleIcon className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Agent Identity</h3>
+        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <UserCircleIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Agent Identity</h3>
           </div>
           <div className="space-y-4">
             <div>
-              <label htmlFor="agentName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="agentName" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
                 Agent Name
               </label>
               <input
@@ -317,12 +277,12 @@ export default function AIAgentConfig() {
                 name="agentName"
                 value={config.agentName}
                 onChange={handleInputChange}
-                className="nextprop-input w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
               />
             </div>
             
             <div>
-              <label htmlFor="speakingOnBehalfOf" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="speakingOnBehalfOf" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
                 Speaking on Behalf of
               </label>
               <input
@@ -332,25 +292,25 @@ export default function AIAgentConfig() {
                 value={config.speakingOnBehalfOf || ''}
                 onChange={handleInputChange}
                 placeholder={placeholders.speakingOnBehalfOf}
-                className="nextprop-input w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
               />
             </div>
           </div>
         </div>
 
         {/* Contact Information */}
-        <div className="bg-white rounded-lg border border-blue-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-gray-100">
-            <EnvelopeIcon className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Contact Information</h3>
+        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <EnvelopeIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Contact Information</h3>
           </div>
           <div className="space-y-4">
             <div className="relative">
-              <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="contactPhone" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
                 Phone Number
               </label>
               <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
                   <PhoneIcon className="h-4 w-4" />
                 </span>
                 <input
@@ -360,17 +320,17 @@ export default function AIAgentConfig() {
                   value={config.contactPhone || ''}
                   onChange={handleInputChange}
                   placeholder={placeholders.contactPhone}
-                  className="nextprop-input w-full p-2.5 rounded-r-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                  className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                 />
               </div>
             </div>
             
             <div className="relative">
-              <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="contactEmail" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
                 Email Address
               </label>
               <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
                   <EnvelopeIcon className="h-4 w-4" />
                 </span>
                 <input
@@ -380,7 +340,7 @@ export default function AIAgentConfig() {
                   value={config.contactEmail || ''}
                   onChange={handleInputChange}
                   placeholder={placeholders.contactEmail}
-                  className="nextprop-input w-full p-2.5 rounded-r-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                  className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                 />
               </div>
             </div>
@@ -390,13 +350,13 @@ export default function AIAgentConfig() {
 
       <div className="mt-6">
         {/* Buying Criteria */}
-        <div className="bg-white rounded-lg border border-blue-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-gray-100">
-            <BuildingOfficeIcon className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Buying Criteria</h3>
+        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <BuildingOfficeIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Buying Criteria</h3>
           </div>
           <div>
-            <label htmlFor="buyingCriteria" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="buyingCriteria" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-2">
               Purchase Details
             </label>
             <textarea
@@ -404,18 +364,18 @@ export default function AIAgentConfig() {
               name="buyingCriteria"
               value={config.buyingCriteria}
               onChange={handleInputChange}
-              className="nextprop-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+              className="nextprop-input w-full p-3 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
               rows={4}
             />
-            <p className="text-sm text-gray-500 mt-2 italic">Include price range, location preferences, property types, etc.</p>
+            <p className="text-sm text-[var(--nextprop-text-tertiary)] mt-2 italic">Include price range, location preferences, property types, etc.</p>
           </div>
         </div>
 
         {/* Deal Objective */}
-        <div className="bg-white rounded-lg border border-blue-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-gray-100">
-            <DocumentTextIcon className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Deal Objective</h3>
+        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Deal Objective</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {([
@@ -429,8 +389,8 @@ export default function AIAgentConfig() {
                 onClick={() => handleDealObjectiveChange(option.value)}
                 className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                   config.dealObjective === option.value
-                    ? 'bg-gradient-to-r from-blue-100 to-indigo-100 border-blue-400 text-blue-700 border shadow-sm'
-                    : 'border border-gray-300 text-gray-700 hover:bg-blue-50'
+                    ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
+                    : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
                 }`}
               >
                 {option.label}
@@ -443,7 +403,7 @@ export default function AIAgentConfig() {
       {/* Save Button */}
       <div className="flex justify-end mt-8">
         <button
-          className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md transform transition-transform hover:scale-105"
+          className="px-6 py-2.5 bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] text-white rounded-lg hover:from-[var(--nextprop-primary-dark)] hover:to-[var(--nextprop-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md transform transition-transform hover:scale-105"
           onClick={handleSave}
           disabled={isSaving}
         >

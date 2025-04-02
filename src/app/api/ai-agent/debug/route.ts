@@ -72,31 +72,6 @@ export async function GET(req: NextRequest) {
       source = 'default';
     }
     
-    // Log the config status with verbose details to help debug
-    addDebugLog(
-      config.isEnabled ? 'success' : 'info',
-      `AI Agent is currently ${config.isEnabled ? 'enabled' : 'disabled'}`,
-      { 
-        config: {
-          agentName: config.agentName,
-          speakingOnBehalfOf: config.speakingOnBehalfOf || '(empty)',
-          tone: config.tone,
-          length: config.length,
-          isEnabled: config.isEnabled,
-          contactPhone: config.contactPhone || '(not set)',
-          contactEmail: config.contactEmail || '(not set)',
-          buyingCriteria: config.buyingCriteria ? config.buyingCriteria.substring(0, 50) + '...' : '(not set)',
-          dealObjective: config.dealObjective || '(not set)'
-        },
-        configSource: source,
-        serverTime: new Date().toISOString(),
-        environment: {
-          enableAgentEnvVar: process.env.ENABLE_AI_AGENT,
-          nodeEnv: process.env.NODE_ENV
-        }
-      }
-    );
-    
     // Return logs and config status with the source information
     return NextResponse.json({
       success: true,
