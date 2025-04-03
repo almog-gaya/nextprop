@@ -87,79 +87,37 @@ function parseCookies(cookieString: string): { [key: string]: string } {
 }
 
 // Function to save AI Agent configuration
-export async function saveAIAgentConfig(config: AIAgentConfig): Promise<void> {
+export async function saveAIAgentConfig(config: AIAgentConfig): Promise<boolean> {
   try {
-    if (typeof window === 'undefined') return;
+    // Set an updated timestamp
+    config.updatedAt = new Date();
     
-    // Ensure isEnabled is properly handled as a boolean
-    const configToSave = {
-      ...config,
-      isEnabled: Boolean(config.isEnabled), // Ensure it's a boolean
-      updatedAt: new Date(),
-    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
+      console.log('AI Agent config saved to localStorage:', config);
+    }
     
-    // Convert to JSON and save to localStorage
-    const configJson = JSON.stringify(configToSave);
-    console.log('Saving AI Agent config:', configToSave);
-    
-    localStorage.setItem(CONFIG_STORAGE_KEY, configJson);
-    
-    // Also save to a cookie for server-side access
-    document.cookie = `${CONFIG_COOKIE_KEY}=${encodeURIComponent(configJson)};path=/;max-age=31536000;SameSite=Strict`;
-    
-    // Log confirmation that it was saved
-    console.log('AI Agent config saved successfully');
+    return true;
   } catch (error) {
     console.error('Error saving AI Agent config:', error);
-    throw error;
+    return false;
   }
 }
 
 // Function to load AI Agent configuration
 export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
   try {
-    if (typeof window === 'undefined') {
-      // When running on the server, we can't use this function directly
-      // Server components should use getConfigFromServerCookie() instead
-      return {
-        isEnabled: process.env.ENABLE_AI_AGENT === 'true',
-        tone: 'friendly',
-        length: 'medium',
-        customInstructions: '',
-        updatedAt: new Date(),
-        agentName: 'Jane Smith',
-        speakingOnBehalfOf: 'Server Default Company', 
-        contactPhone: '555-SERVER-SIDE',
-        contactEmail: 'server@example.com',
-        buyingCriteria: 'Server-side default criteria',
-        dealObjective: 'creative-finance',
-      };
+    let savedConfig = '';
+    
+    if (typeof window !== 'undefined') {
+      savedConfig = localStorage.getItem(CONFIG_STORAGE_KEY) || '';
     }
-
-    // Check for config in cookie first (for consistency with server)
-    const cookieConfig = parseCookies(document.cookie)[CONFIG_COOKIE_KEY];
-    if (cookieConfig) {
-      try {
-        const parsedConfig = JSON.parse(cookieConfig);
-        console.log('Loaded AI Agent config from cookie:', parsedConfig);
-        return {
-          ...parsedConfig,
-          isEnabled: Boolean(parsedConfig.isEnabled),
-          updatedAt: new Date(parsedConfig.updatedAt),
-        };
-      } catch (error) {
-        console.error('Error parsing config from cookie:', error);
-        // Fall through to localStorage
-      }
-    }
-
-    // Get config from localStorage as fallback
-    const savedConfig = localStorage.getItem(CONFIG_STORAGE_KEY);
-    console.log('Loading AI Agent config from storage:', savedConfig);
     
     if (!savedConfig) {
+      console.log('No AI Agent config found, returning default');
       return {
         isEnabled: false,
+        enabledPipelines: [], // Add empty array for enabled pipelines
         tone: 'friendly',
         length: 'medium',
         customInstructions: '',
@@ -180,6 +138,7 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
       const config = {
         ...parsedConfig,
         isEnabled: Boolean(parsedConfig.isEnabled),
+        enabledPipelines: Array.isArray(parsedConfig.enabledPipelines) ? parsedConfig.enabledPipelines : [],
         updatedAt: new Date(parsedConfig.updatedAt),
       };
       
@@ -189,6 +148,7 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
       console.error('Error parsing AI Agent config:', parseError);
       return {
         isEnabled: false,
+        enabledPipelines: [],
         tone: 'friendly',
         length: 'medium',
         customInstructions: '',
@@ -205,6 +165,7 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
     console.error('Error loading AI Agent config:', error);
     return {
       isEnabled: false,
+      enabledPipelines: [],
       tone: 'friendly',
       length: 'medium',
       customInstructions: '',
