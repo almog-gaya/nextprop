@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Switch } from '@headlessui/react';
-import { BoltIcon, UserCircleIcon, PhoneIcon, EnvelopeIcon, BuildingOfficeIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { BoltIcon, UserCircleIcon, PhoneIcon, EnvelopeIcon, BuildingOfficeIcon, DocumentTextIcon, CurrencyDollarIcon, MapPinIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
 import { saveAIAgentConfig, loadAIAgentConfig } from '@/lib/ai-agent';
 import toast from 'react-hot-toast';
@@ -38,7 +38,22 @@ const syncConfigWithServer = async (config: AIAgentConfigType) => {
 };
 
 // Default buying criteria text
-const DEFAULT_BUYING_CRITERIA = "Properties up to $2 million in the Bay Area, single-family homes, cosmetic rehabs only, no long-term projects";
+const DEFAULT_BUYING_CRITERIA = "Properties between $500,000 and $2 million in the Bay Area, single-family homes, cosmetic rehabs only, no long-term projects";
+
+// Add this constant after DEFAULT_BUYING_CRITERIA
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", 
+  "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", 
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", 
+  "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", 
+  "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", 
+  "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", 
+  "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia"
+];
+
+const PROPERTY_TYPES = [
+  "All", "Single-family", "Multi-family", "Condo", "Townhouse", "Commercial", "Land"
+];
 
 export default function AIAgentConfig() {
   const { user } = useAuth();
@@ -57,6 +72,12 @@ export default function AIAgentConfig() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Update the component state for buying criteria
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 2000000 });
+  const [region, setRegion] = useState('All States');
+  const [propertyTypes, setPropertyTypes] = useState<string[]>(['All']);
+  const [additionalCriteria, setAdditionalCriteria] = useState('');
 
   useEffect(() => {
     loadConfig();
@@ -136,6 +157,206 @@ export default function AIAgentConfig() {
     }
   }, [user]);
 
+  // Modify the useEffect that parses buying criteria
+  useEffect(() => {
+    // Parse buying criteria when loading config
+    if (config.buyingCriteria) {
+      try {
+        // Simple parsing - this could be more sophisticated based on your data format
+        const criteriaText = config.buyingCriteria;
+        console.log('Parsing criteria text:', criteriaText);
+        
+        // Extract price range
+        const priceRangeMatch = criteriaText.match(/between \$(\d+\.?\d*)( million)? and \$(\d+\.?\d*)( million)?/i);
+        const maxPriceMatch = criteriaText.match(/up to \$(\d+\.?\d*)( million)?/i);
+        
+        if (priceRangeMatch) {
+          console.log('Price range match:', priceRangeMatch);
+          const minPriceValue = parseFloat(priceRangeMatch[1].replace(/,/g, ''));
+          const maxPriceValue = parseFloat(priceRangeMatch[3].replace(/,/g, ''));
+          const minPrice = priceRangeMatch[2] ? minPriceValue * 1000000 : minPriceValue;
+          const maxPrice = priceRangeMatch[4] ? maxPriceValue * 1000000 : maxPriceValue;
+          
+          // Find the closest options in the dropdown
+          const priceOptions = [0, 250000, 500000, 750000, 1000000, 1250000, 1500000, 1750000, 
+                               2000000, 2250000, 2500000, 2750000, 3000000, 5000000, 10000000];
+          
+          let closestMin = priceOptions[0];
+          let closestMax = priceOptions[0];
+          
+          for (const option of priceOptions) {
+            if (Math.abs(option - minPrice) < Math.abs(closestMin - minPrice)) {
+              closestMin = option;
+            }
+            if (Math.abs(option - maxPrice) < Math.abs(closestMax - maxPrice)) {
+              closestMax = option;
+            }
+          }
+          
+          setPriceRange({ min: closestMin, max: closestMax });
+          console.log('Set price range to:', { min: closestMin, max: closestMax });
+        } else if (maxPriceMatch) {
+          console.log('Max price match:', maxPriceMatch);
+          const priceValue = parseFloat(maxPriceMatch[1].replace(/,/g, ''));
+          const price = maxPriceMatch[2] ? priceValue * 1000000 : priceValue;
+          
+          // Find the closest option in the dropdown
+          const priceOptions = [250000, 500000, 750000, 1000000, 1250000, 1500000, 1750000, 
+                               2000000, 2250000, 2500000, 2750000, 3000000, 5000000, 10000000];
+          
+          let closest = priceOptions[0];
+          for (const option of priceOptions) {
+            if (Math.abs(option - price) < Math.abs(closest - price)) {
+              closest = option;
+            }
+          }
+          
+          setPriceRange({ min: 0, max: closest });
+          console.log('Set price to:', { min: 0, max: closest });
+        } else {
+          console.log('No price match found, using defaults');
+          setPriceRange({ min: 0, max: 2000000 });
+        }
+        
+        // Extract region
+        let foundState = false;
+        
+        if (criteriaText.toLowerCase().includes('nationwide')) {
+          setRegion('All States');
+          foundState = true;
+          console.log('Found region: All States (nationwide)');
+        } else {
+          for (const state of US_STATES) {
+            if (criteriaText.toLowerCase().includes(state.toLowerCase())) {
+              setRegion(state);
+              foundState = true;
+              console.log('Found region:', state);
+              break;
+            }
+          }
+        }
+        
+        // If no state found, default to All States
+        if (!foundState) {
+          setRegion('All States');
+          console.log('No region found, using default: All States');
+        }
+        
+        // Extract property type
+        let foundType = false;
+        
+        if (criteriaText.toLowerCase().includes('all property types')) {
+          setPropertyTypes(['All']);
+          foundType = true;
+          console.log('Found property type: All');
+        } else {
+          for (const type of PROPERTY_TYPES.slice(1)) { // Skip "All"
+            if (criteriaText.toLowerCase().includes(type.toLowerCase())) {
+              setPropertyTypes([type]);
+              foundType = true;
+              console.log('Found property type:', type);
+              break;
+            }
+          }
+        }
+        
+        if (!foundType) {
+          setPropertyTypes(['All']);
+          console.log('No property type found, using default: All');
+        }
+        
+        // Extract additional criteria - treat anything after the standard format as additional
+        const basicFormatRegex = /Properties up to \$[\d\.,]+ ?(million )?(nationwide|in [A-Za-z\s]+), ([A-Za-z\s\-]+properties|all property types)/i;
+        const basicFormatMatch = criteriaText.match(basicFormatRegex);
+        
+        if (basicFormatMatch) {
+          // Get everything after the basic format as additional criteria
+          const fullMatch = basicFormatMatch[0];
+          const additionalText = criteriaText.substring(criteriaText.indexOf(fullMatch) + fullMatch.length).replace(/^,\s*/, '').trim();
+          
+          if (additionalText) {
+            setAdditionalCriteria(additionalText);
+            console.log('Found additional criteria:', additionalText);
+          } else {
+            setAdditionalCriteria('');
+            console.log('No additional criteria found');
+          }
+        } else {
+          // If we can't match the format, try to extract after common phrases
+          const commonPhrases = ['properties', 'property types', 'nationwide', 'in the'];
+          let additionalText = criteriaText;
+          
+          for (const phrase of commonPhrases) {
+            const index = additionalText.toLowerCase().indexOf(phrase);
+            if (index > -1) {
+              const phraseEnd = index + phrase.length;
+              const afterPhrase = additionalText.substring(phraseEnd).replace(/^,\s*/, '');
+              if (afterPhrase && afterPhrase.trim()) {
+                additionalText = afterPhrase.trim();
+              }
+            }
+          }
+          
+          // If we still have text and it's not just the original, it might be additional
+          if (additionalText && additionalText !== criteriaText) {
+            setAdditionalCriteria(additionalText);
+            console.log('Extracted possible additional criteria:', additionalText);
+          } else {
+            setAdditionalCriteria('');
+            console.log('Unable to extract additional criteria');
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing buying criteria:', e);
+        // Set safe defaults
+        setPriceRange({ min: 0, max: 2000000 });
+        setRegion('All States');
+        setPropertyTypes(['All']);
+        setAdditionalCriteria('');
+        console.log('Error during parsing, using defaults');
+      }
+    } else {
+      // If no criteria at all, set defaults
+      setPriceRange({ min: 0, max: 2000000 });
+      setRegion('All States');
+      setPropertyTypes(['All']);
+      setAdditionalCriteria('');
+      console.log('No criteria text, using defaults');
+    }
+  }, [config.buyingCriteria]);
+
+  // Add this inside the component, after state declarations
+  useEffect(() => {
+    // Initial setup: Make sure buying criteria is properly formatted from the start
+    if (config.buyingCriteria === DEFAULT_BUYING_CRITERIA) {
+      // If using the default, set all the structured form values
+      setPriceRange({ min: 500000, max: 2000000 });
+      setRegion('All States');
+      setPropertyTypes(['All']);
+      setAdditionalCriteria('cosmetic rehabs only, no long-term projects');
+      
+      // Format the buying criteria text based on the structured values
+      // (This will be done in the next render cycle)
+      setTimeout(updateBuyingCriteria, 0);
+    }
+  }, []);
+
+  // Modify the existing useEffect at the end of the parsing effect
+  useEffect(() => {
+    // After parsing buying criteria and setting all form values,
+    // update the buying criteria string to ensure it's formatted correctly
+    // Skip if the component is still loading
+    if (!isLoading && config.buyingCriteria) {
+      // Delay to ensure all state updates from parsing have been applied
+      const timer = setTimeout(() => {
+        updateBuyingCriteria();
+        console.log('Regenerated buying criteria after parsing');
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [priceRange, region, propertyTypes, additionalCriteria, isLoading]);
+
   const loadConfig = async () => {
     try {
       const savedConfig: AIAgentConfigType = await loadAIAgentConfig();
@@ -199,9 +420,115 @@ export default function AIAgentConfig() {
     setConfig(prev => ({ ...prev, [name]: value }));
   };
 
+  // Function to update buying criteria text based on structured fields
+  const updateBuyingCriteria = () => {
+    const formatPrice = (price: number) => {
+      if (price >= 1000000) {
+        const millions = price / 1000000;
+        return `$${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)} million`;
+      } else {
+        return `$${price.toLocaleString()}`;
+      }
+    };
+      
+    // Format location text
+    let locationText = region === 'All States' ? 'nationwide' : `in ${region}`;
+    
+    // Format property type text
+    let propertyText = '';
+    if (propertyTypes.includes('All')) {
+      propertyText = 'all property types';
+    } else {
+      propertyText = propertyTypes.join(', ').toLowerCase();
+      
+      // Add proper suffix
+      if (!propertyTypes.includes('Land')) {
+        propertyText += ' properties';
+      }
+    }
+    
+    // Build the standard criteria text format with price range
+    let criteriaText = priceRange.min > 0 
+      ? `Properties between ${formatPrice(priceRange.min)} and ${formatPrice(priceRange.max)} ${locationText}`
+      : `Properties up to ${formatPrice(priceRange.max)} ${locationText}`;
+    
+    criteriaText += `, ${propertyText}`;
+    
+    // Only add additional criteria if it exists and is not just whitespace
+    if (additionalCriteria.trim()) {
+      criteriaText += `, ${additionalCriteria.trim()}`;
+    }
+    
+    // Update the config with the formatted criteria
+    const updatedConfig = {
+      ...config,
+      buyingCriteria: criteriaText
+    };
+    
+    setConfig(updatedConfig);
+    
+    // Also save to localStorage to ensure persistence
+    // But don't await this to avoid blocking
+    saveAIAgentConfig(updatedConfig)
+      .then(() => {
+        console.log('Buying criteria auto-saved to localStorage:', criteriaText);
+        // Trigger refresh to ensure other components are notified
+        triggerConfigRefresh();
+      })
+      .catch(error => {
+        console.error('Error auto-saving buying criteria:', error);
+      });
+    
+    return criteriaText;
+  };
+
+  // Handle changes to the price range
+  const handlePriceChange = (value: number, field: 'min' | 'max') => {
+    setPriceRange(prev => {
+      const updated = { ...prev, [field]: value };
+      if (field === 'min' && updated.min > updated.max) {
+        updated.min = updated.max;
+      }
+      if (field === 'max' && updated.max < updated.min) {
+        updated.max = updated.min;
+      }
+      return updated;
+    });
+    setTimeout(updateBuyingCriteria, 0);
+  };
+
+  // Handle changes to the region
+  const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRegion(e.target.value);
+    setTimeout(updateBuyingCriteria, 0);
+  };
+
+  // Handle changes to property types selection
+  const handlePropertyTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === 'All') {
+      setPropertyTypes(['All']);
+    } else {
+      setPropertyTypes([value]);
+    }
+    setTimeout(updateBuyingCriteria, 0);
+  };
+
+  // Handle changes to additional criteria
+  const handleAdditionalCriteriaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setAdditionalCriteria(e.target.value);
+    setTimeout(updateBuyingCriteria, 0);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Make sure the buying criteria is up to date before saving
+      updateBuyingCriteria();
+      
+      // Small delay to ensure the state has updated
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       // Ensure isEnabled is always true before saving
       const configToSave = {
         ...config,
@@ -349,26 +676,185 @@ export default function AIAgentConfig() {
       </div>
 
       <div className="mt-6">
-        {/* Buying Criteria */}
+        {/* Buying Criteria - Compact version with US states */}
         <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
           <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
             <BuildingOfficeIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
             <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Buying Criteria</h3>
           </div>
-          <div>
-            <label htmlFor="buyingCriteria" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-2">
-              Purchase Details
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Price Range */}
+            <div>
+              <div className="flex items-center mb-2">
+                <CurrencyDollarIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
+                  Price Range
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <select
+                    className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                    value={priceRange.min}
+                    onChange={(e) => handlePriceChange(Number(e.target.value), 'min')}
+                  >
+                    <option value={0}>Min: No Limit</option>
+                    <option value={250000}>Min: $250K</option>
+                    <option value={500000}>Min: $500K</option>
+                    <option value={750000}>Min: $750K</option>
+                    <option value={1000000}>Min: $1M</option>
+                    <option value={1250000}>Min: $1.25M</option>
+                    <option value={1500000}>Min: $1.5M</option>
+                    <option value={1750000}>Min: $1.75M</option>
+                    <option value={2000000}>Min: $2M</option>
+                    <option value={2250000}>Min: $2.25M</option>
+                    <option value={2500000}>Min: $2.5M</option>
+                  </select>
+                </div>
+                <div className="text-[var(--nextprop-text-tertiary)] text-sm">to</div>
+                <div className="flex-1">
+                  <select
+                    className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                    value={priceRange.max}
+                    onChange={(e) => handlePriceChange(Number(e.target.value), 'max')}
+                  >
+                    <option value={250000}>Max: $250K</option>
+                    <option value={500000}>Max: $500K</option>
+                    <option value={750000}>Max: $750K</option>
+                    <option value={1000000}>Max: $1M</option>
+                    <option value={1250000}>Max: $1.25M</option>
+                    <option value={1500000}>Max: $1.5M</option>
+                    <option value={1750000}>Max: $1.75M</option>
+                    <option value={2000000}>Max: $2M</option>
+                    <option value={2250000}>Max: $2.25M</option>
+                    <option value={2500000}>Max: $2.5M</option>
+                    <option value={2750000}>Max: $2.75M</option>
+                    <option value={3000000}>Max: $3M</option>
+                    <option value={5000000}>Max: $5M</option>
+                    <option value={10000000}>Max: $10M+</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Region - Updated to US States */}
+            <div>
+              <div className="flex items-center mb-2">
+                <MapPinIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
+                  State
+                </label>
+              </div>
+              <select
+                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                value={region}
+                onChange={handleRegionChange}
+              >
+                <option value="All States">All States (Nationwide)</option>
+                <option value="Alabama">Alabama</option>
+                <option value="Alaska">Alaska</option>
+                <option value="Arizona">Arizona</option>
+                <option value="Arkansas">Arkansas</option>
+                <option value="California">California</option>
+                <option value="Colorado">Colorado</option>
+                <option value="Connecticut">Connecticut</option>
+                <option value="Delaware">Delaware</option>
+                <option value="Florida">Florida</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Hawaii">Hawaii</option>
+                <option value="Idaho">Idaho</option>
+                <option value="Illinois">Illinois</option>
+                <option value="Indiana">Indiana</option>
+                <option value="Iowa">Iowa</option>
+                <option value="Kansas">Kansas</option>
+                <option value="Kentucky">Kentucky</option>
+                <option value="Louisiana">Louisiana</option>
+                <option value="Maine">Maine</option>
+                <option value="Maryland">Maryland</option>
+                <option value="Massachusetts">Massachusetts</option>
+                <option value="Michigan">Michigan</option>
+                <option value="Minnesota">Minnesota</option>
+                <option value="Mississippi">Mississippi</option>
+                <option value="Missouri">Missouri</option>
+                <option value="Montana">Montana</option>
+                <option value="Nebraska">Nebraska</option>
+                <option value="Nevada">Nevada</option>
+                <option value="New Hampshire">New Hampshire</option>
+                <option value="New Jersey">New Jersey</option>
+                <option value="New Mexico">New Mexico</option>
+                <option value="New York">New York</option>
+                <option value="North Carolina">North Carolina</option>
+                <option value="North Dakota">North Dakota</option>
+                <option value="Ohio">Ohio</option>
+                <option value="Oklahoma">Oklahoma</option>
+                <option value="Oregon">Oregon</option>
+                <option value="Pennsylvania">Pennsylvania</option>
+                <option value="Rhode Island">Rhode Island</option>
+                <option value="South Carolina">South Carolina</option>
+                <option value="South Dakota">South Dakota</option>
+                <option value="Tennessee">Tennessee</option>
+                <option value="Texas">Texas</option>
+                <option value="Utah">Utah</option>
+                <option value="Vermont">Vermont</option>
+                <option value="Virginia">Virginia</option>
+                <option value="Washington">Washington</option>
+                <option value="West Virginia">West Virginia</option>
+                <option value="Wisconsin">Wisconsin</option>
+                <option value="Wyoming">Wyoming</option>
+                <option value="District of Columbia">District of Columbia</option>
+              </select>
+            </div>
+            
+            {/* Property Type */}
+            <div>
+              <div className="flex items-center mb-2">
+                <HomeIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
+                  Property Type
+                </label>
+              </div>
+              <select
+                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                value={propertyTypes[0]}
+                onChange={handlePropertyTypeChange}
+              >
+                <option value="All">All Property Types</option>
+                <option value="Single-family">Single-family</option>
+                <option value="Multi-family">Multi-family</option>
+                <option value="Condo">Condo/Apartment</option>
+                <option value="Townhouse">Townhouse</option>
+                <option value="Commercial">Commercial</option>
+                <option value="Land">Land/Lot</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Additional Criteria */}
+          <div className="mt-4">
+            <label htmlFor="additionalCriteria" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-2">
+              Additional Requirements (Optional)
             </label>
             <textarea
-              id="buyingCriteria"
-              name="buyingCriteria"
-              value={config.buyingCriteria}
-              onChange={handleInputChange}
+              id="additionalCriteria"
+              value={additionalCriteria}
+              onChange={handleAdditionalCriteriaChange}
               className="nextprop-input w-full p-3 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-              rows={4}
+              rows={2}
+              placeholder="E.g., cosmetic rehabs only, no structural issues, etc."
             />
-            <p className="text-sm text-[var(--nextprop-text-tertiary)] mt-2 italic">Include price range, location preferences, property types, etc.</p>
+            <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+              Additional preferences beyond price, location, and property type
+            </p>
           </div>
+          
+          {/* Only show debug preview in development mode and when NODE_ENV is explicitly set */}
+          {process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_SHOW_DEBUG === 'true' && (
+            <div className="mt-4 p-3 bg-gray-100 rounded border border-gray-300 text-xs text-gray-600">
+              <div className="font-medium mb-1">Debug - Buying Criteria String:</div>
+              <div>{config.buyingCriteria}</div>
+            </div>
+          )}
         </div>
 
         {/* Deal Objective */}
