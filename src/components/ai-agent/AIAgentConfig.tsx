@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Switch } from '@headlessui/react';
-import { BoltIcon, UserCircleIcon, PhoneIcon, EnvelopeIcon, BuildingOfficeIcon, DocumentTextIcon, CurrencyDollarIcon, MapPinIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { BoltIcon, UserCircleIcon, PhoneIcon, EnvelopeIcon, BuildingOfficeIcon, DocumentTextIcon, CurrencyDollarIcon, MapPinIcon, HomeIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
 import { saveAIAgentConfig, loadAIAgentConfig } from '@/lib/ai-agent';
 import toast from 'react-hot-toast';
@@ -55,10 +55,18 @@ const PROPERTY_TYPES = [
   "All", "Single-family", "Multi-family", "Condo", "Townhouse", "Commercial", "Land"
 ];
 
+// Define a Pipeline type for use in the component
+type Pipeline = {
+  id: string;
+  name: string;
+  stages?: any[];
+};
+
 export default function AIAgentConfig() {
   const { user } = useAuth();
   const [config, setConfig] = useState<AIAgentConfigType>({
     isEnabled: true,
+    enabledPipelines: [], // Initialize with empty array
     tone: 'friendly',
     length: 'medium',
     customInstructions: '',
@@ -72,6 +80,8 @@ export default function AIAgentConfig() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [loadingPipelines, setLoadingPipelines] = useState(false);
 
   // Update the component state for buying criteria
   const [priceRange, setPriceRange] = useState({ min: 0, max: 2000000 });
@@ -81,6 +91,7 @@ export default function AIAgentConfig() {
 
   useEffect(() => {
     loadConfig();
+    fetchPipelines();
   }, []);
 
   // Update config with user details when user data is available
@@ -357,6 +368,68 @@ export default function AIAgentConfig() {
     }
   }, [priceRange, region, propertyTypes, additionalCriteria, isLoading]);
 
+  // Function to fetch pipelines
+  const fetchPipelines = async () => {
+    try {
+      setLoadingPipelines(true);
+      const response = await fetch('/api/pipelines');
+      if (!response.ok) {
+        console.error('Failed to fetch pipelines:', response.status, response.statusText);
+        return;
+      }
+      const data = await response.json();
+
+      let pipelineData: Pipeline[] = [];
+      if (Array.isArray(data) && data.length > 0) {
+        pipelineData = data.map((pipeline: any) => ({
+          id: pipeline.id,
+          name: pipeline.name,
+          stages: pipeline.stages
+        }));
+      } else if (data.pipelines && Array.isArray(data.pipelines)) {
+        pipelineData = data.pipelines.map((pipeline: any) => ({
+          id: pipeline.id,
+          name: pipeline.name,
+          stages: pipeline.stages
+        }));
+      }
+
+      setPipelines(pipelineData);
+    } catch (err) {
+      console.error('Error fetching pipelines:', err);
+    } finally {
+      setLoadingPipelines(false);
+    }
+  };
+
+  // Handle toggling a pipeline
+  const handleTogglePipeline = (pipelineId: string) => {
+    setConfig(prev => {
+      // If the pipeline is already enabled, disable it
+      if (prev.enabledPipelines.includes(pipelineId)) {
+        return {
+          ...prev,
+          enabledPipelines: prev.enabledPipelines.filter(id => id !== pipelineId)
+        };
+      } 
+      // Otherwise enable it
+      else {
+        return {
+          ...prev,
+          enabledPipelines: [...prev.enabledPipelines, pipelineId]
+        };
+      }
+    });
+  };
+
+  // Toggle all pipelines on/off
+  const handleToggleAllPipelines = (enable: boolean) => {
+    setConfig(prev => ({
+      ...prev,
+      enabledPipelines: enable ? pipelines.map(p => p.id) : []
+    }));
+  };
+
   const loadConfig = async () => {
     try {
       const savedConfig: AIAgentConfigType = await loadAIAgentConfig();
@@ -364,7 +437,8 @@ export default function AIAgentConfig() {
       // Ensure all defaults are set
       const configWithDefaults = {
         ...savedConfig,
-        isEnabled: true,
+        isEnabled: savedConfig.isEnabled !== undefined ? savedConfig.isEnabled : true,
+        enabledPipelines: savedConfig.enabledPipelines || [],
         agentName: savedConfig.agentName || 'Jane Smith',
         buyingCriteria: savedConfig.buyingCriteria || DEFAULT_BUYING_CRITERIA,
         dealObjective: savedConfig.dealObjective || 'creative-finance',
@@ -395,7 +469,8 @@ export default function AIAgentConfig() {
         hasContactInfo: !!(configWithDefaults.contactPhone || configWithDefaults.contactEmail),
         hasBuyingCriteria: !!configWithDefaults.buyingCriteria,
         dealObjective: configWithDefaults.dealObjective,
-        isEnabled: configWithDefaults.isEnabled
+        isEnabled: configWithDefaults.isEnabled,
+        enabledPipelinesCount: configWithDefaults.enabledPipelines?.length || 0
       });
       
       // Update local state
@@ -583,6 +658,84 @@ export default function AIAgentConfig() {
             AI Agent Configuration
           </h1>
           <p className="text-[var(--nextprop-text-secondary)] text-sm">Configure your automated real estate assistant</p>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        {/* Pipeline Configuration */}
+        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <FunnelIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Pipeline Configuration</h3>
+          </div>
+          
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <p className="text-sm font-medium text-[var(--nextprop-text-secondary)]">
+                  Enable AI Agent for specific pipelines
+                </p>
+                <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                  The AI Agent will only respond to messages from leads in the selected pipelines
+                </p>
+              </div>
+              <div className="space-x-2">
+                <button
+                  onClick={() => handleToggleAllPipelines(true)}
+                  className="text-xs bg-[var(--nextprop-surface-hover)] px-2 py-1 rounded text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-primary-light)]/10 border border-[var(--nextprop-border)]"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={() => handleToggleAllPipelines(false)}
+                  className="text-xs bg-[var(--nextprop-surface-hover)] px-2 py-1 rounded text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-primary-light)]/10 border border-[var(--nextprop-border)]"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+            
+            {loadingPipelines ? (
+              <div className="p-4 flex justify-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--nextprop-primary)]"></div>
+              </div>
+            ) : pipelines.length === 0 ? (
+              <div className="p-4 text-center text-[var(--nextprop-text-tertiary)]">
+                No pipelines found. Please create pipelines in your CRM.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {pipelines.map(pipeline => (
+                  <div 
+                    key={pipeline.id}
+                    className={`border rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-[var(--nextprop-surface-hover)] transition-colors ${
+                      config.enabledPipelines.includes(pipeline.id) 
+                        ? 'border-[var(--nextprop-primary)] bg-[var(--nextprop-primary-light)]/5' 
+                        : 'border-[var(--nextprop-border)]'
+                    }`}
+                    onClick={() => handleTogglePipeline(pipeline.id)}
+                  >
+                    <span className="text-sm font-medium text-[var(--nextprop-text-primary)] truncate">
+                      {pipeline.name}
+                    </span>
+                    <Switch
+                      checked={config.enabledPipelines.includes(pipeline.id)}
+                      onChange={() => handleTogglePipeline(pipeline.id)}
+                      className={`${
+                        config.enabledPipelines.includes(pipeline.id) ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
+                      } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none`}
+                    >
+                      <span
+                        className={`${
+                          config.enabledPipelines.includes(pipeline.id) ? 'translate-x-5' : 'translate-x-1'
+                        } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                      />
+                    </Switch>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
