@@ -1,6 +1,6 @@
 export type AIAgentConfig = {
   isEnabled: boolean;
-  enabledPipelines: string[]; // Array of pipeline IDs where the agent is enabled
+  enabledPipelines: { id: string; name: string }[];
   tone: 'friendly' | 'professional' | 'casual';
   length: 'short' | 'medium' | 'long';
   customInstructions?: string;
