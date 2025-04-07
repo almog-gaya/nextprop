@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
-import { createWorkFlow, isWorkflowExists, updateWorkFlow } from '@/lib/enhancedApi';
 
 // Create a custom event to signal config changes
 export const triggerConfigRefresh = () => {
@@ -219,6 +218,16 @@ export default function AIAgentConfig() {
     return data.isExists;
   }
 
+
+  const getCurrentWorkflowId = async () => {
+    try {
+      const result = await fetch(`/api/workflow`);
+      const data = await result.json();
+      return data?.rows[0]?.id;
+    } catch (_) { }
+
+  }
+
   const createWorkFlow = async () => {
     const result = await fetch(`/api/workflow`, {
       method: 'POST',
@@ -238,6 +247,17 @@ export default function AIAgentConfig() {
       })
     });
 
+    const data = await result.json();
+    return data;
+  }
+
+  const deleteWorkFlow = async (workflowId: string) => {
+    const result = await fetch(`/api/workflow`, {
+      method: 'DELETE',
+      body: JSON.stringify({
+        workflowId
+      })
+    });
     const data = await result.json();
     return data;
   }
@@ -377,9 +397,15 @@ export default function AIAgentConfig() {
       toast.error('User not authenticated or config not loaded');
       return;
     }
+    if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
+      toast.error('Please add a phone number to your account');
+      return;
+    }
 
     setIsSaving(true);
     try {
+
+
 
       /// check if already exists dont create 
       const exists = await isWorkflowExists();
@@ -391,7 +417,15 @@ export default function AIAgentConfig() {
         const updateWorkflow = await updateWorkFlow(workflowId, triggerId, uuidTemplateId);
         console.log('updateWorkflow', updateWorkflow);
       }
+      const isUnselectedAll = config.enabledPipelines.length === 0;
+      // if all is unselected then delete the workflow
+      if (isUnselectedAll) {
+        const currentWorkFlowId = await getCurrentWorkflowId();
+        if (currentWorkFlowId) {
+          await deleteWorkFlow(currentWorkFlowId);
+        }
 
+      }
       updateBuyingCriteria();
       await saveAIAgentConfig(config, user.id);
       await syncConfigWithServer(config);
@@ -481,8 +515,8 @@ export default function AIAgentConfig() {
                   <div
                     key={pipeline.id}
                     className={`border rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-[var(--nextprop-surface-hover)] transition-colors ${config.enabledPipelines.some(p => p.id === pipeline.id)
-                        ? 'border-[var(--nextprop-primary)] bg-[var(--nextprop-primary-light)]/5'
-                        : 'border-[var(--nextprop-border)]'
+                      ? 'border-[var(--nextprop-primary)] bg-[var(--nextprop-primary-light)]/5'
+                      : 'border-[var(--nextprop-border)]'
                       }`}
                     onClick={() => handleTogglePipeline(pipeline)}
                   >
@@ -493,14 +527,14 @@ export default function AIAgentConfig() {
                       checked={config.enabledPipelines.some(p => p.id === pipeline.id)}
                       onChange={() => handleTogglePipeline(pipeline)}
                       className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
-                          ? 'bg-[var(--nextprop-primary)]'
-                          : 'bg-gray-200'
+                        ? 'bg-[var(--nextprop-primary)]'
+                        : 'bg-gray-200'
                         } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none`}
                     >
                       <span
                         className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
-                            ? 'translate-x-5'
-                            : 'translate-x-1'
+                          ? 'translate-x-5'
+                          : 'translate-x-1'
                           } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
                       />
                     </Switch>
@@ -564,15 +598,32 @@ export default function AIAgentConfig() {
                 <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
                   <PhoneIcon className="h-4 w-4" />
                 </span>
-                <input
-                  type="tel"
-                  id="contactPhone"
-                  name="contactPhone"
-                  value={config.contactPhone || ''}
-                  onChange={handleInputChange}
-                  placeholder={placeholders.contactPhone}
-                  className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                />
+                {user?.phoneNumbers?.length > 0 ? (
+                  <select
+                    id="contactPhone"
+                    name="contactPhone"
+                    value={config.contactPhone || ''}
+                    onChange={handleInputChange}
+                    className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                  >
+                    <option value="">Select a phone number</option>
+                    {user.phoneNumbers.map((num) => (
+                      <option key={num.phoneNumber} value={num.phoneNumber}>
+                        {num.phoneNumber} {num.isDefaultNumber ? '(Default)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="tel"
+                    id="contactPhone"
+                    name="contactPhone"
+                    value={config.contactPhone || ''}
+                    onChange={handleInputChange}
+                    placeholder={placeholders.contactPhone}
+                    className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                  />
+                )}
               </div>
             </div>
 
