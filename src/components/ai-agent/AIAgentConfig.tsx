@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
+import { createWorkFlow, isWorkflowExists, updateWorkFlow } from '@/lib/enhancedApi';
 
 // Create a custom event to signal config changes
 export const triggerConfigRefresh = () => {
@@ -138,6 +139,9 @@ export default function AIAgentConfig() {
   const [propertyTypes, setPropertyTypes] = useState<string[]>(['All']);
   const [additionalCriteria, setAdditionalCriteria] = useState('');
 
+
+
+
   // Load initial config and pipelines
   useEffect(() => {
     if (user?.id) {
@@ -194,10 +198,10 @@ export default function AIAgentConfig() {
       if (!response.ok) throw new Error('Failed to fetch pipelines');
       const data = await response.json();
 
-      const pipelineData = Array.isArray(data) 
+      const pipelineData = Array.isArray(data)
         ? data.map((p: any) => ({ id: p.id, name: p.name, stages: p.stages }))
         : data.pipelines?.map((p: any) => ({ id: p.id, name: p.name, stages: p.stages })) || [];
-      
+
       setPipelines(pipelineData);
     } catch (err) {
       console.error('Error fetching pipelines:', err);
@@ -205,6 +209,38 @@ export default function AIAgentConfig() {
       setLoadingPipelines(false);
     }
   };
+
+  /**
+   * WORKFLOW Related API Calls
+  */
+  const isWorkflowExists = async (): Promise<boolean> => {
+    const result = await fetch(`/api/workflow`);
+    const data = await result.json();
+    return data.isExists;
+  }
+
+  const createWorkFlow = async () => {
+    const result = await fetch(`/api/workflow`, {
+      method: 'POST',
+    });
+
+    const data = await result.json();
+    return data;
+  }
+
+  const updateWorkFlow = async (workflowId: string, triggerId: string, templateId: string) => {
+    const result = await fetch(`/api/workflow`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        workflowId,
+        triggerId,
+        templateId
+      })
+    });
+
+    const data = await result.json();
+    return data;
+  }
 
   const loadConfig = async () => {
     if (!user?.id) {
@@ -344,6 +380,18 @@ export default function AIAgentConfig() {
 
     setIsSaving(true);
     try {
+
+      /// check if already exists dont create 
+      const exists = await isWorkflowExists();
+      if (!exists) {
+        const uuidTemplateId = crypto.randomUUID();
+        const workflowResponse = await createWorkFlow();
+        const workflowId = workflowResponse.workflowId;
+        const triggerId = workflowResponse.triggerId;
+        const updateWorkflow = await updateWorkFlow(workflowId, triggerId, uuidTemplateId);
+        console.log('updateWorkflow', updateWorkflow);
+      }
+
       updateBuyingCriteria();
       await saveAIAgentConfig(config, user.id);
       await syncConfigWithServer(config);
@@ -430,13 +478,12 @@ export default function AIAgentConfig() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {pipelines.map(pipeline => (
-                  <div 
+                  <div
                     key={pipeline.id}
-                    className={`border rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-[var(--nextprop-surface-hover)] transition-colors ${
-                      config.enabledPipelines.some(p => p.id === pipeline.id)
+                    className={`border rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-[var(--nextprop-surface-hover)] transition-colors ${config.enabledPipelines.some(p => p.id === pipeline.id)
                         ? 'border-[var(--nextprop-primary)] bg-[var(--nextprop-primary-light)]/5'
                         : 'border-[var(--nextprop-border)]'
-                    }`}
+                      }`}
                     onClick={() => handleTogglePipeline(pipeline)}
                   >
                     <span className="text-sm font-medium text-[var(--nextprop-text-primary)] truncate">
@@ -445,18 +492,16 @@ export default function AIAgentConfig() {
                     <Switch
                       checked={config.enabledPipelines.some(p => p.id === pipeline.id)}
                       onChange={() => handleTogglePipeline(pipeline)}
-                      className={`${
-                        config.enabledPipelines.some(p => p.id === pipeline.id)
+                      className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
                           ? 'bg-[var(--nextprop-primary)]'
                           : 'bg-gray-200'
-                      } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none`}
+                        } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none`}
                     >
                       <span
-                        className={`${
-                          config.enabledPipelines.some(p => p.id === pipeline.id)
+                        className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
                             ? 'translate-x-5'
                             : 'translate-x-1'
-                        } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                          } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
                       />
                     </Switch>
                   </div>
@@ -687,8 +732,8 @@ export default function AIAgentConfig() {
                 key={option.value}
                 onClick={() => handleDealObjectiveChange(option.value)}
                 className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
-                    ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
-                    : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
+                  ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
+                  : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
                   }`}
               >
                 {option.label}
