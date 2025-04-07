@@ -15,6 +15,7 @@ import {
   cancelAutomation 
 } from '@/lib/automationService';
 import DashboardLayout from '@/components/DashboardLayout';
+import { Pipeline } from '@/types';
 
 // Brand color constants
 const BRAND = {
@@ -41,16 +42,65 @@ export default function AutomationsPage() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [loadingPipelines, setLoadingPipelines] = useState(true);
   
   const [propertyConfig, setPropertyConfig] = useState({
     searchQuery: '',
     propertyCount: 20,
+    pipelineId: '',
     smsTemplate: {
       id: 'sms1',
       name: 'Property Alert SMS',
       message: 'Hi {{firstName}}, this is {{userName}} from NextProp. I\'m reaching out about your property. I noticed it\'s been on the market for 90+ days. Would your seller consider an offer on terms? Just to confirm, your commission is still fully covered.'
     }
   });
+
+  // Fetch pipelines on mount
+  useEffect(() => {
+    const fetchPipelines = async () => {
+      try {
+        const response = await fetch('/api/pipelines');
+        if (!response.ok) throw new Error('Failed to fetch pipelines');
+        const data = await response.json();
+
+        let pipelineData: Pipeline[] = [];
+        if (Array.isArray(data) && data.length > 0) {
+          pipelineData = data.map((pipeline: any) => ({
+            id: pipeline.id,
+            name: pipeline.name,
+            stages: pipeline.stages || []
+          }));
+        } else if (data.pipelines && Array.isArray(data.pipelines)) {
+          pipelineData = data.pipelines.map((pipeline: any) => ({
+            id: pipeline.id,
+            name: pipeline.name,
+            stages: pipeline.stages || []
+          }));
+        } else {
+          const extractedArrays = Object.values(data).filter(value =>
+            Array.isArray(value) && value.length > 0 && value[0] && 'id' in value[0] && 'name' in value[0]
+          );
+          if (extractedArrays.length > 0) {
+            pipelineData = (extractedArrays[0] as any[]).map((pipeline: any) => ({
+              id: pipeline.id,
+              name: pipeline.name,
+              stages: pipeline.stages || []
+            }));
+          }
+        }
+
+        setPipelines(pipelineData);
+      } catch (error) {
+        console.error('Error fetching pipelines:', error);
+        toast.error('Failed to load pipelines');
+      } finally {
+        setLoadingPipelines(false);
+      }
+    };
+
+    fetchPipelines();
+  }, []);
 
   // Load automation status from localStorage on mount
   useEffect(() => {
@@ -166,6 +216,11 @@ export default function AutomationsPage() {
       return;
     }
 
+    if (!propertyConfig.pipelineId) {
+      toast.error('Please select a pipeline');
+      return;
+    }
+
     toast.loading('Starting property automation...', { id: 'property-job' });
     setIsJobRunning(true);
 
@@ -175,7 +230,7 @@ export default function AutomationsPage() {
         'Automated property scraping and SMS sending',
         propertyConfig.searchQuery,
         propertyConfig.propertyCount,
-        'leads',
+        propertyConfig.pipelineId,
         ['sms'],
         'daily',
         propertyConfig.propertyCount
@@ -277,6 +332,34 @@ export default function AutomationsPage() {
                 <p className="mt-1 text-sm text-gray-500">
                   Be specific about location, price range, and property type.
                 </p>
+              </div>
+
+              {/* Pipeline Selection */}
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pipeline*
+                </label>
+                <div className="w-1/2">
+                  <select
+                    value={propertyConfig.pipelineId}
+                    onChange={(e) => setPropertyConfig(prev => ({ ...prev, pipelineId: e.target.value }))}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    disabled={isJobRunning || loadingPipelines}
+                  >
+                    <option value="">Select a pipeline</option>
+                    {pipelines.map((pipeline) => (
+                      <option key={pipeline.id} value={pipeline.id}>
+                        {pipeline.name}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingPipelines && (
+                    <p className="mt-1 text-sm text-gray-500">Loading pipelines...</p>
+                  )}
+                  {!loadingPipelines && pipelines.length === 0 && (
+                    <p className="mt-1 text-sm text-red-500">No pipelines available. Please create a pipeline first.</p>
+                  )}
+                </div>
               </div>
 
               {/* Property Count Configuration */}
