@@ -480,6 +480,14 @@ export default function RinglessVoicemailPage() {
         country: contact.country,
         postalCode: contact.postalCode,
       }));
+      /// delete null values
+      for (let i = 0; i < formattedContacts.length; i++) {
+        for (let key in formattedContacts[i]) {
+          if (formattedContacts[i][key] === null || formattedContacts[i][key] === undefined) {
+            delete formattedContacts[i][key];
+          }
+        }
+      }
 
       const campaignPayload = {
         'customer_id': user?.locationId,
@@ -509,7 +517,22 @@ export default function RinglessVoicemailPage() {
         body: JSON.stringify(campaignPayload)
       });
       const data = await response.json();
-      toast.success('Campaign created successfully');
+      if(data.campaign_id) {
+        toast.success(`Campaign created successfully with total ${data.total_contacts_added} contacts`);
+      } else {
+        const errorMessages = data.detail.map(err => {
+          // Extract the field name from the 'loc' array (last element is the field name)
+          const fieldName = err.loc[err.loc.length - 1];
+          return `'${fieldName}' must be a valid string`;
+        }).join(', ');
+        toast.error(errorMessages,
+          {
+            duration: 10000,
+            position: "top-right",  
+          }
+        ); 
+      }
+     
       setSelectedContacts([]);
       setCampaignName('');
       setScript('');
