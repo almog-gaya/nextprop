@@ -653,7 +653,7 @@ export default function AIAgentConfig() {
             </div>
           </div>
 
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <label htmlFor="additionalCriteria" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-2">
               Additional Requirements (Optional)
             </label>
@@ -668,7 +668,7 @@ export default function AIAgentConfig() {
             <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
               Additional preferences beyond price, location, and property type
             </p>
-          </div>
+          </div> */}
         </div>
 
         <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
