@@ -149,10 +149,21 @@ export default function AutomationsPage() {
   // Handle input changes for property config
   const handlePropertyInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setPropertyConfig(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // For property count, enforce the maximum limit of 20
+    if (name === 'propertyCount') {
+      const count = parseInt(value, 10);
+      const validCount = isNaN(count) ? 20 : Math.min(Math.max(1, count), 20);
+      setPropertyConfig(prev => ({
+        ...prev,
+        [name]: validCount
+      }));
+    } else {
+      setPropertyConfig(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   // Handle SMS template change
@@ -318,7 +329,7 @@ export default function AutomationsPage() {
               {/* Property Search Configuration */}
               <div className="p-4 bg-gray-50 rounded-lg">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Property Search Query*
+                  Redfin Search URL*
                 </label>
                 <input
                   type="text"
@@ -326,11 +337,11 @@ export default function AutomationsPage() {
                   value={propertyConfig.searchQuery}
                   onChange={handlePropertyInputChange}
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                  placeholder="e.g., 'Properties in Miami under $1M'"
+                  placeholder="e.g., 'https://www.redfin.com/city/11203/FL/Miami/filter/..'"
                   disabled={isJobRunning}
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  Be specific about location, price range, and property type.
+                  Paste a Redfin search URL with your desired filters already applied.
                 </p>
               </div>
 
@@ -375,9 +386,12 @@ export default function AutomationsPage() {
                     onChange={handlePropertyInputChange}
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     min="1"
-                    max="100"
+                    max="20"
                     disabled={isJobRunning}
                   />
+                  <p className="mt-1 text-sm text-gray-500">
+                    Limited to a maximum of 20 properties per day.
+                  </p>
                 </div>
               </div>
 

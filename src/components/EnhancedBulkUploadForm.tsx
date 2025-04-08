@@ -321,7 +321,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
   };
 
   return (
-    <div className="nextprop-card p-6">
+    <div className="nextprop-card p-6 max-h-[80vh] overflow-y-auto">
       <h3 className="text-lg font-semibold text-[#1e1b4b] mb-6">Bulk Upload Contacts</h3>
 
       <form onSubmit={step === 1 ? (e) => e.preventDefault() : handleSubmitMapping}>

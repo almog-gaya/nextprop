@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { UserIcon, ArrowRightOnRectangleIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
 
 export default function SettingsPage() {
    const { user, logout } = useAuth();
@@ -129,6 +129,19 @@ export default function SettingsPage() {
             ) : (
               <p className="text-gray-500">No business data available</p>
             )}
+          </div>
+
+          {/* Bulk Actions Section */}
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Bulk Actions</h2>
+            <p className="text-gray-500 mb-4">View and manage your bulk operations history</p>
+            <a 
+              href="/bulk-actions" 
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2" />
+              Manage Bulk Actions
+            </a>
           </div>
 
           {/* Logout Button */}
