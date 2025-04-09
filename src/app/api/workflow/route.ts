@@ -59,7 +59,7 @@ export async function PUT(request: Request) {
         "status": "published",
         "version": 1,
         "dataVersion": 7,
-        "allowMultiple": false,
+        "allowMultiple": true,
         "timezone": "account",
         "removeContactFromLastStep": true,
         "filePath": `location/Pwjw3eYm72e3vYnLaTpD/workflows/${workflowId}/1`,
