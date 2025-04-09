@@ -1,5 +1,6 @@
 import React from 'react';
 import CampaignSettingsForm from './CampaignSettingsForm';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CampaignFormProps {
   campaignName: string;
@@ -40,6 +41,7 @@ export default function CampaignForm({
   onRefreshVoiceClones,
   isVoiceMailModule,
 }: CampaignFormProps) {
+  const { user } = useAuth();
   // Counter for step numbers
   let stepNumber = 2;
 
@@ -129,11 +131,58 @@ export default function CampaignForm({
           value={script}
           onChange={(e) => onScriptChange(e.target.value)}
           rows={4}
-          placeholder="Enter your voicemail script here. Use {{first_name}} and {{street_name}} as placeholders."
+          placeholder="Enter your voicemail script here..."
         />
+        <div className="mt-3">
+          <p className="text-sm text-gray-500 mb-2">Click to insert variables into your script:</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onScriptChange(script + "{{first_name}}")}
+              className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200 border border-purple-200"
+              title="Inserts the contact's first name ({{first_name}})"
+            >
+              Contact First Name
+            </button>
+            <button
+              type="button"
+              onClick={() => onScriptChange(script + "{{street_name}}")}
+              className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200 border border-purple-200"
+              title="Inserts the property street name ({{street_name}})"
+            >
+              Street Name
+            </button>
+            <button
+              type="button"
+              onClick={() => onScriptChange(script + "{{property_url}}")}
+              className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200 border border-purple-200"
+              title="Inserts the property URL ({{property_url}})"
+            >
+              Property URL
+            </button>
+            <button
+              type="button"
+              onClick={() => onScriptChange(script + "{{property_price}}")}
+              className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200 border border-purple-200"
+              title="Inserts the property price ({{property_price}})"
+            >
+              Property Price
+            </button>
+            {user && (
+              <button
+                type="button"
+                onClick={() => onScriptChange(script + user.name)}
+                className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200 border border-purple-200"
+                title={`Inserts your name: ${user.name}`}
+              >
+                Your Name ({user.name})
+              </button>
+            )}
+          </div>
+        </div>
         <button
           onClick={onGenerateScript}
-          className="mt-2 text-sm text-purple-600 hover:text-purple-500"
+          className="mt-3 text-sm text-purple-600 hover:text-purple-500"
         >
           Generate Default Script
         </button>
