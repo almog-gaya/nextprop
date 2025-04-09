@@ -16,6 +16,8 @@ import ActionButtons from '@/components/automations/ActionButtons';
 import { AutomationTaskCreateParams } from '@/types/automation_task_create_params';
 import { useAuth } from '@/contexts/AuthContext';
 import PhoneNumberSelector from '@/components/automations/PhoneNumberSelector';
+import { convertTo24Hour, dayMapping } from '@/utils/appUtils';
+import { limit } from 'firebase/firestore';
 
 export default function AutomationsPage() {
   const [isAutomationEnabled, setIsAutomationEnabled] = useState(false);
@@ -25,20 +27,21 @@ export default function AutomationsPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loadingPipelines, setLoadingPipelines] = useState(true);
-  const [propertyCount, setPropertyCount] = useState(20); // Moved propertyCount to separate state
+  const [propertyCount, setPropertyCount] = useState(2); // Moved propertyCount to separate state
   const { user } = useAuth();
 
   const [propertyConfig, setPropertyConfig] = useState<AutomationTaskCreateParams>({
     customer_id: user?.id || '',
     pipeline_id: '',
     stage_id: '',
+    limit: propertyCount,
     redfin_url: '',
     campaign_payload: {
       name: 'Recurring Automation Job',
-      days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
       time_window: {
-        start: '09:00',
-        end: '17:00'
+        start: '9:00 AM',
+        end: '5:00 PM'
       },
       timezone: 'America/New_York',
       channels: {
@@ -98,24 +101,7 @@ export default function AutomationsPage() {
     fetchPipelines();
   }, []);
 
-  // Load automation status from localStorage on mount
-  useEffect(() => {
-    const savedStatus = localStorage.getItem('propertyAutomationEnabled');
-    if (savedStatus === 'true') {
-      setIsAutomationEnabled(true);
-    }
 
-    const savedJobId = localStorage.getItem('activePropertyAutomationJob');
-    if (savedJobId) {
-      setActiveJobId(savedJobId);
-      setIsJobRunning(true);
-    }
-  }, []);
-
-  // Save automation status to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('propertyAutomationEnabled', isAutomationEnabled.toString());
-  }, [isAutomationEnabled]);
 
   // Poll for updates on active job
   useEffect(() => {
@@ -130,7 +116,6 @@ export default function AutomationsPage() {
           setTimeout(() => {
             setIsJobRunning(false);
             setActiveJobId(null);
-            localStorage.removeItem('activePropertyAutomationJob');
           }, 5000);
         }
       } catch (error) {
@@ -148,6 +133,10 @@ export default function AutomationsPage() {
       const count = parseInt(value, 10);
       const validCount = isNaN(count) ? 20 : Math.min(Math.max(1, count), 20);
       setPropertyCount(validCount);
+      setPropertyConfig(prev => ({
+        ...prev,
+        limit: validCount
+      }));
     } else if (name === 'redfin_url') {
       setPropertyConfig(prev => ({
         ...prev,
@@ -160,11 +149,11 @@ export default function AutomationsPage() {
     const pipelineId = e.target.value;
     const selectedPipeline = pipelines.find(p => p.id === pipelineId);
     const stageId = selectedPipeline?.stages?.[0]?.id || ''; // Default to first stage or empty
-    if(!stageId) {
+    if (!stageId) {
       toast.error('Please select a valid stage');
       return;
     }
- 
+
     setPropertyConfig(prev => ({
       ...prev,
       pipeline_id: pipelineId,
@@ -259,13 +248,34 @@ export default function AutomationsPage() {
     setIsJobRunning(true);
 
     try {
-      console.log(`Payload to start automation:`, propertyConfig);
-      // Note: You'll need to update startAutomation to accept AutomationTaskCreateParams
-      const result = { jobId: '123' };
+      const createAutomationPayload = {
+        ...propertyConfig, 
+        campaign_payload: {
+          ...propertyConfig.campaign_payload,
+          days: propertyConfig.campaign_payload.days.map(day => dayMapping[day]),
+          time_window: {
+            start: convertTo24Hour(propertyConfig.campaign_payload.time_window.start),
+            end: convertTo24Hour(propertyConfig.campaign_payload.time_window.end)
+          },
+        }
+      } 
+      const result = await fetch('/api/automations',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(createAutomationPayload),
+        }
+      );
+      const resultData = await result.json();
+
+      if (!result.ok) {
+        throw new Error(`Failed to start automation`);
+      }
       toast.success('Automation started successfully!', { id: 'property-job' });
 
-      setActiveJobId(result.jobId);
-      localStorage.setItem('activePropertyAutomationJob', result.jobId);
+      setActiveJobId(resultData.task_id);
     } catch (error) {
       console.error('Error starting automation:', error);
       toast.error('Failed to start automation', { id: 'property-job' });
@@ -282,7 +292,6 @@ export default function AutomationsPage() {
 
       setIsJobRunning(false);
       setActiveJobId(null);
-      localStorage.removeItem('activePropertyAutomationJob');
     } catch (error) {
       console.error('Error cancelling job:', error);
       toast.error('Failed to cancel job');
@@ -374,10 +383,10 @@ export default function AutomationsPage() {
                       ...prev,
                       campaign_payload: {
                         ...prev.campaign_payload,
-                        days: newSettings.daysOfWeek,
+                        days: newSettings.daysOfWeek.map(day => dayMapping[day] || day),
                         time_window: {
-                          start: newSettings.startTime,
-                          end: newSettings.endTime
+                          start: convertTo24Hour(newSettings.startTime),
+                          end: convertTo24Hour(newSettings.endTime)
                         },
                         timezone: newSettings.timezone,
                         channels: {
