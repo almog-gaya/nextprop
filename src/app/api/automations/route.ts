@@ -4,6 +4,10 @@ import { getAuthHeaders } from '@/lib/enhancedApi';
 // POST handler to start an automation
 export async function POST(request: NextRequest) {
   try {
+    return NextResponse.json({
+      status: 'success',
+      message: 'Mock Automation started successfully at /api/automations/route.ts',
+    }); 
     const URL = `https://backend.iky.link/automation/task`;
     const creationPayload = await request.json();
     const { locationId } = await getAuthHeaders();
