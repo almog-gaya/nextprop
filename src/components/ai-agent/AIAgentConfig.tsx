@@ -58,6 +58,86 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
     const configRef = doc(db, 'ai-agent-configs', userId);
     const docSnap = await getDoc(configRef);
 
+    // Default rules
+    const defaultRules = [
+      {
+        id: 'rule_concise',
+        text: 'Keep responses under 50 words, ensuring each message adds value',
+        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Ensures the AI agent keeps messages short and to the point'
+      },
+      {
+        id: 'rule_memory',
+        text: 'Accurately reference previous conversation details to maintain context',
+        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Helps the AI remember past information shared by the prospect'
+      },
+      {
+        id: 'rule_completion',
+        text: 'Always ensure the conversation concludes appropriately',
+        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Prevents leaving conversations hanging without proper closure'
+      },
+      {
+        id: 'rule_compliant',
+        text: 'Avoid using problematic words that could trigger spam filters',
+        category: 'compliance' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Ensures messages comply with A2P regulations'
+      },
+      {
+        id: 'rule_contact',
+        text: 'If asked for a phone number, provide the configured contact information',
+        category: 'business' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Ensures leads can reach the real estate agent'
+      },
+      {
+        id: 'rule_offmarket',
+        text: 'Focus on off-market deals and avoid discussing MLS-listed properties',
+        category: 'business' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Maintains focus on the business model of finding off-market properties'
+      }
+    ];
+    
+    // Default Q&A entries
+    const defaultQA = [
+      {
+        id: 'qa_properties',
+        question: 'What type of properties are you looking to buy?',
+        answer: 'We are primarily interested in single-family homes in the Bay Area. We focus on cosmetic rehabs and avoid long-term projects like new construction.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_budget',
+        question: 'What is your budget for the purchase?',
+        answer: 'We don\'t have a fixed budget. We are open to any price range, as long as the property doesn\'t exceed $2 million, and the owner is willing to consider a cash offer.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_agreement',
+        question: 'Are you willing to sign a representation agreement?',
+        answer: 'Yes, we can sign a representation agreement for specific properties. We also prefer to have the agent who brings us the purchase handle the sale as well.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_closing',
+        question: 'What is the estimated time to close the transaction?',
+        answer: 'We can close quickly if the offer is accepted and all requirements are met. The process usually takes weeks to complete.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_outside',
+        question: 'Are you interested in properties outside of the Bay Area?',
+        answer: 'Currently, we focus on properties within the Bay Area, but we\'re open to reviewing nearby options if the deal is attractive.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_repairs',
+        question: 'What happens if the property needs repairs?',
+        answer: 'That\'s not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.',
+        isEnabled: true
+      }
+    ];
+
     if (docSnap.exists()) {
       const data = docSnap.data();
       return {
@@ -73,6 +153,10 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
         contactEmail: data.contactEmail || '',
         buyingCriteria: data.buyingCriteria || DEFAULT_BUYING_CRITERIA,
         dealObjective: data.dealObjective || 'creative-finance',
+        // Add default rules and Q&A if they don't exist in the Firestore data
+        rules: Array.isArray(data.rules) ? data.rules : defaultRules,
+        qaEntries: Array.isArray(data.qaEntries) ? data.qaEntries : defaultQA,
+        enabledRules: Array.isArray(data.enabledRules) ? data.enabledRules : defaultRules.map(rule => rule.id)
       };
     }
 
@@ -90,6 +174,9 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
       contactEmail: '',
       buyingCriteria: DEFAULT_BUYING_CRITERIA,
       dealObjective: 'creative-finance',
+      rules: defaultRules,
+      qaEntries: defaultQA,
+      enabledRules: defaultRules.map(rule => rule.id) // All rules enabled by default
     };
   } catch (error) {
     console.error('Error loading config from Firestore:', error);
@@ -137,9 +224,6 @@ export default function AIAgentConfig() {
   const [region, setRegion] = useState('All States');
   const [propertyTypes, setPropertyTypes] = useState<string[]>(['All']);
   const [additionalCriteria, setAdditionalCriteria] = useState('');
-
-
-
 
   // Load initial config and pipelines
   useEffect(() => {
@@ -218,14 +302,12 @@ export default function AIAgentConfig() {
     return data.isExists;
   }
 
-
   const getCurrentWorkflowId = async () => {
     try {
       const result = await fetch(`/api/workflow`);
       const data = await result.json();
       return data?.rows[0]?.id;
     } catch (_) { }
-
   }
 
   const createWorkFlow = async () => {
@@ -271,9 +353,33 @@ export default function AIAgentConfig() {
     try {
       setIsLoading(true);
       const loadedConfig = await loadAIAgentConfig(user.id);
+      
+      // Ensure the loaded config has all the required fields
+      if (!loadedConfig.rules || !loadedConfig.qaEntries || !loadedConfig.enabledRules) {
+        console.log('Adding missing fields to the config...');
+        // Load default rules and Q&A from the function above
+        const defaultConfig = await loadAIAgentConfig('default');
+        
+        loadedConfig.rules = loadedConfig.rules || defaultConfig.rules;
+        loadedConfig.qaEntries = loadedConfig.qaEntries || defaultConfig.qaEntries;
+        loadedConfig.enabledRules = loadedConfig.enabledRules || defaultConfig.rules?.map(rule => rule.id) || [];
+        
+        // Save the updated config back to Firestore
+        if (user.id) {
+          try {
+            await saveAIAgentConfig(loadedConfig, user.id);
+          } catch (saveError) {
+            console.error('Error saving default rules and Q&A:', saveError);
+          }
+        }
+      }
+      
       setConfig(loadedConfig);
     } catch (error) {
       console.error('Error loading config:', error);
+      // Get a default config from the loadAIAgentConfig function
+      const defaultConfig = await loadAIAgentConfig('default');
+      
       setConfig({
         isEnabled: true,
         enabledPipelines: [],
@@ -287,6 +393,10 @@ export default function AIAgentConfig() {
         contactEmail: '',
         buyingCriteria: DEFAULT_BUYING_CRITERIA,
         dealObjective: 'creative-finance',
+        // Use rules and Q&A from the default config
+        rules: defaultConfig.rules || [],
+        qaEntries: defaultConfig.qaEntries || [],
+        enabledRules: defaultConfig.enabledRules || []
       });
     } finally {
       setIsLoading(false);
@@ -437,6 +547,158 @@ export default function AIAgentConfig() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleAddRule = () => {
+    // Create a new custom rule
+    const newRule = {
+      id: `rule_custom_${Date.now()}`,
+      text: 'New custom rule',
+      category: 'other' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+      description: 'Custom rule added by user'
+    };
+    
+    setConfig(prev => {
+      if (!prev) return prev;
+      
+      const updatedConfig = {
+        ...prev,
+        rules: [...(prev.rules || []), newRule],
+        enabledRules: [...(prev.enabledRules || []), newRule.id]
+      };
+      
+      // Update Firebase if user is authenticated
+      if (user?.id) {
+        saveAIAgentConfig(updatedConfig, user.id)
+          .then(() => triggerConfigRefresh())
+          .catch(error => console.error('Error saving new rule:', error));
+      }
+      
+      return updatedConfig;
+    });
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    setConfig(prev => {
+      if (!prev || !prev.rules) return prev;
+      
+      const updatedConfig = {
+        ...prev,
+        rules: prev.rules.filter(r => r.id !== ruleId),
+        enabledRules: (prev.enabledRules || []).filter(id => id !== ruleId)
+      };
+      
+      // Update Firebase if user is authenticated
+      if (user?.id) {
+        saveAIAgentConfig(updatedConfig, user.id)
+          .then(() => triggerConfigRefresh())
+          .catch(error => console.error('Error saving rule deletion:', error));
+      }
+      
+      return updatedConfig;
+    });
+  };
+
+  const handleAddQA = () => {
+    // Add a new Q&A entry
+    const newQA = {
+      id: `qa_custom_${Date.now()}`,
+      question: 'What is your question?',
+      answer: 'Here is my answer.',
+      isEnabled: true
+    };
+    
+    setConfig(prev => {
+      if (!prev) return prev;
+      
+      const updatedConfig = {
+        ...prev,
+        qaEntries: [...(prev.qaEntries || []), newQA]
+      };
+      
+      // Update Firebase if user is authenticated
+      if (user?.id) {
+        saveAIAgentConfig(updatedConfig, user.id)
+          .then(() => triggerConfigRefresh())
+          .catch(error => console.error('Error saving new Q&A entry:', error));
+      }
+      
+      return updatedConfig;
+    });
+  };
+
+  const handleDeleteQA = (qaId: string) => {
+    setConfig(prev => {
+      if (!prev || !prev.qaEntries) return prev;
+      
+      const updatedConfig = {
+        ...prev,
+        qaEntries: prev.qaEntries.filter(qa => qa.id !== qaId)
+      };
+      
+      // Update Firebase if user is authenticated
+      if (user?.id) {
+        saveAIAgentConfig(updatedConfig, user.id)
+          .then(() => triggerConfigRefresh())
+          .catch(error => console.error('Error saving Q&A deletion:', error));
+      }
+      
+      return updatedConfig;
+    });
+  };
+
+  const handleToggleQA = (qaId: string, isEnabled: boolean) => {
+    setConfig(prev => {
+      if (!prev || !prev.qaEntries) return prev;
+      
+      const updatedQaEntries = prev.qaEntries.map(qa => 
+        qa.id === qaId ? { ...qa, isEnabled } : qa
+      );
+      
+      const updatedConfig = {
+        ...prev,
+        qaEntries: updatedQaEntries
+      };
+      
+      // Update Firebase if user is authenticated
+      if (user?.id) {
+        saveAIAgentConfig(updatedConfig, user.id)
+          .then(() => triggerConfigRefresh())
+          .catch(error => console.error('Error toggling Q&A entry:', error));
+      }
+      
+      return updatedConfig;
+    });
+  };
+
+  const handleUpdateQA = (qaId: string, field: 'question' | 'answer', value: string) => {
+    setConfig(prev => {
+      if (!prev || !prev.qaEntries) return prev;
+      
+      const updatedQaEntries = prev.qaEntries.map(qa => 
+        qa.id === qaId ? { ...qa, [field]: value } : qa
+      );
+      
+      return {
+        ...prev,
+        qaEntries: updatedQaEntries
+      };
+    });
+  };
+
+  const handleUpdateRule = (ruleId: string, field: 'text' | 'description' | 'category', value: string) => {
+    setConfig(prev => {
+      if (!prev || !prev.rules) return prev;
+      
+      const updatedRules = prev.rules.map(rule => 
+        rule.id === ruleId ? { ...rule, [field]: value } : rule
+      );
+      
+      return {
+        ...prev,
+        rules: updatedRules
+      };
+    });
   };
 
   if (isLoading || !config) {
@@ -790,6 +1052,370 @@ export default function AIAgentConfig() {
                 {option.label}
               </button>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Rules Section */}
+      <div className="mt-6">
+        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Response Rules</h3>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--nextprop-text-secondary)]">
+              Select rules that the AI must follow when responding to users
+            </p>
+
+            {config.rules && config.rules.length > 0 ? (
+              <div className="space-y-3">
+                {config.rules.map((rule) => (
+                  <div 
+                    key={rule.id} 
+                    className={`relative p-3 border rounded-lg transition-colors ${
+                      config.enabledRules?.includes(rule.id) 
+                        ? 'bg-[var(--nextprop-primary)]/5 border-[var(--nextprop-primary)]' 
+                        : 'border-[var(--nextprop-border)] hover:bg-[var(--nextprop-surface-hover)]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={config.enabledRules?.includes(rule.id) || false}
+                          onChange={() => {
+                            setConfig((prev) => {
+                              if (!prev) return prev;
+                              
+                              const newEnabledRules = prev.enabledRules || [];
+                              const updatedConfig = newEnabledRules.includes(rule.id)
+                                ? {
+                                    ...prev,
+                                    enabledRules: newEnabledRules.filter(id => id !== rule.id)
+                                  }
+                                : {
+                                    ...prev,
+                                    enabledRules: [...newEnabledRules, rule.id]
+                                  };
+                              
+                              // Update Firebase if user is authenticated
+                              if (user?.id) {
+                                saveAIAgentConfig(updatedConfig, user.id)
+                                  .then(() => triggerConfigRefresh())
+                                  .catch(error => console.error('Error saving rule toggle state:', error));
+                              }
+                              
+                              return updatedConfig;
+                            });
+                          }}
+                          className={`${
+                            config.enabledRules?.includes(rule.id) ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
+                          } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2`}
+                        >
+                          <span
+                            className={`${
+                              config.enabledRules?.includes(rule.id) ? 'translate-x-5' : 'translate-x-1'
+                            } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                          />
+                        </Switch>
+                        <span className="font-medium text-[var(--nextprop-text-primary)]">Rule</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <select
+                          value={rule.category}
+                          onChange={(e) => {
+                            const newCategory = e.target.value as 'communication' | 'compliance' | 'business' | 'representation' | 'other';
+                            handleUpdateRule(rule.id, 'category', newCategory);
+                            
+                            // Save to Firebase after change
+                            if (user?.id) {
+                              setTimeout(() => {
+                                setConfig(prev => {
+                                  if (!prev) return prev;
+                                  const updatedConfig = { ...prev };
+                                  saveAIAgentConfig(updatedConfig, user.id)
+                                    .then(() => triggerConfigRefresh())
+                                    .catch(error => console.error('Error saving rule update:', error));
+                                  return prev;
+                                });
+                              }, 500);
+                            }
+                          }}
+                          className="text-xs px-2 py-1 rounded-full bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)] border-none focus:ring-0"
+                        >
+                          <option value="communication">communication</option>
+                          <option value="compliance">compliance</option>
+                          <option value="business">business</option>
+                          <option value="representation">representation</option>
+                          <option value="other">other</option>
+                        </select>
+                        
+                        {/* Only show delete button for custom rules (not default ones) */}
+                        {rule.id.startsWith('rule_custom_') && (
+                          <button
+                            onClick={() => handleDeleteRule(rule.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                            aria-label="Delete rule"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                          Rule Text
+                        </label>
+                        <input
+                          type="text"
+                          value={rule.text}
+                          onChange={(e) => {
+                            handleUpdateRule(rule.id, 'text', e.target.value);
+                            
+                            // Save to Firebase after a delay (debounce)
+                            if (user?.id) {
+                              const timer = setTimeout(() => {
+                                setConfig(prev => {
+                                  if (!prev) return prev;
+                                  const updatedConfig = { ...prev };
+                                  saveAIAgentConfig(updatedConfig, user.id)
+                                    .then(() => triggerConfigRefresh())
+                                    .catch(error => console.error('Error saving rule update:', error));
+                                  return prev;
+                                });
+                              }, 500);
+                              
+                              return () => clearTimeout(timer);
+                            }
+                          }}
+                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={rule.description || ''}
+                          onChange={(e) => {
+                            handleUpdateRule(rule.id, 'description', e.target.value);
+                            
+                            // Save to Firebase after a delay (debounce)
+                            if (user?.id) {
+                              const timer = setTimeout(() => {
+                                setConfig(prev => {
+                                  if (!prev) return prev;
+                                  const updatedConfig = { ...prev };
+                                  saveAIAgentConfig(updatedConfig, user.id)
+                                    .then(() => triggerConfigRefresh())
+                                    .catch(error => console.error('Error saving rule update:', error));
+                                  return prev;
+                                });
+                              }, 500);
+                              
+                              return () => clearTimeout(timer);
+                            }
+                          }}
+                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-[var(--nextprop-text-tertiary)]">
+                No rules configured
+              </div>
+            )}
+            
+            <div className="pt-2">
+              <button
+                onClick={handleAddRule}
+                className="w-full py-2 px-4 border border-dashed border-[var(--nextprop-border)] rounded-lg text-sm text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)] transition-colors"
+              >
+                + Add Custom Rule
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Q&A Section */}
+      <div className="mt-6">
+        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Q&A Entries</h3>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--nextprop-text-secondary)]">
+              Select Q&A entries that the AI must follow when responding to users
+            </p>
+
+            {config.qaEntries && config.qaEntries.length > 0 ? (
+              <div className="space-y-3">
+                {config.qaEntries.map((qa) => (
+                  <div 
+                    key={qa.id} 
+                    className={`relative p-3 border rounded-lg transition-colors ${
+                      qa.isEnabled 
+                        ? 'bg-[var(--nextprop-primary)]/5 border-[var(--nextprop-primary)]' 
+                        : 'border-[var(--nextprop-border)] hover:bg-[var(--nextprop-surface-hover)]'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={qa.isEnabled}
+                          onChange={() => handleToggleQA(qa.id, !qa.isEnabled)}
+                          className={`${
+                            qa.isEnabled ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
+                          } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2`}
+                        >
+                          <span
+                            className={`${
+                              qa.isEnabled ? 'translate-x-5' : 'translate-x-1'
+                            } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                          />
+                        </Switch>
+                        <span className="font-medium text-[var(--nextprop-text-primary)]">Q&A Entry</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs px-2 py-1 rounded-full bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                          {qa.id.startsWith('qa_custom_') ? 'Custom' : 'Default'}
+                        </span>
+                        
+                        {/* Only show delete button for custom Q&A entries */}
+                        {qa.id.startsWith('qa_custom_') && (
+                          <button
+                            onClick={() => handleDeleteQA(qa.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                            aria-label="Delete Q&A entry"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                          Question
+                        </label>
+                        <input
+                          type="text"
+                          value={qa.question}
+                          onChange={(e) => {
+                            handleUpdateQA(qa.id, 'question', e.target.value);
+                            
+                            // Save to Firebase after a delay (debounce)
+                            if (user?.id) {
+                              const timer = setTimeout(() => {
+                                setConfig(prev => {
+                                  if (!prev) return prev;
+                                  const updatedConfig = { ...prev };
+                                  saveAIAgentConfig(updatedConfig, user.id)
+                                    .then(() => triggerConfigRefresh())
+                                    .catch(error => console.error('Error saving Q&A update:', error));
+                                  return prev;
+                                });
+                              }, 500);
+                              
+                              return () => clearTimeout(timer);
+                            }
+                          }}
+                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                          Answer
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={qa.answer}
+                          onChange={(e) => {
+                            handleUpdateQA(qa.id, 'answer', e.target.value);
+                            
+                            // Save to Firebase after a delay (debounce)
+                            if (user?.id) {
+                              const timer = setTimeout(() => {
+                                setConfig(prev => {
+                                  if (!prev) return prev;
+                                  const updatedConfig = { ...prev };
+                                  saveAIAgentConfig(updatedConfig, user.id)
+                                    .then(() => triggerConfigRefresh())
+                                    .catch(error => console.error('Error saving Q&A update:', error));
+                                  return prev;
+                                });
+                              }, 500);
+                              
+                              return () => clearTimeout(timer);
+                            }
+                          }}
+                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-[var(--nextprop-text-tertiary)]">
+                No Q&A entries configured
+              </div>
+            )}
+            
+            <div className="pt-2">
+              <button
+                onClick={handleAddQA}
+                className="w-full py-2 px-4 border border-dashed border-[var(--nextprop-border)] rounded-lg text-sm text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)] transition-colors"
+              >
+                + Add Custom Q&A Entry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Advanced Customization Section */}
+      <div className="mt-6">
+        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Advanced Customization</h3>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--nextprop-text-secondary)] mb-2">
+              Add additional custom instructions for your AI agent
+            </p>
+            
+            <textarea
+              rows={5}
+              name="customInstructions"
+              value={config.customInstructions || ''}
+              onChange={handleInputChange}
+              placeholder="Enter additional instructions for the AI agent..."
+              className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+            ></textarea>
+            
+            <p className="text-xs text-[var(--nextprop-text-tertiary)]">
+              These instructions will be added to the end of the AI prompt. Be careful not to contradict earlier instructions.
+            </p>
           </div>
         </div>
       </div>
