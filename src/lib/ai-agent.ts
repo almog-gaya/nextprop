@@ -10,6 +10,9 @@ const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
 // This will persist across requests but not across server restarts
 let serverConfigCache: { [userId: string]: AIAgentConfig } = {};
 
+// Multi-agent configuration cache
+let multiAgentCache: { [userId: string]: MultiAgentConfig } = {};
+
 // Function to cache config on server-side with a user ID
 export function cacheServerConfig(userId: string, config: AIAgentConfig): void {
   if (typeof window !== 'undefined') return; // Only run on server
@@ -801,4 +804,337 @@ export function ensureValidRepresentation(config: AIAgentConfig): string {
   
   // Fall back to a generic representation if nothing else is available
   return "NextProp Real Estate";
+}
+
+// Function to get multi-agent configuration from cache or create a new one
+export async function getMultiAgentConfig(userId: string): Promise<MultiAgentConfig> {
+  // First check if we have it in cache
+  if (multiAgentCache[userId]) {
+    return multiAgentCache[userId];
+  }
+
+  try {
+    // Try to load from Firestore
+    const { db } = await import('@/lib/firebaseConfig');
+    const { doc, getDoc } = await import('firebase/firestore');
+    
+    const multiAgentRef = doc(db, 'multi-agent-configs', userId);
+    const multiAgentSnap = await getDoc(multiAgentRef);
+    
+    if (multiAgentSnap.exists()) {
+      const data = multiAgentSnap.data() as MultiAgentConfig;
+      
+      // Process agent dates
+      const processedAgents: { [agentId: string]: AIAgentConfig } = {};
+      
+      Object.entries(data.agents || {}).forEach(([agentId, agent]) => {
+        processedAgents[agentId] = {
+          ...agent,
+          updatedAt: agent.updatedAt ? new Date(agent.updatedAt) : new Date()
+        };
+      });
+      
+      const config: MultiAgentConfig = {
+        agents: processedAgents,
+        activeAgentId: data.activeAgentId || Object.keys(processedAgents)[0] || null,
+        defaultAgentId: data.defaultAgentId || Object.keys(processedAgents)[0] || null
+      };
+      
+      // Cache the result
+      multiAgentCache[userId] = config;
+      
+      return config;
+    }
+    
+    // If no multi-agent config exists, create one from existing single agent
+    const singleAgentConfig = await loadAIAgentConfig(userId);
+    
+    if (singleAgentConfig) {
+      // Create a default multi-agent config with the existing agent
+      const defaultAgentId = 'default_agent';
+      
+      const newMultiAgentConfig: MultiAgentConfig = {
+        agents: {
+          [defaultAgentId]: {
+            ...singleAgentConfig,
+            id: defaultAgentId,
+            name: 'Default Agent',
+            isEnabled: true
+          }
+        },
+        activeAgentId: defaultAgentId,
+        defaultAgentId: defaultAgentId
+      };
+      
+      // Save the new config
+      await saveMultiAgentConfig(userId, newMultiAgentConfig);
+      
+      return newMultiAgentConfig;
+    }
+    
+    // If all else fails, create an empty multi-agent config
+    return {
+      agents: {},
+      activeAgentId: null,
+      defaultAgentId: null
+    };
+  } catch (error) {
+    console.error('Error loading multi-agent config:', error);
+    
+    // Return an empty config
+    return {
+      agents: {},
+      activeAgentId: null,
+      defaultAgentId: null
+    };
+  }
+}
+
+// Function to save multi-agent configuration
+export async function saveMultiAgentConfig(userId: string, config: MultiAgentConfig): Promise<boolean> {
+  try {
+    // Update cache
+    multiAgentCache[userId] = config;
+    
+    // Save to Firestore
+    const { db } = await import('@/lib/firebaseConfig');
+    const { doc, setDoc } = await import('firebase/firestore');
+    
+    const multiAgentRef = doc(db, 'multi-agent-configs', userId);
+    
+    // Convert dates to ISO strings for Firestore
+    const processedConfig = {
+      ...config,
+      agents: Object.fromEntries(
+        Object.entries(config.agents || {}).map(([agentId, agent]) => [
+          agentId,
+          {
+            ...agent,
+            updatedAt: agent.updatedAt instanceof Date 
+              ? agent.updatedAt.toISOString() 
+              : (typeof agent.updatedAt === 'string' ? agent.updatedAt : new Date().toISOString())
+          }
+        ])
+      )
+    };
+    
+    await setDoc(multiAgentRef, processedConfig);
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving multi-agent config:', error);
+    return false;
+  }
+}
+
+// Function to create a new agent from template
+export async function createAgentFromTemplate(userId: string, templateId: string): Promise<string | null> {
+  try {
+    // Get the current multi-agent config
+    const multiAgentConfig = await getMultiAgentConfig(userId);
+    
+    // Find the template
+    const template = AGENT_TEMPLATES.find(t => t.id === templateId);
+    
+    if (!template) {
+      console.error(`Template "${templateId}" not found`);
+      return null;
+    }
+    
+    // Create a unique ID for the new agent
+    const agentId = `${templateId}_${Date.now()}`;
+    
+    // Create the default agent configuration
+    const defaultConfig = await loadAIAgentConfig('default');
+    
+    // Merge the template config with the default config
+    const newAgent: AIAgentConfig = {
+      ...defaultConfig,
+      ...template.config,
+      id: agentId,
+      name: template.name,
+      template: templateId,
+      isEnabled: true,
+      updatedAt: new Date()
+    };
+    
+    // Add the new agent to the multi-agent config
+    multiAgentConfig.agents = {
+      ...multiAgentConfig.agents,
+      [agentId]: newAgent
+    };
+    
+    // If this is the first agent, set it as active and default
+    if (!multiAgentConfig.activeAgentId) {
+      multiAgentConfig.activeAgentId = agentId;
+      multiAgentConfig.defaultAgentId = agentId;
+    }
+    
+    // Save the updated config
+    await saveMultiAgentConfig(userId, multiAgentConfig);
+    
+    return agentId;
+  } catch (error) {
+    console.error('Error creating agent from template:', error);
+    return null;
+  }
+}
+
+// Function to delete an agent
+export async function deleteAgent(userId: string, agentId: string): Promise<boolean> {
+  try {
+    // Get the current multi-agent config
+    const multiAgentConfig = await getMultiAgentConfig(userId);
+    
+    // Make sure this agent exists
+    if (!multiAgentConfig.agents[agentId]) {
+      console.error(`Agent "${agentId}" not found`);
+      return false;
+    }
+    
+    // Create a new agents object without the deleted agent
+    const { [agentId]: deletedAgent, ...remainingAgents } = multiAgentConfig.agents;
+    multiAgentConfig.agents = remainingAgents;
+    
+    // If this was the active or default agent, update those references
+    if (multiAgentConfig.activeAgentId === agentId) {
+      multiAgentConfig.activeAgentId = Object.keys(remainingAgents)[0] || null;
+    }
+    
+    if (multiAgentConfig.defaultAgentId === agentId) {
+      multiAgentConfig.defaultAgentId = Object.keys(remainingAgents)[0] || null;
+    }
+    
+    // Save the updated config
+    await saveMultiAgentConfig(userId, multiAgentConfig);
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting agent:', error);
+    return false;
+  }
+}
+
+// Function to set the active agent
+export async function setActiveAgent(userId: string, agentId: string): Promise<boolean> {
+  try {
+    // Get the current multi-agent config
+    const multiAgentConfig = await getMultiAgentConfig(userId);
+    
+    // Make sure this agent exists
+    if (!multiAgentConfig.agents[agentId]) {
+      console.error(`Agent "${agentId}" not found`);
+      return false;
+    }
+    
+    // Update the active agent
+    multiAgentConfig.activeAgentId = agentId;
+    
+    // Save the updated config
+    await saveMultiAgentConfig(userId, multiAgentConfig);
+    
+    return true;
+  } catch (error) {
+    console.error('Error setting active agent:', error);
+    return false;
+  }
+}
+
+// Function to get active agent configuration
+export async function getActiveAgentConfig(userId: string): Promise<AIAgentConfig | null> {
+  try {
+    // Get the multi-agent config
+    const multiAgentConfig = await getMultiAgentConfig(userId);
+    
+    // Get the active agent ID
+    const activeAgentId = multiAgentConfig.activeAgentId;
+    
+    if (!activeAgentId || !multiAgentConfig.agents[activeAgentId]) {
+      console.error('No active agent found');
+      return null;
+    }
+    
+    return multiAgentConfig.agents[activeAgentId];
+  } catch (error) {
+    console.error('Error getting active agent config:', error);
+    return null;
+  }
+}
+
+// Function to update a specific agent's configuration
+export async function updateAgentConfig(
+  userId: string, 
+  agentId: string, 
+  updates: Partial<AIAgentConfig>
+): Promise<boolean> {
+  try {
+    // Get the current multi-agent config
+    const multiAgentConfig = await getMultiAgentConfig(userId);
+    
+    // Make sure this agent exists
+    if (!multiAgentConfig.agents[agentId]) {
+      console.error(`Agent "${agentId}" not found`);
+      return false;
+    }
+    
+    // Update the agent
+    multiAgentConfig.agents[agentId] = {
+      ...multiAgentConfig.agents[agentId],
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    // Save the updated config
+    await saveMultiAgentConfig(userId, multiAgentConfig);
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating agent config:', error);
+    return false;
+  }
+}
+
+// Function to generate AI response with a specific agent
+export async function generateAgentResponse(
+  userId: string,
+  agentId: string,
+  message: string
+): Promise<AIResponse> {
+  try {
+    // Get the multi-agent config
+    const multiAgentConfig = await getMultiAgentConfig(userId);
+    
+    // Get the specified agent config
+    const agentConfig = multiAgentConfig.agents[agentId];
+    
+    if (!agentConfig) {
+      throw new Error(`Agent "${agentId}" not found`);
+    }
+    
+    // Use the existing generateResponse function with this agent's config
+    const response = await generateResponse(message, agentConfig);
+    
+    // Add the agent ID to the response
+    return {
+      ...response,
+      agentId
+    };
+  } catch (error) {
+    console.error('Error generating agent response:', error);
+    
+    // Create error response
+    return {
+      id: crypto.randomUUID(),
+      conversationId: '',
+      prompt: message,
+      agentId,
+      response: 'Sorry, I encountered an error while generating a response. Please try again later.',
+      metadata: {
+        tokens: 0,
+        timestamp: new Date(),
+        success: false,
+        error: String(error)
+      }
+    };
+  }
 }
