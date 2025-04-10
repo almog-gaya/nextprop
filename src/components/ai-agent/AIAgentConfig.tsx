@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Switch } from '@headlessui/react';
 import { BoltIcon, UserCircleIcon, PhoneIcon, EnvelopeIcon, BuildingOfficeIcon, DocumentTextIcon, CurrencyDollarIcon, MapPinIcon, HomeIcon, FunnelIcon } from '@heroicons/react/24/outline';
@@ -212,7 +214,7 @@ type EnabledPipeline = {
   name: string;
 };
 
-export default function AIAgentConfig() {
+export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: string | null }) {
   const { user } = useAuth();
   const [config, setConfig] = useState<AIAgentConfigType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -227,11 +229,11 @@ export default function AIAgentConfig() {
 
   // Load initial config and pipelines
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && selectedAgentId) {
       loadConfig();
       fetchPipelines();
     }
-  }, [user?.id]);
+  }, [user?.id, selectedAgentId]);
 
   // Load user details only if fields are empty
   useEffect(() => {
@@ -345,39 +347,51 @@ export default function AIAgentConfig() {
   }
 
   const loadConfig = async () => {
-    if (!user?.id) {
+    if (!user?.id || !selectedAgentId) {
       setIsLoading(false);
       return;
     }
 
     try {
       setIsLoading(true);
-      const loadedConfig = await loadAIAgentConfig(user.id);
+      
+      // Get the multi-agent config
+      const { getMultiAgentConfig } = await import('@/lib/ai-agent');
+      const multiAgentConfig = await getMultiAgentConfig(user.id);
+      
+      // Get the selected agent
+      const agentConfig = multiAgentConfig.agents[selectedAgentId];
+      
+      if (!agentConfig) {
+        throw new Error(`Agent ${selectedAgentId} not found`);
+      }
       
       // Ensure the loaded config has all the required fields
-      if (!loadedConfig.rules || !loadedConfig.qaEntries || !loadedConfig.enabledRules) {
+      if (!agentConfig.rules || !agentConfig.qaEntries || !agentConfig.enabledRules) {
         console.log('Adding missing fields to the config...');
         // Load default rules and Q&A from the function above
         const defaultConfig = await loadAIAgentConfig('default');
         
-        loadedConfig.rules = loadedConfig.rules || defaultConfig.rules;
-        loadedConfig.qaEntries = loadedConfig.qaEntries || defaultConfig.qaEntries;
-        loadedConfig.enabledRules = loadedConfig.enabledRules || defaultConfig.rules?.map(rule => rule.id) || [];
+        agentConfig.rules = agentConfig.rules || defaultConfig.rules;
+        agentConfig.qaEntries = agentConfig.qaEntries || defaultConfig.qaEntries;
+        agentConfig.enabledRules = agentConfig.enabledRules || defaultConfig.rules?.map(rule => rule.id) || [];
         
         // Save the updated config back to Firestore
         if (user.id) {
           try {
-            await saveAIAgentConfig(loadedConfig, user.id);
+            const { updateAgentConfig } = await import('@/lib/ai-agent');
+            await updateAgentConfig(user.id, selectedAgentId, agentConfig);
           } catch (saveError) {
             console.error('Error saving default rules and Q&A:', saveError);
           }
         }
       }
       
-      setConfig(loadedConfig);
+      setConfig(agentConfig);
     } catch (error) {
       console.error('Error loading config:', error);
-      // Get a default config from the loadAIAgentConfig function
+      
+      // Get a default config
       const defaultConfig = await loadAIAgentConfig('default');
       
       setConfig({
@@ -503,7 +517,7 @@ export default function AIAgentConfig() {
   };
 
   const handleSave = async () => {
-    if (!user?.id || !config) {
+    if (!user?.id || !config || !selectedAgentId) {
       toast.error('User not authenticated or config not loaded');
       return;
     }
@@ -514,9 +528,6 @@ export default function AIAgentConfig() {
 
     setIsSaving(true);
     try {
-
-
-
       /// check if already exists dont create 
       const exists = await isWorkflowExists();
       if (!exists) {
@@ -534,11 +545,21 @@ export default function AIAgentConfig() {
         if (currentWorkFlowId) {
           await deleteWorkFlow(currentWorkFlowId);
         }
-
       }
+      
+      // Update buying criteria before saving
       updateBuyingCriteria();
+      
+      // Save to multi-agent config
+      const { updateAgentConfig } = await import('@/lib/ai-agent');
+      await updateAgentConfig(user.id, selectedAgentId, config);
+      
+      // Also save to local storage for backward compatibility
       await saveAIAgentConfig(config, user.id);
+      
+      // Sync with server
       await syncConfigWithServer(config);
+      
       toast.success('AI Agent configuration saved successfully');
       triggerConfigRefresh();
     } catch (error) {
