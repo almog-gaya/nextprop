@@ -1,4 +1,4 @@
-import { AIAgentConfig, AIResponse } from '@/types/ai-agent';
+import { AIAgentConfig, AIResponse, MultiAgentConfig, AGENT_TEMPLATES } from '@/types/ai-agent';
 import OpenAI from 'openai';
 
 // Constants
@@ -108,11 +108,32 @@ export async function saveAIAgentConfig(config: AIAgentConfig): Promise<boolean>
 }
 
 // Function to load AI Agent configuration
-export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
+export async function loadAIAgentConfig(userId?: string): Promise<AIAgentConfig> {
   try {
     let savedConfig = '';
     
-    if (typeof window !== 'undefined') {
+    // If userId is provided and we're on the server, try to load from Firestore
+    if (userId && userId !== 'default') {
+      const { db } = await import('@/lib/firebaseConfig');
+      const { doc, getDoc } = await import('firebase/firestore');
+      
+      // Try to load from Firestore
+      try {
+        const configRef = doc(db, 'ai-agent-configs', userId);
+        const docSnap = await getDoc(configRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          // We'll handle this below in the parsing section
+          savedConfig = JSON.stringify(data);
+        }
+      } catch (error) {
+        console.error('Error loading from Firestore:', error);
+      }
+    }
+    
+    // If we couldn't load from Firestore or we're on the client, try localStorage
+    if (!savedConfig && typeof window !== 'undefined') {
       savedConfig = localStorage.getItem(CONFIG_STORAGE_KEY) || '';
     }
     
@@ -167,7 +188,7 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
       {
         id: 'qa_budget',
         question: 'What is your budget for the purchase?',
-        answer: 'We don\'t have a fixed budget. We are open to any price range, as long as the property doesn\'t exceed $2 million, and the owner is willing to consider a cash offer.',
+        answer: 'We do not have a fixed budget. We are open to any price range, as long as the property does not exceed $2 million, and the owner is willing to consider a cash offer.',
         isEnabled: true
       },
       {
@@ -185,13 +206,13 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
       {
         id: 'qa_outside',
         question: 'Are you interested in properties outside of the Bay Area?',
-        answer: 'Currently, we focus on properties within the Bay Area, but we\'re open to reviewing nearby options if the deal is attractive.',
+        answer: 'Currently, we focus on properties within the Bay Area, but we are open to reviewing nearby options if the deal is attractive.',
         isEnabled: true
       },
       {
         id: 'qa_repairs',
         question: 'What happens if the property needs repairs?',
-        answer: 'That\'s not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.',
+        answer: 'That is not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.',
         isEnabled: true
       }
     ];
@@ -317,7 +338,7 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
         {
           id: 'qa_budget',
           question: 'What is your budget for the purchase?',
-          answer: 'We don\'t have a fixed budget. We are open to any price range, as long as the property doesn\'t exceed $2 million, and the owner is willing to consider a cash offer.',
+          answer: 'We do not have a fixed budget. We are open to any price range, as long as the property does not exceed $2 million, and the owner is willing to consider a cash offer.',
           isEnabled: true
         },
         {
@@ -335,13 +356,13 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
         {
           id: 'qa_outside',
           question: 'Are you interested in properties outside of the Bay Area?',
-          answer: 'Currently, we focus on properties within the Bay Area, but we\'re open to reviewing nearby options if the deal is attractive.',
+          answer: 'Currently, we focus on properties within the Bay Area, but we are open to reviewing nearby options if the deal is attractive.',
           isEnabled: true
         },
         {
           id: 'qa_repairs',
           question: 'What happens if the property needs repairs?',
-          answer: 'That\'s not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.',
+          answer: 'That is not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.',
           isEnabled: true
         }
       ],
@@ -385,7 +406,7 @@ export const AGENT_INSTRUCTIONS = `Personality:
       A: We are primarily interested in single-family homes in the Bay Area. We focus on cosmetic rehabs and avoid long-term projects like new construction.
 
       Q: What is your budget for the purchase?
-      A: We don't have a fixed budget. We are open to any price range, as long as the property doesn't exceed $2 million, and the owner is willing to consider a cash offer.
+      A: We do not have a fixed budget. We are open to any price range, as long as the property does not exceed $2 million, and the owner is willing to consider a cash offer.
 
       Q: Are you willing to sign a representation agreement?
       A: Yes, we can sign a representation agreement for specific properties. We also prefer to have the agent who brings us the purchase handle the sale as well.
@@ -394,10 +415,10 @@ export const AGENT_INSTRUCTIONS = `Personality:
       A: We can close quickly if the offer is accepted and all requirements are met. The process usually takes weeks to complete.
 
       Q: Are you interested in properties outside of the Bay Area?
-      A: Currently, we focus on properties within the Bay Area, but we're open to reviewing nearby options if the deal is attractive.
+      A: Currently, we focus on properties within the Bay Area, but we are open to reviewing nearby options if the deal is attractive.
 
       Q: What happens if the property needs repairs?
-      A: That's not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.
+      A: That is not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.
 
       Q: Can I send multiple properties at once?
       A: Absolutely, you can send me a list of property addresses, and I will evaluate each one to give you a quick offer estimate.
@@ -836,8 +857,8 @@ export async function getMultiAgentConfig(userId: string): Promise<MultiAgentCon
       
       const config: MultiAgentConfig = {
         agents: processedAgents,
-        activeAgentId: data.activeAgentId || Object.keys(processedAgents)[0] || null,
-        defaultAgentId: data.defaultAgentId || Object.keys(processedAgents)[0] || null
+        activeAgentId: data.activeAgentId || Object.keys(processedAgents)[0] || undefined,
+        defaultAgentId: data.defaultAgentId || Object.keys(processedAgents)[0] || undefined
       };
       
       // Cache the result
@@ -875,8 +896,8 @@ export async function getMultiAgentConfig(userId: string): Promise<MultiAgentCon
     // If all else fails, create an empty multi-agent config
     return {
       agents: {},
-      activeAgentId: null,
-      defaultAgentId: null
+      activeAgentId: undefined,
+      defaultAgentId: undefined
     };
   } catch (error) {
     console.error('Error loading multi-agent config:', error);
@@ -884,8 +905,8 @@ export async function getMultiAgentConfig(userId: string): Promise<MultiAgentCon
     // Return an empty config
     return {
       agents: {},
-      activeAgentId: null,
-      defaultAgentId: null
+      activeAgentId: undefined,
+      defaultAgentId: undefined
     };
   }
 }
@@ -930,6 +951,9 @@ export async function saveMultiAgentConfig(userId: string, config: MultiAgentCon
 // Function to create a new agent from template
 export async function createAgentFromTemplate(userId: string, templateId: string): Promise<string | null> {
   try {
+    // Dynamically import the agent templates
+    const { AGENT_TEMPLATES } = await import('@/types/ai-agent');
+    
     // Get the current multi-agent config
     const multiAgentConfig = await getMultiAgentConfig(userId);
     
@@ -998,11 +1022,11 @@ export async function deleteAgent(userId: string, agentId: string): Promise<bool
     
     // If this was the active or default agent, update those references
     if (multiAgentConfig.activeAgentId === agentId) {
-      multiAgentConfig.activeAgentId = Object.keys(remainingAgents)[0] || null;
+      multiAgentConfig.activeAgentId = Object.keys(remainingAgents)[0] || undefined;
     }
     
     if (multiAgentConfig.defaultAgentId === agentId) {
-      multiAgentConfig.defaultAgentId = Object.keys(remainingAgents)[0] || null;
+      multiAgentConfig.defaultAgentId = Object.keys(remainingAgents)[0] || undefined;
     }
     
     // Save the updated config
