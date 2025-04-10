@@ -113,6 +113,86 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
       savedConfig = localStorage.getItem(CONFIG_STORAGE_KEY) || '';
     }
     
+    // Default rules
+    const defaultRules = [
+      {
+        id: 'rule_concise',
+        text: 'Keep responses under 50 words, ensuring each message adds value',
+        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Ensures the AI agent keeps messages short and to the point'
+      },
+      {
+        id: 'rule_memory',
+        text: 'Accurately reference previous conversation details to maintain context',
+        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Helps the AI remember past information shared by the prospect'
+      },
+      {
+        id: 'rule_completion',
+        text: 'Always ensure the conversation concludes appropriately',
+        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Prevents leaving conversations hanging without proper closure'
+      },
+      {
+        id: 'rule_compliant',
+        text: 'Avoid using problematic words that could trigger spam filters',
+        category: 'compliance' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Ensures messages comply with A2P regulations'
+      },
+      {
+        id: 'rule_contact',
+        text: 'If asked for a phone number, provide the configured contact information',
+        category: 'business' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Ensures leads can reach the real estate agent'
+      },
+      {
+        id: 'rule_offmarket',
+        text: 'Focus on off-market deals and avoid discussing MLS-listed properties',
+        category: 'business' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+        description: 'Maintains focus on the business model of finding off-market properties'
+      }
+    ];
+    
+    // Default Q&A entries
+    const defaultQA = [
+      {
+        id: 'qa_properties',
+        question: 'What type of properties are you looking to buy?',
+        answer: 'We are primarily interested in single-family homes in the Bay Area. We focus on cosmetic rehabs and avoid long-term projects like new construction.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_budget',
+        question: 'What is your budget for the purchase?',
+        answer: 'We don\'t have a fixed budget. We are open to any price range, as long as the property doesn\'t exceed $2 million, and the owner is willing to consider a cash offer.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_agreement',
+        question: 'Are you willing to sign a representation agreement?',
+        answer: 'Yes, we can sign a representation agreement for specific properties. We also prefer to have the agent who brings us the purchase handle the sale as well.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_closing',
+        question: 'What is the estimated time to close the transaction?',
+        answer: 'We can close quickly if the offer is accepted and all requirements are met. The process usually takes weeks to complete.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_outside',
+        question: 'Are you interested in properties outside of the Bay Area?',
+        answer: 'Currently, we focus on properties within the Bay Area, but we\'re open to reviewing nearby options if the deal is attractive.',
+        isEnabled: true
+      },
+      {
+        id: 'qa_repairs',
+        question: 'What happens if the property needs repairs?',
+        answer: 'That\'s not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.',
+        isEnabled: true
+      }
+    ];
+    
     if (!savedConfig) {
       console.log('No AI Agent config found, returning default');
       return {
@@ -128,6 +208,9 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
         contactEmail: '',
         buyingCriteria: '',
         dealObjective: 'creative-finance',
+        rules: defaultRules,
+        qaEntries: defaultQA,
+        enabledRules: defaultRules.map(rule => rule.id) // All rules enabled by default
       };
     }
 
@@ -140,6 +223,10 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
         isEnabled: Boolean(parsedConfig.isEnabled),
         enabledPipelines: Array.isArray(parsedConfig.enabledPipelines) ? parsedConfig.enabledPipelines : [],
         updatedAt: new Date(parsedConfig.updatedAt),
+        // Add default rules and Q&A if they don't exist
+        rules: Array.isArray(parsedConfig.rules) ? parsedConfig.rules : defaultRules,
+        qaEntries: Array.isArray(parsedConfig.qaEntries) ? parsedConfig.qaEntries : defaultQA,
+        enabledRules: Array.isArray(parsedConfig.enabledRules) ? parsedConfig.enabledRules : defaultRules.map(rule => rule.id)
       };
       
       console.log('Parsed AI Agent config:', config);
@@ -159,6 +246,9 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
         contactEmail: '',
         buyingCriteria: '',
         dealObjective: 'creative-finance',
+        rules: defaultRules,
+        qaEntries: defaultQA,
+        enabledRules: defaultRules.map(rule => rule.id)
       };
     }
   } catch (error) {
@@ -176,6 +266,83 @@ export async function loadAIAgentConfig(): Promise<AIAgentConfig> {
       contactEmail: '',
       buyingCriteria: '',
       dealObjective: 'creative-finance',
+      rules: [
+        {
+          id: 'rule_concise',
+          text: 'Keep responses under 50 words, ensuring each message adds value',
+          category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+          description: 'Ensures the AI agent keeps messages short and to the point'
+        },
+        {
+          id: 'rule_memory',
+          text: 'Accurately reference previous conversation details to maintain context',
+          category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+          description: 'Helps the AI remember past information shared by the prospect'
+        },
+        {
+          id: 'rule_completion',
+          text: 'Always ensure the conversation concludes appropriately',
+          category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+          description: 'Prevents leaving conversations hanging without proper closure'
+        },
+        {
+          id: 'rule_compliant',
+          text: 'Avoid using problematic words that could trigger spam filters',
+          category: 'compliance' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+          description: 'Ensures messages comply with A2P regulations'
+        },
+        {
+          id: 'rule_contact',
+          text: 'If asked for a phone number, provide the configured contact information',
+          category: 'business' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+          description: 'Ensures leads can reach the real estate agent'
+        },
+        {
+          id: 'rule_offmarket',
+          text: 'Focus on off-market deals and avoid discussing MLS-listed properties',
+          category: 'business' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
+          description: 'Maintains focus on the business model of finding off-market properties'
+        }
+      ],
+      qaEntries: [
+        {
+          id: 'qa_properties',
+          question: 'What type of properties are you looking to buy?',
+          answer: 'We are primarily interested in single-family homes in the Bay Area. We focus on cosmetic rehabs and avoid long-term projects like new construction.',
+          isEnabled: true
+        },
+        {
+          id: 'qa_budget',
+          question: 'What is your budget for the purchase?',
+          answer: 'We don\'t have a fixed budget. We are open to any price range, as long as the property doesn\'t exceed $2 million, and the owner is willing to consider a cash offer.',
+          isEnabled: true
+        },
+        {
+          id: 'qa_agreement',
+          question: 'Are you willing to sign a representation agreement?',
+          answer: 'Yes, we can sign a representation agreement for specific properties. We also prefer to have the agent who brings us the purchase handle the sale as well.',
+          isEnabled: true
+        },
+        {
+          id: 'qa_closing',
+          question: 'What is the estimated time to close the transaction?',
+          answer: 'We can close quickly if the offer is accepted and all requirements are met. The process usually takes weeks to complete.',
+          isEnabled: true
+        },
+        {
+          id: 'qa_outside',
+          question: 'Are you interested in properties outside of the Bay Area?',
+          answer: 'Currently, we focus on properties within the Bay Area, but we\'re open to reviewing nearby options if the deal is attractive.',
+          isEnabled: true
+        },
+        {
+          id: 'qa_repairs',
+          question: 'What happens if the property needs repairs?',
+          answer: 'That\'s not a problem. We specialize in cosmetic rehabs and have our own construction company to handle any necessary repairs.',
+          isEnabled: true
+        }
+      ],
+      enabledRules: ['rule_concise', 'rule_memory', 'rule_completion', 'rule_compliant', 'rule_contact', 'rule_offmarket']
     };
   }
 }
@@ -361,6 +528,8 @@ export function generateAgentInstructions(config: AIAgentConfig): string {
     hasContactInfo: !!(config.contactPhone || config.contactEmail),
     hasBuyingCriteria: !!config.buyingCriteria,
     dealObjective: config.dealObjective,
+    hasRules: !!(config.rules && config.rules.length > 0),
+    hasQA: !!(config.qaEntries && config.qaEntries.length > 0),
   });
 
   // Get representation string - using the utility function
@@ -413,6 +582,34 @@ export function generateAgentInstructions(config: AIAgentConfig): string {
 - Your specialty is ${dealObjectiveText}
 - Emphasize this focus area in your discussions about property acquisitions
 - This is a key part of your approach to real estate transactions`;
+  }
+  
+  // Add custom rules if provided
+  if (config.rules && config.rules.length > 0 && config.enabledRules && config.enabledRules.length > 0) {
+    instructions += `\n\nRULES YOU MUST FOLLOW:`;
+    
+    // Filter rules that are enabled
+    const enabledRules = config.rules.filter(rule => config.enabledRules?.includes(rule.id));
+    
+    // Add each enabled rule
+    enabledRules.forEach(rule => {
+      instructions += `\n- ${rule.text}`;
+    });
+  }
+  
+  // Add Q&A section if provided
+  if (config.qaEntries && config.qaEntries.length > 0) {
+    // Filter for enabled Q&A entries
+    const enabledQA = config.qaEntries.filter(qa => qa.isEnabled);
+    
+    if (enabledQA.length > 0) {
+      instructions += `\n\nQ&A EXAMPLES:`;
+      
+      // Add each Q&A entry
+      enabledQA.forEach(qa => {
+        instructions += `\nQ: ${qa.question}\nA: ${qa.answer}\n`;
+      });
+    }
   }
   
   // Add response style guidance based on the config

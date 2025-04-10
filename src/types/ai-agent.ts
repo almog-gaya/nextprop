@@ -13,6 +13,27 @@ export type AIAgentConfig = {
   contactEmail?: string; // Contact email
   buyingCriteria?: string; // Purchase price, preferences, etc.
   dealObjective?: 'creative-finance' | 'cash-offer' | 'off-market' | 'short-sale'; // Deal type objective
+
+  // New customizable prompt sections
+  rules?: Rule[]; // Custom rules to add to the prompt
+  qaEntries?: QAEntry[]; // Custom Q&A entries
+  enabledRules?: string[]; // IDs of enabled rules
+};
+
+// Rule type for customizable rules
+export type Rule = {
+  id: string;
+  text: string;
+  category: 'communication' | 'compliance' | 'business' | 'representation' | 'other';
+  description?: string;
+};
+
+// Q&A entry type
+export type QAEntry = {
+  id: string;
+  question: string;
+  answer: string;
+  isEnabled: boolean;
 };
 
 export type AIResponse = {
