@@ -152,7 +152,7 @@ export default function CampaignForm({
             >
               Street Name
             </button>
-            <button
+            {/* <button
               type="button"
               onClick={() => onScriptChange(script + "{{property_url}}")}
               className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200 border border-purple-200"
@@ -167,7 +167,7 @@ export default function CampaignForm({
               title="Inserts the property price ({{property_price}})"
             >
               Property Price
-            </button>
+            </button> */}
             {user && (
               <button
                 type="button"

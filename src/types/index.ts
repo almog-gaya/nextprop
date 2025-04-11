@@ -117,3 +117,33 @@ export interface DashboardStats {
   totalCalls: number;
   totalPipelines: number;
 } 
+
+
+export interface AutomationData {
+  id: string; // From automationDoc.id
+  status: string; // Used in StatusBadge, e.g., 'completed', 'processing', etc.
+  customer_id: string; // Used in query where clause
+  pipeline_id: string; // Part of propertyConfig
+  stage_id: string; // Part of propertyConfig
+  limit: number; // Used to set propertyCount
+  redfin_url: string; // Displayed in DataCard
+  campaign_id?: string; // Optional, used to fetch campaign data
+  last_run?: { seconds: number }; // Optional, used in DataCard with timestamp conversion
+  campaign_payload: {
+    name: string; // Displayed in DataCard
+    days: string[]; // Displayed in DataCard, joined with commas
+    time_window: {
+      start: string;
+      end: string;
+    };
+    timezone: string;
+    channels: {
+      sms: {
+        enabled: boolean;
+        message: string; // Displayed in DataCard
+        time_interval: number;
+        from_number: string;
+      };
+    };
+  };
+}
