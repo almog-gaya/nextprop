@@ -158,8 +158,6 @@ export default function RinglessVoicemailPage() {
       if (unsubscribe) unsubscribe();
     };
   }, []);
- 
-
   useEffect(() => {
     console.log('Initial fetch triggered');
     fetchContacts(true);
@@ -179,38 +177,22 @@ export default function RinglessVoicemailPage() {
       fetchContacts(true);
     }
   }, [searchQuery]);
-
-  // useEffect(() => {
-  //   const observer = new IntersectionObserver(
-  //     (entries) => {
-  //       if (entries[0].isIntersecting && !isFetching && contacts.length < totalContacts) {
-  //         console.log('Fetching page:', currentPage);
-  //         fetchContacts();
-  //       }
-  //     },
-  //     { threshold: 0.1 }
-  //   );
-
-  //   if (loaderRef.current) observer.observe(loaderRef.current);
-  //   return () => {
-  //     if (loaderRef.current) observer.unobserve(loaderRef.current);
-  //   };
-  // }, [contacts.length, totalContacts, isFetching, currentPage]);
+ 
 
   const fetchContacts = async (reset = false) => {
     if (isFetching) return;
-  
+
     try {
       if (!selectedPipeline) {
         console.log('No pipeline selected, skipping fetch');
         return;
       }
-  
+
       setIsFetching(true);
-  
+
       // Start from page 1 if reset, otherwise continue from currentPage (though we'll fetch all)
       const initialPage = reset ? 1 : currentPage;
-  
+
       // Recursive helper function to fetch all pages
       const fetchAllContacts = async (page: number, accumulatedContacts: any[] = []): Promise<any[]> => {
         const params = new URLSearchParams({
@@ -221,30 +203,30 @@ export default function RinglessVoicemailPage() {
           limit: CONTACTS_PER_PAGE.toString(),
           ...(searchQuery && { search: searchQuery }),
         });
-  
+
         console.log('Fetching contacts with params:', params.toString());
         const response = await axios.get(`/api/contacts/search?${params.toString()}`);
         const newContacts = response.data.contacts || [];
-   
+
         const processedContacts = newContacts.map((contact: any) => ({
           ...contact,
           name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
         }));
-  
+
         const updatedContacts = [...accumulatedContacts, ...processedContacts];
-  
+
         // If we got fewer contacts than the limit, we've reached the end
         if (newContacts.length < CONTACTS_PER_PAGE) {
           return updatedContacts; // Return all accumulated contacts
         }
-  
+
         // Otherwise, fetch the next page recursively
         return fetchAllContacts(page + 1, updatedContacts);
       };
-  
+
       // Fetch all contacts starting from the initial page
       const allContacts = await fetchAllContacts(initialPage);
-  
+
       // Update state with all contacts at once
       setContacts(allContacts);
       setTotalContacts(allContacts.length); // Use the length of fetched contacts, or use API's total if accurate
@@ -324,11 +306,11 @@ export default function RinglessVoicemailPage() {
     try {
       const locationId = user?.locationId ?? await getLocationId();
       const campaignsCollection = collection(db, 'campaigns');
-      const campaignsQuery = query(campaignsCollection, 
+      const campaignsQuery = query(campaignsCollection,
         where("customer_id", "==", locationId),
         where("channels.voicedrop.enabled", "==", true),
         orderBy("created_at", "desc")
-    );
+      );
 
       unsubscribe = onSnapshot(campaignsQuery, (querySnapshot) => {
         const campaignsData: any[] = [];
@@ -471,15 +453,35 @@ export default function RinglessVoicemailPage() {
     try {
       setLoading(true);
 
-      const formattedContacts = selectedContacts.map(contact => ({
-        phone_number: contact.phone,
-        first_name: contact.firstName || contact.contactName || 'Unknown',
-        street_name: contact.address1 || contact.street || 'your area',
-        city: contact.city,
-        state: contact.state,
-        country: contact.country,
-        postalCode: contact.postalCode,
-      }));
+      const formattedContacts = selectedContacts.map(function (contact) {
+        const opportunities = contact.opportunities || [];
+        const pipeline = opportunities.find((p: any) => p.pipelineId === selectedPipeline);
+        const opportunityId = pipeline?.id;
+        const currentStageId = pipeline.pipelineStageId;
+        const pipelineId = pipeline?.pipelineId;
+        const nextPipelineId = getNextStageIdByPipelineId(pipelineId, currentStageId);
+        
+        let pipelineInfo = {};
+        /// add only if we have nextPipeline id otherwise dont include 
+        if (nextPipelineId) {
+          pipelineInfo = {
+            pipeline_id: pipelineId,
+            opportunity_id: opportunityId,
+            next_pipeline_stage_id: nextPipelineId,
+          };
+        }
+        return ({
+          phone_number: contact.phone,
+          first_name: contact.firstName || contact.contactName || 'Unknown',
+          street_name: contact.address1 || contact.street || 'your area',
+          city: contact.city,
+          state: contact.state,
+          country: contact.country,
+          postalCode: contact.postalCode,
+          /// add only if we have nextPipeline id otherwise dont include
+          ...pipelineInfo,
+        });
+      });
       /// delete null values
       for (let i = 0; i < formattedContacts.length; i++) {
         for (let key in formattedContacts[i]) {
@@ -517,7 +519,7 @@ export default function RinglessVoicemailPage() {
         body: JSON.stringify(campaignPayload)
       });
       const data = await response.json();
-      if(data.campaign_id) {
+      if (data.campaign_id) {
         toast.success(`Campaign created successfully with total ${data.total_contacts_added} contacts`);
       } else {
         const errorMessages = data.detail.map(err => {
@@ -528,11 +530,11 @@ export default function RinglessVoicemailPage() {
         toast.error(errorMessages,
           {
             duration: 10000,
-            position: "top-right",  
+            position: "top-right",
           }
-        ); 
+        );
       }
-     
+
       setSelectedContacts([]);
       setCampaignName('');
       setScript('');
@@ -549,6 +551,43 @@ export default function RinglessVoicemailPage() {
       setLoading(false);
     }
   }
+
+  const getNextStageIdByPipelineId = (pipelineId: string, currentStageId: string): string | null => {
+    // Input validation
+    if (!pipelineId || !currentStageId) {
+      console.warn('Invalid input: pipelineId and currentStageId are required');
+      return null;
+    }
+
+    const pipeline = pipelines.find((p) => p.id === pipelineId);
+    if (!pipeline || !Array.isArray(pipeline.stages) || pipeline.stages.length === 0) {
+      console.warn(`Pipeline not found or has no stages: ${pipelineId}`);
+      return null;
+    }
+
+    // Ensure stages array is valid and has required properties
+    const validStages = pipeline.stages.every(stage => stage && typeof stage.id === 'string');
+    if (!validStages) {
+      console.warn(`Invalid stage structure in pipeline: ${pipelineId}`);
+      return null;
+    }
+
+    const currentStageIndex = pipeline.stages.findIndex((stage) => stage.id === currentStageId);
+
+    // Check if current stage exists and if next stage is available
+    if (currentStageIndex === -1) {
+      console.warn(`Current stage not found: ${currentStageId}`);
+      return null;
+    }
+
+    const nextIndex = currentStageIndex + 1;
+    if (nextIndex >= pipeline.stages.length) {
+      console.warn('Already at the last stage');
+      return null;
+    }
+
+    return pipeline.stages[nextIndex].id;
+  };
 
   const toggleContact = (contact: any) => {
     setSelectedContacts((prev) =>
@@ -668,7 +707,7 @@ export default function RinglessVoicemailPage() {
   const handlePipelineChange = (pipelineId: string) => {
     setSelectedPipeline(pipelineId);
   };
- 
+
 
   useEffect(() => {
     const fetchPipelines = async () => {
@@ -832,7 +871,7 @@ export default function RinglessVoicemailPage() {
               </div>
 
               {/* Campaign Settings - 7 columns */}
-              <div className="lg:col-span-7"> 
+              <div className="lg:col-span-7">
 
                 <CampaignForm
                   isVoiceMailModule={true}

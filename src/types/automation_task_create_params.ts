@@ -3,6 +3,7 @@ export interface AutomationTaskCreateParams {
     customer_id: string;
     pipeline_id: string;
     stage_id: string;
+    next_stage_id?: string;
     redfin_url: string;
     limit: number;
     campaign_payload: CampaignPayload;
