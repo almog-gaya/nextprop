@@ -151,8 +151,6 @@ export default function RinglessVoicemailPage() {
         };
     }, []);
 
- 
-
     useEffect(() => {
         console.log('Initial fetch triggered');
         fetchContacts(true);
@@ -172,69 +170,105 @@ export default function RinglessVoicemailPage() {
             fetchContacts(true);
         }
     }, [searchQuery]);
- 
+
+    const getNextStageIdByPipelineId = (pipelineId: string, currentStageId: string): string | null => {
+        // Input validation
+        if (!pipelineId || !currentStageId) {
+            console.warn('Invalid input: pipelineId and currentStageId are required');
+            return null;
+        }
+
+        const pipeline = pipelines.find((p) => p.id === pipelineId);
+        if (!pipeline || !Array.isArray(pipeline.stages) || pipeline.stages.length === 0) {
+            console.warn(`Pipeline not found or has no stages: ${pipelineId}`);
+            return null;
+        }
+
+        // Ensure stages array is valid and has required properties
+        const validStages = pipeline.stages.every(stage => stage && typeof stage.id === 'string');
+        if (!validStages) {
+            console.warn(`Invalid stage structure in pipeline: ${pipelineId}`);
+            return null;
+        }
+
+        const currentStageIndex = pipeline.stages.findIndex((stage) => stage.id === currentStageId);
+
+        // Check if current stage exists and if next stage is available
+        if (currentStageIndex === -1) {
+            console.warn(`Current stage not found: ${currentStageId}`);
+            return null;
+        }
+
+        const nextIndex = currentStageIndex + 1;
+        if (nextIndex >= pipeline.stages.length) {
+            console.warn('Already at the last stage');
+            return null;
+        }
+
+        return pipeline.stages[nextIndex].id;
+    };
 
     const fetchContacts = async (reset = false) => {
         if (isFetching) return;
-      
+
         try {
-          if (!selectedPipeline) {
-            console.log('No pipeline selected, skipping fetch');
-            return;
-          }
-      
-          setIsFetching(true);
-      
-          // Start from page 1 if reset, otherwise continue from currentPage (though we'll fetch all)
-          const initialPage = reset ? 1 : currentPage;
-      
-          // Recursive helper function to fetch all pages
-          const fetchAllContacts = async (page: number, accumulatedContacts: any[] = []): Promise<any[]> => {
-            const params = new URLSearchParams({
-              page: page.toString(),
-              type: 'pipeline',
-              pipelineName: pipelines.find((p) => p.id === selectedPipeline)?.name || '',
-              pipelineId: selectedPipeline,
-              limit: CONTACTS_PER_PAGE.toString(),
-              ...(searchQuery && { search: searchQuery }),
-            });
-      
-            console.log('Fetching contacts with params:', params.toString());
-            const response = await axios.get(`/api/contacts/search?${params.toString()}`);
-            const newContacts = response.data.contacts || [];
-       
-            const processedContacts = newContacts.map((contact: any) => ({
-              ...contact,
-              name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
-            }));
-      
-            const updatedContacts = [...accumulatedContacts, ...processedContacts];
-      
-            // If we got fewer contacts than the limit, we've reached the end
-            if (newContacts.length < CONTACTS_PER_PAGE) {
-              return updatedContacts; // Return all accumulated contacts
+            if (!selectedPipeline) {
+                console.log('No pipeline selected, skipping fetch');
+                return;
             }
-      
-            // Otherwise, fetch the next page recursively
-            return fetchAllContacts(page + 1, updatedContacts);
-          };
-      
-          // Fetch all contacts starting from the initial page
-          const allContacts = await fetchAllContacts(initialPage);
-      
-          // Update state with all contacts at once
-          setContacts(allContacts);
-          setTotalContacts(allContacts.length); // Use the length of fetched contacts, or use API's total if accurate
-          setCurrentPage(1); // Reset to 1 since we fetched everything
-          setSelectedContacts(allContacts);
+
+            setIsFetching(true);
+
+            // Start from page 1 if reset, otherwise continue from currentPage (though we'll fetch all)
+            const initialPage = reset ? 1 : currentPage;
+
+            // Recursive helper function to fetch all pages
+            const fetchAllContacts = async (page: number, accumulatedContacts: any[] = []): Promise<any[]> => {
+                const params = new URLSearchParams({
+                    page: page.toString(),
+                    type: 'pipeline',
+                    pipelineName: pipelines.find((p) => p.id === selectedPipeline)?.name || '',
+                    pipelineId: selectedPipeline,
+                    limit: CONTACTS_PER_PAGE.toString(),
+                    ...(searchQuery && { search: searchQuery }),
+                });
+
+                console.log('Fetching contacts with params:', params.toString());
+                const response = await axios.get(`/api/contacts/search?${params.toString()}`);
+                const newContacts = response.data.contacts || [];
+
+                const processedContacts = newContacts.map((contact: any) => ({
+                    ...contact,
+                    name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+                }));
+
+                const updatedContacts = [...accumulatedContacts, ...processedContacts];
+
+                // If we got fewer contacts than the limit, we've reached the end
+                if (newContacts.length < CONTACTS_PER_PAGE) {
+                    return updatedContacts; // Return all accumulated contacts
+                }
+
+                // Otherwise, fetch the next page recursively
+                return fetchAllContacts(page + 1, updatedContacts);
+            };
+
+            // Fetch all contacts starting from the initial page
+            const allContacts = await fetchAllContacts(initialPage);
+
+            // Update state with all contacts at once
+            setContacts(allContacts);
+            setTotalContacts(allContacts.length); // Use the length of fetched contacts, or use API's total if accurate
+            setCurrentPage(1); // Reset to 1 since we fetched everything
+            setSelectedContacts(allContacts);
         } catch (error) {
-          console.error('Error fetching contacts:', error);
-          toast.error('Failed to load contacts');
+            console.error('Error fetching contacts:', error);
+            toast.error('Failed to load contacts');
         } finally {
-          setIsFetching(false);
+            setIsFetching(false);
         }
-      };
-    
+    };
+
     // Add effect to refetch contacts when pipeline changes
     useEffect(() => {
         setContacts([]);
@@ -431,16 +465,36 @@ export default function RinglessVoicemailPage() {
         try {
             setLoading(true);
 
-            let formattedContacts = selectedContacts.map(contact => ({
-                phone_number: contact.phone,
-                first_name: contact.firstName || contact.contactName || 'Unknown',
-                street_name: contact.address1 || contact.street || 'your area',
-                city: contact.city,
-                state: contact.state,
-                country: contact.country,
-                postalCode: contact.postalCode,
-                contact_id: contact.id,
-            }));
+            let formattedContacts = selectedContacts.map(function (contact) {
+                const opportunities = contact.opportunities || [];
+                const pipeline = opportunities.find((p: any) => p.pipelineId === selectedPipeline);
+                const opportunityId = pipeline?.id;
+                const currentStageId = pipeline.pipelineStageId;
+                const pipelineId = pipeline?.pipelineId;
+                const nextPipelineId = getNextStageIdByPipelineId(pipelineId, currentStageId);
+                
+                let pipelineInfo = {};
+                /// add only if we have nextPipeline id otherwise dont include 
+                if (nextPipelineId) {
+                    pipelineInfo = {
+                        pipeline_id: pipelineId,
+                        opportunity_id: opportunityId,
+                        next_pipeline_stage_id: nextPipelineId,
+                    };
+                }
+                return ({
+                    phone_number: contact.phone,
+                    first_name: contact.firstName || contact.contactName || 'Unknown',
+                    street_name: contact.address1 || contact.street || 'your area',
+                    city: contact.city,
+                    state: contact.state,
+                    country: contact.country,
+                    postalCode: contact.postalCode,
+                    contact_id: contact.id,
+                    /// add only if we have nextPipeline id otherwise dont include
+                    ...pipelineInfo,
+                });
+            });
             /// delete null.undefined values
             for (let i = 0; i < formattedContacts.length; i++) {
                 for (let key in formattedContacts[i]) {
@@ -448,7 +502,7 @@ export default function RinglessVoicemailPage() {
                         delete formattedContacts[i][key];
                     }
                 }
-            } 
+            }
 
             const campaignPayload = {
                 'customer_id': user?.locationId,
@@ -468,7 +522,7 @@ export default function RinglessVoicemailPage() {
                     }
                 },
                 'contacts': formattedContacts,
-            } 
+            }
             const response = await fetch("/api/voicemail", {
                 method: "POST",
                 headers: {
@@ -511,7 +565,7 @@ export default function RinglessVoicemailPage() {
         /// show popup that bulk upload is in progress and add button that will route 
         // to the bulk operations page
     };
- 
+
 
     const handleSearchChange = useCallback((value: string) => {
         setSearchQuery(value);
@@ -522,7 +576,7 @@ export default function RinglessVoicemailPage() {
     const handlePipelineChange = (pipelineId: string) => {
         setSelectedPipeline(pipelineId);
     };
- 
+
 
     useEffect(() => {
         const fetchPipelines = async () => {

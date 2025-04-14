@@ -58,7 +58,7 @@ export default function AutomationsPage() {
   const [propertyConfig, setPropertyConfig] = useState<AutomationTaskCreateParams>({
     customer_id: user?.id || '',
     pipeline_id: '',
-    stage_id: '',
+    stage_id: '', 
     limit: propertyCount,
     redfin_url: '',
     campaign_payload: {
@@ -205,13 +205,50 @@ export default function AutomationsPage() {
     }));
     setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + placeholder.length + 4, start + placeholder.length + 4); }, 0);
   };
+  const getNextStageIdByPipelineId = (pipelineId: string, currentStageId: string): string | null => {
+    // Input validation
+    if (!pipelineId || !currentStageId) {
+      console.warn('Invalid input: pipelineId and currentStageId are required');
+      return null;
+    }
 
+    const pipeline = pipelines.find((p) => p.id === pipelineId);
+    if (!pipeline || !Array.isArray(pipeline.stages) || pipeline.stages.length === 0) {
+      console.warn(`Pipeline not found or has no stages: ${pipelineId}`);
+      return null;
+    }
+
+    // Ensure stages array is valid and has required properties
+    const validStages = pipeline.stages.every(stage => stage && typeof stage.id === 'string');
+    if (!validStages) {
+      console.warn(`Invalid stage structure in pipeline: ${pipelineId}`);
+      return null;
+    }
+
+    const currentStageIndex = pipeline.stages.findIndex((stage) => stage.id === currentStageId);
+
+    // Check if current stage exists and if next stage is available
+    if (currentStageIndex === -1) {
+      console.warn(`Current stage not found: ${currentStageId}`);
+      return null;
+    }
+
+    const nextIndex = currentStageIndex + 1;
+    if (nextIndex >= pipeline.stages.length) {
+      console.warn('Already at the last stage');
+      return null;
+    }
+
+    return pipeline.stages[nextIndex].id;
+  };
   const handleRunNow = async () => {
     if (isJobRunning) return;
     if (!propertyConfig.redfin_url) return toast.error('Please enter a Redfin URL for properties');
     if (!propertyConfig.pipeline_id) return toast.error('Please select a pipeline');
     if (!propertyConfig.customer_id) return toast.error('Customer ID is required');
     if (!propertyConfig.campaign_payload.channels.sms.from_number) return toast.error('SMS from number is required');
+    const nextStageId = getNextStageIdByPipelineId(propertyConfig.pipeline_id, propertyConfig.stage_id);
+  
 
     // See if there is any existing automation running
     const automationQuery = query(collection(db, 'automations'), where('customer_id', '==', user?.id));
@@ -222,6 +259,9 @@ export default function AutomationsPage() {
     toast.loading('Starting property automation...', { id: 'property-job' });
     setIsJobRunning(true);
 
+    if(nextStageId) {
+      propertyConfig.next_stage_id = nextStageId;
+    }
     try {
       const createAutomationPayload = {
         ...propertyConfig,
@@ -332,7 +372,11 @@ export default function AutomationsPage() {
               <div><strong>Campaign Name:</strong> {automationData.campaign_payload.name}</div>
               <div><strong>SMS Message:</strong> {automationData.campaign_payload.channels.sms.message}</div>
               <div><strong>Days:</strong> {automationData.campaign_payload.days.join(', ')}</div>
-            </div>
+              {/* Created at so show total days running */}
+              <div><strong>Days Running:</strong> {automationData.started_at ? 
+                Math.ceil((Date.now() - automationData.started_at.seconds * 1000) / (1000 * 60 * 60 * 24)) : 'N/A'
+              } days</div>
+            </div> 
           </DataCard>
         )}
         {automationData && <p className="mt-2 text-sm text-gray-500 italic">
