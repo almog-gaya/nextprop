@@ -64,6 +64,9 @@ export default function RinglessVoicemailPage() {
   // Add a new state for tracking if filters have been applied
   const [filtersApplied, setFiltersApplied] = useState(false);
 
+  // Add back the search functionality
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (!user && !loading) {
       loadUser();
@@ -171,139 +174,89 @@ export default function RinglessVoicemailPage() {
       if (unsubscribe) unsubscribe();
     };
   }, []);
+
+  // Add useEffect to load initial pipeline stages
   useEffect(() => {
-    console.log('Initial fetch triggered');
-    fetchContacts(true);
-  }, []);
-
-  useEffect(() => {
-    if (searchQuery) {
-      console.log('Search query changed, resetting:', searchQuery);
-      setContacts([]);
-      setCurrentPage(1);
-      setTotalContacts(0);
-      fetchContacts(true);
-    } else {
-      setContacts([]);
-      setCurrentPage(1);
-      setTotalContacts(0);
-      fetchContacts(true);
-    }
-  }, [searchQuery]);
- 
-
-  const fetchContacts = async (reset = false) => {
-    if (isFetching) return;
-
-    try {
-      if (!selectedPipeline) {
-        console.log('No pipeline selected, skipping fetch');
-        return;
+    if (selectedPipeline) {
+      const selectedPipelineData = pipelines.find((p: any) => p.id === selectedPipeline);
+      if (selectedPipelineData) {
+        setPipelineStages(selectedPipelineData.stages || []);
       }
-
-      setIsFetching(true);
-
-      // Start from page 1 if reset, otherwise continue from currentPage (though we'll fetch all)
-      const initialPage = reset ? 1 : currentPage;
-
-      // Recursive helper function to fetch all pages
-      const fetchAllContacts = async (page: number, accumulatedContacts: any[] = []): Promise<any[]> => {
-        try {
-          // Only send parameters the API expects
-          const params = new URLSearchParams({
-            page: page.toString(),
-            type: 'pipeline',
-            pipelineId: selectedPipeline,
-            limit: CONTACTS_PER_PAGE.toString(),
-          });
-
-          // Only add stageId if one is selected and it's not 'all'
-          if (selectedStage && selectedStage !== 'all') {
-            params.append('stageId', selectedStage);
-          }
-
-          // Add search parameter only if it exists
-          if (searchQuery) {
-            params.append('name', searchQuery);
-          }
-
-          console.log('Fetching contacts with params:', params.toString());
-          const response = await axios.get(`/api/contacts/search?${params.toString()}`);
-          const newContacts = response.data.contacts || [];
-
-          const processedContacts = newContacts.map((contact: any) => ({
-            ...contact,
-            name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
-          }));
-
-          const updatedContacts = [...accumulatedContacts, ...processedContacts];
-
-          // If we got fewer contacts than the limit, we've reached the end
-          if (newContacts.length < CONTACTS_PER_PAGE) {
-            return updatedContacts; // Return all accumulated contacts
-          }
-
-          // Otherwise, fetch the next page recursively
-          return fetchAllContacts(page + 1, updatedContacts);
-        } catch (error) {
-          console.error(`Error fetching page ${page}:`, error);
-          // Return what we've collected so far instead of failing completely
-          return accumulatedContacts;
-        }
-      };
-
-      // Fetch all contacts starting from the initial page
-      const allContacts = await fetchAllContacts(initialPage);
-
-      // Update state with all contacts at once
-      setContacts(allContacts);
-      setTotalContacts(allContacts.length); // Use the length of fetched contacts, or use API's total if accurate
-      setCurrentPage(1); // Reset to 1 since we fetched everything
-      
-      // Only select all contacts if we actually found some
-      if (allContacts.length > 0) {
-        setSelectedContacts(allContacts);
-      } else {
-        setSelectedContacts([]);
-        toast.error('No contacts found for the selected pipeline');
-      }
-    } catch (error) {
-      console.error('Error fetching contacts:', error);
-      toast.error('Failed to load contacts');
-      setContacts([]);
-      setTotalContacts(0);
-    } finally {
-      setIsFetching(false);
     }
-  };
+  }, [selectedPipeline, pipelines]);
 
-  // Add effect to refetch contacts when pipeline changes
+  // The fetchContacts function from the merge can be kept for reference but we won't use it
+  
+  // Fix the useEffect that runs fetchContactsByStage by removing the filtersApplied check
   useEffect(() => {
-    setContacts([]);
-    setCurrentPage(1);
-    setTotalContacts(0);
-    fetchContacts(true);
-  }, [selectedPipeline]);
-
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleSearchChange = useCallback((value: string) => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+    // Only load contacts when a pipeline is selected
+    if (!selectedPipeline) {
+      return;
     }
     
-    searchTimeoutRef.current = setTimeout(() => {
-      setSearchQuery(value);
-    }, 300);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+    const loadContacts = async () => {
+      // Reset the state
+      setContacts([]);
+      setSelectedContacts([]);
+      setCurrentPage(1);
+      setTotalContacts(0);
+      
+      try {
+        // Display a loading toast
+        const loadingToast = toast.loading(
+          selectedStage && selectedStage !== 'all' 
+            ? `Loading contacts for stage ${getSelectedStageName()}...` 
+            : 'Loading all pipeline contacts...'
+        );
+        
+        // Fetch the appropriate contacts based on pipeline/stage selection
+        const fetchedContacts = await fetchContactsByStage(selectedPipeline, selectedStage);
+        
+        // Dismiss the loading toast
+        toast.dismiss(loadingToast);
+        
+        // Instead of client-side filtering, trust that the API now filters correctly
+        // Set the contacts directly from what the API returns
+        setContacts(fetchedContacts);
+        setTotalContacts(fetchedContacts.length);
+        
+        // If we didn't already set the stage count in fetchContactsByStage
+        if (selectedStage && selectedStage !== 'all' && !stageContactCount) {
+          setStageContactCount(fetchedContacts.length);
+        } else if (selectedStage === 'all' || !selectedStage) {
+          setStageContactCount(null);
+        }
+        
+        if (fetchedContacts.length > 0) {
+          // Pre-select all contacts by default
+          setSelectedContacts(fetchedContacts);
+          toast.success(`Loaded ${fetchedContacts.length} contacts successfully`);
+        } else {
+          toast.error('No contacts found for the selected criteria');
+        }
+      } catch (error) {
+        console.error('Error loading contacts:', error);
+        toast.error('Failed to load contacts');
       }
     };
-  }, []);
+    
+    loadContacts();
+  }, [selectedPipeline, selectedStage]);
+
+  // Update the handleApplyFilters function to force a refresh
+  const handleApplyFilters = () => {
+    console.log('Applying filters');
+    setFiltersApplied(true);
+    
+    // Force a re-fetch by toggling the selectedPipeline state
+    if (selectedPipeline) {
+      const currentPipeline = selectedPipeline;
+      setSelectedPipeline(null);
+      setTimeout(() => {
+        setSelectedPipeline(currentPipeline);
+      }, 50);
+    }
+  };
 
   async function fetchCampaigns() {
     setLoading(true);
@@ -734,69 +687,6 @@ export default function RinglessVoicemailPage() {
     setSelectedStage(stageId);
   };
 
-  const handleApplyFilters = () => {
-    console.log('Applying filters');
-    setFiltersApplied(true);
-  };
-
-  useEffect(() => {
-    const fetchPipelines = async () => {
-      try {
-        const response = await fetch('/api/pipelines');
-        if (!response.ok) {
-          throw new Error('Failed to fetch pipelines');
-        }
-        const data = await response.json();
-        const pipelinesArray = Array.isArray(data) ? data : Array.isArray(data.pipelines) ? data.pipelines : [];
-        setPipelines(pipelinesArray);
-
-        // Create a map to store stage counts
-        const stageCountsMap: Record<string, number> = {};
-        
-        // For each pipeline, fetch counts for all stages
-        for (const pipeline of pipelinesArray) {
-          for (const stage of (pipeline.stages || []) as any[]) {
-            try {
-              const count = await fetchStageContacts(pipeline.id, stage.id);
-              stageCountsMap[stage.id] = count;
-            } catch (error) {
-              console.error(`Error fetching count for stage ${stage.id}:`, error);
-              stageCountsMap[stage.id] = 0;
-            }
-          }
-        }
-        
-        // Update stage counts state
-        setTotalLeadsByStage(stageCountsMap);
-        
-        // Calculate pipeline totals
-        const pipelineTotals: Record<string, number> = {};
-        for (const pipeline of pipelinesArray) {
-          const pipelineTotal = (pipeline.stages || []).reduce((total: number, stage: { id: string }) => {
-            return total + (stageCountsMap[stage.id] || 0);
-          }, 0);
-          pipelineTotals[pipeline.id] = pipelineTotal;
-        }
-        
-        // Update pipeline totals state
-        setTotalLeadsByPipeline(pipelineTotals);
-
-        // If a pipeline is selected, initialize its stages
-        if (selectedPipeline) {
-          const selectedPipelineData = pipelinesArray.find((p: any) => p.id === selectedPipeline);
-          if (selectedPipelineData) {
-            setPipelineStages(selectedPipelineData.stages || []);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching pipelines:', error);
-        toast.error('Failed to load pipelines');
-        setPipelines([]);
-      }
-    };
-    fetchPipelines();
-  }, []);
-
   // Add this function to get the stage name
   const getSelectedStageName = () => {
     if (!selectedStage || selectedStage === 'all') return null;
@@ -966,66 +856,6 @@ export default function RinglessVoicemailPage() {
     }
   };
 
-  // Update the useEffect that loads contacts to remove redundant client-side filtering
-  useEffect(() => {
-    // Only load contacts when filters have been explicitly applied
-    if (!filtersApplied) {
-      return;
-    }
-    
-    const loadContacts = async () => {
-      // Reset the state
-      setContacts([]);
-      setSelectedContacts([]);
-      setCurrentPage(1);
-      setTotalContacts(0);
-      
-      if (!selectedPipeline) {
-        return;
-      }
-      
-      try {
-        // Display a loading toast
-        const loadingToast = toast.loading(
-          selectedStage && selectedStage !== 'all' 
-            ? `Loading contacts for stage ${getSelectedStageName()}...` 
-            : 'Loading all pipeline contacts...'
-        );
-        
-        // Fetch the appropriate contacts based on pipeline/stage selection
-        const fetchedContacts = await fetchContactsByStage(selectedPipeline, selectedStage);
-        
-        // Dismiss the loading toast
-        toast.dismiss(loadingToast);
-        
-        // Instead of client-side filtering, trust that the API now filters correctly
-        // Set the contacts directly from what the API returns
-        setContacts(fetchedContacts);
-        setTotalContacts(fetchedContacts.length);
-        
-        // If we didn't already set the stage count in fetchContactsByStage
-        if (selectedStage && selectedStage !== 'all' && !stageContactCount) {
-          setStageContactCount(fetchedContacts.length);
-        } else if (selectedStage === 'all' || !selectedStage) {
-          setStageContactCount(null);
-        }
-        
-        if (fetchedContacts.length > 0) {
-          // Pre-select all contacts by default
-          setSelectedContacts(fetchedContacts);
-          toast.success(`Loaded ${fetchedContacts.length} contacts successfully`);
-        } else {
-          toast.error('No contacts found for the selected criteria');
-        }
-      } catch (error) {
-        console.error('Error loading contacts:', error);
-        toast.error('Failed to load contacts');
-      }
-    };
-    
-    loadContacts();
-  }, [selectedPipeline, selectedStage, filtersApplied]);
-
   // Ensure type definition for stageInfo
   // Add this function to analyze and display stage distribution of contacts
   const analyzeContactStages = (contacts: any[]) => {
@@ -1070,6 +900,86 @@ export default function RinglessVoicemailPage() {
       stageInfos
     };
   };
+
+  // Add back the search functionality
+  const handleSearchChange = useCallback((value: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearchQuery(value);
+      
+      // Force a refresh with the search term
+      if (selectedPipeline) {
+        const currentPipeline = selectedPipeline;
+        setSelectedPipeline(null);
+        setTimeout(() => {
+          setSelectedPipeline(currentPipeline);
+        }, 50);
+      }
+    }, 300);
+  }, [selectedPipeline]);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Add back the useEffect that loads pipelines
+  useEffect(() => {
+    const fetchPipelines = async () => {
+      try {
+        const response = await fetch('/api/pipelines');
+        if (!response.ok) {
+          throw new Error('Failed to fetch pipelines');
+        }
+        const data = await response.json();
+        const pipelinesArray = Array.isArray(data) ? data : Array.isArray(data.pipelines) ? data.pipelines : [];
+        setPipelines(pipelinesArray);
+
+        // Create a map to store stage counts
+        const stageCountsMap: Record<string, number> = {};
+        
+        // For each pipeline, fetch counts for all stages
+        for (const pipeline of pipelinesArray) {
+          for (const stage of (pipeline.stages || []) as any[]) {
+            try {
+              const count = await fetchStageContacts(pipeline.id, stage.id);
+              stageCountsMap[stage.id] = count;
+            } catch (error) {
+              console.error(`Error fetching count for stage ${stage.id}:`, error);
+              stageCountsMap[stage.id] = 0;
+            }
+          }
+        }
+        
+        // Update stage counts state
+        setTotalLeadsByStage(stageCountsMap);
+        
+        // Calculate pipeline totals
+        const pipelineTotals: Record<string, number> = {};
+        for (const pipeline of pipelinesArray) {
+          const pipelineTotal = (pipeline.stages || []).reduce((total: number, stage: { id: string }) => {
+            return total + (stageCountsMap[stage.id] || 0);
+          }, 0);
+          pipelineTotals[pipeline.id] = pipelineTotal;
+        }
+        
+        // Update pipeline totals state
+        setTotalLeadsByPipeline(pipelineTotals);
+      } catch (error) {
+        console.error('Error fetching pipelines:', error);
+        toast.error('Failed to load pipelines');
+        setPipelines([]);
+      }
+    };
+    
+    fetchPipelines();
+  }, []);
 
   return (
     <DashboardLayout title="Ringless Voicemails">
