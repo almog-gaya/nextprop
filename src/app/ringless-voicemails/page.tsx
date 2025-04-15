@@ -454,12 +454,12 @@ export default function RinglessVoicemailPage() {
         const opportunities = contact.opportunities || [];
         const pipeline = opportunities.find((p: any) => p.pipelineId === selectedPipeline);
         const opportunityId = pipeline?.id;
-        const currentStageId = pipeline.pipelineStageId;
+        const currentStageId = pipeline?.pipelineStageId;
         const pipelineId = pipeline?.pipelineId;
         const nextPipelineId = getNextStageIdByPipelineId(pipelineId, currentStageId);
         
         let pipelineInfo = {};
-        /// add only if we have nextPipeline id otherwise dont include 
+        // add only if we have nextPipeline id otherwise dont include 
         if (nextPipelineId) {
           pipelineInfo = {
             pipeline_id: pipelineId,
@@ -467,7 +467,8 @@ export default function RinglessVoicemailPage() {
             next_pipeline_stage_id: nextPipelineId,
           };
         }
-        return ({
+        
+        return {
           phone_number: contact.phone,
           first_name: contact.firstName || contact.contactName || 'Unknown',
           street_name: contact.address1 || contact.street || 'your area',
@@ -475,20 +476,20 @@ export default function RinglessVoicemailPage() {
           state: contact.state,
           country: contact.country,
           postalCode: contact.postalCode,
-          /// add only if we have nextPipeline id otherwise dont include
+          // add only if we have nextPipeline id otherwise dont include
           ...pipelineInfo,
-        });
+        };
       });
-      /// delete null values
+      
+      // delete null values
       for (let i = 0; i < formattedContacts.length; i++) {
-        for (let key in formattedContacts[i]) {
-          if (formattedContacts[i][key] === null || formattedContacts[i][key] === undefined) {
-            delete formattedContacts[i][key];
+        const contact = formattedContacts[i] as Record<string, any>;
+        for (let key in contact) {
+          if (contact[key] === null || contact[key] === undefined) {
+            delete contact[key];
           }
-        });
-        
-        return contactData;
-      });
+        }
+      }
 
       const campaignPayload = {
         'customer_id': user?.locationId,
@@ -703,6 +704,16 @@ export default function RinglessVoicemailPage() {
     setSelectedPipeline(pipelineId);
   };
 
+  // Add these two missing function declarations after the handlePipelineChange function
+  const handleStageChange = (stageId: string) => {
+    console.log('Stage changed to:', stageId);
+    setSelectedStage(stageId);
+  };
+
+  const handleApplyFilters = () => {
+    console.log('Applying filters');
+    setFiltersApplied(true);
+  };
 
   useEffect(() => {
     const fetchPipelines = async () => {
@@ -720,7 +731,7 @@ export default function RinglessVoicemailPage() {
         
         // For each pipeline, fetch counts for all stages
         for (const pipeline of pipelinesArray) {
-          for (const stage of (pipeline.stages || [])) {
+          for (const stage of (pipeline.stages || []) as any[]) {
             try {
               const count = await fetchStageContacts(pipeline.id, stage.id);
               stageCountsMap[stage.id] = count;
@@ -737,7 +748,7 @@ export default function RinglessVoicemailPage() {
         // Calculate pipeline totals
         const pipelineTotals: Record<string, number> = {};
         for (const pipeline of pipelinesArray) {
-          const pipelineTotal = (pipeline.stages || []).reduce((total: number, stage: any) => {
+          const pipelineTotal = (pipeline.stages || []).reduce((total: number, stage: { id: string }) => {
             return total + (stageCountsMap[stage.id] || 0);
           }, 0);
           pipelineTotals[pipeline.id] = pipelineTotal;
