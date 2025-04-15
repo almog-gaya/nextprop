@@ -12,7 +12,8 @@ interface ContactSelectorProps {
   onToggleContact: (contact: any) => void;
   onClearSelected: () => void;
   onOpenBulkUpload: () => void;
-  loaderRef: React.RefObject<HTMLLIElement>;
+  loaderRef: React.RefObject<HTMLLIElement | null>;
+  stageName?: string | null;
 }
 
 function ContactSelector({
@@ -27,6 +28,7 @@ function ContactSelector({
   onClearSelected,
   onOpenBulkUpload,
   loaderRef,
+  stageName = null,
 }: ContactSelectorProps) {
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,7 +97,10 @@ function ContactSelector({
       </div>
 
       <div className="mt-6">
-        <h5 className="text-sm font-medium text-gray-700 mb-3">Available Contacts ({contacts.length})</h5>
+        <h5 className="text-sm font-medium text-gray-700 mb-3">
+          Available Contacts ({contacts.length})
+          {stageName && <span className="ml-2 text-purple-600 font-medium">in {stageName}</span>}
+        </h5>
         <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto bg-white shadow-inner">
           <ul className="divide-y divide-gray-200">
             {isSearching ? (
@@ -103,7 +108,7 @@ function ContactSelector({
             ) : contacts.length > 0 ? (
               contacts.map((contact) => {
                 const isSelected = selectedContacts.some((c) => c.id === contact.id);
-                const contactName = `${contact.firstName || contact.contactName || 'Unnamed'} ${contact.lastName || ''}`.trim();
+                const contactName = contact.name || `${contact.firstName || contact.contactName || 'Unnamed'} ${contact.lastName || ''}`.trim();
                 return (
                   <li
                     key={contact.id}
@@ -112,7 +117,17 @@ function ContactSelector({
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{contactName}</p>
-                      <p className="text-xs text-gray-500 truncate">{contact.phone || 'No phone'}</p>
+                      {contact.fullAddress && (
+                        <p className="text-xs text-gray-600 truncate">{contact.fullAddress}</p>
+                      )}
+                      <div className="flex items-center mt-1">
+                        <p className="text-xs text-gray-500 truncate">{contact.phone || 'No phone'}</p>
+                        {contact.value && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full">
+                            {contact.value}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="relative">
                       <input
@@ -165,7 +180,7 @@ function ContactSelector({
                   key={contact.id}
                   className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 shadow-sm"
                 >
-                  {contact.firstName || contact.contactName || contact.phone}
+                  {contact.name || contact.firstName || contact.contactName || contact.phone || 'Unknown Contact'}
                 </span>
               ))}
             </div>
