@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, PhoneNumber } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -12,7 +12,7 @@ export default function ManualVoicemailPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [phoneNumbers, setPhoneNumbers] = useState([]);
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [script, setScript] = useState('');
@@ -41,22 +41,37 @@ export default function ManualVoicemailPage() {
     fetchPhoneNumbers();
     fetchVoiceClones();
   }, [user]);
-  async function fetchVoiceClones() {
+  const fetchVoiceClones = async () => {
     try {
+      console.log('Fetching voice clones from API...');
       const response = await axios.get('/api/voicemail/voice-clones');
+      console.log('Voice clones response:', response.status, Array.isArray(response.data) ? `${response.data.length} clones` : 'not an array');
+      
+      if (!Array.isArray(response.data) || response.data.length === 0) {
+        throw new Error('Invalid voice clones data received');
+      }
+      
       setVoiceClones(response.data);
     } catch (error) {
       console.error('Error fetching voice clones:', error);
-      toast.error('Failed to load voice clones');
+      toast.error('Failed to load voice clones from API, using defaults');
+      
+      // Extended default voice clones for better fallback
       const defaultVoiceClones = [
         { id: "61EQ2khjAy41AXCqUSSS", name: "Cecilia" },
         { id: "Es45QkMNPudcZKVRZWPs", name: "Rey" },
-        { id: "dodUUtwsqo09HrH2RO8w", name: "Default Voice" }
+        { id: "dodUUtwsqo09HrH2RO8w", name: "Default Voice" },
+        { id: "K7XqnwwwTHI4FWb3hMcg", name: "American Male" },
+        { id: "V2cH3WvRQzV5hpEkPfj8", name: "American Female" },
+        { id: "xPALbbfCplcfXEJeWcN2", name: "British Male" },
+        { id: "rT9Ym8OzjlQcAgRoWfDd", name: "British Female" },
+        { id: "9nK41b6vClYnAqCaSSFL", name: "Australian Male" },
+        { id: "E4Nt6X9aOzHg1Vev7KTL", name: "Australian Female" }
       ];
       setVoiceClones(defaultVoiceClones);
     }
-  }
-  const handleSubmit = async (e) => {
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!recipientPhone.trim()) {

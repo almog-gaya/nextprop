@@ -259,30 +259,15 @@ export default function RinglessVoicemailPage() {
 
   async function fetchVoiceClones() {
     try {
-      console.log('Fetching voice clones from API...');
       const response = await axios.get('/api/voicemail/voice-clones');
-      console.log('Voice clones response:', response.status, Array.isArray(response.data) ? `${response.data.length} clones` : 'not an array');
-      
-      if (!Array.isArray(response.data) || response.data.length === 0) {
-        throw new Error('Invalid voice clones data received');
-      }
-      
       setVoiceClones(response.data);
     } catch (error) {
       console.error('Error fetching voice clones:', error);
-      toast.error('Failed to load voice clones from API, using defaults');
-      
-      // Extended default voice clones for better fallback
+      toast.error('Failed to load voice clones');
       const defaultVoiceClones = [
         { id: "61EQ2khjAy41AXCqUSSS", name: "Cecilia" },
         { id: "Es45QkMNPudcZKVRZWPs", name: "Rey" },
-        { id: "dodUUtwsqo09HrH2RO8w", name: "Default Voice" },
-        { id: "K7XqnwwwTHI4FWb3hMcg", name: "American Male" },
-        { id: "V2cH3WvRQzV5hpEkPfj8", name: "American Female" },
-        { id: "xPALbbfCplcfXEJeWcN2", name: "British Male" },
-        { id: "rT9Ym8OzjlQcAgRoWfDd", name: "British Female" },
-        { id: "9nK41b6vClYnAqCaSSFL", name: "Australian Male" },
-        { id: "E4Nt6X9aOzHg1Vev7KTL", name: "Australian Female" }
+        { id: "dodUUtwsqo09HrH2RO8w", name: "Default Voice" }
       ];
       setVoiceClones(defaultVoiceClones);
     }
@@ -365,7 +350,6 @@ export default function RinglessVoicemailPage() {
         const contactData: Record<string, any> = {
           phone_number: contact.phone,
           first_name: contact.firstName || contact.contactName || 'Unknown',
-          name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.contactName || 'Unknown',
           street_name: contact.address1 || contact.street || 'your area',
           city: contact.city,
           state: contact.state,
@@ -557,8 +541,6 @@ export default function RinglessVoicemailPage() {
   const handlePipelineChange = (pipelineId: string) => {
     console.log('Pipeline changed to:', pipelineId);
     setSelectedPipeline(pipelineId);
-    // Reset stage selection when pipeline changes
-    setSelectedStage('all');
     // Reset filtersApplied when changing pipeline
     setFiltersApplied(false);
     
@@ -606,7 +588,7 @@ export default function RinglessVoicemailPage() {
       setTotalLeadsByStage(newCounts);
       
       // Calculate pipeline total
-      const pipelineTotal = stageCounts.reduce((sum, { count }) => sum + (count || 0), 0);
+      const pipelineTotal = stageCounts.reduce((sum, { count }) => sum + count, 0);
       setTotalLeadsByPipeline({ ...totalLeadsByPipeline, [pipelineId]: pipelineTotal });
       
       // Dismiss loading toast
@@ -618,11 +600,10 @@ export default function RinglessVoicemailPage() {
     }
   };
 
-  // Update handleStageChange to not auto-apply filters
+  // Update handleStageChange to use the data we already have
   const handleStageChange = (stageId: string) => {
-    console.log('Stage changed to:', stageId);
     setSelectedStage(stageId);
-    setFiltersApplied(false);
+    // Do not reset filters applied right away
     
     // Set stage count from our already fetched data
     if (stageId && stageId !== 'all' && totalLeadsByStage[stageId] !== undefined) {
@@ -632,8 +613,30 @@ export default function RinglessVoicemailPage() {
     }
   };
 
-  // Add handleApplyFilters function
-  const handleApplyFilters = () => {
+  // Add better error handling to fetchStageContacts
+  const fetchStageContacts = async (pipelineId: string, stageId: string) => {
+    console.log(`Fetching contact count for pipeline ${pipelineId}, stage ${stageId}`);
+    try {
+      const response = await fetch(`/api/pipelines/search?pipelineId=${pipelineId}&stageId=${stageId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stage ${stageId} for pipeline ${pipelineId}: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(`API error: ${data.message || 'Unknown error'}`);
+      }
+      
+      console.log(`Stage ${stageId} count:`, data.total || 0);
+      return data.total || 0;
+    } catch (error) {
+      console.error(`Error fetching stage ${stageId} contacts:`, error);
+      return 0; // Return 0 on error
+    }
+  };
+
+  // Add debugging to handleApplyFilters
+  const handleApplyFilters = async () => {
     console.log('Apply filters clicked. Pipeline:', selectedPipeline, 'Stage:', selectedStage);
     
     if (!selectedPipeline) {
@@ -650,6 +653,18 @@ export default function RinglessVoicemailPage() {
     
     console.log('Setting filtersApplied to true');
     setFiltersApplied(true);
+    
+    // If selecting a specific stage, immediately update the count
+    if (selectedStage && selectedStage !== 'all') {
+      try {
+        console.log('Fetching stage contact count for stage:', selectedStage);
+        const count = await fetchStageContacts(selectedPipeline, selectedStage);
+        console.log('Stage contact count:', count);
+        setStageContactCount(count);
+      } catch (error) {
+        console.error('Error fetching stage count:', error);
+      }
+    }
   };
 
   // Update the fetchPipelines function to properly store stage counts
@@ -719,29 +734,7 @@ export default function RinglessVoicemailPage() {
     return stage?.name || null;
   };
 
-  // Enhanced fetchStageContacts function with better error handling
-  const fetchStageContacts = async (pipelineId: string, stageId: string) => {
-    console.log(`Fetching contact count for pipeline ${pipelineId}, stage ${stageId}`);
-    try {
-      const response = await fetch(`/api/pipelines/search?pipelineId=${pipelineId}&stageId=${stageId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch stage ${stageId} for pipeline ${pipelineId}: ${response.status} ${response.statusText}`);
-      }
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(`API error: ${data.message || 'Unknown error'}`);
-      }
-      
-      console.log(`Stage ${stageId} count:`, data.total || 0);
-      return data.total || 0;
-    } catch (error) {
-      console.error(`Error fetching stage ${stageId} contacts:`, error);
-      return 0; // Return 0 on error
-    }
-  };
-
-  // Replace the fetchContactsByStage function with a new implementation that uses the pipelines/search endpoint
+  // Update the fetchContactsByStage function to add validation
   const fetchContactsByStage = async (pipelineId: string, stageId: string | null) => {
     if (!pipelineId) {
       console.error('No pipeline ID provided');
@@ -752,127 +745,174 @@ export default function RinglessVoicemailPage() {
     console.log('-------- NEW FETCH SESSION --------');
     console.log('Fetching contacts for pipeline:', pipelineId, 'stage:', stageId || 'all stages');
     
+    // Show additional debug info about the selected stage
+    if (stageId && stageId !== 'all' && totalLeadsByStage[stageId]) {
+      const stageName = getSelectedStageName() || stageId;
+      console.log(`Selected stage: ${stageName} (ID: ${stageId})`);
+      console.log(`Expected contacts in this stage: ${totalLeadsByStage[stageId]}`);
+    }
+    
+    // If we have an expected count for this stage, set it immediately to show the user
+    if (stageId && stageId !== 'all' && totalLeadsByStage[stageId]) {
+      setStageContactCount(totalLeadsByStage[stageId]);
+    }
+    
     try {
-      // Calculate number of pages to fetch based on expected count
-      const expectedCount = (stageId && stageId !== 'all' && totalLeadsByStage[stageId]) || 
-                            (selectedPipeline && totalLeadsByPipeline[selectedPipeline]) || 
-                            500;
-      const pageSize = 100; // Use a smaller page size for better reliability
+      // This will hold all contacts as we fetch them page by page
+      let allContacts: any[] = [];
+      
+      // Find pipeline info for logging
+      const selectedPipelineData = pipelines.find((p: any) => p.id === pipelineId);
+      const pipelineName = selectedPipelineData?.name || 'Unknown Pipeline';
+      console.log(`Selected pipeline: ${pipelineName} (ID: ${pipelineId})`);
+      
+      // The API seems to have a hard limit of 500 contacts per page
+      // We'll explicitly fetch multiple pages to get all contacts
+      const expectedCount = (stageId && stageId !== 'all' && totalLeadsByStage[stageId]) || 2000;
+      const pageSize = 500; // API seems to cap at 500 regardless of what we request
       const pagesToFetch = Math.ceil(expectedCount / pageSize);
       
       console.log(`Need to fetch ${pagesToFetch} pages to get all ${expectedCount} contacts`);
       setLoadingProgress({ current: 0, total: pagesToFetch });
       
-      // Hold all contacts from all pages
-      let allContacts: any[] = [];
+      // Fetch pages sequentially to avoid overloading the API and to show progress
+      let loadedContacts: any[] = [];
       
-      // Fetch each page of contacts
+      // Track all response data for debugging
+      const allResponses: any[] = [];
+      
       for (let page = 1; page <= pagesToFetch; page++) {
+        const queryParams: Record<string, string> = {
+          type: 'pipeline',
+          pipelineId: pipelineId,
+          limit: pageSize.toString(),
+          page: page.toString(),
+        };
+        
+        // Only add stageId if we're filtering by a specific stage
+        if (stageId && stageId !== 'all') {
+          queryParams.stageId = stageId;
+          console.log(`Including stageId ${stageId} in API request`);
+        } else {
+          console.log(`Not filtering by stage in API request (all stages)`);
+        }
+        
+        if (searchQuery) {
+          queryParams.search = searchQuery;
+        }
+        
+        const url = `/api/contacts/search?${new URLSearchParams(queryParams).toString()}`;
+        console.log(`Fetching page ${page} of ${pagesToFetch} from URL:`, url);
+        
         try {
-          console.log(`Fetching page ${page} of ${pagesToFetch}`);
-          
-          // Use the pipelines/search endpoint which is known to work
-          const url = `/api/pipelines/search?pipelineId=${pipelineId}${stageId && stageId !== 'all' ? `&stageId=${stageId}` : ''}&page=${page}&limit=${pageSize}`;
-          console.log(`Request URL: ${url}`);
-          
+          console.log(`Starting request to ${url}...`);
           const startTime = new Date().getTime();
-          const response = await fetch(url);
+          const response = await axios.get(url);
           const endTime = new Date().getTime();
           console.log(`Request completed in ${endTime - startTime}ms`);
           
-          if (!response.ok) {
-            throw new Error(`Failed to fetch contacts: ${response.status} ${response.statusText}`);
+          // Check if response has the expected structure
+          if (!response.data) {
+            console.error('API returned empty response');
+            throw new Error('Empty response from API');
           }
           
-          const data = await response.json();
-          console.log(`Response data:`, data);
+          // Log the response structure for debugging
+          console.log('Response data structure:', Object.keys(response.data));
           
-          if (data.error) {
-            throw new Error(`API error: ${data.message || 'Unknown error'}`);
+          allResponses.push(response.data);
+          
+          // Access contacts array from the response data
+          const pageContacts = response.data.contacts || [];
+          console.log(`Received ${pageContacts.length} contacts from page ${page}`);
+          
+          // Check for API errors
+          if (response.data.error) {
+            console.error('API returned an error:', response.data.error);
+            toast.error(`API error: ${response.data.error}`);
+            continue;
           }
           
-          // Get the opportunities from the response
-          const opportunities = data.opportunities || [];
-          console.log(`Received ${opportunities.length} opportunities from page ${page}`);
+          // Check if contacts have stage info
+          if (pageContacts.length > 0 && stageId && stageId !== 'all') {
+            // Log all contacts for debugging
+            console.log('All contacts from this page:', pageContacts);
+            
+            // Sample a few contacts to check their stage
+            const sampleSize = Math.min(5, pageContacts.length);
+            const sampleContacts = pageContacts.slice(0, sampleSize);
+            console.log('Sample contacts to verify stage:', sampleContacts.map((c: any) => ({
+              id: c.id,
+              name: c.firstName || c.contactName,
+              stageId: c.stageId || 'No stageId',
+              // Include any other relevant fields
+            })));
+          }
           
-          // Extract contacts from opportunities - IMPROVED VERSION
-          const pageContacts = opportunities
-            .filter((opp: any) => opp.contact) // Only include opportunities with contact data
-            .map((opp: any) => {
-              // Convert the opportunity's contact to our contact format
-              const contact = opp.contact;
-              
-              // Create a proper display name from the opportunity
-              const displayName = opp.name && opp.name !== 'Unnamed' ? opp.name : null;
-              
-              // Get address components
-              const address = [
-                contact.address1, 
-                contact.city ? contact.city + (contact.state ? ', ' + contact.state : '') : contact.state,
-                contact.postalCode
-              ].filter(Boolean).join(' ');
-              
-              // Create a formatted full name
-              const firstName = contact.firstName || '';
-              const lastName = contact.lastName || '';
-              const fullName = `${firstName} ${lastName}`.trim();
-              const contactName = fullName || (contact.contactName || '');
-              
-              return {
-                id: contact.id,
-                firstName: firstName,
-                lastName: lastName,
-                contactName: contactName.length > 0 ? contactName : 'Unnamed',
-                phone: contact.phone || '',
-                email: contact.email || '',
-                address1: contact.address1 || '',
-                city: contact.city || '',
-                state: contact.state || '',
-                postalCode: contact.postalCode || '',
-                stageId: opp.pipelineStageId, // Use the opportunity's stage ID
-                opportunityId: opp.id, // Keep track of the opportunity ID
-                // Use a better name hierarchy - opportunity name, then contact name, then phone
-                name: displayName || fullName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unnamed'),
-                // Add full address for display
-                fullAddress: address || '',
-                // Include opportunity data
-                value: opp.monetaryValue ? `$${opp.monetaryValue}` : '',
-                businessName: contact.company || '',
-                source: opp.source || '',
-                contact: contact, // Keep the original contact object for reference
-              };
-            });
+          // Process the contacts to add a name field
+          const processedContacts = pageContacts.map((contact: any) => ({
+            ...contact,
+            name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+          }));
           
-          console.log(`Extracted ${pageContacts.length} contacts with stage info`);
+          // Add to our collection
+          loadedContacts = [...loadedContacts, ...processedContacts];
           
-          // Add these contacts to our collection
-          allContacts = [...allContacts, ...pageContacts];
-          
-          // Update the UI
-          setContacts(allContacts);
-          setTotalContacts(data.total || allContacts.length);
+          // Update the contacts state to show progress
+          setContacts(loadedContacts);
           
           // Update progress
           setLoadingProgress({ current: page, total: pagesToFetch });
           
-          // If we have all contacts or the API indicates no more pages, stop fetching
-          if (!data.nextPage || opportunities.length < pageSize) {
-            console.log(`No more pages to fetch (got ${opportunities.length}, expected ${pageSize})`);
-            if (opportunities.length === 0) {
-              break;
+          // If we got fewer contacts than expected, we might have reached the end
+          if (pageContacts.length < pageSize) {
+            console.log(`Received fewer contacts than expected on page ${page}, might be at the end`);
+            // We'll still continue fetching other pages in case the API is inconsistent
+            if (page < pagesToFetch) {
+              // We can break early if we're clearly at the end
+              if (pageContacts.length === 0) {
+                console.log('Stopping early because we received 0 contacts');
+                break;
+              }
             }
           }
         } catch (error) {
           console.error(`Error fetching page ${page}:`, error);
-          // Continue to next page despite errors
         }
       }
       
-      console.log(`Successfully fetched ${allContacts.length} total contacts`);
+      // Set the final result
+      allContacts = loadedContacts;
+      
+      console.log(`Fetched ${allContacts.length} total contacts for ${stageId ? 'stage' : 'pipeline'}`);
+      
+      // Log summary of API responses to debug inconsistencies
+      console.log('API response summary:', allResponses.map(r => ({
+        total: r.total || 'unknown',
+        contacts: (r.contacts || []).length
+      })));
+      
+      // Also check the expected count if we're filtering by stage
+      if (stageId && stageId !== 'all' && totalLeadsByStage[stageId]) {
+        const expectedCount = totalLeadsByStage[stageId];
+        console.log(`Expected count for stage ${stageId}: ${expectedCount}`);
+        
+        // If we have significantly fewer contacts than expected, log a warning
+        if (allContacts.length < expectedCount * 0.9) {
+          console.warn(`Warning: Fetched only ${allContacts.length} contacts out of expected ${expectedCount}`);
+          toast.error(`Warning: Could only load ${allContacts.length} contacts out of expected ${expectedCount}. Some contacts may be missing.`);
+        }
+        
+        // If we have significantly more contacts than expected, that's suspicious
+        if (allContacts.length > expectedCount * 1.1) {
+          console.warn(`Warning: Fetched ${allContacts.length} contacts but only expected ${expectedCount}`);
+          toast.error(`Warning: Loaded ${allContacts.length} contacts, which is more than the expected ${expectedCount}. The API may not be filtering correctly.`);
+        }
+      }
+      
       return allContacts;
     } catch (error) {
       console.error('Error fetching contacts by stage:', error);
-      toast.error('Failed to load contacts: ' + (error instanceof Error ? error.message : 'Unknown error'));
       return [];
     } finally {
       setIsFetching(false);
@@ -940,8 +980,8 @@ export default function RinglessVoicemailPage() {
     loadContacts();
   }, [selectedPipeline, selectedStage, filtersApplied]);
 
-  // Ensure type definition for stageInfo
   // Add this function to analyze and display stage distribution of contacts
+  // This can help diagnose if the API is not filtering properly
   const analyzeContactStages = (contacts: any[]) => {
     if (!contacts || contacts.length === 0) return null;
     
