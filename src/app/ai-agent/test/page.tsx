@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ArrowPathIcon, PaperAirplaneIcon, ClipboardIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowPathIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import AIAgentConfig from '@/components/ai-agent/AIAgentConfig';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebaseConfig'; // Adjust path to your Firebase config
+import { db } from '@/lib/firebaseConfig';
 import { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
 import { useAuth } from '@/contexts/AuthContext';
+import MultiAgentSelector from '@/components/ai-agent/MultiAgentSelector';
 
-// Example scenarios to test the real estate agent
 const EXAMPLE_MESSAGES = [
   "Do I know you?",
   "I'm thinking of selling my house at 123 Main St, San Francisco. What do you think it's worth?",
@@ -22,94 +22,68 @@ const EXAMPLE_MESSAGES = [
   "What kind of properties are you looking for?"
 ];
 
-// Default buying criteria if needed
 const DEFAULT_BUYING_CRITERIA = "Properties between $500,000 and $2 million in the Bay Area, single-family homes, cosmetic rehabs only, no long-term projects";
 
 export default function AIAgentTestPage() {
   const [message, setMessage] = useState('');
-  const [response, setResponse] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [conversation, setConversation] = useState<{ text: string, isUser: boolean }[]>([]);
+  const [conversation, setConversation] = useState<{ text: string, isUser: boolean, isLoading?: boolean }[]>([]);
   const [agentConfig, setAgentConfig] = useState<AIAgentConfigType | null>(null);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
-  const {user} = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
+  const { user } = useAuth();
+  const conversationRef = useRef<HTMLDivElement>(null);
 
-  // Load agent config from Firestore
+  // Auto-scroll to bottom when conversation updates
+  useEffect(() => {
+    if (conversationRef.current) {
+      conversationRef.current.scrollTo({
+        top: conversationRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [conversation]);
+
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        // Replace 'userId' with actual user ID (e.g., from auth context)
-        const userId =user?.locationId;
-        if (!userId) {
-          throw new Error('User ID is missing');
-        }
+        const userId = user?.locationId;
+        if (!userId) throw new Error('User ID is missing');
+        
         const configRef = doc(db, 'ai-agent-configs', userId);
         const docSnap = await getDoc(configRef);
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setAgentConfig({
-            isEnabled: data.isEnabled ?? true,
-            enabledPipelines: Array.isArray(data.enabledPipelines) ? data.enabledPipelines : [],
-            tone: data.tone || 'friendly',
-            length: data.length || 'medium',
-            customInstructions: data.customInstructions || '',
-            updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
-            agentName: data.agentName || 'Jane Smith',
-            speakingOnBehalfOf: data.speakingOnBehalfOf || '',
-            contactPhone: data.contactPhone || '',
-            contactEmail: data.contactEmail || '',
-            buyingCriteria: data.buyingCriteria || DEFAULT_BUYING_CRITERIA,
-            dealObjective: data.dealObjective || 'creative-finance',
-          });
-        } else {
-          // Default config if no document exists
-          setAgentConfig({
-            isEnabled: true,
-            enabledPipelines: [],
-            tone: 'friendly',
-            length: 'medium',
-            customInstructions: '',
-            updatedAt: new Date(),
-            agentName: 'Jane Smith',
-            speakingOnBehalfOf: '',
-            contactPhone: '',
-            contactEmail: '',
-            buyingCriteria: DEFAULT_BUYING_CRITERIA,
-            dealObjective: 'creative-finance',
-          });
-        }
-      } catch (error) {
-        console.error('Error loading agent config from Firestore:', error);
-        setError('Failed to load agent configuration');
-        // Fallback to default config
-        setAgentConfig({
-          agentName: 'Jane Smith',
+        const defaultConfig = {
           isEnabled: true,
           enabledPipelines: [],
           tone: 'friendly',
           length: 'medium',
           customInstructions: '',
           updatedAt: new Date(),
+          agentName: 'Jane Smith',
           speakingOnBehalfOf: '',
           contactPhone: '',
           contactEmail: '',
           buyingCriteria: DEFAULT_BUYING_CRITERIA,
           dealObjective: 'creative-finance',
-        });
+        };
+
+        setAgentConfig(docSnap.exists() ? { ...defaultConfig, ...docSnap.data() } : defaultConfig);
+      } catch (error) {
+        console.error('Error loading agent config:', error);
+        setError('Failed to load agent configuration');
       } finally {
         setIsConfigLoading(false);
       }
     };
 
     loadConfig();
-  }, []);
+  }, [user?.locationId]);
 
-  // Listen for config changes from AIAgentConfig component
   useEffect(() => {
     const handleConfigChange = () => {
-      loadConfig(); // Reload config when it changes
+      setIsConfigLoading(true);
+      loadConfig();
     };
 
     window.addEventListener('ai-agent-config-changed', handleConfigChange);
@@ -117,95 +91,85 @@ export default function AIAgentTestPage() {
   }, []);
 
   const loadConfig = async () => {
-    const userId = 'default-user-id'; // Replace with actual user ID
-    const configRef = doc(db, 'ai-agent-configs', userId);
-    const docSnap = await getDoc(configRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      setAgentConfig({
-        isEnabled: data.isEnabled ?? true,
-        enabledPipelines: Array.isArray(data.enabledPipelines) ? data.enabledPipelines : [],
-        tone: data.tone || 'friendly',
-        length: data.length || 'medium',
-        customInstructions: data.customInstructions || '',
-        updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
-        agentName: data.agentName || 'Jane Smith',
-        speakingOnBehalfOf: data.speakingOnBehalfOf || '',
-        contactPhone: data.contactPhone || '',
-        contactEmail: data.contactEmail || '',
-        buyingCriteria: data.buyingCriteria || DEFAULT_BUYING_CRITERIA,
-        dealObjective: data.dealObjective || 'creative-finance',
-      });
+    try {
+      const userId = user?.locationId || 'default-user-id';
+      const configRef = doc(db, 'ai-agent-configs', userId);
+      const docSnap = await getDoc(configRef);
+
+      const defaultConfig = {
+        isEnabled: true,
+        enabledPipelines: [],
+        tone: 'friendly',
+        length: 'medium',
+        customInstructions: '',
+        updatedAt: new Date(),
+        agentName: 'Jane Smith',
+        speakingOnBehalfOf: '',
+        contactPhone: '',
+        contactEmail: '',
+        buyingCriteria: DEFAULT_BUYING_CRITERIA,
+        dealObjective: 'creative-finance',
+      };
+
+      setAgentConfig(docSnap.exists() ? { ...defaultConfig, ...docSnap.data() } : defaultConfig);
+    } catch (error) {
+      console.error('Error reloading agent config:', error);
+      setError('Failed to reload agent configuration');
+    } finally {
+      setIsConfigLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!message.trim() || !agentConfig || isSending) return;
 
-    if (!message.trim() || !agentConfig) {
-      return;
-    }
-
-    const updatedConversation = [...conversation, { text: message, isUser: true }];
-    setConversation(updatedConversation);
-
-    setLoading(true);
+    const newUserMessage = { text: message, isUser: true };
+    const tempBotMessage = { text: 'Processing...', isUser: false, isLoading: true };
+    setConversation([...conversation, newUserMessage, tempBotMessage]);
+    setMessage('');
+    setIsSending(true);
     setError(null);
 
     try {
       const res = await fetch('/api/ai-agent/test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
-          history: updatedConversation,
-          agentConfig // Send full config to API if needed
+          history: [...conversation, newUserMessage],
+          locationId: user?.locationId,
+          agentConfig,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        console.error('API error response:', data);
-        throw new Error(
-          data.error ||
-          data.details ||
-          data.message ||
-          `API error: ${res.status} ${res.statusText}`
-        );
+        throw new Error(data.error || data.details || data.message || 'API error');
       }
 
-      if (!data.isEnabled) {
-        setError('AI Agent is disabled. Please enable it in the settings above.');
-        setResponse(null);
-      } else if (!data.response) {
-        setError('No response received from the AI agent. Please check your API key.');
-        console.error('Missing response in API data:', data);
-      } else {
-        setResponse(data.response);
-        setConversation([...updatedConversation, { text: data.response, isUser: false }]);
+      if (!data.message) {
+        throw new Error('No response received from the AI agent');
       }
+
+      setConversation(prev => [
+        ...prev.slice(0, -1),
+        { text: data.message, isUser: false }
+      ]);
     } catch (err) {
       console.error('Error testing AI agent:', err);
-      let errorMessage = 'Failed to test AI agent';
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      setError(errorMessage);
-      setResponse(null);
+      setError(err instanceof Error ? err.message : 'Failed to test AI agent');
+      setConversation(prev => prev.slice(0, -1));
     } finally {
-      setLoading(false);
-      setMessage('');
+      setIsSending(false);
     }
   };
 
   const handleReset = () => {
     setMessage('');
-    setResponse(null);
-    setError(null);
     setConversation([]);
+    setError(null);
   };
 
   const handleExampleClick = (example: string) => {
@@ -224,14 +188,11 @@ export default function AIAgentTestPage() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <h1 className="text-3xl font-bold mb-8 text-center">AI Agent Tester</h1>
 
-      {/* AI Agent Configuration Component */}
-      <AIAgentConfig />
+      <MultiAgentSelector onAgentSelect={() => {}} showAddAgent={false} />
 
-      {/* Test Area */}
       <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold mb-4">Test {agentConfig.agentName} - Real Estate Agent</h2>
 
-        {/* Example Messages */}
         <div className="mb-6">
           <h3 className="text-md font-medium mb-2">Example Messages:</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -247,9 +208,11 @@ export default function AIAgentTestPage() {
           </div>
         </div>
 
-        {/* Conversation History */}
         {conversation.length > 0 && (
-          <div className="mb-6 p-4 border border-gray-200 rounded-lg max-h-80 overflow-y-auto">
+          <div 
+            ref={conversationRef}
+            className="mb-6 p-4 border border-gray-200 rounded-lg max-h-80 overflow-y-auto"
+          >
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-md font-medium">Conversation:</h3>
               <button
@@ -262,11 +225,10 @@ export default function AIAgentTestPage() {
             {conversation.map((msg, index) => (
               <div
                 key={index}
-                className={`mb-3 p-3 rounded-lg ${
-                  msg.isUser
-                    ? 'bg-purple-50 border-purple-100 ml-8'
-                    : 'bg-gray-50 border-gray-100 mr-8'
-                }`}
+                className={`mb-3 p-3 rounded-lg ${msg.isUser
+                  ? 'bg-purple-50 border-purple-100 ml-8'
+                  : 'bg-gray-50 border-gray-100 mr-8'
+                } ${msg.isLoading ? 'animate-pulse' : ''}`}
               >
                 <div className="flex items-start">
                   <div className="mr-2 font-semibold">
@@ -297,13 +259,13 @@ export default function AIAgentTestPage() {
           <div className="flex space-x-2">
             <button
               type="submit"
-              disabled={loading || !message.trim() || !agentConfig.isEnabled}
+              disabled={isSending || !message.trim() || !agentConfig.isEnabled}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
-              {loading ? (
+              {isSending ? (
                 <>
                   <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
+                  Sending...
                 </>
               ) : (
                 <>

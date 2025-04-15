@@ -391,12 +391,26 @@ export default function PropertiesPage() {
       const properties: ZillowProperty[] = (results || []).map((result = {}) => {
         const priceValue = result.price || {};
         const mainHouseInfo = result.mainHouseInfo || {};
+        const amenitiesInfo = result.amenitiesInfo || {}; 
+
         const photos = result.mediaBrowserInfo.photos || [];
         const publicRecords = result.publicRecordsInfo?.latestListingInfo || {};
         const listingAgents = Array.isArray(mainHouseInfo.listingAgents) ? mainHouseInfo.listingAgents : [];
         const listingAgent = listingAgents[0]?.agentInfo || {};
         const listingBroker = listingAgents[0] || {};
         const propertyAddress = mainHouseInfo.propertyAddress || {};
+
+        // mls_disclaimer_info = amenities_info.get("mlsDisclaimerInfo", {})
+        // mls_listing_agent_name = mls_disclaimer_info.get("listingAgentName")
+        // mls_listing_agent_phone = mls_disclaimer_info.get("listingAgentNumber")
+        // mls_listing_broker_name = mls_disclaimer_info.get("listingBrokerName")
+        // mls_listing_broker_phone = mls_disclaimer_info.get("listingBrokerNumber")
+
+        const mlsDisclaimerInfo = amenitiesInfo?.mlsDisclaimerInfo;
+        const mlsListingAgentName = mlsDisclaimerInfo?.listingAgentName || null;
+        const mlsListingAgentPhone = mlsDisclaimerInfo?.listingAgentNumber || null;
+        const mlsListingBrokerName = mlsDisclaimerInfo?.listingBrokerName || null;
+        const mlsListingBrokerPhone = mlsDisclaimerInfo?.listingBrokerNumber || null;
 
         // Safely construct street address from propertyAddress components
         const streetComponents = [
@@ -414,10 +428,10 @@ export default function PropertiesPage() {
         const stateZip = (addressParts[2] || '').split(' ').filter(Boolean);
 
         return {
-          agentName: listingAgent.agentName ?? null,
-          agentPhoneNumber: listingBroker.agentPhoneNumber?.phoneNumber ?? null,
-          brokerName: listingBroker.brokerName ?? null,
-          brokerPhoneNumber: listingBroker.brokerPhoneNumber?.phoneNumber ?? null,
+          agentName: mlsListingAgentName ?? listingAgent.agentName ?? null,
+          agentPhoneNumber: mlsListingAgentPhone ?? listingBroker.agentPhoneNumber?.phoneNumber ?? null,
+          brokerName: mlsListingBrokerName ?? listingBroker.brokerName ?? null,
+          brokerPhoneNumber: mlsListingBrokerPhone ?? listingBroker.brokerPhoneNumber?.phoneNumber ?? null,
           agentEmail: listingBroker.agentEmailAddress ?? null,
           brokerEmail: listingBroker.brokerEmailAddress ?? null,
           homeType: publicRecords.propertyTypeName ?? null,

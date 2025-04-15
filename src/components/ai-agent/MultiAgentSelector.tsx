@@ -29,9 +29,10 @@ const getIconComponent = (iconName?: string) => {
 
 interface MultiAgentSelectorProps {
   onAgentSelect: (agentId: string) => void;
+  showAddAgent: boolean;
 }
 
-export default function MultiAgentSelector({ onAgentSelect }: MultiAgentSelectorProps) {
+export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: MultiAgentSelectorProps) {
   const { user } = useAuth();
   const [config, setConfig] = useState<MultiAgentConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -198,7 +199,7 @@ export default function MultiAgentSelector({ onAgentSelect }: MultiAgentSelector
           ))}
           
           {/* Add agent button */}
-          {(!config || Object.keys(config.agents).length < 3) && (
+          {(showAddAgent && (!config || Object.keys(config.agents).length < 3)) && (
             <button
               className="flex items-center gap-2 px-4 py-2 rounded-md bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-primary)] hover:bg-[var(--nextprop-primary-light)]/10 border border-dashed border-[var(--nextprop-border)]"
               onClick={() => setShowTemplates(true)}

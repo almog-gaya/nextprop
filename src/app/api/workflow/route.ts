@@ -84,7 +84,7 @@ export async function PUT(request: Request) {
                     "order": 0,
                     "attributes": {
                         "method": "POST",
-                        "url": "https://webhook-test.com/91ba3975ddffea44081cace038b0aab2",
+                        "url": "https://receivewebhook-vhkdzfr2sq-uc.a.run.app",
                         "customData": [],
                         "headers": []
                     },
