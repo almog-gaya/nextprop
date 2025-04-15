@@ -208,33 +208,48 @@ export default function RinglessVoicemailPage() {
 
       // Recursive helper function to fetch all pages
       const fetchAllContacts = async (page: number, accumulatedContacts: any[] = []): Promise<any[]> => {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          type: 'pipeline',
-          pipelineName: pipelines.find((p) => p.id === selectedPipeline)?.name || '',
-          pipelineId: selectedPipeline,
-          limit: CONTACTS_PER_PAGE.toString(),
-          ...(searchQuery && { search: searchQuery }),
-        });
+        try {
+          // Only send parameters the API expects
+          const params = new URLSearchParams({
+            page: page.toString(),
+            type: 'pipeline',
+            pipelineId: selectedPipeline,
+            limit: CONTACTS_PER_PAGE.toString(),
+          });
 
-        console.log('Fetching contacts with params:', params.toString());
-        const response = await axios.get(`/api/contacts/search?${params.toString()}`);
-        const newContacts = response.data.contacts || [];
+          // Only add stageId if one is selected and it's not 'all'
+          if (selectedStage && selectedStage !== 'all') {
+            params.append('stageId', selectedStage);
+          }
 
-        const processedContacts = newContacts.map((contact: any) => ({
-          ...contact,
-          name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
-        }));
+          // Add search parameter only if it exists
+          if (searchQuery) {
+            params.append('name', searchQuery);
+          }
 
-        const updatedContacts = [...accumulatedContacts, ...processedContacts];
+          console.log('Fetching contacts with params:', params.toString());
+          const response = await axios.get(`/api/contacts/search?${params.toString()}`);
+          const newContacts = response.data.contacts || [];
 
-        // If we got fewer contacts than the limit, we've reached the end
-        if (newContacts.length < CONTACTS_PER_PAGE) {
-          return updatedContacts; // Return all accumulated contacts
+          const processedContacts = newContacts.map((contact: any) => ({
+            ...contact,
+            name: contact.contactName || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+          }));
+
+          const updatedContacts = [...accumulatedContacts, ...processedContacts];
+
+          // If we got fewer contacts than the limit, we've reached the end
+          if (newContacts.length < CONTACTS_PER_PAGE) {
+            return updatedContacts; // Return all accumulated contacts
+          }
+
+          // Otherwise, fetch the next page recursively
+          return fetchAllContacts(page + 1, updatedContacts);
+        } catch (error) {
+          console.error(`Error fetching page ${page}:`, error);
+          // Return what we've collected so far instead of failing completely
+          return accumulatedContacts;
         }
-
-        // Otherwise, fetch the next page recursively
-        return fetchAllContacts(page + 1, updatedContacts);
       };
 
       // Fetch all contacts starting from the initial page
@@ -244,10 +259,19 @@ export default function RinglessVoicemailPage() {
       setContacts(allContacts);
       setTotalContacts(allContacts.length); // Use the length of fetched contacts, or use API's total if accurate
       setCurrentPage(1); // Reset to 1 since we fetched everything
-      setSelectedContacts(allContacts);
+      
+      // Only select all contacts if we actually found some
+      if (allContacts.length > 0) {
+        setSelectedContacts(allContacts);
+      } else {
+        setSelectedContacts([]);
+        toast.error('No contacts found for the selected pipeline');
+      }
     } catch (error) {
       console.error('Error fetching contacts:', error);
       toast.error('Failed to load contacts');
+      setContacts([]);
+      setTotalContacts(0);
     } finally {
       setIsFetching(false);
     }
@@ -566,13 +590,13 @@ export default function RinglessVoicemailPage() {
     }
 
     // Ensure stages array is valid and has required properties
-    const validStages = pipeline.stages.every(stage => stage && typeof stage.id === 'string');
+    const validStages = pipeline.stages.every((stage: {id: string}) => stage && typeof stage.id === 'string');
     if (!validStages) {
       console.warn(`Invalid stage structure in pipeline: ${pipelineId}`);
       return null;
     }
 
-    const currentStageIndex = pipeline.stages.findIndex((stage) => stage.id === currentStageId);
+    const currentStageIndex = pipeline.stages.findIndex((stage: {id: string}) => stage.id === currentStageId);
 
     // Check if current stage exists and if next stage is available
     if (currentStageIndex === -1) {
