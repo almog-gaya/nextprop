@@ -19,7 +19,7 @@ export default function AIAgentPage() {
     <DashboardLayout title="AI Agent">
       <div className="container mx-auto px-4 py-8">
         {/* Multi-agent selector */}
-        <MultiAgentSelector onAgentSelect={handleAgentSelect} />
+        <MultiAgentSelector onAgentSelect={handleAgentSelect} showAddAgent={true} />
         
         {/* Agent configuration */}
         <AIAgentConfig selectedAgentId={selectedAgentId} />

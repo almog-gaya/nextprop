@@ -1,16 +1,14 @@
 interface ActionButtonsProps {
   isJobRunning: boolean;
   handleCancelJob: () => void;
-  handleRunNow: () => void;
-  isAutomationEnabled: boolean;
+  handleRunNow: () => void; 
   hasSearchQuery: boolean;
 }
 
 export default function ActionButtons({ 
   isJobRunning, 
   handleCancelJob, 
-  handleRunNow, 
-  isAutomationEnabled, 
+  handleRunNow,  
   hasSearchQuery 
 }: ActionButtonsProps) {
   return (
@@ -26,9 +24,9 @@ export default function ActionButtons({
         ) : (
           <button
             onClick={handleRunNow}
-            disabled={!hasSearchQuery || !isAutomationEnabled}
+            disabled={!hasSearchQuery}
             className={`px-4 py-2 rounded-md transition-colors duration-200 shadow-sm ${
-              !hasSearchQuery || !isAutomationEnabled
+              !hasSearchQuery
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-indigo-600 text-white hover:bg-indigo-700'
             }`}

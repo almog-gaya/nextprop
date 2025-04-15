@@ -247,21 +247,21 @@ export default function MessageThread({
                             disabled={loading || refreshing}
                             tooltip="Refresh messages"
                         />
-                        <IconButton
+                        {/* <IconButton
                             icon={<Phone size={20} className="text-gray-600" />}
                             onClick={handleCall}
                             tooltip="Call contact"
-                        />
+                        /> */}
                         <IconButton 
                             icon={<StickyNote size={20} className={isNoteSidebarOpen ? 'text-purple-600' : 'text-gray-600'} />}
                             onClick={() => setIsNoteSidebarOpen(true)}
                             tooltip="Contact notes"
                             className={isNoteSidebarOpen ? 'bg-purple-100 text-purple-600' : ''}
                         />
-                        <IconButton 
+                        {/* <IconButton 
                             icon={<MoreVertical size={20} className="text-gray-600" />}
                             tooltip="More options"
-                        />
+                        /> */}
                     </div>
                 </div>
             </div> 
