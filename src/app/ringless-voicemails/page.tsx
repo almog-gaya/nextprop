@@ -730,9 +730,10 @@ export default function RinglessVoicemailPage() {
     
     try {
       // Calculate number of pages to fetch based on expected count
+      // Increase the fallback count from 500 to a much higher number to ensure we fetch all contacts
       const expectedCount = (stageId && stageId !== 'all' && totalLeadsByStage[stageId]) || 
                             (selectedPipeline && totalLeadsByPipeline[selectedPipeline]) || 
-                            500;
+                            5000; // Increased from 500 to 5000 to handle larger contact lists
       const pageSize = 100; // Use a smaller page size for better reliability
       const pagesToFetch = Math.ceil(expectedCount / pageSize);
       
@@ -761,7 +762,6 @@ export default function RinglessVoicemailPage() {
           }
           
           const data = await response.json();
-          console.log(`Response data:`, data);
           
           if (data.error) {
             throw new Error(`API error: ${data.message || 'Unknown error'}`);
@@ -826,7 +826,13 @@ export default function RinglessVoicemailPage() {
           
           // Update the UI
           setContacts(allContacts);
-          setTotalContacts(data.total || allContacts.length);
+          
+          // Update the total count using the API's total if available
+          if (data.total) {
+            setTotalContacts(data.total);
+          } else {
+            setTotalContacts(allContacts.length);
+          }
           
           // Update progress
           setLoadingProgress({ current: page, total: pagesToFetch });
@@ -1113,36 +1119,6 @@ export default function RinglessVoicemailPage() {
                       ({Math.round((loadingProgress.current / loadingProgress.total) * 100)}%)
                     </div>
                   )}
-                  
-                  {selectedStage && selectedStage !== 'all' && contacts.length > 0 && (() => {
-                    const analysis = analyzeContactStages(contacts);
-                    if (!analysis) return null;
-                    
-                    // Check if we have contacts from other stages
-                    const otherStagesCount = analysis.stageInfos
-                      .filter(info => info.stageId !== selectedStage)
-                      .reduce((sum, info) => sum + info.count, 0);
-                    
-                    if (otherStagesCount > 0) {
-                      // We have contacts from other stages - there's a filtering issue
-                      return (
-                        <div className="bg-red-100 text-red-800 p-2 text-sm">
-                          <p className="font-semibold">Warning: API filter issue detected</p>
-                          <p>Of {analysis.totalAnalyzed} contacts loaded:</p>
-                          <ul className="list-disc list-inside">
-                            {analysis.stageInfos.map(info => (
-                              <li key={info.stageId}>
-                                {info.stageName}: {info.count} contacts ({info.percentage}%)
-                                {info.stageId === selectedStage && " ✓"}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      );
-                    }
-                    
-                    return null;
-                  })()}
                   
                   <ContactSelector
                     contacts={contacts}
