@@ -47,21 +47,21 @@ function ContactSelector({
   );
 
   return (
-    <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm mb-6">
+    <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm mb-6">
       <h4 className="text-lg font-semibold text-gray-800 mb-4">Step 1: Select Contacts</h4>
 
-      <div className="flex items-center space-x-4 mb-6">
+      <div className="flex items-center space-x-3 mb-0">
         <div className="relative flex-1">
           <input
-            type="text"
+            type="search"
             id="contact-search"
-            className="w-full pl-10 pr-10 py-2.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 placeholder-gray-400"
+            className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
             placeholder="Search contacts by name..."
             value={searchQuery}
             onChange={handleSearchChange}
             aria-label="Search contacts by name"
           />
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
+          <span className="absolute left-1.5 top-1/2 transform -translate-y-1/2">
             <svg
               className="w-4 h-4 text-gray-400"
               fill="none"

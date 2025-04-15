@@ -392,7 +392,7 @@ const ConversationList = memo(function ConversationList({
           <div className="relative flex-grow">
             <input
               ref={searchInputRef}
-              type="text"
+              type="search"
               placeholder="Search conversations"
               className="text-sm  w-full py-2 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={searchTerm}

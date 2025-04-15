@@ -112,7 +112,7 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                         Max Value
                       </label>
                       <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-600">
+                        <span className="absolute inset-y-0 left-0 pl-3 pr-3 flex items-center text-gray-600">
                           $
                         </span>
                         <input

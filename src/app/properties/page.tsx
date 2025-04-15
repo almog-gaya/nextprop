@@ -479,8 +479,8 @@ export default function PropertiesPage() {
                 value={selectedPipeline || ''}
                 onChange={(e) => setSelectedPipeline(e.target.value)}
                 disabled={isScraping}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-              >
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
+                >
                 {pipelines.length === 0 ? (
                   <option value="">Loading pipelines...</option>
                 ) : (
@@ -506,8 +506,8 @@ export default function PropertiesPage() {
                 value={selectedStage || ''}
                 onChange={(e) => setSelectedStage(e.target.value)}
                 disabled={isScraping || !selectedPipeline}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-              >
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
+                >
                 {selectedPipelineStages.length === 0 ? (
                   <option value="">Select pipeline first</option>
                 ) : (
