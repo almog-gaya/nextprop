@@ -117,22 +117,37 @@ async function searchContacts({
     console.log('Search payload:', JSON.stringify(payload, null, 2));
 
     try {
+        const headers = {
+            "accept": "application/json, text/plain, */*",
+            "accept-language": "en-US,en;q=0.9",
+            "baggage": "sentry-environment=production,sentry-release=a9ea33ccf48e211966db91418cf5d9a866eee67c,sentry-public_key=c67431ff70d6440fb529c2705792425f,sentry-trace_id=1416625bc1fe4208886f7ebd4b84fc44",
+            "channel": "APP",
+            "content-type": "application/json",
+            "dnt": "1",
+            "origin": "https://app.gohighlevel.com",
+            "priority": "u=1, i",
+            "referer": "https://app.gohighlevel.com/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\"",
+            "sec-ch-ua-mobile": "?1",
+            "sec-ch-ua-platform": "\"Android\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sentry-trace": "1416625bc1fe4208886f7ebd4b84fc44-a81839fdd5d3bba1",
+            "source": "WEB_USER",
+            "token-id": tokenId,
+            "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36",
+            "Version": "2021-07-28"
+          };
         const response = await fetch("https://backend.leadconnectorhq.com/contacts/search/2", {
             method: "POST",
-            headers: {
-                "accept": "application/json",
-                "content-type": "application/json",
-                "token-id": tokenId,
-                "Version": "2021-07-28"
-            },
+            headers,
             body: JSON.stringify(payload),
         });
 
-        if (!response.ok) {
-            console.error(`API error: ${response.status} ${response.statusText}`);
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
-            throw new Error(`API returned ${response.status}`);
+        if (!response.ok) { 
+            const errorText = await response.text(); 
+            throw new Error(`error: ${errorText}`);
         }
 
         const data = await response.json();
@@ -154,7 +169,7 @@ async function searchByName(
     page: number,
     limit: number
 ) {
-    const payload = {
+     const payload = {
         locationId,
         page,
         pageLimit: limit,
@@ -185,7 +200,7 @@ async function searchByName(
             method: "POST",
             headers: {
                 "accept": "application/json",
-                "content-type": "application/json",
+                "content-type": "application/json", 
                 "token-id": tokenId,
                 "Version": "2021-07-28"
             },
