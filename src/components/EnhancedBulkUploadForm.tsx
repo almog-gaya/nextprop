@@ -274,7 +274,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
           createSmartList: false,
           smartlistName: new Date().toISOString().replace(/:/g, '_'),
           conflictResolution: {
-            contact: { type: 'BOTH' },
+            contact: { type: 'CREATE' },
             opportunity: { type: 'CREATE' },
           },
           tags: selectedTags.map((tag) => tag.value),
