@@ -15,12 +15,14 @@ export type AIAgentConfig = {
   contactPhone?: string; // Contact phone number
   contactEmail?: string; // Contact email
   buyingCriteria?: string; // Purchase price, preferences, etc.
-  dealObjective?: 'creative-finance' | 'cash-offer' | 'off-market' | 'short-sale'; // Deal type objective
+  dealObjective?: 'creative-finance' | 'cash-offer' | 'off-market' | 'short-sale' | 'home-owner'; // Deal type objective
 
-  // New customizable prompt sections
-  rules?: Rule[]; // Custom rules to add to the prompt
-  qaEntries?: QAEntry[]; // Custom Q&A entries
-  enabledRules?: string[]; // IDs of enabled rules
+  propertyType?: string;
+  region?: string;
+  minPrice?: number;
+  maxPrice?: number; 
+ 
+  qaEntries?: QAEntry[]; // Custom Q&A entries 
 };
 
 // New type for multi-agent configuration

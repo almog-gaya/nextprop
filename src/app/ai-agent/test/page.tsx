@@ -47,7 +47,9 @@ export default function AIAgentTestPage() {
   useEffect(() => {
     const loadConfig = async () => {
       try {
+        setError(null);
         const userId = user?.locationId;
+
         if (!userId) throw new Error('User ID is missing');
         
         const configRef = doc(db, 'ai-agent-configs', userId);
