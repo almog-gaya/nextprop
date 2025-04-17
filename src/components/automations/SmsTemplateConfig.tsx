@@ -27,7 +27,8 @@ export default function SmsTemplateConfig({
         ref={textareaRef}
         value={message}
         onChange={onChange}
-        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all h-32 font-mono text-sm"
+        
+        className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white transition-all h-32 font-mono text-sm"
         placeholder="Enter your SMS template with placeholders like {{firstName}}, {{propertyAddress}}, etc."
         disabled={isJobRunning}
       />

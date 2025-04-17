@@ -735,7 +735,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto py-4 space-y-5">
+            <div className="flex-1 overflow-y-auto py-4 space-y-5 space-x-4">
                 {isLoading && !contact ? (
                     <div className="flex justify-center py-4">
                         <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>

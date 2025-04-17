@@ -557,7 +557,7 @@ function MessagingContent() {
                 setState((prev) => ({ ...prev, activeTab: tabValue, lastConversationDate: null, conversations: [] }));
                 fetchConversations(tabValue);
               }}
-              className={`px-3 py-2 text-sm font-medium rounded-md ${state.activeTab === tabValue
+              className={`px-3 pr-2 py-2 text-sm font-medium rounded-md ${state.activeTab === tabValue
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-500 hover:text-gray-700'
                 }`}
@@ -571,7 +571,7 @@ function MessagingContent() {
       <div className="relative">
         <button
           onClick={() => setState((prev) => ({ ...prev, showSortDropdown: !prev.showSortDropdown }))}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+          className="flex items-center text-sm text-gray-500 hover:text-gray-700 pl-4"
         >
           Sort
           <ChevronDown className="w-5 h-5 ml-1" />

@@ -89,14 +89,14 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                         Min Value
                       </label>
                       <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-600">
+                        <span className="absolute pl-1 inset-y-0   flex items-center text-gray-600">
                           $
                         </span>
                         <input
                           type="number"
                           id="min-value"
-                          className="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm"
-                          placeholder="Min"
+                          className="pl-6 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
+                          placeholder=" Min"
                           value={tempFilters.value.min}
                           onChange={(e) =>
                             setTempFilters({
@@ -112,14 +112,14 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                         Max Value
                       </label>
                       <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 pr-3 flex items-center text-gray-600">
+                        <span className="absolute inset-y-0 left-0 pl-1  flex items-center text-gray-600">
                           $
                         </span>
                         <input
                           type="number"
                           id="max-value"
-                          className="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm"
-                          placeholder="Max"
+                          className="pl-6 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
+                          placeholder=" Max"
                           value={tempFilters.value.max}
                           onChange={(e) =>
                             setTempFilters({
@@ -162,6 +162,7 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                       <input
                         type="date"
                         id="start-date"
+                        
                         className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                         value={tempFilters.dateRange.start}
                         onChange={(e) =>
