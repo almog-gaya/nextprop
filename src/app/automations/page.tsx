@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Pipeline, AutomationData } from '@/types'; // Updated import
+import { Pipeline, AutomationData } from '@/types';
 import CampaignSettingsForm from '@/components/ringless-voicemail/CampaignSettingsForm';
 import AutomationHeader from '@/components/automations/AutomationHeader';
 import PropertySearchConfig from '@/components/automations/PropertySearchConfig';
@@ -16,7 +16,7 @@ import { AutomationTaskCreateParams } from '@/types/automation_task_create_param
 import { useAuth } from '@/contexts/AuthContext';
 import PhoneNumberSelector from '@/components/automations/PhoneNumberSelector';
 import { convertTo24Hour, dayMapping } from '@/utils/appUtils';
-import { collection, query, onSnapshot, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -50,16 +50,16 @@ export default function AutomationsPage() {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loadingPipelines, setLoadingPipelines] = useState(true);
   const [propertyCount, setPropertyCount] = useState(2);
-  const [automationData, setAutomationData] = useState<AutomationData | null>(null); // Updated type
+  const [automationData, setAutomationData] = useState<AutomationData | null>(null);
   const [campaignData, setCampaignData] = useState<any>(null);
   const [contactsData, setContactsData] = useState<any[]>([]);
   const { user } = useAuth();
 
-  const [propertyConfig, setPropertyConfig] = useState<AutomationTaskCreateParams>({
-    customer_id: user?.id || '',
+  const initialPropertyConfig: AutomationTaskCreateParams = {
+    customer_id: user?.locationId || '',
     pipeline_id: '',
-    stage_id: '', 
-    limit: propertyCount,
+    stage_id: '',
+    limit: 2,
     redfin_url: '',
     campaign_payload: {
       name: 'Recurring Automation Job',
@@ -75,7 +75,9 @@ export default function AutomationsPage() {
         }
       }
     }
-  });
+  };
+
+  const [propertyConfig, setPropertyConfig] = useState<AutomationTaskCreateParams>(initialPropertyConfig);
 
   // Fetch data from Firestore
   useEffect(() => {
@@ -90,7 +92,7 @@ export default function AutomationsPage() {
     const unsubscribeAutomation = onSnapshot(automationQuery, async (snapshot) => {
       if (!snapshot.empty) {
         const automationDoc = snapshot.docs[0];
-        const automationData: AutomationData = { id: automationDoc.id, ...automationDoc.data() } as AutomationData; // Type assertion
+        const automationData: AutomationData = { id: automationDoc.id, ...automationDoc.data() } as AutomationData;
         setAutomationData(automationData);
         setActiveJobId(automationData.id);
 
@@ -106,12 +108,28 @@ export default function AutomationsPage() {
           }
         }
 
+        // Normalize days to ensure consistent format (abbreviations)
+        const normalizedDays = automationData.campaign_payload.days.map(day => {
+          const dayLower = day.toLowerCase();
+          return Object.keys(dayMapping).find(key => dayMapping[key].toLowerCase() === dayLower) || day;
+        });
+
         setPropertyConfig(prev => ({
           ...prev,
           ...automationData,
-          campaign_payload: { ...prev.campaign_payload, ...automationData.campaign_payload }
+          campaign_payload: { 
+            ...prev.campaign_payload, 
+            ...automationData.campaign_payload,
+            days: normalizedDays
+          }
         }));
         setPropertyCount(automationData.limit || 2);
+      } else {
+        // Reset state when no automation is found
+        setAutomationData(null);
+        setCampaignData(null);
+        setContactsData([]);
+        setActiveJobId(null);
       }
     }, (error) => {
       console.error('Error fetching automation:', error);
@@ -188,7 +206,16 @@ export default function AutomationsPage() {
   const handleSmsTemplateChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPropertyConfig(prev => ({
       ...prev,
-      campaign_payload: { ...prev.campaign_payload, channels: { ...prev.campaign_payload.channels, sms: { ...prev.campaign_payload.channels.sms, message: e.target.value } } }
+      campaign_payload: { 
+        ...prev.campaign_payload, 
+        channels: { 
+          ...prev.campaign_payload.channels, 
+          sms: { 
+            ...prev.campaign_payload.channels.sms, 
+            message: e.target.value 
+          } 
+        } 
+      }
     }));
   };
 
@@ -201,12 +228,24 @@ export default function AutomationsPage() {
     const newText = `${text.substring(0, start)}{{${placeholder}}}${text.substring(end)}`;
     setPropertyConfig(prev => ({
       ...prev,
-      campaign_payload: { ...prev.campaign_payload, channels: { ...prev.campaign_payload.channels, sms: { ...prev.campaign_payload.channels.sms, message: newText } } }
+      campaign_payload: { 
+        ...prev.campaign_payload, 
+        channels: { 
+          ...prev.campaign_payload.channels, 
+          sms: { 
+            ...prev.campaign_payload.channels.sms, 
+            message: newText 
+          } 
+        } 
+      }
     }));
-    setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + placeholder.length + 4, start + placeholder.length + 4); }, 0);
+    setTimeout(() => { 
+      textarea.focus(); 
+      textarea.setSelectionRange(start + placeholder.length + 4, start + placeholder.length + 4); 
+    }, 0);
   };
+
   const getNextStageIdByPipelineId = (pipelineId: string, currentStageId: string): string | null => {
-    // Input validation
     if (!pipelineId || !currentStageId) {
       console.warn('Invalid input: pipelineId and currentStageId are required');
       return null;
@@ -218,7 +257,6 @@ export default function AutomationsPage() {
       return null;
     }
 
-    // Ensure stages array is valid and has required properties
     const validStages = pipeline.stages.every(stage => stage && typeof stage.id === 'string');
     if (!validStages) {
       console.warn(`Invalid stage structure in pipeline: ${pipelineId}`);
@@ -227,7 +265,6 @@ export default function AutomationsPage() {
 
     const currentStageIndex = pipeline.stages.findIndex((stage) => stage.id === currentStageId);
 
-    // Check if current stage exists and if next stage is available
     if (currentStageIndex === -1) {
       console.warn(`Current stage not found: ${currentStageId}`);
       return null;
@@ -241,17 +278,17 @@ export default function AutomationsPage() {
 
     return pipeline.stages[nextIndex].id;
   };
+
   const handleRunNow = async () => {
     if (isJobRunning) return;
+    propertyConfig.customer_id = user?.locationId;
     if (!propertyConfig.redfin_url) return toast.error('Please enter a Redfin URL for properties');
     if (!propertyConfig.pipeline_id) return toast.error('Please select a pipeline');
     if (!propertyConfig.customer_id) return toast.error('Customer ID is required');
     if (!propertyConfig.campaign_payload.channels.sms.from_number) return toast.error('SMS from number is required');
     const nextStageId = getNextStageIdByPipelineId(propertyConfig.pipeline_id, propertyConfig.stage_id);
-  
 
-    // See if there is any existing automation running
-    const automationQuery = query(collection(db, 'automations'), where('customer_id', '==', user?.id));
+    const automationQuery = query(collection(db, 'automations'), where('customer_id', '==', user?.locationId));
     const automationSnapshot = await getDocs(automationQuery);
     if (!automationSnapshot.empty) {
       return toast.error('There is already an automation running');
@@ -259,24 +296,37 @@ export default function AutomationsPage() {
     toast.loading('Starting property automation...', { id: 'property-job' });
     setIsJobRunning(true);
 
-    if(nextStageId) {
+    if (nextStageId) {
       propertyConfig.next_stage_id = nextStageId;
     }
+
     try {
+      console.log('Submitting days:', propertyConfig.campaign_payload.days);
+
       const createAutomationPayload = {
         ...propertyConfig,
         campaign_payload: {
           ...propertyConfig.campaign_payload,
-          days: propertyConfig.campaign_payload.days.map(day => dayMapping[day]),
-          time_window: { start: convertTo24Hour(propertyConfig.campaign_payload.time_window.start), end: convertTo24Hour(propertyConfig.campaign_payload.time_window.end) }
+          days: propertyConfig.campaign_payload.days.map((day)=> dayMapping[day]),
+          time_window: { 
+            start: convertTo24Hour(propertyConfig.campaign_payload.time_window.start), 
+            end: convertTo24Hour(propertyConfig.campaign_payload.time_window.end) 
+          }
         }
       };
-      const result = await fetch('/api/automations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createAutomationPayload) });
+      const result = await fetch('/api/automations', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(createAutomationPayload) 
+      });
       const resultData = await result.json();
       if (!result.ok) throw new Error(`Failed to start automation: ${resultData.message || 'Unknown error'}`);
       toast.success('Automation started successfully!', { id: 'property-job' });
       setActiveJobId(resultData.task_id);
-    } catch (error:any) {
+      // Reset fields after successful job run
+      setPropertyConfig(initialPropertyConfig);
+      setPropertyCount(2);
+    } catch (error: any) {
       console.error('Error starting automation:', error);
       toast.error(`Failed to start automation: ${error.message}`, { id: 'property-job' });
       setIsJobRunning(false);
@@ -295,93 +345,186 @@ export default function AutomationsPage() {
     }
   };
 
+  const handleDeleteAutomation = async () => {
+    if (!automationData?.id) return;
+    try {
+      toast.loading('Cancelling job...', { id: 'delete-automation' });
+      
+      await deleteDoc(doc(db, 'automations', automationData.id));
+      
+      if (automationData.campaign_id) {
+        await deleteDoc(doc(db, 'campaigns', automationData.campaign_id));
+      }
+
+      setAutomationData(null);
+      setCampaignData(null);
+      setContactsData([]);
+      setActiveJobId(null);
+      setIsJobRunning(false);
+
+      toast.success('Job cancelled successfully', { id: 'delete-automation' });
+    } catch (error) {
+      console.error('Error cancelling job:', error);
+      toast.error('Failed to cancel job', { id: 'delete-automation' });
+    }
+  };
+
   return (
     <DashboardLayout title="Property Automation">
       <div className="container mx-auto px-4 py-8">
         <AutomationHeader propertyCount={propertyCount} />
 
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8 border border-gray-100">
-          <div className="space-y-6">
-            <div className="flex flex-row gap-6">
-              <div className="flex-1"><PropertySearchConfig searchQuery={propertyConfig.redfin_url} onChange={handlePropertyInputChange} isJobRunning={isJobRunning} /></div>
-              <div className="flex-1">
-                <PhoneNumberSelector
-                  isDisabled={isJobRunning}
-                  phoneNumbers={user?.phoneNumbers?.map(number => number.phoneNumber) || []}
-                  selectedPhoneNumber={propertyConfig.campaign_payload.channels.sms.from_number}
-                  onPhoneNumberChange={(number) => setPropertyConfig(prev => ({ ...prev, campaign_payload: { ...prev.campaign_payload, channels: { ...prev.campaign_payload.channels, sms: { ...prev.campaign_payload.channels.sms, from_number: number } } } }))}
+        {!automationData && (
+          <div className="bg-white p-6 rounded-lg shadow-md mb-8 border border-gray-100">
+            <div className="space-y-6">
+              <div className="flex flex-row gap-6">
+                <div className="flex-1">
+                  <PropertySearchConfig
+                    searchQuery={propertyConfig.redfin_url}
+                    onChange={handlePropertyInputChange}
+                    isJobRunning={isJobRunning}
+                  />
+                </div>
+                <div className="flex-1">
+                  <PhoneNumberSelector
+                    isDisabled={isJobRunning}
+                    phoneNumbers={user?.phoneNumbers?.map(number => number.phoneNumber) || []}
+                    selectedPhoneNumber={propertyConfig.campaign_payload.channels.sms.from_number}
+                    onPhoneNumberChange={(number) =>
+                      setPropertyConfig(prev => ({
+                        ...prev,
+                        campaign_payload: {
+                          ...prev.campaign_payload,
+                          channels: {
+                            ...prev.campaign_payload.channels,
+                            sms: { ...prev.campaign_payload.channels.sms, from_number: number }
+                          }
+                        }
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-row gap-6">
+                <PipelineSelector
+                  pipelineId={propertyConfig.pipeline_id}
+                  pipelines={pipelines}
+                  onChange={handlePipelineChange}
+                  isJobRunning={isJobRunning}
+                  loadingPipelines={loadingPipelines}
+                />
+                <PropertyCountConfig
+                  propertyCount={propertyCount}
+                  onChange={handlePropertyInputChange}
+                  isJobRunning={isJobRunning}
                 />
               </div>
-            </div>
 
-            <div className="flex flex-row gap-6">
-              <PipelineSelector pipelineId={propertyConfig.pipeline_id} pipelines={pipelines} onChange={handlePipelineChange} isJobRunning={isJobRunning} loadingPipelines={loadingPipelines} />
-              <PropertyCountConfig propertyCount={propertyCount} onChange={handlePropertyInputChange} isJobRunning={isJobRunning} />
-            </div>
+              <SmsTemplateConfig
+                message={propertyConfig.campaign_payload.channels.sms.message}
+                onChange={handleSmsTemplateChange}
+                textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+                insertPlaceholder={insertPlaceholder}
+                isJobRunning={isJobRunning}
+              />
 
-            <SmsTemplateConfig 
-              message={propertyConfig.campaign_payload.channels.sms.message} 
-              onChange={handleSmsTemplateChange} 
-              textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>} 
-              insertPlaceholder={insertPlaceholder} 
-              isJobRunning={isJobRunning} 
-            />
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Campaign Settings</h4>
+                <CampaignSettingsForm
+                  settings={{
+                    delayMinutes: propertyConfig.campaign_payload.channels.sms.time_interval,
+                    dailyLimit: propertyCount,
+                    startTime: propertyConfig.campaign_payload.time_window.start,
+                    endTime: propertyConfig.campaign_payload.time_window.end,
+                    timezone: propertyConfig.campaign_payload.timezone,
+                    maxPerHour: 100,
+                    daysOfWeek: propertyConfig.campaign_payload.days
+                  }}
+                  onSave={(newSettings) => {
+                    const normalizedDays = newSettings.daysOfWeek.map(day => {
+                      const dayLower = day.toLowerCase();
+                      return Object.keys(dayMapping).find(key => dayMapping[key].toLowerCase() === dayLower) || day;
+                    });
 
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Campaign Settings</h4>
-              <CampaignSettingsForm
-                settings={{
-                  delayMinutes: propertyConfig.campaign_payload.channels.sms.time_interval,
-                  dailyLimit: propertyCount,
-                  startTime: propertyConfig.campaign_payload.time_window.start,
-                  endTime: propertyConfig.campaign_payload.time_window.end,
-                  timezone: propertyConfig.campaign_payload.timezone,
-                  maxPerHour: 100,
-                  daysOfWeek: propertyConfig.campaign_payload.days
-                }}
-                onSave={(newSettings) => {
-                  setPropertyConfig(prev => ({
-                    ...prev,
-                    campaign_payload: {
-                      ...prev.campaign_payload,
-                      days: newSettings.daysOfWeek.map(day => dayMapping[day] || day),
-                      time_window: { start: convertTo24Hour(newSettings.startTime), end: convertTo24Hour(newSettings.endTime) },
-                      timezone: newSettings.timezone,
-                      channels: { ...prev.campaign_payload.channels, sms: { ...prev.campaign_payload.channels.sms, time_interval: newSettings.delayMinutes } }
-                    }
-                  }));
-                  setPropertyCount(newSettings.dailyLimit);
-                }}
-                isVoiceMailModule={false}
+                    setPropertyConfig(prev => ({
+                      ...prev,
+                      campaign_payload: {
+                        ...prev.campaign_payload,
+                        days: normalizedDays,
+                        time_window: {
+                          start: convertTo24Hour(newSettings.startTime),
+                          end: convertTo24Hour(newSettings.endTime)
+                        },
+                        timezone: newSettings.timezone,
+                        channels: {
+                          ...prev.campaign_payload.channels,
+                          sms: {
+                            ...prev.campaign_payload.channels.sms,
+                            time_interval: newSettings.delayMinutes
+                          }
+                        }
+                      }
+                    }));
+                    setPropertyCount(newSettings.dailyLimit);
+                  }}
+                  isVoiceMailModule={false}
+                />
+              </div>
+
+              <ActionButtons
+                isJobRunning={isJobRunning}
+                handleCancelJob={handleCancelJob}
+                handleRunNow={handleRunNow}
+                hasSearchQuery={!!propertyConfig.redfin_url}
               />
             </div>
-
-            <ActionButtons isJobRunning={isJobRunning} handleCancelJob={handleCancelJob} handleRunNow={handleRunNow} hasSearchQuery={!!propertyConfig.redfin_url} />
           </div>
-        </div>
+        )}
 
         {isJobRunning && jobStatus && <JobStatusCard jobStatus={jobStatus} />}
 
-        {/* Enhanced UI for Data */}
         {automationData && (
           <DataCard title="Automation Details">
             <div className="grid grid-cols-2 gap-4">
               <div><strong>Status:</strong> <StatusBadge status={automationData.status} /></div>
-              <div><strong>Redfin URL:</strong> <a href={automationData.redfin_url} className="text-blue-600 hover:underline" target="_blank">{automationData.redfin_url}</a></div>
-              <div><strong>Last Run:</strong> {automationData.last_run ? new Date(automationData.last_run.seconds * 1000).toLocaleString() : 'N/A'}</div>
+              <div>
+                <strong>Redfin URL:</strong>{' '}
+                <a href={automationData.redfin_url} className="text-blue-600 hover:underline" target="_blank">
+                  {automationData.redfin_url}
+                </a>
+              </div>
+              <div>
+                <strong>Last Run:</strong>{' '}
+                {automationData.last_run ? new Date(automationData.last_run.seconds * 1000).toLocaleString() : 'N/A'}
+              </div>
               <div><strong>Campaign Name:</strong> {automationData.campaign_payload.name}</div>
               <div><strong>SMS Message:</strong> {automationData.campaign_payload.channels.sms.message}</div>
               <div><strong>Days:</strong> {automationData.campaign_payload.days.join(', ')}</div>
-              {/* Created at so show total days running */}
-              <div><strong>Days Running:</strong> {automationData.started_at ? 
-                Math.ceil((Date.now() - automationData.started_at.seconds * 1000) / (1000 * 60 * 60 * 24)) : 'N/A'
-              } days</div>
-            </div> 
+              <div>
+                <strong>Days Running:</strong>{' '}
+                {automationData.started_at
+                  ? Math.ceil((Date.now() - automationData.started_at.seconds * 1000) / (1000 * 60 * 60 * 24))
+                  : 'N/A'}{' '}
+                days
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                onClick={handleDeleteAutomation}
+              >
+                Cancel Job
+              </button>
+            </div>
           </DataCard>
         )}
-        {automationData && <p className="mt-2 text-sm text-gray-500 italic">
-          Note: This automation uses a web scraper to fetch property owner contacts from Redfin listings. The `Last run` indicates when the last time scraped the contacts
-        </p>}
+        {automationData && (
+          <p className="mt-2 text-sm text-gray-500 italic">
+            Note: This automation uses a web scraper to fetch property owner contacts from Redfin listings. The `Last run`
+            indicates when the last time scraped the contacts
+          </p>
+        )}
         {campaignData && (
           <DataCard title="Campaign Details">
             <div className="grid grid-cols-2 gap-4">
@@ -392,9 +535,13 @@ export default function AutomationsPage() {
             </div>
           </DataCard>
         )}
-        {campaignData && <p className="mt-2 text-sm text-gray-500 italic">
-          Note: This indicates the sending of SMS to the scrapped contacts. The `Total Contacts` shows till now how many contacts are scrapped. The `Processed Contacts` shows till now how many contacts are sent. The `Failed Contacts` shows till now how many contacts are failed to send.
-        </p>}
+        {campaignData && (
+          <p className="mt-2 text-sm text-gray-500 italic">
+            Note: This indicates the sending of SMS to the scrapped contacts. The `Total Contacts` shows till now how many
+            contacts are scrapped. The `Processed Contacts` shows till now how many contacts are sent. The `Failed Contacts`
+            shows till now how many contacts are failed to send.
+          </p>
+        )}
         {contactsData.length > 0 && (
           <DataCard title="Contacts">
             <div className="overflow-x-auto">
@@ -423,9 +570,11 @@ export default function AutomationsPage() {
             </div>
           </DataCard>
         )}
-        {contactsData.length > 0 && <p className="mt-2 text-sm text-gray-500 italic">
-          Note: This shows all the contacts that are Pending, Sent and Failed.
-        </p>}
+        {contactsData.length > 0 && (
+          <p className="mt-2 text-sm text-gray-500 italic">
+            Note: This shows all the contacts that are Pending, Sent and Failed.
+          </p>
+        )}
       </div>
       <Toaster position="top-right" />
     </DashboardLayout>

@@ -832,7 +832,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
           <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <UserCircleIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <UserCircleIcon className="h-5 w-5  text-[var(--nextprop-primary)]" />
             <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Agent Identity</h3>
           </div>
           <div className="space-y-4">
@@ -846,7 +846,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                 name="agentName"
                 value={config.agentName}
                 onChange={handleInputChange}
-                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
               />
             </div>
 
@@ -861,7 +861,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                 value={config.speakingOnBehalfOf || ''}
                 onChange={handleInputChange}
                 placeholder={placeholders.speakingOnBehalfOf}
-                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                className="nblock w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
               />
             </div>
           </div>
@@ -904,7 +904,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                     value={config.contactPhone || ''}
                     onChange={handleInputChange}
                     placeholder={placeholders.contactPhone}
-                    className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                    className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                   />
                 )}
               </div>
@@ -925,7 +925,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                   value={config.contactEmail || ''}
                   onChange={handleInputChange}
                   placeholder={placeholders.contactEmail}
-                  className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                  className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                 />
               </div>
             </div>
@@ -951,7 +951,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <select
-                    className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                    className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                     value={priceRange.min}
                     onChange={(e) => handlePriceChange(Number(e.target.value), 'min')}
                   >
@@ -971,7 +971,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                 <div className="text-[var(--nextprop-text-tertiary)] text-sm">to</div>
                 <div className="flex-1">
                   <select
-                    className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                    className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                     value={priceRange.max}
                     onChange={(e) => handlePriceChange(Number(e.target.value), 'max')}
                   >
@@ -1002,7 +1002,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                 </label>
               </div>
               <select
-                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                 value={region}
                 onChange={(e) => setRegion(e.target.value)}
               >
@@ -1021,7 +1021,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                 </label>
               </div>
               <select
-                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                 value={propertyTypes[0]}
                 onChange={(e) => setPropertyTypes([e.target.value])}
               >
@@ -1214,7 +1214,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                               return () => clearTimeout(timer);
                             }
                           }}
-                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                          className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                         />
                       </div>
                       
@@ -1244,7 +1244,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                               return () => clearTimeout(timer);
                             }
                           }}
-                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm resize-none"
+                          className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                         />
                       </div>
                     </div>
@@ -1357,7 +1357,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                               return () => clearTimeout(timer);
                             }
                           }}
-                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                          className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                         />
                       </div>
                       
@@ -1387,7 +1387,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                               return () => clearTimeout(timer);
                             }
                           }}
-                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm resize-none"
+                          className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                         />
                       </div>
                     </div>
@@ -1431,7 +1431,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
               value={config.customInstructions || ''}
               onChange={handleInputChange}
               placeholder="Enter additional instructions for the AI agent..."
-              className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+              className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
             ></textarea>
             
             <p className="text-xs text-[var(--nextprop-text-tertiary)]">

@@ -364,7 +364,7 @@ export default function MessageThread({
                     <div className="flex items-end">
                         <div className="relative flex-grow">
                             <textarea
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px] max-h-[160px]"
+                                className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white resize-none min-h-[80px] max-h-[160px]"
                                 placeholder="Type a message..."
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}

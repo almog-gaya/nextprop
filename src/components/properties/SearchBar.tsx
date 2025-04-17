@@ -111,8 +111,8 @@ export default function SearchBarProperties({
               value={link}
               onChange={(e) => setLink(e.target.value)}
               disabled={isScraping}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-            />
+              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
+              />
           </div>
           <div className="flex gap-3">
             <button

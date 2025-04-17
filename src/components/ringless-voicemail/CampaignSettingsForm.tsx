@@ -68,7 +68,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
               <select
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full p-2 pr-0 py-2 text text-base border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
                 value={formSettings.startTime}
                 onChange={(e) => handleInputChange('startTime', e.target.value)}
               >
@@ -80,7 +80,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
               <select
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                 value={formSettings.endTime}
                 onChange={(e) => handleInputChange('endTime', e.target.value)}
               >
@@ -92,7 +92,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
               <select
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
                 value={formSettings.timezone}
                 onChange={(e) => handleInputChange('timezone', e.target.value)}
               >
@@ -143,7 +143,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
                   value = Math.max(10, Math.min(400, value));
                   handleInputChange('maxPerHour', value);
                 }}
-                className="w-24 p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="block w-full pl-6 pr-0 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md bg-white"
               />
               <span className="text-sm text-gray-600">voicemails/hour</span>
             </div>
@@ -191,7 +191,8 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
                   value = Math.max(1, Math.min(59, value));
                   handleInputChange('delayMinutes', value);
                 }}
-                className="w-24 p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                
+                className="block w-24 pl-6 pr-0 py-2  border-gray-300  focus:outline-none focus:ring-purple-500 focus:border-purple-500"
               />
               <span className="text-sm text-gray-600">minutes</span>
             </div>

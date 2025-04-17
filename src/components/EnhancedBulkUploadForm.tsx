@@ -3,10 +3,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import CreatableSelect from 'react-select/creatable';
-import { DocumentTextIcon, CheckCircleIcon, TagIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { uploadFile } from '@/utils/uploadFileUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Pipeline } from '@/types';
+import { createPortal } from 'react-dom';
 
 interface FileColumn {
   fileColumn: string;
@@ -51,7 +52,8 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
   const [mappedFields, setMappedFields] = useState<MappedField[]>([]);
   const [availableTags, setAvailableTags] = useState<{ value: string; label: string }[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
-  const [showPopup, setShowPopup] = useState(false); // State for popup visibility
+  const [showPopup, setShowPopup] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pipelines, setPipelines] = useState<Pipeline[]>(initialPipelines);
@@ -106,6 +108,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
   // Step 1: Handle file upload with pipeline/stage/opportunityName injection
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
+
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -113,7 +116,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
       setError('Please select a pipeline before uploading a file.');
       return;
     }
-
+    setIsUploading(true);
     setFileName(file.name);
 
     try {
@@ -205,6 +208,8 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
     } catch (error) {
       console.error('Error in Step 1:', error);
       setError(error instanceof Error ? error.message : 'Failed to process file upload. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -286,9 +291,8 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
       if (!step2Response.ok) throw new Error(step2Data.message || 'Step 2 API failed');
 
       console.log('Import successful:', step2Data);
-      setShowPopup(true); // Show popup on success
+      setShowPopup(true);
       if (onContactsSelect) onContactsSelect([]);
-      // Do not call handleReset() immediately; let user interact with popup
     } catch (error) {
       console.error('Error in Step 2:', error);
       setError('Failed to submit import. Please try again.');
@@ -306,189 +310,195 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
     setFileColumns([]);
     setProperties([]);
     setMappedFields([]);
-    setShowPopup(false); // Close popup when resetting
+    setShowPopup(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleCheckProgress = () => {
     console.log('Checking progress for importRequestId:', importRequestId);
-    // Add logic here to navigate to a progress page or fetch progress status
-    // For now, just log the importRequestId
-    setShowPopup(false); // Close popup after checking progress
-    // Navigate to a progress page or fetch progress status
-      window.location.href = '/bulk-actions';
-
+    setShowPopup(false);
+    window.location.href = '/bulk-actions';
   };
 
   return (
-    <div className="nextprop-card p-6 max-h-[80vh] overflow-y-auto">
-      <h3 className="text-lg font-semibold text-[#1e1b4b] mb-6">Bulk Upload Contacts</h3>
+    <>
+      <div className="nextprop-card p-6 max-h-[80vh] overflow-y-auto">
+        <h3 className="text-lg font-semibold text-[#1e1b4b] mb-6">Bulk Upload Contacts</h3>
 
-      <form onSubmit={step === 1 ? (e) => e.preventDefault() : handleSubmitMapping}>
-        {step === 1 && (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Pipeline</label>
-              <select
-                value={selectedPipeline}
-                onChange={(e) => setSelectedPipeline(e.target.value)}
-                className="w-full border border-gray-300 rounded-md p-2"
-                disabled={loadingPipelines}
-              >
-                <option value="">Select a pipeline</option>
-                {pipelines.map((pipeline) => (
-                  <option key={pipeline.id} value={pipeline.id}>
-                    {pipeline.name}
-                  </option>
-                ))}
-              </select>
-              {loadingPipelines && <p className="text-sm text-gray-500">Loading pipelines...</p>}
-              {pipelines.length === 0 && !loadingPipelines && (
-                <p className="text-sm text-red-500">No pipelines available. Please create one first.</p>
+        <form onSubmit={step === 1 ? (e) => e.preventDefault() : handleSubmitMapping}>
+          {step === 1 && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Pipeline</label>
+                <select
+                  value={selectedPipeline}
+                  onChange={(e) => setSelectedPipeline(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md p-2"
+                  disabled={loadingPipelines}
+                >
+                  <option value="">Select a pipeline</option>
+                  {pipelines.map((pipeline) => (
+                    <option key={pipeline.id} value={pipeline.id}>
+                      {pipeline.name}
+                    </option>
+                  ))}
+                </select>
+                {loadingPipelines && <p className="text-sm text-gray-500">Loading pipelines...</p>}
+                {pipelines.length === 0 && !loadingPipelines && (
+                  <p className="text-sm text-red-500">No pipelines available. Please create one first.</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select or Add Tags</label>
+                <CreatableSelect
+                  isMulti
+                  options={availableTags}
+                  value={selectedTags}
+                  onChange={handleTagChange}
+                  className="basic-multi-select"
+                  classNamePrefix="select"
+                  placeholder="Select or type to add tags..."
+                  isLoading={loadingTags}
+                  formatCreateLabel={(inputValue) => `Add "${inputValue}"`}
+                />
+                {loadingTags && <p className="text-sm text-gray-500">Loading tags...</p>}
+              </div>
+
+              {!isUploading && (
+                <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
+                  <input
+                    type="file"
+                    id="excelFile"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept=".xlsx, .xls, .csv"
+                    onChange={handleFileUpload}
+                  />
+                  <label htmlFor="excelFile" className="cursor-pointer flex flex-col items-center justify-center">
+                    <DocumentTextIcon className="w-10 h-10 text-gray-400 mb-2" />
+                    <span className="text-sm font-medium text-[#7c3aed]">Click to upload Excel file</span>
+                    <span className="text-xs text-gray-500 mt-1">XLSX, XLS, or CSV</span>
+                  </label>
+                </div>
+              )}
+
+              {isUploading && (
+                <div className="text-center py-8 text-gray-500">Uploading in progress...</div>
               )}
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select or Add Tags</label>
-              <CreatableSelect
-                isMulti
-                options={availableTags}
-                value={selectedTags}
-                onChange={handleTagChange}
-                className="basic-multi-select"
-                classNamePrefix="select"
-                placeholder="Select or type to add tags..."
-                isLoading={loadingTags}
-                formatCreateLabel={(inputValue) => `Add "${inputValue}"`}
-              />
-              {loadingTags && <p className="text-sm text-gray-500">Loading tags...</p>}
-            </div>
+          {step === 2 && (
+            <div className="space-y-6">
+              <div>
+                <p className="text-sm text-gray-700">Uploaded: {fileName}</p>
+                <button type="button" onClick={handleReset} className="text-sm text-[#7c3aed] hover:text-[#6d28d9]">
+                  Upload Different File
+                </button>
+              </div>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
-              <input
-                type="file"
-                id="excelFile"
-                ref={fileInputRef}
-                className="hidden"
-                accept=".xlsx, .xls, .csv"
-                onChange={handleFileUpload}
-              />
-              <label htmlFor="excelFile" className="cursor-pointer flex flex-col items-center justify-center">
-                <DocumentTextIcon className="w-10 h-10 text-gray-400 mb-2" />
-                <span className="text-sm font-medium text-[#7c3aed]">Click to upload Excel file</span>
-                <span className="text-xs text-gray-500 mt-1">XLSX, XLS, or CSV</span>
-              </label>
-            </div>
-          </div>
-        )}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Map Your Columns</h4>
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2 text-left text-sm font-medium text-gray-700">CSV Column</th>
+                      <th className="border border-gray-300 p-2 text-left text-sm font-medium text-gray-700">Examples</th>
+                      <th className="border border-gray-300 p-2 text-left text-sm font-medium text-gray-700">Object</th>
+                      <th className="border border-gray-300 p-2 text-left text-sm font-medium text-gray-700">Map To</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mappedFields.map((field) => (
+                      <tr key={field.csvColumn}>
+                        <td className="border border-gray-300 p-2 text-sm">{field.csvColumn}</td>
+                        <td className="border border-gray-300 p-2 text-sm text-gray-500">
+                          {field.examples.filter(Boolean).join(', ') || 'N/A'}
+                        </td>
+                        <td className="border border-gray-300 p-2">
+                          <select
+                            className="w-full border border-gray-300 rounded-md p-1"
+                            value={field.objectType}
+                            onChange={(e) =>
+                              handleObjectTypeChange(field.csvColumn, e.target.value as 'contact' | 'opportunity' | '')
+                            }
+                            disabled={field.isLocked}
+                          >
+                            <option value="">Select object</option>
+                            <option value="contact">Contact</option>
+                            <option value="opportunity">Opportunity</option>
+                          </select>
+                        </td>
+                        <td className="border border-gray-300 p-2">
+                          <select
+                            className="w-full border border-gray-300 rounded-md p-1"
+                            value={field.mappedTo}
+                            onChange={(e) => handleMappingChange(field.csvColumn, e.target.value)}
+                            disabled={!field.objectType || field.isLocked}
+                          >
+                            <option value="">Select field</option>
+                            {field.objectType &&
+                              properties
+                                .filter((prop) => prop.documentType === field.objectType)
+                                .map((prop) => (
+                                  <option key={prop.value} value={prop.value}>
+                                    {prop.option}
+                                  </option>
+                                ))}
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-        {step === 2 && (
-          <div className="space-y-6">
-            <div>
-              <p className="text-sm text-gray-700">Uploaded: {fileName}</p>
-              <button type="button" onClick={handleReset} className="text-sm text-[#7c3aed] hover:text-[#6d28d9]">
-                Upload Different File
+              <button
+                type="submit"
+                disabled={isLoading || !selectedPipeline}
+                className={`w-full py-2 px-4 bg-[#7c3aed] text-white rounded-md ${isLoading || !selectedPipeline ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isLoading ? 'Processing...' : 'Import Contacts'}
               </button>
             </div>
+          )}
 
-            <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Map Your Columns</h4>
-              <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-2 text-left text-sm font-medium text-gray-700">CSV Column</th>
-                    <th className="border border-gray-300 p-2 text-left text-sm font-medium text-gray-700">Examples</th>
-                    <th className="border border-gray-300 p-2 text-left text-sm font-medium text-gray-700">Object</th>
-                    <th className="border border-gray-300 p-2 text-left text-sm font-medium text-gray-700">Map To</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mappedFields.map((field) => (
-                    <tr key={field.csvColumn}>
-                      <td className="border border-gray-300 p-2 text-sm">{field.csvColumn}</td>
-                      <td className="border border-gray-300 p-2 text-sm text-gray-500">
-                        {field.examples.filter(Boolean).join(', ') || 'N/A'}
-                      </td>
-                      <td className="border border-gray-300 p-2">
-                        <select
-                          className="w-full border border-gray-300 rounded-md p-1"
-                          value={field.objectType}
-                          onChange={(e) =>
-                            handleObjectTypeChange(field.csvColumn, e.target.value as 'contact' | 'opportunity' | '')
-                          }
-                          disabled={field.isLocked}
-                        >
-                          <option value="">Select object</option>
-                          <option value="contact">Contact</option>
-                          <option value="opportunity">Opportunity</option>
-                        </select>
-                      </td>
-                      <td className="border border-gray-300 p-2">
-                        <select
-                          className="w-full border border-gray-300 rounded-md p-1"
-                          value={field.mappedTo}
-                          onChange={(e) => handleMappingChange(field.csvColumn, e.target.value)}
-                          disabled={!field.objectType || field.isLocked}
-                        >
-                          <option value="">Select field</option>
-                          {field.objectType &&
-                            properties
-                              .filter((prop) => prop.documentType === field.objectType)
-                              .map((prop) => (
-                                <option key={prop.value} value={prop.value}>
-                                  {prop.option}
-                                </option>
-                              ))}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {error && (
+            <div className="bg-red-50 p-4 rounded-md text-red-800 mt-4">
+              <p>{error}</p>
             </div>
-
-            <button
-              type="submit"
-              disabled={isLoading || !selectedPipeline}
-              className={`w-full py-2 px-4 bg-[#7c3aed] text-white rounded-md ${isLoading || !selectedPipeline ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {isLoading ? 'Processing...' : 'Import Contacts'}
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 p-4 rounded-md text-red-800 mt-4">
-            <p>{error}</p>
-          </div>
-        )}
-      </form>
+          )}
+        </form>
+      </div>
 
       {/* Popup */}
-      {showPopup && (
-        <div className="fixed inset-0 backdrop-filter backdrop-blur-md bg-black/20 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-md shadow-lg max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Import in Progress</h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Uploading contacts and submitting to pipeline is in progress.
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={handleReset}
-                className="py-2 px-4 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleCheckProgress}
-                className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-              >
-                Check Progress
-              </button>
+      {showPopup &&
+        createPortal(
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Import in Progress</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Uploading contacts and submitting to pipeline is in progress.
+              </p>
+              <div className="flex justify-end space-x-4">
+                <button
+                  onClick={handleReset}
+                  className="py-2 px-4 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleCheckProgress}
+                  className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                >
+                  Check Progress
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }

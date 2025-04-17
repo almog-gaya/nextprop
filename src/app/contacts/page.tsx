@@ -1476,9 +1476,9 @@ export default function ContactsPage() {
         <div className="mb-6">
           <div className="relative">
             <div className="mb-6">
-              <div className="relative">
+              <div className="relative rounded-lg border border-purple-500 ">
                 <input
-                  type="text"
+                  type="search"
                   value={searchQuery}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -1494,8 +1494,9 @@ export default function ContactsPage() {
                       searchContactsByName(value);
                     }, 300);
                   }}
-                  placeholder="      Search contacts by name..."
-                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Search contacts by name..."
+
+                  className="w-full px-4 py-2 pl-10 text-base focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md"
                   disabled={isSearching}
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

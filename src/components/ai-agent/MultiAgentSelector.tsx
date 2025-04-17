@@ -153,9 +153,9 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
   return (
     <div className="mb-8">
       <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-4 shadow-sm">
-        <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)] mb-4">
+        {/* <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)] mb-4">
           AI Agents
-        </h3>
+        </h3> */}
         
         <div className="flex flex-wrap gap-2">
           {/* Existing agents */}
