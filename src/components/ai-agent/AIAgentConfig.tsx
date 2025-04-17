@@ -60,46 +60,7 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
     const configRef = doc(db, 'ai-agent-configs', userId);
     const docSnap = await getDoc(configRef);
 
-    // Default rules
-    const defaultRules = [
-      {
-        id: 'rule_concise',
-        text: 'Keep responses under 50 words, ensuring each message adds value',
-        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
-        description: 'Ensures the AI agent keeps messages short and to the point'
-      },
-      {
-        id: 'rule_memory',
-        text: 'Accurately reference previous conversation details to maintain context',
-        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
-        description: 'Helps the AI remember past information shared by the prospect'
-      },
-      {
-        id: 'rule_completion',
-        text: 'Always ensure the conversation concludes appropriately',
-        category: 'communication' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
-        description: 'Prevents leaving conversations hanging without proper closure'
-      },
-      {
-        id: 'rule_compliant',
-        text: 'Avoid using problematic words that could trigger spam filters',
-        category: 'compliance' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
-        description: 'Ensures messages comply with A2P regulations'
-      },
-      {
-        id: 'rule_contact',
-        text: 'If asked for a phone number, provide the configured contact information',
-        category: 'business' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
-        description: 'Ensures leads can reach the real estate agent'
-      },
-      {
-        id: 'rule_offmarket',
-        text: 'Focus on off-market deals and avoid discussing MLS-listed properties',
-        category: 'business' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
-        description: 'Maintains focus on the business model of finding off-market properties'
-      }
-    ];
-    
+
     // Default Q&A entries
     const defaultQA = [
       {
@@ -155,10 +116,13 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
         contactEmail: data.contactEmail || '',
         buyingCriteria: data.buyingCriteria || DEFAULT_BUYING_CRITERIA,
         dealObjective: data.dealObjective || 'creative-finance',
-        // Add default rules and Q&A if they don't exist in the Firestore data
-        rules: Array.isArray(data.rules) ? data.rules : defaultRules,
+
+        propertyType: data.propertyType,
+        maxPrice: data.maxPrice || 2000000,
+        minPrice: data.minPrice || 0,
+        region: data.region || 'All States',
+
         qaEntries: Array.isArray(data.qaEntries) ? data.qaEntries : defaultQA,
-        enabledRules: Array.isArray(data.enabledRules) ? data.enabledRules : defaultRules.map(rule => rule.id)
       };
     }
 
@@ -176,9 +140,11 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
       contactEmail: '',
       buyingCriteria: DEFAULT_BUYING_CRITERIA,
       dealObjective: 'creative-finance',
-      rules: defaultRules,
+      propertyType: 'Single-family',
+      maxPrice: 2000000,
+      minPrice: 0,
+      region: 'All',
       qaEntries: defaultQA,
-      enabledRules: defaultRules.map(rule => rule.id) // All rules enabled by default
     };
   } catch (error) {
     console.error('Error loading config from Firestore:', error);
@@ -209,10 +175,6 @@ type Pipeline = {
   stages?: any[];
 };
 
-type EnabledPipeline = {
-  id: string;
-  name: string;
-};
 
 export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: string | null }) {
   const { user } = useAuth();
@@ -354,28 +316,25 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
 
     try {
       setIsLoading(true);
-      
+
       // Get the multi-agent config
       const { getMultiAgentConfig } = await import('@/lib/ai-agent');
       const multiAgentConfig = await getMultiAgentConfig(user.id);
-      
+
       // Get the selected agent
       const agentConfig = multiAgentConfig.agents[selectedAgentId];
-      
+
       if (!agentConfig) {
         throw new Error(`Agent ${selectedAgentId} not found`);
       }
-      
+
       // Ensure the loaded config has all the required fields
-      if (!agentConfig.rules || !agentConfig.qaEntries || !agentConfig.enabledRules) {
+      if (!agentConfig.qaEntries) {
         console.log('Adding missing fields to the config...');
         // Load default rules and Q&A from the function above
         const defaultConfig = await loadAIAgentConfig('default');
-        
-        agentConfig.rules = agentConfig.rules || defaultConfig.rules;
         agentConfig.qaEntries = agentConfig.qaEntries || defaultConfig.qaEntries;
-        agentConfig.enabledRules = agentConfig.enabledRules || defaultConfig.rules?.map(rule => rule.id) || [];
-        
+
         // Save the updated config back to Firestore
         if (user.id) {
           try {
@@ -386,14 +345,14 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
           }
         }
       }
-      
+
       setConfig(agentConfig);
     } catch (error) {
       console.error('Error loading config:', error);
-      
+
       // Get a default config
       const defaultConfig = await loadAIAgentConfig('default');
-      
+
       setConfig({
         isEnabled: true,
         enabledPipelines: [],
@@ -407,10 +366,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
         contactEmail: '',
         buyingCriteria: DEFAULT_BUYING_CRITERIA,
         dealObjective: 'creative-finance',
-        // Use rules and Q&A from the default config
-        rules: defaultConfig.rules || [],
         qaEntries: defaultConfig.qaEntries || [],
-        enabledRules: defaultConfig.enabledRules || []
       });
     } finally {
       setIsLoading(false);
@@ -432,7 +388,6 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       }
 
       const foundState = US_STATES.find(state => criteriaText.toLowerCase().includes(state.toLowerCase()));
-      setRegion(foundState || (criteriaText.toLowerCase().includes('nationwide') ? 'All States' : 'All States'));
 
       const foundType = PROPERTY_TYPES.slice(1).find(type => criteriaText.toLowerCase().includes(type.toLowerCase()));
       setPropertyTypes(foundType ? [foundType] : ['All']);
@@ -467,7 +422,13 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
 
     const newCriteria = additionalCriteria.trim() ? `${criteriaText}, ${additionalCriteria.trim()}` : criteriaText;
 
-    const updatedConfig = { ...config, buyingCriteria: newCriteria };
+    const updatedConfig = {
+      ...config, buyingCriteria: newCriteria, 
+      propertyType: propertyText,
+      maxPrice: priceRange.max,
+      minPrice: priceRange.min,
+      region: region === 'All States'? 'Nationwide' : region,
+    };
     setConfig(updatedConfig);
 
     if (user?.id) {
@@ -505,6 +466,11 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     if (!config) return;
     const { name, value } = e.target;
     setConfig(prev => prev ? { ...prev, [name]: value } : prev);
+  };
+
+  const handleRegionInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setRegion(value);
   };
 
   const handlePriceChange = (value: number, field: 'min' | 'max') => {
@@ -546,20 +512,20 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
           await deleteWorkFlow(currentWorkFlowId);
         }
       }
-      
+
       // Update buying criteria before saving
       updateBuyingCriteria();
-      
+
       // Save to multi-agent config
       const { updateAgentConfig } = await import('@/lib/ai-agent');
       await updateAgentConfig(user.id, selectedAgentId, config);
-      
+
       // Also save to local storage for backward compatibility
       await saveAIAgentConfig(config, user.id);
-      
+
       // Sync with server
       await syncConfigWithServer(config);
-      
+
       toast.success('AI Agent configuration saved successfully');
       triggerConfigRefresh();
     } catch (error) {
@@ -570,55 +536,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     }
   };
 
-  const handleAddRule = () => {
-    // Create a new custom rule
-    const newRule = {
-      id: `rule_custom_${Date.now()}`,
-      text: 'New custom rule',
-      category: 'other' as 'communication' | 'compliance' | 'business' | 'representation' | 'other',
-      description: 'Custom rule added by user'
-    };
-    
-    setConfig(prev => {
-      if (!prev) return prev;
-      
-      const updatedConfig = {
-        ...prev,
-        rules: [...(prev.rules || []), newRule],
-        enabledRules: [...(prev.enabledRules || []), newRule.id]
-      };
-      
-      // Update Firebase if user is authenticated
-      if (user?.id) {
-        saveAIAgentConfig(updatedConfig, user.id)
-          .then(() => triggerConfigRefresh())
-          .catch(error => console.error('Error saving new rule:', error));
-      }
-      
-      return updatedConfig;
-    });
-  };
 
-  const handleDeleteRule = (ruleId: string) => {
-    setConfig(prev => {
-      if (!prev || !prev.rules) return prev;
-      
-      const updatedConfig = {
-        ...prev,
-        rules: prev.rules.filter(r => r.id !== ruleId),
-        enabledRules: (prev.enabledRules || []).filter(id => id !== ruleId)
-      };
-      
-      // Update Firebase if user is authenticated
-      if (user?.id) {
-        saveAIAgentConfig(updatedConfig, user.id)
-          .then(() => triggerConfigRefresh())
-          .catch(error => console.error('Error saving rule deletion:', error));
-      }
-      
-      return updatedConfig;
-    });
-  };
 
   const handleAddQA = () => {
     // Add a new Q&A entry
@@ -628,22 +546,22 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       answer: 'Here is my answer.',
       isEnabled: true
     };
-    
+
     setConfig(prev => {
       if (!prev) return prev;
-      
+
       const updatedConfig = {
         ...prev,
         qaEntries: [...(prev.qaEntries || []), newQA]
       };
-      
+
       // Update Firebase if user is authenticated
       if (user?.id) {
         saveAIAgentConfig(updatedConfig, user.id)
           .then(() => triggerConfigRefresh())
           .catch(error => console.error('Error saving new Q&A entry:', error));
       }
-      
+
       return updatedConfig;
     });
   };
@@ -651,19 +569,19 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
   const handleDeleteQA = (qaId: string) => {
     setConfig(prev => {
       if (!prev || !prev.qaEntries) return prev;
-      
+
       const updatedConfig = {
         ...prev,
         qaEntries: prev.qaEntries.filter(qa => qa.id !== qaId)
       };
-      
+
       // Update Firebase if user is authenticated
       if (user?.id) {
         saveAIAgentConfig(updatedConfig, user.id)
           .then(() => triggerConfigRefresh())
           .catch(error => console.error('Error saving Q&A deletion:', error));
       }
-      
+
       return updatedConfig;
     });
   };
@@ -671,23 +589,23 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
   const handleToggleQA = (qaId: string, isEnabled: boolean) => {
     setConfig(prev => {
       if (!prev || !prev.qaEntries) return prev;
-      
-      const updatedQaEntries = prev.qaEntries.map(qa => 
+
+      const updatedQaEntries = prev.qaEntries.map(qa =>
         qa.id === qaId ? { ...qa, isEnabled } : qa
       );
-      
+
       const updatedConfig = {
         ...prev,
         qaEntries: updatedQaEntries
       };
-      
+
       // Update Firebase if user is authenticated
       if (user?.id) {
         saveAIAgentConfig(updatedConfig, user.id)
           .then(() => triggerConfigRefresh())
           .catch(error => console.error('Error toggling Q&A entry:', error));
       }
-      
+
       return updatedConfig;
     });
   };
@@ -695,11 +613,11 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
   const handleUpdateQA = (qaId: string, field: 'question' | 'answer', value: string) => {
     setConfig(prev => {
       if (!prev || !prev.qaEntries) return prev;
-      
-      const updatedQaEntries = prev.qaEntries.map(qa => 
+
+      const updatedQaEntries = prev.qaEntries.map(qa =>
         qa.id === qaId ? { ...qa, [field]: value } : qa
       );
-      
+
       return {
         ...prev,
         qaEntries: updatedQaEntries
@@ -707,20 +625,6 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     });
   };
 
-  const handleUpdateRule = (ruleId: string, field: 'text' | 'description' | 'category', value: string) => {
-    setConfig(prev => {
-      if (!prev || !prev.rules) return prev;
-      
-      const updatedRules = prev.rules.map(rule => 
-        rule.id === ruleId ? { ...rule, [field]: value } : rule
-      );
-      
-      return {
-        ...prev,
-        rules: updatedRules
-      };
-    });
-  };
 
   if (isLoading || !config) {
     return (
@@ -896,6 +800,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                       </option>
                     ))}
                   </select>
+
                 ) : (
                   <input
                     type="tel"
@@ -998,19 +903,19 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
               <div className="flex items-center mb-2">
                 <MapPinIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
                 <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
-                  State
+                  In Area
                 </label>
               </div>
-              <select
+              {/* Textfield to ask "In Area: " */}
+              <input
+                type="text"
+                id="inArea"
+                name="inArea"
+                value={region || ''}
+                onChange={handleRegionInputChange}
+                placeholder="i.e: Bay area of San Francisco"
                 className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-              >
-                <option value="All States">All States (Nationwide)</option>
-                {US_STATES.map(state => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
+              />
             </div>
 
             <div>
@@ -1060,7 +965,10 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
               { value: 'creative-finance', label: 'Creative Finance' },
               { value: 'cash-offer', label: 'Cash Offer' },
               { value: 'off-market', label: 'Off Market Deals' },
-              { value: 'short-sale', label: 'Short Sale' }
+              { value: 'short-sale', label: 'Short Sale' },
+              { value: 'home-owner', label: 'Home Owner' },
+              { value: 'distressed-seller', label: 'Distressed Seller' },
+
             ] as const).map((option) => (
               <button
                 key={option.value}
@@ -1077,198 +985,8 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
         </div>
       </div>
 
-      {/* Rules Section */}
-      <div className="mt-6">
-        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Response Rules</h3>
-          </div>
 
-          <div className="space-y-4">
-            <p className="text-sm text-[var(--nextprop-text-secondary)]">
-              Select rules that the AI must follow when responding to users
-            </p>
 
-            {config.rules && config.rules.length > 0 ? (
-              <div className="space-y-3">
-                {config.rules.map((rule) => (
-                  <div 
-                    key={rule.id} 
-                    className={`relative p-3 border rounded-lg transition-colors ${
-                      config.enabledRules?.includes(rule.id) 
-                        ? 'bg-[var(--nextprop-primary)]/5 border-[var(--nextprop-primary)]' 
-                        : 'border-[var(--nextprop-border)] hover:bg-[var(--nextprop-surface-hover)]'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={config.enabledRules?.includes(rule.id) || false}
-                          onChange={() => {
-                            setConfig((prev) => {
-                              if (!prev) return prev;
-                              
-                              const newEnabledRules = prev.enabledRules || [];
-                              const updatedConfig = newEnabledRules.includes(rule.id)
-                                ? {
-                                    ...prev,
-                                    enabledRules: newEnabledRules.filter(id => id !== rule.id)
-                                  }
-                                : {
-                                    ...prev,
-                                    enabledRules: [...newEnabledRules, rule.id]
-                                  };
-                              
-                              // Update Firebase if user is authenticated
-                              if (user?.id) {
-                                saveAIAgentConfig(updatedConfig, user.id)
-                                  .then(() => triggerConfigRefresh())
-                                  .catch(error => console.error('Error saving rule toggle state:', error));
-                              }
-                              
-                              return updatedConfig;
-                            });
-                          }}
-                          className={`${
-                            config.enabledRules?.includes(rule.id) ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
-                          } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2`}
-                        >
-                          <span
-                            className={`${
-                              config.enabledRules?.includes(rule.id) ? 'translate-x-5' : 'translate-x-1'
-                            } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
-                          />
-                        </Switch>
-                        <span className="font-medium text-[var(--nextprop-text-primary)]">Rule</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <select
-                          value={rule.category}
-                          onChange={(e) => {
-                            const newCategory = e.target.value as 'communication' | 'compliance' | 'business' | 'representation' | 'other';
-                            handleUpdateRule(rule.id, 'category', newCategory);
-                            
-                            // Save to Firebase after change
-                            if (user?.id) {
-                              setTimeout(() => {
-                                setConfig(prev => {
-                                  if (!prev) return prev;
-                                  const updatedConfig = { ...prev };
-                                  saveAIAgentConfig(updatedConfig, user.id)
-                                    .then(() => triggerConfigRefresh())
-                                    .catch(error => console.error('Error saving rule update:', error));
-                                  return prev;
-                                });
-                              }, 500);
-                            }
-                          }}
-                          className="text-xs px-2 py-1 rounded-full bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)] border-none focus:ring-0"
-                        >
-                          <option value="communication">communication</option>
-                          <option value="compliance">compliance</option>
-                          <option value="business">business</option>
-                          <option value="representation">representation</option>
-                          <option value="other">other</option>
-                        </select>
-                        
-                        {/* Only show delete button for custom rules (not default ones) */}
-                        {rule.id.startsWith('rule_custom_') && (
-                          <button
-                            onClick={() => handleDeleteRule(rule.id)}
-                            className="text-red-500 hover:text-red-700 p-1"
-                            aria-label="Delete rule"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                          Rule Text
-                        </label>
-                        <input
-                          type="text"
-                          value={rule.text}
-                          onChange={(e) => {
-                            handleUpdateRule(rule.id, 'text', e.target.value);
-                            
-                            // Save to Firebase after a delay (debounce)
-                            if (user?.id) {
-                              const timer = setTimeout(() => {
-                                setConfig(prev => {
-                                  if (!prev) return prev;
-                                  const updatedConfig = { ...prev };
-                                  saveAIAgentConfig(updatedConfig, user.id)
-                                    .then(() => triggerConfigRefresh())
-                                    .catch(error => console.error('Error saving rule update:', error));
-                                  return prev;
-                                });
-                              }, 500);
-                              
-                              return () => clearTimeout(timer);
-                            }
-                          }}
-                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                          Description
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={rule.description || ''}
-                          onChange={(e) => {
-                            handleUpdateRule(rule.id, 'description', e.target.value);
-                            
-                            // Save to Firebase after a delay (debounce)
-                            if (user?.id) {
-                              const timer = setTimeout(() => {
-                                setConfig(prev => {
-                                  if (!prev) return prev;
-                                  const updatedConfig = { ...prev };
-                                  saveAIAgentConfig(updatedConfig, user.id)
-                                    .then(() => triggerConfigRefresh())
-                                    .catch(error => console.error('Error saving rule update:', error));
-                                  return prev;
-                                });
-                              }, 500);
-                              
-                              return () => clearTimeout(timer);
-                            }
-                          }}
-                          className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm resize-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-[var(--nextprop-text-tertiary)]">
-                No rules configured
-              </div>
-            )}
-            
-            <div className="pt-2">
-              <button
-                onClick={handleAddRule}
-                className="w-full py-2 px-4 border border-dashed border-[var(--nextprop-border)] rounded-lg text-sm text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)] transition-colors"
-              >
-                + Add Custom Rule
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
       {/* Q&A Section */}
       <div className="mt-6">
         <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
@@ -1285,27 +1003,24 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
             {config.qaEntries && config.qaEntries.length > 0 ? (
               <div className="space-y-3">
                 {config.qaEntries.map((qa) => (
-                  <div 
-                    key={qa.id} 
-                    className={`relative p-3 border rounded-lg transition-colors ${
-                      qa.isEnabled 
-                        ? 'bg-[var(--nextprop-primary)]/5 border-[var(--nextprop-primary)]' 
-                        : 'border-[var(--nextprop-border)] hover:bg-[var(--nextprop-surface-hover)]'
-                    }`}
+                  <div
+                    key={qa.id}
+                    className={`relative p-3 border rounded-lg transition-colors ${qa.isEnabled
+                      ? 'bg-[var(--nextprop-primary)]/5 border-[var(--nextprop-primary)]'
+                      : 'border-[var(--nextprop-border)] hover:bg-[var(--nextprop-surface-hover)]'
+                      }`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <Switch
                           checked={qa.isEnabled}
                           onChange={() => handleToggleQA(qa.id, !qa.isEnabled)}
-                          className={`${
-                            qa.isEnabled ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
-                          } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2`}
+                          className={`${qa.isEnabled ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
+                            } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2`}
                         >
                           <span
-                            className={`${
-                              qa.isEnabled ? 'translate-x-5' : 'translate-x-1'
-                            } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                            className={`${qa.isEnabled ? 'translate-x-5' : 'translate-x-1'
+                              } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
                           />
                         </Switch>
                         <span className="font-medium text-[var(--nextprop-text-primary)]">Q&A Entry</span>
@@ -1314,7 +1029,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                         <span className="text-xs px-2 py-1 rounded-full bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
                           {qa.id.startsWith('qa_custom_') ? 'Custom' : 'Default'}
                         </span>
-                        
+
                         {/* Only show delete button for custom Q&A entries */}
                         {qa.id.startsWith('qa_custom_') && (
                           <button
@@ -1329,7 +1044,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
@@ -1340,7 +1055,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                           value={qa.question}
                           onChange={(e) => {
                             handleUpdateQA(qa.id, 'question', e.target.value);
-                            
+
                             // Save to Firebase after a delay (debounce)
                             if (user?.id) {
                               const timer = setTimeout(() => {
@@ -1353,14 +1068,14 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                                   return prev;
                                 });
                               }, 500);
-                              
+
                               return () => clearTimeout(timer);
                             }
                           }}
                           className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
                           Answer
@@ -1370,7 +1085,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                           value={qa.answer}
                           onChange={(e) => {
                             handleUpdateQA(qa.id, 'answer', e.target.value);
-                            
+
                             // Save to Firebase after a delay (debounce)
                             if (user?.id) {
                               const timer = setTimeout(() => {
@@ -1383,7 +1098,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                                   return prev;
                                 });
                               }, 500);
-                              
+
                               return () => clearTimeout(timer);
                             }
                           }}
@@ -1399,7 +1114,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                 No Q&A entries configured
               </div>
             )}
-            
+
             <div className="pt-2">
               <button
                 onClick={handleAddQA}
@@ -1411,7 +1126,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
           </div>
         </div>
       </div>
-      
+
       {/* Advanced Customization Section */}
       <div className="mt-6">
         <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
@@ -1424,7 +1139,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
             <p className="text-sm text-[var(--nextprop-text-secondary)] mb-2">
               Add additional custom instructions for your AI agent
             </p>
-            
+
             <textarea
               rows={5}
               name="customInstructions"
@@ -1433,7 +1148,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
               placeholder="Enter additional instructions for the AI agent..."
               className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
             ></textarea>
-            
+
             <p className="text-xs text-[var(--nextprop-text-tertiary)]">
               These instructions will be added to the end of the AI prompt. Be careful not to contradict earlier instructions.
             </p>
