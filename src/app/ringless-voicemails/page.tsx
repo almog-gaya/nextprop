@@ -3,31 +3,23 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { PhoneNumber, useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import axios from 'axios';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import StatsCard from '@/components/StatsCard';
-import BulkUploadForm from '@/components/BulkUploadForm';
-import { collection, query, onSnapshot, where, setDoc, doc, deleteDoc, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, doc, deleteDoc, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
 import ContactSelector from '@/components/ringless-voicemail/ContactSelector';
 import CampaignForm from '@/components/ringless-voicemail/CampaignForm';
 import CampaignList from '@/components/ringless-voicemail/CampaignList';
 import {
-  PlayIcon,
-  PauseIcon,
   PhoneIcon,
   PhoneOffIcon,
   PhoneIncomingIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  TrashIcon
 } from 'lucide-react';
-import PipelineSelector from '@/components/dashboard/PipelineSelector';
-import ViewToggle from '@/components/dashboard/ViewToggel';
+import PipelineSelector from '@/components/dashboard/PipelineSelector'; 
 import EnhancedBulkUploadForm from '@/components/EnhancedBulkUploadForm';
+import StageSelector, { Stage } from '@/components/dashboard/StageSelector'; 
 
 export default function RinglessVoicemailPage() {
   const { user, loadUser } = useAuth();
@@ -36,12 +28,9 @@ export default function RinglessVoicemailPage() {
   const [error, setError] = useState<string | null>(null);
   const [pipelines, setPipelines] = useState<any[]>([]);
   const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
+  const [selectedPipelineStage, setSelectedPipelineStage] = useState<Stage | null>(null);
   const [totalLeadsByPipeline, setTotalLeadsByPipeline] = useState<Record<string, number>>({});
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [apiConfigured, setApiConfigured] = useState(true);
-  const [notification, setNotification] = useState({ message: '', type: '' });
-  const [notificationActive, setNotificationActive] = useState(false);
-  const [settings, setSettings] = useState({
+   const [settings, setSettings] = useState({
     delayMinutes: 5,
     dailyLimit: 50,
     startTime: "10:00 AM",
@@ -50,46 +39,6 @@ export default function RinglessVoicemailPage() {
     maxPerHour: 100,
     daysOfWeek: ["Mon", "Tue", "Wed", "Thu", "Fri"]
   });
-
-  useEffect(() => {
-    if (!user && !loading) {
-      loadUser();
-    }
-  }, [user, loading, loadUser]);
-
-  useEffect(() => {
-    if (user && !loading) {
-      fetchPhoneNumbers();
-    }
-  }, [user, loading]);
-
-  const dayMapping: { [key: string]: string } = {
-    Mon: "Monday",
-    Tue: "Tuesday",
-    Wed: "Wednesday",
-    Thu: "Thursday",
-    Fri: "Friday",
-    Sat: "Saturday",
-    Sun: "Sunday",
-  };
-
-  const convertTo24Hour = (time: string) => {
-    if (/^\d{2}:\d{2}$/.test(time)) {
-      // Already in 24-hour format, return as-is
-      return time;
-    }
-
-    const [hourStr, minuteStr, period] = time.split(/:| /);
-    let hour = parseInt(hourStr, 10);
-
-    if (period?.toUpperCase() === "PM" && hour !== 12) {
-      hour += 12;
-    } else if (period?.toUpperCase() === "AM" && hour === 12) {
-      hour = 0;
-    }
-
-    return `${String(hour).padStart(2, "0")}:${minuteStr}`;
-  };
 
   // Contact management state
   const [contacts, setContacts] = useState<any[]>([]);
@@ -115,6 +64,49 @@ export default function RinglessVoicemailPage() {
 
   // Constants
   const CONTACTS_PER_PAGE = 10;
+
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+
+  const dayMapping: { [key: string]: string } = {
+    Mon: "Monday",
+    Tue: "Tuesday",
+    Wed: "Wednesday",
+    Thu: "Thursday",
+    Fri: "Friday",
+    Sat: "Saturday",
+    Sun: "Sunday",
+  };
+
+  useEffect(() => {
+    if (!user && !loading) {
+      loadUser();
+    }
+  }, [user, loading, loadUser]);
+
+  useEffect(() => {
+    if (user && !loading) {
+      fetchPhoneNumbers();
+    }
+  }, [user, loading]);
+
+  const convertTo24Hour = (time: string) => {
+    if (/^\d{2}:\d{2}$/.test(time)) {
+      // Already in 24-hour format, return as-is
+      return time;
+    }
+
+    const [hourStr, minuteStr, period] = time.split(/:| /);
+    let hour = parseInt(hourStr, 10);
+
+    if (period?.toUpperCase() === "PM" && hour !== 12) {
+      hour += 12;
+    } else if (period?.toUpperCase() === "AM" && hour === 12) {
+      hour = 0;
+    }
+
+    return `${String(hour).padStart(2, "0")}:${minuteStr}`;
+  };
 
   // Stats derived from campaigns
   const stats = useMemo(() => {
@@ -177,7 +169,71 @@ export default function RinglessVoicemailPage() {
       fetchContacts(true);
     }
   }, [searchQuery]);
- 
+
+  useEffect(() => {
+    const fetchPipelines = async () => {
+      try {
+        const response = await fetch('/api/pipelines');
+        if (!response.ok) {
+          throw new Error('Failed to fetch pipelines');
+        }
+        const data = await response.json();
+        const pipelinesArray = Array.isArray(data) ? data : Array.isArray(data.pipelines) ? data.pipelines : [];
+        setPipelines(pipelinesArray);
+
+        // Flatten all pipeline-stage pairs into an array of fetch promises
+        const stageFetchPromises = pipelinesArray.flatMap((pipeline: any) =>
+          pipeline.stages.map((stage: any) =>
+            fetch(`/api/pipelines/search?pipelineId=${pipeline.id}&stageId=${stage.id}`)
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch stage ${stage.id} for pipeline ${pipeline.id}`);
+                }
+                return response.json();
+              })
+              .then((dataResponse) => ({
+                pipelineId: pipeline.id,
+                total: dataResponse.total,
+              }))
+          )
+        );
+
+        // Execute all stage fetches concurrently
+        const stageResults = await Promise.all(stageFetchPromises);
+
+        // Aggregate totals into a single object
+        const updatedTotalLeads = stageResults.reduce((acc, { pipelineId, total }) => {
+          acc[pipelineId] = (acc[pipelineId] || 0) + total;
+          return acc;
+        }, { ...totalLeadsByPipeline }); // Spread existing state to preserve other pipeline totals
+
+        // Update state once with all aggregated totals
+        setTotalLeadsByPipeline(updatedTotalLeads);
+
+      } catch (error) {
+        console.error('Error fetching pipelines:', error);
+        toast.error('Failed to load pipelines');
+        setPipelines([]);
+      }
+    };
+    fetchPipelines();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Add effect to refetch contacts when pipeline changes
+  useEffect(() => {
+    setContacts([]);
+    setCurrentPage(1);
+    setTotalContacts(0);
+    fetchContacts(true);
+  }, [selectedPipelineStage]);
 
   const fetchContacts = async (reset = false) => {
     if (isFetching) return;
@@ -195,11 +251,19 @@ export default function RinglessVoicemailPage() {
 
       // Recursive helper function to fetch all pages
       const fetchAllContacts = async (page: number, accumulatedContacts: any[] = []): Promise<any[]> => {
+        let selectedStagePayload = {};
+        if(selectedPipelineStage?.id != 'undefined' && selectedPipelineStage?.id != null) { 
+          selectedStagePayload = {
+            stageId: selectedPipelineStage.id,
+            stageName: selectedPipelineStage.name,
+          };
+        }
         const params = new URLSearchParams({
           page: page.toString(),
           type: 'pipeline',
           pipelineName: pipelines.find((p) => p.id === selectedPipeline)?.name || '',
           pipelineId: selectedPipeline,
+          ...selectedStagePayload,
           limit: CONTACTS_PER_PAGE.toString(),
           ...(searchQuery && { search: searchQuery }),
         });
@@ -240,15 +304,6 @@ export default function RinglessVoicemailPage() {
     }
   };
 
-  // Add effect to refetch contacts when pipeline changes
-  useEffect(() => {
-    setContacts([]);
-    setCurrentPage(1);
-    setTotalContacts(0);
-    fetchContacts(true);
-  }, [selectedPipeline]);
-
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const searchContactsByName = useCallback(async (name: string) => {
     try {
@@ -291,13 +346,6 @@ export default function RinglessVoicemailPage() {
     }
   }, [fetchContacts]);
 
-  useEffect(() => {
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, []);
 
   async function fetchCampaigns() {
     setLoading(true);
@@ -461,7 +509,7 @@ export default function RinglessVoicemailPage() {
         const currentStageId = pipeline.pipelineStageId;
         const pipelineId = pipeline?.pipelineId;
         const nextPipelineId = getNextStageIdByPipelineId(pipelineId, currentStageId);
-        
+
         let pipelineInfo = {};
         /// add only if we have nextPipeline id otherwise dont include 
         if (nextPipelineId) {
@@ -707,57 +755,15 @@ export default function RinglessVoicemailPage() {
 
   const handlePipelineChange = (pipelineId: string) => {
     setSelectedPipeline(pipelineId);
+    const pipeline = pipelines.find((p) => p.id === pipelineId);
+    if (pipeline) {
+      handlePipelineStageChange(pipeline.stages[0]?.id || '');
+    }
   };
-
-
-  useEffect(() => {
-    const fetchPipelines = async () => {
-      try {
-        const response = await fetch('/api/pipelines');
-        if (!response.ok) {
-          throw new Error('Failed to fetch pipelines');
-        }
-        const data = await response.json();
-        const pipelinesArray = Array.isArray(data) ? data : Array.isArray(data.pipelines) ? data.pipelines : [];
-        setPipelines(pipelinesArray);
-
-        // Flatten all pipeline-stage pairs into an array of fetch promises
-        const stageFetchPromises = pipelinesArray.flatMap((pipeline: any) =>
-          pipeline.stages.map((stage: any) =>
-            fetch(`/api/pipelines/search?pipelineId=${pipeline.id}&stageId=${stage.id}`)
-              .then((response) => {
-                if (!response.ok) {
-                  throw new Error(`Failed to fetch stage ${stage.id} for pipeline ${pipeline.id}`);
-                }
-                return response.json();
-              })
-              .then((dataResponse) => ({
-                pipelineId: pipeline.id,
-                total: dataResponse.total,
-              }))
-          )
-        );
-
-        // Execute all stage fetches concurrently
-        const stageResults = await Promise.all(stageFetchPromises);
-
-        // Aggregate totals into a single object
-        const updatedTotalLeads = stageResults.reduce((acc, { pipelineId, total }) => {
-          acc[pipelineId] = (acc[pipelineId] || 0) + total;
-          return acc;
-        }, { ...totalLeadsByPipeline }); // Spread existing state to preserve other pipeline totals
-
-        // Update state once with all aggregated totals
-        setTotalLeadsByPipeline(updatedTotalLeads);
-
-      } catch (error) {
-        console.error('Error fetching pipelines:', error);
-        toast.error('Failed to load pipelines');
-        setPipelines([]);
-      }
-    };
-    fetchPipelines();
-  }, []);
+  
+  const handlePipelineStageChange = (stage: Stage) => {
+    setSelectedPipelineStage(stage);
+  };
 
   return (
     <DashboardLayout title="Ringless Voicemails">
@@ -822,18 +828,35 @@ export default function RinglessVoicemailPage() {
           <div className="px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
+                <h3 className="text-lg leading-3 font-small text-gray-900">Pipelines</h3>
+                {/* Pipeline Selection */}
                 <PipelineSelector
                   pipelines={pipelines}
                   selectedPipeline={selectedPipeline}
                   handlePipelineChange={handlePipelineChange}
                 />
                 {selectedPipeline && <span className="ml-3 text-purple-600 font-medium">
-                  {totalLeadsByPipeline[selectedPipeline] || 0} leads
+                  Total {totalLeadsByPipeline[selectedPipeline] || 0} leads
+                </span>}
+              </div> 
+              {/* Stage Selection */}
+              <div className="flex-1 min-w-0">
+              <h3 className="eading-3 font-small text-gray-900">Stages</h3>
+              <StageSelector
+                stages={pipelines.find(p => p.id === selectedPipeline)?.stages || []} 
+                handleStageChange={handlePipelineStageChange}
+                selectedStage={selectedPipelineStage}
+                disabled ={!selectedPipeline}
+              />
+              {selectedPipeline && <span className="ml-3  font-medium">
+                  
                 </span>}
               </div>
+
+{/*               
               <div className="flex items-center space-x-3">
                 <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -865,6 +888,7 @@ export default function RinglessVoicemailPage() {
                     onSearchChange={handleSearchChange}
                     onToggleContact={toggleContact}
                     onClearSelected={() => setSelectedContacts([])}
+                    onSelectAll={() => setSelectedContacts(contacts)}
                     onOpenBulkUpload={() => setIsBulkUploadModalOpen(true)}
                     loaderRef={loaderRef}
                   />

@@ -21,6 +21,7 @@ import {
 import PipelineSelector from '@/components/dashboard/PipelineSelector';
 import ViewToggle from '@/components/dashboard/ViewToggel';
 import EnhancedBulkUploadForm from '@/components/EnhancedBulkUploadForm';
+import StageSelector, { Stage } from '@/components/dashboard/StageSelector';
 
 export default function RinglessVoicemailPage() {
     const { user, loadUser } = useAuth();
@@ -31,9 +32,8 @@ export default function RinglessVoicemailPage() {
     const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
     const [totalLeadsByPipeline, setTotalLeadsByPipeline] = useState<Record<string, number>>({});
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-    const [apiConfigured, setApiConfigured] = useState(true);
-    const [notification, setNotification] = useState({ message: '', type: '' });
-    const [notificationActive, setNotificationActive] = useState(false);
+    const [selectedPipelineStage, setSelectedPipelineStage] = useState<Stage | null>(null);
+
     const [settings, setSettings] = useState({
         delayMinutes: 5,
         dailyLimit: 50,
@@ -224,11 +224,19 @@ export default function RinglessVoicemailPage() {
 
             // Recursive helper function to fetch all pages
             const fetchAllContacts = async (page: number, accumulatedContacts: any[] = []): Promise<any[]> => {
+                let selectedStagePayload = {};
+                if(selectedPipelineStage?.id != 'undefined' && selectedPipelineStage?.id != null) { 
+                  selectedStagePayload = {
+                    stageId: selectedPipelineStage.id,
+                    stageName: selectedPipelineStage.name,
+                  };
+                }
                 const params = new URLSearchParams({
                     page: page.toString(),
                     type: 'pipeline',
                     pipelineName: pipelines.find((p) => p.id === selectedPipeline)?.name || '',
                     pipelineId: selectedPipeline,
+                    ...selectedStagePayload,
                     limit: CONTACTS_PER_PAGE.toString(),
                     ...(searchQuery && { search: searchQuery }),
                 });
@@ -275,7 +283,7 @@ export default function RinglessVoicemailPage() {
         setCurrentPage(1);
         setTotalContacts(0);
         fetchContacts(true);
-    }, [selectedPipeline]);
+    }, [selectedPipelineStage]);
 
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -472,7 +480,7 @@ export default function RinglessVoicemailPage() {
                 const currentStageId = pipeline.pipelineStageId;
                 const pipelineId = pipeline?.pipelineId;
                 const nextPipelineId = getNextStageIdByPipelineId(pipelineId, currentStageId);
-                
+
                 let pipelineInfo = {};
                 /// add only if we have nextPipeline id otherwise dont include 
                 if (nextPipelineId) {
@@ -575,8 +583,14 @@ export default function RinglessVoicemailPage() {
 
     const handlePipelineChange = (pipelineId: string) => {
         setSelectedPipeline(pipelineId);
+        const pipeline = pipelines.find((p) => p.id === pipelineId);
+        if (pipeline) {
+            handlePipelineStageChange(pipeline.stages[0]?.id || '');
+        }
     };
-
+    const handlePipelineStageChange = (stage: Stage) => {
+        setSelectedPipelineStage(stage);
+    };
 
     useEffect(() => {
         const fetchPipelines = async () => {
@@ -682,6 +696,7 @@ export default function RinglessVoicemailPage() {
                     <div className="px-4 py-4">
                         <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
+                            <h3 className="text-lg leading-3 font-small text-gray-900">Pipelines</h3>
                                 <PipelineSelector
                                     pipelines={pipelines}
                                     selectedPipeline={selectedPipeline}
@@ -691,8 +706,18 @@ export default function RinglessVoicemailPage() {
                                     {totalLeadsByPipeline[selectedPipeline] || 0} leads
                                 </span>}
                             </div>
-                            <div className="flex items-center space-x-3">
-                                <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+                            {/* Stage Selection */}
+                            <div className="flex-1 min-w-0">
+                                <h3 className="eading-3 font-small text-gray-900">Stages</h3>
+                                <StageSelector
+                                    stages={pipelines.find(p => p.id === selectedPipeline)?.stages || []}
+                                    handleStageChange={handlePipelineStageChange}
+                                    selectedStage={selectedPipelineStage}
+                                    disabled={!selectedPipeline}
+                                />
+                                {selectedPipeline && <span className="ml-3  font-medium">
+
+                                </span>}
                             </div>
                         </div>
                     </div>
@@ -725,6 +750,7 @@ export default function RinglessVoicemailPage() {
                                         onSearchChange={handleSearchChange}
                                         onToggleContact={toggleContact}
                                         onClearSelected={() => setSelectedContacts([])}
+                                        onSelectAll={() => setSelectedContacts(contacts)}
                                         onOpenBulkUpload={() => setIsBulkUploadModalOpen(true)}
                                         loaderRef={loaderRef}
                                     />
