@@ -11,6 +11,7 @@ interface ContactSelectorProps {
   onSearchChange: (value: string) => void;
   onToggleContact: (contact: any) => void;
   onClearSelected: () => void;
+  onSelectAll: () => void;
   onOpenBulkUpload: () => void;
   loaderRef: React.RefObject<HTMLLIElement | null>;
   stageName?: string | null;
@@ -26,6 +27,7 @@ function ContactSelector({
   onSearchChange,
   onToggleContact,
   onClearSelected,
+  onSelectAll,
   onOpenBulkUpload,
   loaderRef,
   stageName = null,
@@ -96,11 +98,21 @@ function ContactSelector({
         </button>
       </div>
 
-      <div className="mt-6">
-        <h5 className="text-sm font-medium text-gray-700 mb-3">
-          Available Contacts ({contacts.length})
+      <div className="mt-6"> 
+        <div className="flex items-center justify-between mb-3">
+          <h5 className="text-sm font-medium text-gray-700">Available Contacts ({selectedContacts.length})</h5>
           {stageName && <span className="ml-2 text-purple-600 font-medium">in {stageName}</span>}
-        </h5>
+          {selectedContacts.length != totalContacts && (
+            <button
+              type="button"
+              onClick={onSelectAll}
+              className="text-sm text-black-600 hover:text-grey-700 font-medium transition-colors duration-150"
+            >
+              Select All
+            </button>
+          )}
+        </div>
+        
         <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto bg-white shadow-inner">
           <ul className="divide-y divide-gray-200">
             {isSearching ? (

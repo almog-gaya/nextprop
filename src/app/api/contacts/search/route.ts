@@ -25,7 +25,9 @@ export async function GET(request: Request) {
         const currentPage = url.searchParams.get('page') || '1';
         const limit = url.searchParams.get('limit') || '100';
         const pipelineId = url.searchParams.get('pipelineId') || '';
+        const pipelineName = url.searchParams.get('pipelineName') || '';
         const stageId = url.searchParams.get('stageId') || '';
+        const stageName = url.searchParams.get('stageName') || '';
 
         console.log(`Search request - Type: ${type}, Pipeline: ${pipelineId}, Stage: ${stageId}, Page: ${currentPage}`);
 
@@ -37,7 +39,9 @@ export async function GET(request: Request) {
                 page: parseInt(currentPage),
                 limit: parseInt(limit),
                 pipelineId,
-                stageId: (stageId && stageId !== 'all') ? stageId : undefined
+                pipelineName: pipelineName,
+                stageId: (stageId && stageId !== 'all') ? stageId : undefined,
+                stageName: (stageName && stageName !== 'All') ? stageName : undefined
             });
         } else if (name) {
             result = await searchByName(name, locationId, tokenId, parseInt(currentPage), parseInt(limit));
@@ -61,92 +65,67 @@ async function searchContacts({
     page = 1,
     limit = 100,
     pipelineId,
-    stageId
+    pipelineName,
+    stageId,
+    stageName
 }: {
     locationId: string;
     tokenId: string;
     page: number;
     limit: number;
     pipelineId: string;
+    pipelineName: string;
     stageId?: string;
+    stageName?: string;
 }) {
     const filters = [];
 
-    // Add pipeline filter
+    // Add pipeline stage filter
     filters.push({
-        id: "4",
-        filterName: "Pipeline",
-        filterName_lc: "pipeline",
+        id: "1",
+        filterName: "Pipeline Stage",
+        filterName_lc: "pipeline_stage",
         extras: {},
         selectedOption: {
-            filterName: "Pipeline",
-            filterName_lc: "pipeline",
+            filterName: "Pipeline Stage",
+            filterName_lc: "pipeline_stage",
             condition: "is",
-            firstValue: [{ key: pipelineId, value: "Selected Pipeline" }]
+            firstValue: { key: pipelineId, value: pipelineName },
+            ...(stageId && stageName ? { secondValue: { key: stageId, value: stageName } } : {})
         }
     });
-
-    // Add stage filter if provided
-    if (stageId) {
-        filters.push({
-            id: "5",
-            filterName: "Stage",
-            filterName_lc: "stage",
-            extras: {},
-            selectedOption: {
-                filterName: "Stage",
-                filterName_lc: "stage",
-                condition: "is",
-                firstValue: [{ key: stageId, value: "Selected Stage" }]
-            }
-        });
-    }
 
     const payload = {
         locationId,
         page,
         pageLimit: limit,
         sort: [],
-        filters: [{
-            group: "AND",
-            filters
-        }]
+        filters: [
+            {
+                group: "OR",
+                filters: [
+                    {
+                        group: "AND",
+                        filters
+                    }
+                ]
+            }
+        ]
     };
 
     console.log(`Searching contacts - Pipeline: ${pipelineId}${stageId ? `, Stage: ${stageId}` : ''}`);
     console.log('Search payload:', JSON.stringify(payload, null, 2));
 
     try {
-        const headers = {
-            "accept": "application/json, text/plain, */*",
-            "accept-language": "en-US,en;q=0.9",
-            "baggage": "sentry-environment=production,sentry-release=a9ea33ccf48e211966db91418cf5d9a866eee67c,sentry-public_key=c67431ff70d6440fb529c2705792425f,sentry-trace_id=1416625bc1fe4208886f7ebd4b84fc44",
-            "channel": "APP",
-            "content-type": "application/json",
-            "dnt": "1",
-            "origin": "https://app.gohighlevel.com",
-            "priority": "u=1, i",
-            "referer": "https://app.gohighlevel.com/",
-            "sec-ch-ua": "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\"",
-            "sec-ch-ua-mobile": "?1",
-            "sec-ch-ua-platform": "\"Android\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "sentry-trace": "1416625bc1fe4208886f7ebd4b84fc44-a81839fdd5d3bba1",
-            "source": "WEB_USER",
-            "token-id": tokenId,
-            "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36",
-            "Version": "2021-07-28"
-          };
+        const headers = buildHeaders(tokenId);
         const response = await fetch("https://backend.leadconnectorhq.com/contacts/search/2", {
             method: "POST",
             headers,
             body: JSON.stringify(payload),
         });
 
-        if (!response.ok) { 
-            const errorText = await response.text(); 
+        if (!response.ok) {
+            const errorText = await response.text();
             throw new Error(`error: ${errorText}`);
         }
 
@@ -159,6 +138,31 @@ async function searchContacts({
     }
 }
 
+const buildHeaders = (tokenId: string) => {
+    const headers = {
+        "accept": "application/json, text/plain, */*",
+        "accept-language": "en-US,en;q=0.9",
+        "baggage": "sentry-environment=production,sentry-release=a9ea33ccf48e211966db91418cf5d9a866eee67c,sentry-public_key=c67431ff70d6440fb529c2705792425f,sentry-trace_id=1416625bc1fe4208886f7ebd4b84fc44",
+        "channel": "APP",
+        "content-type": "application/json",
+        "dnt": "1",
+        "origin": "https://app.gohighlevel.com",
+        "priority": "u=1, i",
+        "referer": "https://app.gohighlevel.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "sentry-trace": "1416625bc1fe4208886f7ebd4b84fc44-a81839fdd5d3bba1",
+        "source": "WEB_USER",
+        "token-id": tokenId,
+        "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36",
+        "Version": "2021-07-28"
+      };
+      return headers;
+}
 /**
  * Search contacts by name
  */
