@@ -50,7 +50,10 @@ export default function AIAgentTestPage() {
         setError(null);
         const userId = user?.locationId;
 
-        if (!userId) throw new Error('User ID is missing');
+        if (!userId) {
+          console.log(`User ID is missing`);
+          return;
+        }
         
         const configRef = doc(db, 'ai-agent-configs', userId);
         const docSnap = await getDoc(configRef);
