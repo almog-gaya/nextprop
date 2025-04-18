@@ -701,11 +701,11 @@ export default function RinglessVoicemailPage() {
                 {/* Create New Campaign */}
                 <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
                     <div className="px-4 py-5 sm:p-6">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-6 ">
                             <h3 className="text-lg leading-6 font-medium text-gray-900">Create New Campaign</h3>
                             <button
                                 onClick={() => setIsBulkUploadModalOpen(true)}
-                                className="inline-flex items-center px-3 py-2 border border-purple-300 text-sm leading-4 font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                className="inline-flex items-center px-3 py-2  border border-purple-300 text-sm leading-4 font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-1  focus:ring-purple-500"
                             >
                                 Bulk Upload Contacts
                             </button>

@@ -1476,7 +1476,7 @@ export default function ContactsPage() {
         <div className="mb-6">
           <div className="relative">
             <div className="mb-6">
-              <div className="relative rounded-lg border border-purple-500 ">
+              <div className="relative rounded-lg border border-gray-300  ">
                 <input
                   type="search"
                   value={searchQuery}
