@@ -525,7 +525,7 @@ export default function RinglessVoicemailPage() {
                     "sms": {
                         "enabled": true,
                         "message": script,
-                        "time_interval": settings.delayMinutes,
+                        "time_interval": settings.delayMinutes * 60,
                         "from_number": selectedPhoneNumber.number || selectedPhoneNumber,
                     }
                 },

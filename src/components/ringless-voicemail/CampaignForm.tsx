@@ -191,7 +191,7 @@ export default function CampaignForm({
       {/* Campaign Settings */}
       <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
         <h4 className="text-sm font-medium text-gray-700 mb-2">Step {stepNumber++}: Campaign Settings</h4>
-        <CampaignSettingsForm settings={settings} onSave={onSettingsSave} isVoiceMailModule={isVoiceMailModule} />
+        <CampaignSettingsForm settings={settings} onSave={onSettingsSave} isVoiceMailModule={isVoiceMailModule} isAutomationsModule={false} />
       </div>
 
       {/* Create Campaign Button */}
