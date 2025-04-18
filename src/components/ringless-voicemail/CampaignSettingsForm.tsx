@@ -13,10 +13,11 @@ interface CampaignSettings {
 interface CampaignSettingsFormProps {
   settings: CampaignSettings;
   isVoiceMailModule: boolean;
+  isAutomationsModule: boolean;
   onSave: (settings: CampaignSettings) => void;
 }
 
-export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSave }: CampaignSettingsFormProps) {
+export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAutomationsModule, onSave }: CampaignSettingsFormProps) {
   const [formSettings, setFormSettings] = useState<CampaignSettings>({
     ...settings,
     daysOfWeek: [...settings.daysOfWeek]
@@ -62,7 +63,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="bg-white shadow-sm rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Campaign Schedule Settings</h3>
-          
+
           {/* Time Settings */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
@@ -150,7 +151,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
           </div>}
 
           {/* Interval between SMS */}
-          {!isVoiceMailModule && <div className="border-t border-gray-200 pt-6">
+          {!isAutomationsModule &&!isVoiceMailModule && <div className="border-t border-gray-200 pt-6">
             <h4 className="text-sm font-medium text-gray-700 mb-4">Interval between each SMS</h4>
             <input
 
@@ -166,10 +167,10 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
             />
             <div className="flex justify-between text-sm text-gray-500 mt-2 mb-4">
-              <span>1</span>  
-              <span>15</span> 
-              <span>30</span> 
-              <span>45</span> 
+              <span>1</span>
+              <span>15</span>
+              <span>30</span>
+              <span>45</span>
               <span>60</span>
             </div>
             <div className="flex items-center gap-4">
@@ -182,9 +183,9 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
                   let value = parseInt(e.target.value);
                   if (isNaN(value)) value = 1;
                   value = Math.max(1, Math.min(59, value));
-                  handleInputChange('delayMinutes', value); 
+                  handleInputChange('delayMinutes', value);
                 }}
-              
+
                 onBlur={(e) => {
                   let value = parseInt(e.target.value);
                   if (isNaN(value)) value = 1;
@@ -195,7 +196,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
               />
               <span className="text-sm text-gray-600">minutes</span>
             </div>
-          </div>} 
+          </div>}
 
           {/* Days of Week */}
           <div className="border-t border-gray-200 pt-6 mt-6">
@@ -206,11 +207,10 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, onSa
                   key={day}
                   type="button"
                   onClick={() => toggleDay(day)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    formSettings.daysOfWeek.includes(day)
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${formSettings.daysOfWeek.includes(day)
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                 >
                   {day}
                 </button>

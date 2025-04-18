@@ -58,7 +58,7 @@ export default function AutomationsPage() {
   const [propertyConfig, setPropertyConfig] = useState<AutomationTaskCreateParams>({
     customer_id: user?.id || '',
     pipeline_id: '',
-    stage_id: '', 
+    stage_id: '',
     limit: propertyCount,
     redfin_url: '',
     campaign_payload: {
@@ -248,7 +248,7 @@ export default function AutomationsPage() {
     if (!propertyConfig.customer_id) return toast.error('Customer ID is required');
     if (!propertyConfig.campaign_payload.channels.sms.from_number) return toast.error('SMS from number is required');
     const nextStageId = getNextStageIdByPipelineId(propertyConfig.pipeline_id, propertyConfig.stage_id);
-  
+
 
     // See if there is any existing automation running
     const automationQuery = query(collection(db, 'automations'), where('customer_id', '==', user?.id));
@@ -259,7 +259,7 @@ export default function AutomationsPage() {
     toast.loading('Starting property automation...', { id: 'property-job' });
     setIsJobRunning(true);
 
-    if(nextStageId) {
+    if (nextStageId) {
       propertyConfig.next_stage_id = nextStageId;
     }
     try {
@@ -276,7 +276,7 @@ export default function AutomationsPage() {
       if (!result.ok) throw new Error(`Failed to start automation: ${resultData.message || 'Unknown error'}`);
       toast.success('Automation started successfully!', { id: 'property-job' });
       setActiveJobId(resultData.task_id);
-    } catch (error:any) {
+    } catch (error: any) {
       console.error('Error starting automation:', error);
       toast.error(`Failed to start automation: ${error.message}`, { id: 'property-job' });
       setIsJobRunning(false);
@@ -319,27 +319,91 @@ export default function AutomationsPage() {
               <PropertyCountConfig propertyCount={propertyCount} onChange={handlePropertyInputChange} isJobRunning={isJobRunning} />
             </div>
 
-            <SmsTemplateConfig 
-              message={propertyConfig.campaign_payload.channels.sms.message} 
-              onChange={handleSmsTemplateChange} 
-              textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>} 
-              insertPlaceholder={insertPlaceholder} 
-              isJobRunning={isJobRunning} 
+            <SmsTemplateConfig
+              message={propertyConfig.campaign_payload.channels.sms.message}
+              onChange={handleSmsTemplateChange}
+              textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+              insertPlaceholder={insertPlaceholder}
+              isJobRunning={isJobRunning}
             />
 
             <div className="p-4 bg-gray-50 rounded-lg">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Campaign Settings</h4>
               <CampaignSettingsForm
                 settings={{
-                  delayMinutes: propertyConfig.campaign_payload.channels.sms.time_interval,
+                  delayMinutes: 20,
                   dailyLimit: propertyCount,
                   startTime: propertyConfig.campaign_payload.time_window.start,
                   endTime: propertyConfig.campaign_payload.time_window.end,
                   timezone: propertyConfig.campaign_payload.timezone,
-                  maxPerHour: 100,
+                  maxPerHour: 1,
                   daysOfWeek: propertyConfig.campaign_payload.days
                 }}
                 onSave={(newSettings) => {
+                  // Calculate the delay (in minutes) to process exactly 20 contacts per day within the given time frame
+                  // timeStart and timeEnd are in "H:mm AM/PM" format (e.g., "9:00 AM", "5:00 PM")
+                  function calculateDelayFor20Contacts(timeStart: string, timeEnd: string): number {
+                    console.log(`timeStart: ${timeStart}, timeEnd: ${timeEnd}`);
+
+                    // Validate inputs
+                    if (!timeStart || !timeEnd) {
+                      console.error('Invalid inputs: timeStart or timeEnd is missing');
+                      return 0;
+                    }
+
+                    // Convert 12-hour AM/PM time to 24-hour format
+                    const convertTo24Hour = (time: string): string => {
+                      try {
+                        const [timePart, period] = time.trim().split(' ');
+                        let [hours, minutes] = timePart.split(':').map(Number);
+                        if (isNaN(hours) || isNaN(minutes)) throw new Error('Invalid time format');
+                        if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                        if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                      } catch (error) {
+                        console.error('Error parsing time format:', error);
+                        throw error;
+                      }
+                    };
+
+                    let startTime: string, endTime: string;
+                    try {
+                      startTime = convertTo24Hour(timeStart); // e.g., "9:00 AM" -> "09:00"
+                      endTime = convertTo24Hour(timeEnd); // e.g., "5:00 PM" -> "17:00"
+                    } catch (error) {
+                      return 0;
+                    }
+
+                    // Parse start and end times
+                    const start = new Date(`1970-01-01T${startTime}:00`);
+                    const end = new Date(`1970-01-01T${endTime}:00`);
+
+                    // Validate parsed dates
+                    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                      console.error('Invalid time format after conversion');
+                      return 0;
+                    }
+
+                    // Calculate hours in the time window
+                    let hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                    if (hours < 0) hours += 24; // Handle cross-day times
+
+                    // Validate time window
+                    if (hours <= 0) {
+                      console.error('Invalid time range: end time is not after start time');
+                      return 0;
+                    }
+
+                    // Calculate delay for exactly 20 contacts
+                    const contacts = 20;
+                    const delayInHours = hours / (contacts - 1); // Delay between contacts
+                    const delayInMinutes = Math.round(delayInHours * 60); // Convert to minutes and round
+
+                    return delayInMinutes;
+                  }
+                  const delayMinutes = calculateDelayFor20Contacts( newSettings.startTime, newSettings.endTime);
+                  console.log(`Delay to process 20 contacts per day: ${delayMinutes} minutes`);
+                  const delayInSeconds = delayMinutes * 60;
                   setPropertyConfig(prev => ({
                     ...prev,
                     campaign_payload: {
@@ -347,12 +411,14 @@ export default function AutomationsPage() {
                       days: newSettings.daysOfWeek.map(day => dayMapping[day] || day),
                       time_window: { start: convertTo24Hour(newSettings.startTime), end: convertTo24Hour(newSettings.endTime) },
                       timezone: newSettings.timezone,
-                      channels: { ...prev.campaign_payload.channels, sms: { ...prev.campaign_payload.channels.sms, time_interval: newSettings.delayMinutes } }
+                      channels: { ...prev.campaign_payload.channels, sms: { ...prev.campaign_payload.channels.sms, time_interval: delayInSeconds } }
                     }
                   }));
+                  console.log(`Propery count: `, propertyConfig)
                   setPropertyCount(newSettings.dailyLimit);
                 }}
                 isVoiceMailModule={false}
+                isAutomationsModule={true}
               />
             </div>
 
@@ -373,10 +439,10 @@ export default function AutomationsPage() {
               <div><strong>SMS Message:</strong> {automationData.campaign_payload.channels.sms.message}</div>
               <div><strong>Days:</strong> {automationData.campaign_payload.days.join(', ')}</div>
               {/* Created at so show total days running */}
-              <div><strong>Days Running:</strong> {automationData.started_at ? 
+              <div><strong>Days Running:</strong> {automationData.started_at ?
                 Math.ceil((Date.now() - automationData.started_at.seconds * 1000) / (1000 * 60 * 60 * 24)) : 'N/A'
               } days</div>
-            </div> 
+            </div>
           </DataCard>
         )}
         {automationData && <p className="mt-2 text-sm text-gray-500 italic">
