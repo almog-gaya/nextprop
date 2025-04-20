@@ -117,7 +117,7 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
         companyWebsite: data.companyWebsite || '',
         companyAbout: data.companyAbout || '',
         buyingCriteria: data.buyingCriteria || DEFAULT_BUYING_CRITERIA,
-        dealObjective: data.dealObjective || 'creative-finance',
+        dealObjective: data.dealObjective || 'realtor-creative-finance',
 
         propertyType: data.propertyType,
         maxPrice: data.maxPrice || 2000000,
@@ -143,7 +143,7 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
       companyWebsite: '',
       companyAbout: '',
       buyingCriteria: DEFAULT_BUYING_CRITERIA,
-      dealObjective: 'creative-finance',
+      dealObjective: 'realtor-creative-finance',
       propertyType: 'Single-family',
       maxPrice: 2000000,
       minPrice: 0,
@@ -379,7 +379,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
         companyWebsite: '',
         companyAbout: '',
         buyingCriteria: DEFAULT_BUYING_CRITERIA,
-        dealObjective: 'creative-finance',
+        dealObjective: 'realtor-creative-finance',
         propertyType: 'Single-family',
         maxPrice: 2000000,
         minPrice: 0,
@@ -1041,27 +1041,59 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
             <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
             <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Deal Objective</h3>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            {([
-              { value: 'creative-finance', label: 'Creative Finance' },
-              { value: 'cash-offer', label: 'Cash Offer' },
-              { value: 'off-market', label: 'Off Market Deals' },
-              { value: 'short-sale', label: 'Short Sale' },
-              { value: 'home-owner', label: 'Home Owner' },
-              { value: 'distressed-seller', label: 'Distressed Seller' },
-
-            ] as const).map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleDealObjectiveChange(option.value)}
-                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
-                  ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
-                  : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
-                  }`}
-              >
-                {option.label}
-              </button>
-            ))}
+          
+          <div className="space-y-5">
+            <div>
+              <h4 className="text-base font-medium text-[var(--nextprop-text-primary)] mb-3 flex items-center">
+                <UserCircleIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                For Realtors
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                {([
+                  { value: 'realtor-off-market', label: 'Off Market Deals' },
+                  { value: 'realtor-short-sale', label: 'Short Sales' },
+                  { value: 'realtor-creative-finance', label: 'Creative Finance' },
+                  { value: 'realtor-cash-buyers', label: 'Cash Buyers' },
+                ] as const).map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleDealObjectiveChange(option.value)}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
+                      ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
+                      : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-base font-medium text-[var(--nextprop-text-primary)] mb-3 flex items-center">
+                <HomeIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                For Home Owners
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                {([
+                  { value: 'homeowner-cash-offer', label: 'Cash Offer' },
+                  { value: 'homeowner-distressed', label: 'Distressed Seller' },
+                  { value: 'homeowner-quick-sale', label: 'Quick Sale' },
+                  { value: 'homeowner-relocation', label: 'Relocation' },
+                ] as const).map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleDealObjectiveChange(option.value)}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
+                      ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
+                      : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
