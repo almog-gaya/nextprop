@@ -114,6 +114,8 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
         speakingOnBehalfOf: data.speakingOnBehalfOf || '',
         contactPhone: data.contactPhone || '',
         contactEmail: data.contactEmail || '',
+        companyWebsite: data.companyWebsite || '',
+        companyAbout: data.companyAbout || '',
         buyingCriteria: data.buyingCriteria || DEFAULT_BUYING_CRITERIA,
         dealObjective: data.dealObjective || 'creative-finance',
 
@@ -138,6 +140,8 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
       speakingOnBehalfOf: '',
       contactPhone: '',
       contactEmail: '',
+      companyWebsite: '',
+      companyAbout: '',
       buyingCriteria: DEFAULT_BUYING_CRITERIA,
       dealObjective: 'creative-finance',
       propertyType: 'Single-family',
@@ -188,6 +192,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
   const [region, setRegion] = useState('All States');
   const [propertyTypes, setPropertyTypes] = useState<string[]>(['All']);
   const [additionalCriteria, setAdditionalCriteria] = useState('');
+  const [additionalPropertyTypes, setAdditionalPropertyTypes] = useState('');
 
   // Load initial config and pipelines
   useEffect(() => {
@@ -203,8 +208,9 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       const userName = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim();
       const userPhone = user.phone || (user.phoneNumbers && user.phoneNumbers.length > 0 ? user.phoneNumbers[0].phoneNumber : '');
       const userEmail = user.email || '';
+      const userWebsite = user.website || '';
 
-      const needsUpdate = !config.speakingOnBehalfOf || !config.contactPhone || !config.contactEmail;
+      const needsUpdate = !config.speakingOnBehalfOf || !config.contactPhone || !config.contactEmail || !config.companyWebsite;
 
       if (needsUpdate) {
         const updatedConfig = {
@@ -212,6 +218,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
           speakingOnBehalfOf: config.speakingOnBehalfOf || userName || 'NextProp Real Estate',
           contactPhone: config.contactPhone || userPhone,
           contactEmail: config.contactEmail || userEmail,
+          companyWebsite: config.companyWebsite || userWebsite,
         };
         setConfig(updatedConfig);
         saveAIAgentConfig(updatedConfig, user.id)
@@ -346,6 +353,11 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
         }
       }
 
+      // Load additional property types if they exist
+      if (agentConfig.additionalPropertyTypes) {
+        setAdditionalPropertyTypes(agentConfig.additionalPropertyTypes);
+      }
+
       setConfig(agentConfig);
     } catch (error) {
       console.error('Error loading config:', error);
@@ -364,9 +376,16 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
         speakingOnBehalfOf: '',
         contactPhone: '',
         contactEmail: '',
+        companyWebsite: '',
+        companyAbout: '',
         buyingCriteria: DEFAULT_BUYING_CRITERIA,
         dealObjective: 'creative-finance',
+        propertyType: 'Single-family',
+        maxPrice: 2000000,
+        minPrice: 0,
+        region: 'All',
         qaEntries: defaultConfig.qaEntries || [],
+        additionalPropertyTypes: '',
       });
     } finally {
       setIsLoading(false);
@@ -388,9 +407,17 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       }
 
       const foundState = US_STATES.find(state => criteriaText.toLowerCase().includes(state.toLowerCase()));
+      setRegion(foundState || (criteriaText.toLowerCase().includes('nationwide') ? 'All States' : 'All States'));
 
       const foundType = PROPERTY_TYPES.slice(1).find(type => criteriaText.toLowerCase().includes(type.toLowerCase()));
       setPropertyTypes(foundType ? [foundType] : ['All']);
+
+      const additionalTypesMatch = criteriaText.match(/\(([^)]+)\)/);
+      if (additionalTypesMatch && additionalTypesMatch[1]) {
+        setAdditionalPropertyTypes(additionalTypesMatch[1]);
+      } else {
+        setAdditionalPropertyTypes('');
+      }
 
       const basicFormatRegex = /Properties (?:between|up to) \$[\d\.,]+(?: million)? (?:million )?(nationwide|in [A-Za-z\s]+), ([A-Za-z\s\-]+properties|all property types)/i;
       const basicMatch = criteriaText.match(basicFormatRegex);
@@ -405,6 +432,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       setPriceRange({ min: 500000, max: 2000000 });
       setRegion('All States');
       setPropertyTypes(['All']);
+      setAdditionalPropertyTypes('');
       setAdditionalCriteria('');
     }
   };
@@ -414,7 +442,12 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
 
     const formatPrice = (price: number) => price >= 1000000 ? `$${price / 1000000} million` : `$${price.toLocaleString()}`;
     const locationText = region === 'All States' ? 'nationwide' : `in ${region}`;
-    const propertyText = propertyTypes.includes('All') ? 'all property types' : `${propertyTypes.join(', ').toLowerCase()} properties`;
+
+    let propertyText = propertyTypes.includes('All') ? 'all property types' : `${propertyTypes.join(', ').toLowerCase()} properties`;
+    
+    if (additionalPropertyTypes) {
+      propertyText += ` (${additionalPropertyTypes})`;
+    }
 
     const criteriaText = priceRange.min > 0
       ? `Properties between ${formatPrice(priceRange.min)} and ${formatPrice(priceRange.max)} ${locationText}, ${propertyText}`
@@ -423,11 +456,13 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     const newCriteria = additionalCriteria.trim() ? `${criteriaText}, ${additionalCriteria.trim()}` : criteriaText;
 
     const updatedConfig = {
-      ...config, buyingCriteria: newCriteria, 
+      ...config, 
+      buyingCriteria: newCriteria,
       propertyType: propertyText,
       maxPrice: priceRange.max,
       minPrice: priceRange.min,
       region: region === 'All States'? 'Nationwide' : region,
+      additionalPropertyTypes: additionalPropertyTypes,
     };
     setConfig(updatedConfig);
 
@@ -462,7 +497,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     setConfig(prev => prev ? { ...prev, dealObjective } : prev);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     if (!config) return;
     const { name, value } = e.target;
     setConfig(prev => prev ? { ...prev, [name]: value } : prev);
@@ -487,6 +522,8 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       toast.error('User not authenticated or config not loaded');
       return;
     }
+    
+    // Safe check for phoneNumbers
     if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
       toast.error('Please add a phone number to your account');
       return;
@@ -639,6 +676,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     speakingOnBehalfOf: user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'NextProp User',
     contactPhone: user?.phone || (user?.phoneNumbers?.[0]?.phoneNumber) || '(415) 555-1234',
     contactEmail: user?.email || 'user@nextprop.ai',
+    companyWebsite: user?.website || 'www.yourcompany.com',
   };
 
   return (
@@ -774,7 +812,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
         <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
           <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
             <EnvelopeIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Contact Information</h3>
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Company Information</h3>
           </div>
           <div className="space-y-4">
             <div className="relative">
@@ -785,54 +823,78 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                 <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
                   <PhoneIcon className="h-4 w-4" />
                 </span>
-                {user?.phoneNumbers?.length > 0 ? (
-                  <select
-                    id="contactPhone"
-                    name="contactPhone"
-                    value={config.contactPhone || ''}
-                    onChange={handleInputChange}
-                    className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                  >
-                    <option value="">Select a phone number</option>
-                    {user.phoneNumbers.map((num) => (
-                      <option key={num.phoneNumber} value={num.phoneNumber}>
-                        {num.phoneNumber} {num.isDefaultNumber ? '(Default)' : ''}
-                      </option>
-                    ))}
-                  </select>
-
-                ) : (
-                  <input
-                    type="tel"
-                    id="contactPhone"
-                    name="contactPhone"
-                    value={config.contactPhone || ''}
-                    onChange={handleInputChange}
-                    placeholder={placeholders.contactPhone}
-                    className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="relative">
-              <label htmlFor="contactEmail" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                Email Address
-              </label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
-                  <EnvelopeIcon className="h-4 w-4" />
-                </span>
                 <input
-                  type="email"
-                  id="contactEmail"
-                  name="contactEmail"
-                  value={config.contactEmail || ''}
+                  type="tel"
+                  id="contactPhone"
+                  name="contactPhone"
+                  value={config.contactPhone || ''}
                   onChange={handleInputChange}
-                  placeholder={placeholders.contactEmail}
+                  placeholder={user?.phoneNumbers && user.phoneNumbers.length > 0 ? user.phoneNumbers[0].phoneNumber : placeholders.contactPhone}
                   className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <label htmlFor="contactEmail" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  Email Address
+                </label>
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                    <EnvelopeIcon className="h-4 w-4" />
+                  </span>
+                  <input
+                    type="email"
+                    id="contactEmail"
+                    name="contactEmail"
+                    value={config.contactEmail || ''}
+                    onChange={handleInputChange}
+                    placeholder={placeholders.contactEmail}
+                    className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="relative">
+                <label htmlFor="companyWebsite" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  Company Website
+                </label>
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
+                    </svg>
+                  </span>
+                  <input
+                    type="url"
+                    id="companyWebsite"
+                    name="companyWebsite"
+                    value={config.companyWebsite || ''}
+                    onChange={handleInputChange}
+                    placeholder={placeholders.companyWebsite}
+                    className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="companyAbout" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                About Company <span className="text-xs text-[var(--nextprop-text-tertiary)]">(optional)</span>
+              </label>
+              <textarea
+                id="companyAbout"
+                name="companyAbout"
+                value={config.companyAbout || ''}
+                onChange={handleInputChange}
+                placeholder="Briefly describe your company or services..."
+                rows={3}
+                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+              />
+              <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                This information helps the AI provide context about your company to potential clients.
+              </p>
             </div>
           </div>
         </div>
@@ -925,15 +987,34 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                   Property Type
                 </label>
               </div>
-              <select
-                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                value={propertyTypes[0]}
-                onChange={(e) => setPropertyTypes([e.target.value])}
-              >
-                {PROPERTY_TYPES.map(type => (
-                  <option key={type} value={type}>{type === 'All' ? 'All Property Types' : type}</option>
-                ))}
-              </select>
+              
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="w-full md:w-1/2">
+                  <select
+                    className="nextprop-input w-full p-2 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                    value={propertyTypes[0]}
+                    onChange={(e) => setPropertyTypes([e.target.value])}
+                  >
+                    {PROPERTY_TYPES.map(type => (
+                      <option key={type} value={type}>{type === 'All' ? 'All Property Types' : type}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="w-full md:w-1/2">
+                  <input
+                    type="text"
+                    value={additionalPropertyTypes}
+                    onChange={(e) => setAdditionalPropertyTypes(e.target.value)}
+                    placeholder="Additional types (optional)"
+                    className="nextprop-input w-full p-2 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                  />
+                </div>
+              </div>
+              
+              <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                Optionally add more types like "Duplex, Vacation Homes" in the second field
+              </p>
             </div>
           </div>
 

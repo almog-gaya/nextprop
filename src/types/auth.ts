@@ -6,6 +6,7 @@ export interface User {
   ghlLocationId?: string; // GoHighLevel location ID
   createdAt: string;
   lastLogin?: string;
+  website?: string;
 }
 
 export interface AuthState {

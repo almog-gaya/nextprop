@@ -11,6 +11,7 @@ interface User {
   lastName?: string;
   id: string;
   phoneNumbers?: PhoneNumber[];
+  website?: string;
 }
 
 interface Template {

@@ -36,6 +36,7 @@ interface User {
   lastName?: string;
   id: string;
   phoneNumbers?: PhoneNumber[];
+  website?: string;
 }
 
 interface Template {
@@ -50,11 +51,11 @@ const TEMPLATES: Template[] = [
   {
     id: 'welcome',
     name: 'Welcome Message',
-    sms: 'Hi {{first_name}}, welcome! I’m {{user_name}}, here to help you get started.',
+    sms: 'Hi {{first_name}}, welcome! I\'m {{user_name}}, here to help you get started.',
     emailSubject: 'Welcome {{first_name}}!',
     emailBody: `Dear {{first_name}} {{last_name}},
 
-Welcome! I’m {{user_name}}, and I’m excited to assist you. Let us know how we can help you at {{user_email}}.
+Welcome! I'm {{user_name}}, and I'm excited to assist you. Let us know how we can help you at {{user_email}}.
 
 Best,
 {{user_name}}`
@@ -62,11 +63,11 @@ Best,
   {
     id: 'followup',
     name: 'Follow-up',
-    sms: 'Hi {{first_name}}, it’s {{user_name}}. Just following up - any questions?',
+    sms: 'Hi {{first_name}}, it\'s {{user_name}}. Just following up - any questions?',
     emailSubject: 'Follow-up',
     emailBody: `Hi {{first_name}} {{last_name}},
 
-It’s {{user_name}}. I wanted to follow up on our last conversation. Please reach out at {{user_phone}} if you need anything.
+It's {{user_name}}. I wanted to follow up on our last conversation. Please reach out at {{user_phone}} if you need anything.
 
 Regards,
 {{user_name}}`
