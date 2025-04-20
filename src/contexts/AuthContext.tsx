@@ -15,6 +15,7 @@ interface User {
   lastName?: string;
   id: string;
   phoneNumbers?: PhoneNumber[];
+  website?: string;
 }
 interface PhoneNumberCapabilities {
   fax: boolean;
@@ -89,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         companyId: data.user.companyId,
         dateAdded: data.user.dateAdded,
         phoneNumbers: data.user.numbers,
+        website: data.user.website,
       };
 
       console.log('Setting User as:', userData);
