@@ -233,7 +233,7 @@ export async function loadAIAgentConfig(userId?: string): Promise<AIAgentConfig>
         companyWebsite: '',
         companyAbout: '',
         buyingCriteria: '',
-        dealObjective: 'creative-finance',
+        dealObjective: 'realtor-creative-finance',
         rules: defaultRules,
         qaEntries: defaultQA,
         enabledRules: defaultRules.map(rule => rule.id) // All rules enabled by default
@@ -273,7 +273,7 @@ export async function loadAIAgentConfig(userId?: string): Promise<AIAgentConfig>
         companyWebsite: '',
         companyAbout: '',
         buyingCriteria: '',
-        dealObjective: 'creative-finance',
+        dealObjective: 'realtor-creative-finance',
         rules: defaultRules,
         qaEntries: defaultQA,
         enabledRules: defaultRules.map(rule => rule.id)
@@ -295,7 +295,7 @@ export async function loadAIAgentConfig(userId?: string): Promise<AIAgentConfig>
       companyWebsite: '',
       companyAbout: '',
       buyingCriteria: '',
-      dealObjective: 'creative-finance',
+      dealObjective: 'realtor-creative-finance',
       rules: [
         {
           id: 'rule_concise',

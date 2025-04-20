@@ -17,7 +17,10 @@ export type AIAgentConfig = {
   companyWebsite?: string; // Company website URL
   companyAbout?: string; // About the company (optional)
   buyingCriteria?: string; // Purchase price, preferences, etc.
-  dealObjective?: 'creative-finance' | 'cash-offer' | 'off-market' | 'short-sale' | 'home-owner' | 'distressed-seller'; // Deal type objective
+  dealObjective?: 
+    | 'creative-finance' | 'cash-offer' | 'off-market' | 'short-sale' | 'home-owner' | 'distressed-seller' // Legacy options
+    | 'realtor-off-market' | 'realtor-short-sale' | 'realtor-creative-finance' | 'realtor-cash-buyers' // For realtors
+    | 'homeowner-cash-offer' | 'homeowner-distressed' | 'homeowner-quick-sale' | 'homeowner-relocation'; // For home owners
 
   propertyType?: string;
   region?: string;
