@@ -111,6 +111,7 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
         customInstructions: data.customInstructions || '',
         updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
         agentName: data.agentName || 'Jane Smith',
+        companyName: data.companyName || '',
         speakingOnBehalfOf: data.speakingOnBehalfOf || '',
         contactPhone: data.contactPhone || '',
         contactEmail: data.contactEmail || '',
@@ -137,6 +138,7 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
       customInstructions: '',
       updatedAt: new Date(),
       agentName: 'Jane Smith',
+      companyName: '',
       speakingOnBehalfOf: '',
       contactPhone: '',
       contactEmail: '',
@@ -210,12 +212,13 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       const userEmail = user.email || '';
       const userWebsite = user.website || '';
 
-      const needsUpdate = !config.speakingOnBehalfOf || !config.contactPhone || !config.contactEmail || !config.companyWebsite;
+      const needsUpdate = !config.companyName || !config.speakingOnBehalfOf || !config.contactPhone || !config.contactEmail || !config.companyWebsite;
 
       if (needsUpdate) {
         const updatedConfig = {
           ...config,
-          speakingOnBehalfOf: config.speakingOnBehalfOf || userName || 'NextProp Real Estate',
+          companyName: config.companyName || user.firstName || '',
+          speakingOnBehalfOf: config.speakingOnBehalfOf || 'NextProp Real Estate',
           contactPhone: config.contactPhone || userPhone,
           contactEmail: config.contactEmail || userEmail,
           companyWebsite: config.companyWebsite || userWebsite,
@@ -373,6 +376,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
         customInstructions: '',
         updatedAt: new Date(),
         agentName: 'Jane Smith',
+        companyName: '',
         speakingOnBehalfOf: '',
         contactPhone: '',
         contactEmail: '',
@@ -673,7 +677,8 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
 
   const placeholders = {
     agentName: 'Jane Smith',
-    speakingOnBehalfOf: user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'NextProp User',
+    companyName: user?.firstName || 'Your Name',
+    speakingOnBehalfOf: 'NextProp Real Estate',
     contactPhone: user?.phone || (user?.phoneNumbers?.[0]?.phoneNumber) || '(415) 555-1234',
     contactEmail: user?.email || 'user@nextprop.ai',
     companyWebsite: user?.website || 'www.yourcompany.com',
@@ -793,8 +798,26 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
             </div>
 
             <div>
+              <label htmlFor="companyName" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                Your Name
+              </label>
+              <input
+                type="text"
+                id="companyName"
+                name="companyName"
+                value={config.companyName || ''}
+                onChange={handleInputChange}
+                placeholder={placeholders.companyName}
+                className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+              />
+              <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                This is your name that will be used when the AI agent refers to you
+              </p>
+            </div>
+
+            <div>
               <label htmlFor="speakingOnBehalfOf" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                Speaking on Behalf of
+                Company Name
               </label>
               <input
                 type="text"
@@ -829,7 +852,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                   name="contactPhone"
                   value={config.contactPhone || ''}
                   onChange={handleInputChange}
-                  placeholder={user?.phoneNumbers && user.phoneNumbers.length > 0 ? user.phoneNumbers[0].phoneNumber : placeholders.contactPhone}
+                  placeholder={placeholders.contactPhone}
                   className="nextprop-input w-full p-2.5 rounded-r-lg border border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                 />
               </div>
