@@ -11,7 +11,8 @@ export type AIAgentConfig = {
   
   // NextProp client agent configuration
   agentName?: string; // Name shown to clients
-  speakingOnBehalfOf?: string; // Who the agent is representing
+  companyName?: string; // User's name that the AI agent refers to
+  speakingOnBehalfOf?: string; // Company name that the AI agent represents
   contactPhone?: string; // Contact phone number
   contactEmail?: string; // Contact email
   companyWebsite?: string; // Company website URL
