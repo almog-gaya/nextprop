@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Switch } from '@headlessui/react';
-import { BoltIcon, UserCircleIcon, PhoneIcon, EnvelopeIcon, BuildingOfficeIcon, DocumentTextIcon, CurrencyDollarIcon, MapPinIcon, HomeIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { BoltIcon, UserCircleIcon, PhoneIcon, EnvelopeIcon, BuildingOfficeIcon, DocumentTextIcon, CurrencyDollarIcon, MapPinIcon, HomeIcon, FunnelIcon, PaperAirplaneIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -181,6 +181,18 @@ type Pipeline = {
   stages?: any[];
 };
 
+const EXAMPLE_MESSAGES = [
+  "Do I know you?",
+  "I'm thinking of selling my house at 123 Main St, San Francisco. What do you think it's worth?",
+  "I have a property in Oakland that needs a lot of work. Are you interested?",
+  "This property is already listed on MLS. Would you like to make an offer?",
+  "What's your budget for Bay Area properties?",
+  "I have a commercial property available. Are you interested?",
+  "Can I call you to discuss a property I'm thinking of selling?",
+  "How fast can you close on a property?",
+  "Do you handle properties with tenants?",
+  "What kind of properties are you looking for?"
+];
 
 export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: string | null }) {
   const { user } = useAuth();
@@ -189,6 +201,14 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
   const [isSaving, setIsSaving] = useState(false);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loadingPipelines, setLoadingPipelines] = useState(false);
+
+  // Test panel state
+  const [message, setMessage] = useState('');
+  const [conversation, setConversation] = useState<{ text: string, isUser: boolean, isLoading?: boolean }[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+  const conversationRef = useRef<HTMLDivElement>(null);
+  const [showTestPanel, setShowTestPanel] = useState(false);
 
   const [priceRange, setPriceRange] = useState({ min: 0, max: 2000000 });
   const [region, setRegion] = useState('All States');
@@ -666,6 +686,71 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     });
   };
 
+  const handleTestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || !config || isSending) return;
+
+    const newUserMessage = { text: message, isUser: true };
+    const tempBotMessage = { text: 'Processing...', isUser: false, isLoading: true };
+    setConversation([...conversation, newUserMessage, tempBotMessage]);
+    setMessage('');
+    setIsSending(true);
+    setTestError(null);
+
+    try {
+      const res = await fetch('/api/ai-agent/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          history: [...conversation, newUserMessage],
+          locationId: user?.id,
+          agentConfig: config,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || data.details || data.message || 'API error');
+      }
+
+      if (!data.message) {
+        throw new Error('No response received from the AI agent');
+      }
+
+      setConversation(prev => [
+        ...prev.slice(0, -1),
+        { text: data.message, isUser: false }
+      ]);
+    } catch (err) {
+      console.error('Error testing AI agent:', err);
+      setTestError(err instanceof Error ? err.message : 'Failed to test AI agent');
+      setConversation(prev => prev.slice(0, -1));
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleResetConversation = () => {
+    setMessage('');
+    setConversation([]);
+    setTestError(null);
+  };
+
+  const handleExampleClick = (example: string) => {
+    setMessage(example);
+  };
+
+  // Auto-scroll to bottom when conversation updates
+  useEffect(() => {
+    if (conversationRef.current) {
+      conversationRef.current.scrollTo({
+        top: conversationRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [conversation]);
 
   if (isLoading || !config) {
     return (
@@ -756,6 +841,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                     <Switch
                       checked={config.enabledPipelines.some(p => p.id === pipeline.id)}
                       onChange={() => handleTogglePipeline(pipeline)}
+                      onClick={(e) => e.stopPropagation()}
                       className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
                         ? 'bg-[var(--nextprop-primary)]'
                         : 'bg-gray-200'
@@ -1263,8 +1349,9 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
         </div>
       </div>
 
+      {/* DISABLED FOR NOW */}
       {/* Advanced Customization Section */}
-      <div className="mt-6">
+      {/* <div className="mt-6">
         <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
           <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
             <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
@@ -1290,9 +1377,17 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
             </p>
           </div>
         </div>
-      </div>
+      </div> */}
 
-      <div className="flex justify-end mt-8">
+
+      <div className="flex justify-end mt-8 space-x-4">
+        <button
+          onClick={() => setShowTestPanel(!showTestPanel)}
+          className="px-6 py-2.5 bg-[var(--nextprop-surface)] border border-[var(--nextprop-border)] text-[var(--nextprop-text-primary)] rounded-lg hover:bg-[var(--nextprop-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 font-medium shadow-md"
+        >
+          {showTestPanel ? 'Hide Test Panel' : 'Test Agent'}
+        </button>
+        
         <button
           className="px-6 py-2.5 bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] text-white rounded-lg hover:from-[var(--nextprop-primary-dark)] hover:to-[var(--nextprop-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md transform transition-transform hover:scale-105"
           onClick={handleSave}
@@ -1308,6 +1403,108 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
           )}
         </button>
       </div>
+
+      {/* Test Panel Section */}
+      {showTestPanel && (
+        <div className="mt-8 bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-md">
+          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+            <BoltIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
+            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">
+              Test {config.agentName} - Real Estate Agent
+            </h3>
+          </div>
+
+          <div className="mb-6">
+            <h4 className="text-md font-medium mb-2 text-[var(--nextprop-text-secondary)]">Example Messages:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {EXAMPLE_MESSAGES.map((example, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleExampleClick(example)}
+                  className="text-left p-2 border border-[var(--nextprop-border)] rounded hover:bg-[var(--nextprop-primary-light)]/10 text-sm text-[var(--nextprop-text-primary)]"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {conversation.length > 0 && (
+            <div 
+              ref={conversationRef}
+              className="mb-6 p-4 border border-[var(--nextprop-border)] rounded-lg max-h-80 overflow-y-auto bg-[var(--nextprop-surface-hover)]/50"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-md font-medium text-[var(--nextprop-text-secondary)]">Conversation:</h4>
+                <button
+                  onClick={handleResetConversation}
+                  className="text-xs px-2 py-1 bg-[var(--nextprop-surface)] text-[var(--nextprop-text-tertiary)] rounded hover:bg-[var(--nextprop-surface-hover)] border border-[var(--nextprop-border)]"
+                >
+                  Clear Conversation
+                </button>
+              </div>
+              {conversation.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`mb-3 p-3 rounded-lg ${msg.isUser
+                    ? 'bg-[var(--nextprop-primary-light)]/10 border-[var(--nextprop-primary-light)]/20 ml-8'
+                    : 'bg-[var(--nextprop-surface)] border-[var(--nextprop-border)] mr-8'
+                  } ${msg.isLoading ? 'animate-pulse' : ''} border`}
+                >
+                  <div className="flex items-start">
+                    <div className="mr-2 font-semibold text-[var(--nextprop-text-primary)]">
+                      {msg.isUser ? 'You:' : `${config.agentName}:`}
+                    </div>
+                    <div className="flex-1 text-[var(--nextprop-text-secondary)]">{msg.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={handleTestSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="message" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                Message
+              </label>
+              <textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="nextprop-input w-full p-3 border border-[var(--nextprop-border)] rounded-lg focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)]"
+                rows={4}
+                placeholder="Enter a message to test the AI agent..."
+              />
+            </div>
+
+            <div className="flex space-x-2">
+              <button
+                type="submit"
+                disabled={isSending || !message.trim() || !config.isEnabled}
+                className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {isSending ? (
+                  <>
+                    <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                    Send Message
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {testError && (
+            <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-lg">
+              {testError}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
