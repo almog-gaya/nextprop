@@ -513,7 +513,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                       )}
                       {intervalBetweenCalls && (
                         <div>
-                          <span className="text-xs font-medium text-gray-500 block">Interval Between Calls (Minutes):</span>
+                          <span className="text-xs font-medium text-gray-500 block">Interval(Minutes):</span>
                           <span className="text-sm text-gray-900">
                             {intervalBetweenCalls}
                           </span>
