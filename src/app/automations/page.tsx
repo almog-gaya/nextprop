@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Pipeline, AutomationData } from '@/types'; // Updated import
+import { Pipeline, AutomationData } from '@/types';
 import CampaignSettingsForm from '@/components/ringless-voicemail/CampaignSettingsForm';
 import AutomationHeader from '@/components/automations/AutomationHeader';
 import PropertySearchConfig from '@/components/automations/PropertySearchConfig';
@@ -42,6 +43,57 @@ const DataCard = ({ title, children }: { title: string; children: React.ReactNod
   </div>
 );
 
+// New Popup Component for Contacts
+const ContactsPopup = ({ isOpen, onClose, contacts, campaignName }: { isOpen: boolean; onClose: () => void; contacts: any[]; campaignName: string }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Contacts for {campaignName}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 focus:outline-none"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {contacts.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {contacts.map(contact => (
+                  <tr key={contact.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">{contact.first_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{contact.phone_number}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{contact.street_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap"><StatusBadge status={contact.status} /></td>
+                    <td className="px-6 py-4 whitespace-nowrap">{contact.attempts}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center">No contacts available for this campaign.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function AutomationsPage() {
   const [isJobRunning, setIsJobRunning] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
@@ -50,10 +102,12 @@ export default function AutomationsPage() {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loadingPipelines, setLoadingPipelines] = useState(true);
   const [propertyCount, setPropertyCount] = useState(2);
-  const [automationData, setAutomationData] = useState<AutomationData | null>(null); // Updated type
-  const [campaignData, setCampaignData] = useState<any>(null);
-  const [contactsData, setContactsData] = useState<any[]>([]);
+  const [automationData, setAutomationData] = useState<AutomationData[]>([]);
   const { user } = useAuth();
+  // State for popup
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [popupContacts, setPopupContacts] = useState<any[]>([]);
+  const [popupCampaignName, setPopupCampaignName] = useState('');
 
   const [propertyConfig, setPropertyConfig] = useState<AutomationTaskCreateParams>({
     customer_id: user?.id || '',
@@ -69,15 +123,15 @@ export default function AutomationsPage() {
       channels: {
         sms: {
           enabled: true,
-          message: `Hi {{first_name}}, this is ${user?.firstName} from NextProp. I\'m reaching out about your property. I noticed it\'s been on the market for 90+ days. Would your seller consider an offer on terms? Just to confirm, your commission is still fully covered.`,
-          time_interval: 5,
+          message: `Hi {{first_name}}, this is ${user?.firstName} from NextProp. I'm reaching out about your property. I noticed it's been on the market for 90+ days. Would your seller consider an offer on terms? Just to confirm, your commission is still fully covered.`,
+          time_interval: 3000, // 50 mints
           from_number: ''
         }
       }
     }
   });
 
-  // Fetch data from Firestore
+  // Fetch data from Firestore for multiple automations
   useEffect(() => {
     if (!user?.locationId) return;
 
@@ -85,41 +139,46 @@ export default function AutomationsPage() {
       collection(db, 'automations'),
       where('customer_id', '==', user.locationId)
     );
-    console.log(`Fetching automation for customer_id: ${user.locationId}`);
+    console.log(`Fetching automations for customer_id: ${user.locationId}`);
 
     const unsubscribeAutomation = onSnapshot(automationQuery, async (snapshot) => {
-      if (!snapshot.empty) {
-        const automationDoc = snapshot.docs[0];
-        const automationData: AutomationData = { id: automationDoc.id, ...automationDoc.data() } as AutomationData; // Type assertion
-        setAutomationData(automationData);
-        setActiveJobId(automationData.id);
+      const automations: AutomationData[] = [];
+      const promises = snapshot.docs.map(async (automationDoc) => {
+        const automation: AutomationData = { id: automationDoc.id, ...automationDoc.data() } as AutomationData;
+        let campaignData = null;
+        let contactsData = [];
 
-        if (automationData.campaign_id) {
-          const campaignSnap = await getDoc(doc(db, `campaigns/${automationData.campaign_id}`));
+        if (automation.campaign_id) {
+          const campaignSnap = await getDoc(doc(db, `campaigns/${automation.campaign_id}`));
           if (campaignSnap.exists()) {
-            setCampaignData(campaignSnap.data());
+            campaignData = campaignSnap.data();
 
-            const contactsQuery = query(collection(db, `campaigns/${automationData.campaign_id}/contacts`));
+            const contactsQuery = query(collection(db, `campaigns/${automation.campaign_id}/contacts`));
             const contactsSnapshot = await getDocs(contactsQuery);
-            const contacts = contactsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setContactsData(contacts);
+            contactsData = contactsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           }
         }
 
-        setPropertyConfig(prev => ({
-          ...prev,
-          ...automationData,
-          campaign_payload: { ...prev.campaign_payload, ...automationData.campaign_payload }
-        }));
-        setPropertyCount(automationData.limit || 2);
-      }
+        return { automation, campaignData, contactsData };
+      });
+
+      const results = await Promise.all(promises);
+      results.forEach(({ automation, campaignData, contactsData }) => {
+        automations.push({
+          ...automation,
+          campaignData,
+          contactsData
+        });
+      });
+
+      setAutomationData(automations);
     }, (error) => {
-      console.error('Error fetching automation:', error);
+      console.error('Error fetching automations:', error);
       toast.error('Failed to load automation data');
     });
 
     return () => unsubscribeAutomation();
-  }, [user?.id]);
+  }, [user?.locationId]);
 
   // Fetch pipelines
   useEffect(() => {
@@ -205,8 +264,8 @@ export default function AutomationsPage() {
     }));
     setTimeout(() => { textarea.focus(); textarea.setSelectionRange(start + placeholder.length + 4, start + placeholder.length + 4); }, 0);
   };
+
   const getNextStageIdByPipelineId = (pipelineId: string, currentStageId: string): string | null => {
-    // Input validation
     if (!pipelineId || !currentStageId) {
       console.warn('Invalid input: pipelineId and currentStageId are required');
       return null;
@@ -218,7 +277,6 @@ export default function AutomationsPage() {
       return null;
     }
 
-    // Ensure stages array is valid and has required properties
     const validStages = pipeline.stages.every(stage => stage && typeof stage.id === 'string');
     if (!validStages) {
       console.warn(`Invalid stage structure in pipeline: ${pipelineId}`);
@@ -227,7 +285,6 @@ export default function AutomationsPage() {
 
     const currentStageIndex = pipeline.stages.findIndex((stage) => stage.id === currentStageId);
 
-    // Check if current stage exists and if next stage is available
     if (currentStageIndex === -1) {
       console.warn(`Current stage not found: ${currentStageId}`);
       return null;
@@ -241,6 +298,7 @@ export default function AutomationsPage() {
 
     return pipeline.stages[nextIndex].id;
   };
+
   const handleRunNow = async () => {
     if (isJobRunning) return;
     if (!propertyConfig.redfin_url) return toast.error('Please enter a Redfin URL for properties');
@@ -249,13 +307,6 @@ export default function AutomationsPage() {
     if (!propertyConfig.campaign_payload.channels.sms.from_number) return toast.error('SMS from number is required');
     const nextStageId = getNextStageIdByPipelineId(propertyConfig.pipeline_id, propertyConfig.stage_id);
 
-
-    // See if there is any existing automation running
-    const automationQuery = query(collection(db, 'automations'), where('customer_id', '==', user?.id));
-    const automationSnapshot = await getDocs(automationQuery);
-    if (!automationSnapshot.empty) {
-      return toast.error('There is already an automation running');
-    }
     toast.loading('Starting property automation...', { id: 'property-job' });
     setIsJobRunning(true);
 
@@ -293,6 +344,13 @@ export default function AutomationsPage() {
       console.error('Error cancelling job:', error);
       toast.error('Failed to cancel job');
     }
+  };
+
+  // Handle opening the contacts popup
+  const handleShowContacts = (contacts: any[], campaignName: string) => {
+    setPopupContacts(contacts);
+    setPopupCampaignName(campaignName);
+    setIsPopupOpen(true);
   };
 
   return (
@@ -340,18 +398,14 @@ export default function AutomationsPage() {
                   daysOfWeek: propertyConfig.campaign_payload.days
                 }}
                 onSave={(newSettings) => {
-                  // Calculate the delay (in minutes) to process exactly 20 contacts per day within the given time frame
-                  // timeStart and timeEnd are in "H:mm AM/PM" format (e.g., "9:00 AM", "5:00 PM")
                   function calculateDelayFor20Contacts(timeStart: string, timeEnd: string): number {
                     console.log(`timeStart: ${timeStart}, timeEnd: ${timeEnd}`);
 
-                    // Validate inputs
                     if (!timeStart || !timeEnd) {
                       console.error('Invalid inputs: timeStart or timeEnd is missing');
                       return 0;
                     }
 
-                    // Convert 12-hour AM/PM time to 24-hour format
                     const convertTo24Hour = (time: string): string => {
                       try {
                         const [timePart, period] = time.trim().split(' ');
@@ -368,40 +422,35 @@ export default function AutomationsPage() {
 
                     let startTime: string, endTime: string;
                     try {
-                      startTime = convertTo24Hour(timeStart); // e.g., "9:00 AM" -> "09:00"
-                      endTime = convertTo24Hour(timeEnd); // e.g., "5:00 PM" -> "17:00"
+                      startTime = convertTo24Hour(timeStart);
+                      endTime = convertTo24Hour(timeEnd);
                     } catch (error) {
                       return 0;
                     }
 
-                    // Parse start and end times
                     const start = new Date(`1970-01-01T${startTime}:00`);
                     const end = new Date(`1970-01-01T${endTime}:00`);
 
-                    // Validate parsed dates
                     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
                       console.error('Invalid time format after conversion');
                       return 0;
                     }
 
-                    // Calculate hours in the time window
                     let hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-                    if (hours < 0) hours += 24; // Handle cross-day times
+                    if (hours < 0) hours += 24;
 
-                    // Validate time window
                     if (hours <= 0) {
                       console.error('Invalid time range: end time is not after start time');
                       return 0;
                     }
 
-                    // Calculate delay for exactly 20 contacts
                     const contacts = 20;
-                    const delayInHours = hours / (contacts - 1); // Delay between contacts
-                    const delayInMinutes = Math.round(delayInHours * 60); // Convert to minutes and round
+                    const delayInHours = hours / (contacts - 1);
+                    const delayInMinutes = Math.round(delayInHours * 60);
 
                     return delayInMinutes;
                   }
-                  const delayMinutes = calculateDelayFor20Contacts( newSettings.startTime, newSettings.endTime);
+                  const delayMinutes = calculateDelayFor20Contacts(newSettings.startTime, newSettings.endTime);
                   console.log(`Delay to process 20 contacts per day: ${delayMinutes} minutes`);
                   const delayInSeconds = delayMinutes * 60;
                   setPropertyConfig(prev => ({
@@ -414,7 +463,7 @@ export default function AutomationsPage() {
                       channels: { ...prev.campaign_payload.channels, sms: { ...prev.campaign_payload.channels.sms, time_interval: delayInSeconds } }
                     }
                   }));
-                  console.log(`Propery count: `, propertyConfig)
+                  console.log(`Property count: `, propertyConfig);
                   setPropertyCount(newSettings.dailyLimit);
                 }}
                 isVoiceMailModule={false}
@@ -428,70 +477,64 @@ export default function AutomationsPage() {
 
         {isJobRunning && jobStatus && <JobStatusCard jobStatus={jobStatus} />}
 
-        {/* Enhanced UI for Data */}
-        {automationData && (
-          <DataCard title="Automation Details">
-            <div className="grid grid-cols-2 gap-4">
-              <div><strong>Status:</strong> <StatusBadge status={automationData.status} /></div>
-              <div><strong>Redfin URL:</strong> <a href={automationData.redfin_url} className="text-blue-600 hover:underline" target="_blank">{automationData.redfin_url}</a></div>
-              <div><strong>Last Run:</strong> {automationData.last_run ? new Date(automationData.last_run.seconds * 1000).toLocaleString() : 'N/A'}</div>
-              <div><strong>Campaign Name:</strong> {automationData.campaign_payload.name}</div>
-              <div><strong>SMS Message:</strong> {automationData.campaign_payload.channels.sms.message}</div>
-              <div><strong>Days:</strong> {automationData.campaign_payload.days.join(', ')}</div>
-              {/* Created at so show total days running */}
-              <div><strong>Days Running:</strong> {automationData.started_at ?
-                Math.ceil((Date.now() - automationData.started_at.seconds * 1000) / (1000 * 60 * 60 * 24)) : 'N/A'
-              } days</div>
-            </div>
-          </DataCard>
+        {/* Enhanced UI for Multiple Automations */}
+        {automationData.length > 0 && automationData.map((automation, index) => (
+          <div key={automation.id}>
+            <DataCard title={`Automation Details #${index + 1}`}>
+              <div className="grid grid-cols-2 gap-4">
+                <div><strong>Status:</strong> <StatusBadge status={automation.status} /></div>
+                <div><strong>Redfin URL:</strong> <a href={automation.redfin_url} className="text-blue-600 hover:underline" target="_blank">{automation.redfin_url}</a></div>
+                <div><strong>Last Run:</strong> {automation.last_run ? new Date(automation.last_run.seconds * 1000).toLocaleString() : 'N/A'}</div>
+                <div><strong>Campaign Name:</strong> {automation.campaign_payload.name}</div>
+                <div><strong>SMS Message:</strong> {automation.campaign_payload.channels.sms.message}</div>
+                <div><strong>Days:</strong> {automation.campaign_payload.days.join(', ')}</div>
+                <div><strong>Days Running:</strong> {automation.started_at ?
+                  Math.ceil((Date.now() - automation.started_at.seconds * 1000) / (1000 * 60 * 60 * 24)) : 'N/A'
+                } days</div>
+              </div>
+            </DataCard>
+            <p className="mt-2 text-sm text-gray-500 italic">
+              Note: This automation uses a web scraper to fetch property owner contacts from Redfin listings. The `Last run` indicates when the last time scraped the contacts.
+            </p>
+
+            {automation.campaignData && (
+              <DataCard title={`Campaign Details #${index + 1}`}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><strong>Status:</strong> <StatusBadge status={automation.campaignData.status} /></div>
+                  <div><strong>Total Contacts:</strong> {automation.campaignData.total_contacts}</div>
+                  <div><strong>Processed Contacts:</strong> {automation.campaignData.processed_contacts}</div>
+                  <div><strong>Failed Contacts:</strong> {automation.campaignData.failed_contacts}</div>
+                </div>
+                <div className="mt-4">
+                  <button
+                    onClick={() => handleShowContacts(automation.contactsData, automation.campaign_payload.name)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    Show All Contacts
+                  </button>
+                </div>
+              </DataCard>
+            )}
+            {automation.campaignData && (
+              <p className="mt-2 text-sm text-gray-500 italic">
+                Note: This indicates the sending of SMS to the scraped contacts. The `Total Contacts` shows how many contacts are scraped so far. The `Processed Contacts` shows how many contacts have been sent. The `Failed Contacts` shows how many contacts failed to send.
+              </p>
+            )}
+          </div>
+        ))}
+
+        {automationData.length === 0 && (
+          <p className="text-gray-500 text-center mt-4">No automations found.</p>
         )}
-        {automationData && <p className="mt-2 text-sm text-gray-500 italic">
-          Note: This automation uses a web scraper to fetch property owner contacts from Redfin listings. The `Last run` indicates when the last time scraped the contacts
-        </p>}
-        {campaignData && (
-          <DataCard title="Campaign Details">
-            <div className="grid grid-cols-2 gap-4">
-              <div><strong>Status:</strong> <StatusBadge status={campaignData.status} /></div>
-              <div><strong>Total Contacts:</strong> {campaignData.total_contacts}</div>
-              <div><strong>Processed Contacts:</strong> {campaignData.processed_contacts}</div>
-              <div><strong>Failed Contacts:</strong> {campaignData.failed_contacts}</div>
-            </div>
-          </DataCard>
-        )}
-        {campaignData && <p className="mt-2 text-sm text-gray-500 italic">
-          Note: This indicates the sending of SMS to the scrapped contacts. The `Total Contacts` shows till now how many contacts are scrapped. The `Processed Contacts` shows till now how many contacts are sent. The `Failed Contacts` shows till now how many contacts are failed to send.
-        </p>}
-        {contactsData.length > 0 && (
-          <DataCard title="Contacts">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {contactsData.map(contact => (
-                    <tr key={contact.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">{contact.first_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{contact.phone_number}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{contact.street_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap"><StatusBadge status={contact.status} /></td>
-                      <td className="px-6 py-4 whitespace-nowrap">{contact.attempts}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </DataCard>
-        )}
-        {contactsData.length > 0 && <p className="mt-2 text-sm text-gray-500 italic">
-          Note: This shows all the contacts that are Pending, Sent and Failed.
-        </p>}
+
+        {/* Contacts Popup */}
+        <ContactsPopup
+          isOpen={isPopupOpen}
+          onClose={() => setIsPopupOpen(false)}
+          contacts={popupContacts}
+          campaignName={popupCampaignName}
+        />
+
       </div>
       <Toaster position="top-right" />
     </DashboardLayout>
