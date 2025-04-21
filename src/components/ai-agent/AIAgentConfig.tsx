@@ -216,6 +216,14 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
   const [additionalCriteria, setAdditionalCriteria] = useState('');
   const [additionalPropertyTypes, setAdditionalPropertyTypes] = useState('');
 
+  // Add this state variable at the top of the component with the other state variables
+  const [fullPrompt, setFullPrompt] = useState<string | null>(null);
+  const [loadingPrompt, setLoadingPrompt] = useState(false);
+
+  // Add this function to handle toggling the prompt visibility
+  const [showFullPrompt, setShowFullPrompt] = useState(false);
+  const togglePromptVisibility = () => setShowFullPrompt(!showFullPrompt);
+
   // Load initial config and pipelines
   useEffect(() => {
     if (user?.id && selectedAgentId) {
@@ -696,8 +704,10 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     setMessage('');
     setIsSending(true);
     setTestError(null);
+    setLoadingPrompt(true); // Set loading state for the prompt
 
     try {
+      console.log('Sending test request with includePrompt=true');
       const res = await fetch('/api/ai-agent/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -706,10 +716,12 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
           history: [...conversation, newUserMessage],
           locationId: user?.id,
           agentConfig: config,
+          includePrompt: true, // Request the full prompt to be returned
         }),
       });
 
       const data = await res.json();
+      console.log('Received test response:', data);
 
       if (!res.ok) {
         throw new Error(data.error || data.details || data.message || 'API error');
@@ -717,6 +729,14 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
 
       if (!data.message) {
         throw new Error('No response received from the AI agent');
+      }
+
+      // Store the prompt if it was returned
+      if (data.prompt) {
+        console.log('Prompt received, setting prompt state');
+        setFullPrompt(data.prompt);
+      } else {
+        console.log('No prompt data in response');
       }
 
       setConversation(prev => [
@@ -729,6 +749,7 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       setConversation(prev => prev.slice(0, -1));
     } finally {
       setIsSending(false);
+      setLoadingPrompt(false); // Clear loading state for the prompt
     }
   };
 
@@ -1461,6 +1482,34 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
               ))}
             </div>
           )}
+
+          {/* Full Prompt Section */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-md font-medium text-[var(--nextprop-text-secondary)]">AI System Prompt:</h4>
+              <button
+                onClick={togglePromptVisibility}
+                className="text-xs px-2 py-1 bg-[var(--nextprop-surface)] text-[var(--nextprop-text-tertiary)] rounded hover:bg-[var(--nextprop-surface-hover)] border border-[var(--nextprop-border)]"
+              >
+                {showFullPrompt ? 'Hide Prompt' : 'Show Prompt'}
+              </button>
+            </div>
+            
+            {showFullPrompt && (
+              <div className="p-4 border border-[var(--nextprop-border)] rounded-lg max-h-80 overflow-y-auto bg-[var(--nextprop-surface-hover)]/50 font-mono text-sm text-[var(--nextprop-text-secondary)] whitespace-pre-wrap">
+                {loadingPrompt ? (
+                  <div className="flex justify-center items-center py-4">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--nextprop-primary)]"></div>
+                    <span className="ml-2">Loading prompt...</span>
+                  </div>
+                ) : fullPrompt ? (
+                  fullPrompt
+                ) : (
+                  'Send a message to generate and view the system prompt'
+                )}
+              </div>
+            )}
+          </div>
 
           <form onSubmit={handleTestSubmit} className="space-y-4">
             <div>
