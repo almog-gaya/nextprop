@@ -25,7 +25,7 @@ export function cacheServerConfig(userId: string, config: AIAgentConfig): void {
 export function getServerCachedConfig(userId: string): AIAgentConfig | null {
   if (typeof window !== 'undefined') return null; // Only run on server
   
-  return serverConfigCache[userId] || null; z
+  return serverConfigCache[userId] || null;
 }
 
 // Server-side cookie functions
