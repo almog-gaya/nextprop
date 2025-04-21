@@ -1208,7 +1208,6 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
                 {([
                   { value: 'homeowner-cash-offer', label: 'Cash Offer' },
                   { value: 'homeowner-distressed', label: 'Distressed Seller' },
-                  { value: 'homeowner-quick-sale', label: 'Quick Sale' },
                   { value: 'homeowner-relocation', label: 'Relocation' },
                 ] as const).map((option) => (
                   <button
