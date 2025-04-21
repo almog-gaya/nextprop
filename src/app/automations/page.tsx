@@ -301,6 +301,7 @@ export default function AutomationsPage() {
 
   const handleRunNow = async () => {
     if (isJobRunning) return;
+    propertyConfig.customer_id = user?.locationId || '';
     if (!propertyConfig.redfin_url) return toast.error('Please enter a Redfin URL for properties');
     if (!propertyConfig.pipeline_id) return toast.error('Please select a pipeline');
     if (!propertyConfig.customer_id) return toast.error('Customer ID is required');
