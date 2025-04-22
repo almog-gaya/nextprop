@@ -72,7 +72,7 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
         </div>
 
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-          ​
+
         </span>
 
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
@@ -88,15 +88,15 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                       <label htmlFor="min-value" className="block text-xs text-gray-500 mb-1">
                         Min Value
                       </label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-600">
+                      <div className="relative border border-gray-300 rounded-md">
+                        {/* <span className="absolute left-0 pl-2.5 inset-y-0 flex items-center text-gray-600">
                           $
-                        </span>
+                        </span> */}
                         <input
                           type="number"
                           id="min-value"
-                          className="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm"
-                          placeholder="Min"
+                          className="block w-full pl-8 pr-3 py-2  rounded-md text-sm bg-white"
+                          placeholder="$ Min"
                           value={tempFilters.value.min}
                           onChange={(e) =>
                             setTempFilters({
@@ -111,15 +111,15 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                       <label htmlFor="max-value" className="block text-xs text-gray-500 mb-1">
                         Max Value
                       </label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-600">
+                      <div className="relative border border-gray-300 rounded-md">
+                        {/* <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-600">
                           $
-                        </span>
+                        </span> */}
                         <input
                           type="number"
                           id="max-value"
-                          className="block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm"
-                          placeholder="Max"
+                          className="block w-full pl-8 pr-3 py-2  rounded-md text-sm bg-white"
+                          placeholder="$ Max"
                           value={tempFilters.value.max}
                           onChange={(e) =>
                             setTempFilters({
@@ -139,11 +139,10 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                     {['voicemail', 'sms', 'call', 'email', 'optout'].map((type) => (
                       <button
                         key={type}
-                        className={`px-3 py-2 text-sm rounded-md ${
-                          tempFilters.lastActivityType.includes(type as any)
-                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                            : 'bg-gray-100 text-gray-700 border border-gray-200'
-                        }`}
+                        className={`px-3 py-2 text-sm rounded-md ${tempFilters.lastActivityType.includes(type as any)
+                          ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                          : 'bg-gray-100 text-gray-700 border border-gray-200'
+                          }`}
                         onClick={() => toggleActivityType(type as any)}
                       >
                         {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -159,10 +158,11 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                       <label htmlFor="start-date" className="block text-xs text-gray-500 mb-1">
                         Start Date
                       </label>
-                      <input
+                     <div className='border border-gray-300 rounded-md'>
+                     <input
                         type="date"
                         id="start-date"
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="block w-full px-3 py-2 rounded-md text-sm"
                         value={tempFilters.dateRange.start}
                         onChange={(e) =>
                           setTempFilters({
@@ -171,15 +171,17 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                           })
                         }
                       />
+                     </div>
                     </div>
                     <div className="w-1/2">
                       <label htmlFor="end-date" className="block text-xs text-gray-500 mb-1">
                         End Date
                       </label>
+                      <div className='border border-gray-300 rounded-md'>
                       <input
                         type="date"
                         id="end-date"
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="block w-full px-3 py-2  rounded-md text-sm"
                         value={tempFilters.dateRange.end}
                         onChange={(e) =>
                           setTempFilters({
@@ -188,6 +190,7 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
                           })
                         }
                       />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -204,14 +207,14 @@ export default function FilterModal({ filters, setFilters, setIsFilterModalOpen 
             </button>
             <button
               type="button"
-              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm"
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
               onClick={handleClearFilters}
             >
               Clear All
             </button>
             <button
               type="button"
-              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              className=" mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
               onClick={() => setIsFilterModalOpen(false)}
             >
               Cancel

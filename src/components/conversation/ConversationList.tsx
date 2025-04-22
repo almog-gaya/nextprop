@@ -4,7 +4,7 @@ import Avatar from './Avatar';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
-
+import SearchBar from '@/components/dashboard/SearchBar'; 
 interface Conversation {
   id: string;
   name: string;
@@ -389,17 +389,13 @@ const ConversationList = memo(function ConversationList({
     <div className="h-full flex flex-col overflow-hidden">
       <div className="p-3 border-b border-gray-200 sticky top-0 z-10 bg-white">
         <div className="flex justify-between items-center">
-          <div className="relative flex-grow">
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search conversations"
-              className="text-sm  w-full py-2 pl-10 pr-4 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              value={searchTerm}
-              onChange={handleSearch}
+        <SearchBar
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              placeHolder="Search conversations"
+          
             />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-          </div>
+          
           <button
             onClick={() => setIsNewConversationModalOpen(true)}
             className="ml-2 px-2 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"

@@ -714,10 +714,10 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
 
 
     return (
-        <div className="h-full w-full max-w-md bg-white flex flex-col overflow-hidden font-sans px-6">
+        <div className="h-full w-full max-w-md bg-white flex flex-col overflow-hidden font-sans px-2">
             {/* Contact Header */}
             {contact && (
-                <div className="py-4 flex flex-col items-center border-b border-gray-200">
+                <div className="py-4 flex flex-col items-center border-b border-gray-200 ">
                     <div className="w-16 h-16 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium text-xl mb-2">
                         {contact.firstName?.[0]}{contact.lastName?.[0]}
                     </div>
@@ -735,7 +735,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto py-4 space-y-5">
+            <div className="flex-1 overflow-y-auto py-4 space-y-5 px-4">
                 {isLoading && !contact ? (
                     <div className="flex justify-center py-4">
                         <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>

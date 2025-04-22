@@ -513,10 +513,11 @@ export default function ContactsPage() {
 
     if (field.picklistOptions && field.picklistOptions.length > 0) {
       return (
-        <select
+        <div className='border border-gray-200 rounded-md'>
+             <select
           value={typeof fieldValue === 'string' ? fieldValue : ''}
           onChange={e => onChange({ id: field.id, key: field.fieldKey, value: e.target.value })}
-          className="mt-1 block w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+          className="mt-1 block w-full rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
           disabled={isSubmitting}
         >
           <option value="">Select {field.name}</option>
@@ -526,6 +527,8 @@ export default function ContactsPage() {
             </option>
           ))}
         </select>
+        </div>
+     
       );
     }
 
@@ -643,191 +646,211 @@ export default function ContactsPage() {
           <h3 className="text-xl font-semibold mb-2 text-gray-900">{isEdit ? 'Edit Contact' : 'Add New Contact'}</h3>
           <p className="text-sm text-gray-600 mb-6">{isEdit ? 'Update contact details below' : 'Create a new contact'}</p>
           <form onSubmit={handleSubmit}>
-            <div className="space-y-5">
-              {/* Name Fields */} 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                  <input
-                    type="text"
-                    value={formData.firstName || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                  <input
-                    type="text"
-                    value={formData.lastName || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
+  <div className="space-y-5">
+    {/* Name Fields */}
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+        <div className='border border-gray-200 rounded-md'>
+          <input
+            type="text"
+            value={formData.firstName || ''}
+            onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+            className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+        <div className='border border-gray-200 rounded-md'>
+          <input
+            type="text"
+            value={formData.lastName || ''}
+            onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+            className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+    </div>
 
-              {/* Contact Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="tel"
-                    value={formData.phone || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-              {/* Timezone and DND */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
-                <select
-                  value={formData.timezone || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                  disabled={isSubmitting}
-                >
-                  <option value="">Select Timezone</option>
-                  {timezones.map(timezone => (
-                    <option key={timezone.value} value={timezone.value}>
-                      {timezone.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
-                  <input
-                    type="checkbox"
-                    checked={formData.dnd}
-                    onChange={e => setFormData(prev => ({ ...prev, dnd: e.target.checked }))}
-                    className="mr-2"
-                    disabled={isSubmitting}
-                  />
-                  Do Not Disturb
-                </label>
-              </div>
+    {/* Contact Info */}
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <div className='border border-gray-200 rounded-md'>
+          <input
+            type="email"
+            value={formData.email || ''}
+            onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+        <div className='border border-gray-200 rounded-md'>
+          <input
+            type="tel"
+            value={formData.phone || ''}
+            onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+    </div>
+    {/* Timezone and DND */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+      <div className='border border-gray-200 rounded-md'>
+        <select
+          value={formData.timezone || ''}
+          onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+          className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+          disabled={isSubmitting}
+        >
+          <option value="">Select Timezone</option>
+          {timezones.map(timezone => (
+            <option key={timezone.value} value={timezone.value}>
+              {timezone.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+    <div>
+      <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+        <input
+          type="checkbox"
+          checked={formData.dnd}
+          onChange={e => setFormData(prev => ({ ...prev, dnd: e.target.checked }))}
+          className="mr-2"
+          disabled={isSubmitting}
+        />
+        Do Not Disturb
+      </label>
+    </div>
 
-              {/* Address Fields */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
-                <input
-                  type="text"
-                  value={formData.address1 || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, address1: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                  <input
-                    type="text"
-                    value={formData.city || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                  <input
-                    type="text"
-                    value={formData.state || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-                  <input
-                    type="text"
-                    value={formData.postalCode || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                  <input
-                    type="text"
-                    value={formData.country || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
+    {/* Address Fields */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+      <div className='border border-gray-200 rounded-md'>
+        <input
+          type="text"
+          value={formData.address1 || ''}
+          onChange={e => setFormData(prev => ({ ...prev, address1: e.target.value }))}
+          className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+          disabled={isSubmitting}
+        />
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+        <div className='border border-gray-200 rounded-md'>
+          <input
+            type="text"
+            value={formData.city || ''}
+            onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
+            className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+        <div className='border border-gray-200 rounded-md'>
+          <input
+            type="text"
+            value={formData.state || ''}
+            onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
+            className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+        <div className='border border-gray-200 rounded-md'>
+          <input
+            type="text"
+            value={formData.postalCode || ''}
+            onChange={e => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
+            className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+        <div className='border border-gray-200 rounded-md'>
+          <input
+            type="text"
+            value={formData.country || ''}
+            onChange={e => setFormData(prev => ({ ...prev, country: e.target.value }))}
+            className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+            disabled={isSubmitting}
+          />
+        </div>
+      </div>
+    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
-                <input
-                  type="text"
-                  value={formData.source || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, source: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-md p-2 bg-white/50 focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                  disabled={isSubmitting}
-                />
-              </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+      <div className='border border-gray-200 rounded-md'>
+        <input
+          type="text"
+          value={formData.source || ''}
+          onChange={e => setFormData(prev => ({ ...prev, source: e.target.value }))}
+          className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+          disabled={isSubmitting}
+        />
+      </div>
+    </div>
 
-              {/* Custom Fields */}
-              {customFields.map(field => {
-                const customFieldValue =
-                  formData.customFields && typeof formData.customFields === 'object'
-                    ? formData.customFields[field.fieldKey] || (field.dataType === 'CHECKBOX' ? [] : '')
-                    : field.dataType === 'CHECKBOX' ? [] : '';
-                return (
-                  <div key={field.id}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{field.name}</label>
-                    {renderCustomFieldInput(field, customFieldValue, value => {
-                      const updatedCustomFields = {
-                        ...(formData.customFields || {}),
-                        [field.fieldKey]: value.value,
-                      };
-                      setFormData(prev => ({ ...prev, customFields: updatedCustomFields }));
-                    })}
-                  </div>
-                );
-              })}
-
-
-            </div>
-            <div className="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => (isEdit ? setIsEditModalOpen(false) : setIsAddModalOpen(false))}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm disabled:opacity-50"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Saving...' : isEdit ? 'Update Contact' : 'Add Contact'}
-              </button>
-            </div>
-          </form>
+    {/* Custom Fields */}
+    {customFields.map(field => {
+      const customFieldValue =
+        formData.customFields && typeof formData.customFields === 'object'
+          ? formData.customFields[field.fieldKey] || (field.dataType === 'CHECKBOX' ? [] : '')
+          : field.dataType === 'CHECKBOX' ? [] : '';
+      return (
+        <div key={field.id}>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{field.name}</label>
+          {renderCustomFieldInput(field, customFieldValue, value => {
+            const updatedCustomFields = {
+              ...(formData.customFields || {}),
+              [field.fieldKey]: value.value,
+            };
+            setFormData(prev => ({ ...prev, customFields: updatedCustomFields }));
+          })}
+        </div>
+      );
+    })}
+  </div>
+  <div className="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200">
+    <button
+      type="button"
+      onClick={() => (isEdit ? setIsEditModalOpen(false) : setIsAddModalOpen(false))}
+      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+      disabled={isSubmitting}
+    >
+      Cancel
+    </button>
+    <button
+      type="submit"
+      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm disabled:opacity-50"
+      disabled={isSubmitting}
+    >
+      {isSubmitting ? 'Saving...' : isEdit ? 'Update Contact' : 'Add Contact'}
+    </button>
+  </div>
+</form>
         </div>
       </div>
     );
@@ -1476,9 +1499,9 @@ export default function ContactsPage() {
         <div className="mb-6">
           <div className="relative">
             <div className="mb-6">
-              <div className="relative">
+              <div className="relative border border-gray-300 rounded-md ">
                 <input
-                  type="text"
+                  type="search"
                   value={searchQuery}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -1494,8 +1517,8 @@ export default function ContactsPage() {
                       searchContactsByName(value);
                     }, 300);
                   }}
-                  placeholder="      Search contacts by name..."
-                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Search contacts by name..."
+                  className="w-full px-4 py-2 pl-10 rounded-md focus:ring-purple-500 focus:border-purple-500"
                   disabled={isSearching}
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

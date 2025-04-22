@@ -547,7 +547,7 @@ function MessagingContent() {
 
   const ConversationFilters = () => (
     <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
-      <div className="flex space-x-1">
+      <div className="flex space-x-1 pr-2">
         {['All', 'Unread', 'Recents'].map((tab) => {
           const tabValue = tab.toLowerCase() as 'unread' | 'recents' | 'all';
           return (
@@ -557,7 +557,7 @@ function MessagingContent() {
                 setState((prev) => ({ ...prev, activeTab: tabValue, lastConversationDate: null, conversations: [] }));
                 fetchConversations(tabValue);
               }}
-              className={`px-3 py-2 text-sm font-medium rounded-md ${state.activeTab === tabValue
+              className={`px-2 py-2 text-sm font-medium rounded-md ${state.activeTab === tabValue
                 ? 'bg-gray-100 text-gray-900'
                 : 'text-gray-500 hover:text-gray-700'
                 }`}

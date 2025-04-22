@@ -316,7 +316,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
     // For now, just log the importRequestId
     setShowPopup(false); // Close popup after checking progress
     // Navigate to a progress page or fetch progress status
-      window.location.href = '/bulk-actions';
+    window.location.href = '/bulk-actions';
 
   };
 
@@ -329,19 +329,22 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Select Pipeline</label>
-              <select
-                value={selectedPipeline}
-                onChange={(e) => setSelectedPipeline(e.target.value)}
-                className="w-full border border-gray-300 rounded-md p-2"
-                disabled={loadingPipelines}
-              >
-                <option value="">Select a pipeline</option>
-                {pipelines.map((pipeline) => (
-                  <option key={pipeline.id} value={pipeline.id}>
-                    {pipeline.name}
-                  </option>
-                ))}
-              </select>
+              <div className='border border-gray-300 rounded-md'>
+                <select
+                  value={selectedPipeline}
+                  onChange={(e) => setSelectedPipeline(e.target.value)}
+                  className="w-full  rounded-md p-2"
+                  disabled={loadingPipelines}
+                >
+                  <option value="">Select a pipeline</option>
+                  {pipelines.map((pipeline) => (
+                    <option key={pipeline.id} value={pipeline.id}>
+                      {pipeline.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {loadingPipelines && <p className="text-sm text-gray-500">Loading pipelines...</p>}
               {pipelines.length === 0 && !loadingPipelines && (
                 <p className="text-sm text-red-500">No pipelines available. Please create one first.</p>
@@ -360,6 +363,17 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
                 placeholder="Select or type to add tags..."
                 isLoading={loadingTags}
                 formatCreateLabel={(inputValue) => `Add "${inputValue}"`}
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    borderColor: state.isFocused ? '#8b5cf6' : '#d1d5db', // purple-500 on focus, gray-300 otherwise
+                    borderRadius: '0.375rem', // Tailwind's rounded-md
+                    boxShadow: state.isFocused ? '0 0 0 2px rgba(139, 92, 246, 0.2)' : 'none', // Optional focus ring
+                    '&:hover': {
+                      borderColor: state.isFocused ? '#8b5cf6' : '#9ca3af', // gray-400 on hover when not focused
+                    },
+                  }),
+                }}
               />
               {loadingTags && <p className="text-sm text-gray-500">Loading tags...</p>}
             </div>

@@ -198,7 +198,7 @@ export default function LeadsPage() {
           const opportunitiesResponse = await fetch(
             `/api/pipelines/search?pipelineId=${pipelineId}&stageId=${stage.id}&page=${initialPagination.page}&limit=${initialPagination.limit}`
           );
-          
+
           if (!opportunitiesResponse.ok) {
             throw new Error(`Error fetching opportunities for stage ${stage.id}`);
           }
@@ -255,16 +255,16 @@ export default function LeadsPage() {
         prev.map((p) =>
           p.id === pipelineId
             ? {
-                ...p,
-                stages: stagesWithOpps,
-                totalOpportunities: stagesWithOpps.reduce((sum, stage) => sum + stage.count, 0),
-              }
+              ...p,
+              stages: stagesWithOpps,
+              totalOpportunities: stagesWithOpps.reduce((sum, stage) => sum + stage.count, 0),
+            }
             : p
         )
       );
-      
+
       setLoadedPipelines((prev) => new Set(prev).add(pipelineId));
-      
+
       if (pipelineId === selectedPipeline) {
         setOpportunities(stagesWithOpps);
       }
@@ -565,7 +565,7 @@ export default function LeadsPage() {
                 filters={filters}
                 sortConfig={sortConfig}
               />
-              <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+              <SearchBar searchTerm={searchTerm} placeHolder="Search Leads..."  setSearchTerm={setSearchTerm} />
             </div>
           </div>
           <ActiveFilters
@@ -577,7 +577,7 @@ export default function LeadsPage() {
           />
           <div className="px-4 py-6 sm:px-6 lg:px-8 flex-1">
             <AutomationPreview className="mb-6" />
-            
+
             {isLoading || loading ? (
               <div className="text-center py-8 text-gray-500">Loading...</div>
             ) : error ? (
