@@ -19,7 +19,7 @@ import PhoneNumberSelector from '@/components/automations/PhoneNumberSelector';
 import { convertTo24Hour, dayMapping } from '@/utils/appUtils';
 import { collection, query, onSnapshot, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
-
+const MAX_CONTACTS_PER_DAY = 2;
 const StatusBadge = ({ status }: { status: string }) => {
   const statusStyles: { [key: string]: string } = {
     completed: 'bg-green-100 text-green-800',
@@ -101,7 +101,7 @@ export default function AutomationsPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loadingPipelines, setLoadingPipelines] = useState(true);
-  const [propertyCount, setPropertyCount] = useState(2);
+  const [propertyCount, setPropertyCount] = useState(MAX_CONTACTS_PER_DAY);
   const [automationData, setAutomationData] = useState<AutomationData[]>([]);
   const { user } = useAuth();
   // State for popup
@@ -113,7 +113,7 @@ export default function AutomationsPage() {
     customer_id: user?.id || '',
     pipeline_id: '',
     stage_id: '',
-    limit: propertyCount,
+    limit: MAX_CONTACTS_PER_DAY,
     redfin_url: '',
     campaign_payload: {
       name: 'Recurring Automation Job',
@@ -224,11 +224,70 @@ export default function AutomationsPage() {
     return () => unsubscribe();
   }, [activeJobId]);
 
+  function calculateDelayForXContacts(timeStart: string, timeEnd: string, contactLenght: number): number {
+    // validate contactLength to throw error
+    if (contactLenght < 1 || contactLenght >= 20) {
+      throw new Error('Contact length must be between 1 and 20');
+    }
+    console.log(`timeStart: ${timeStart}, timeEnd: ${timeEnd}`);
+
+    if (!timeStart || !timeEnd) {
+      console.error('Invalid inputs: timeStart or timeEnd is missing');
+      return 0;
+    }
+
+    const convertTo24Hour = (time: string): string => {
+      try {
+        const [timePart, period] = time.trim().split(' ');
+        let [hours, minutes] = timePart.split(':').map(Number);
+        if (isNaN(hours) || isNaN(minutes)) throw new Error('Invalid time format');
+        if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+        if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      } catch (error) {
+        console.error('Error parsing time format:', error);
+        throw error;
+      }
+    };
+
+    let startTime: string, endTime: string;
+    try {
+      startTime = convertTo24Hour(timeStart);
+      endTime = convertTo24Hour(timeEnd);
+    } catch (error) {
+      return 0;
+    }
+
+    const start = new Date(`1970-01-01T${startTime}:00`);
+    const end = new Date(`1970-01-01T${endTime}:00`);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      console.error('Invalid time format after conversion');
+      return 0;
+    }
+
+    let hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    if (hours < 0) hours += 24;
+
+    if (hours <= 0) {
+      console.error('Invalid time range: end time is not after start time');
+      return 0;
+    }
+
+    const contacts = contactLenght;
+    const delayInHours = hours / (contacts - 1);
+    const delayInMinutes = Math.round(delayInHours * 60);
+
+    return delayInMinutes;
+  }
+
   const handlePropertyInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === 'propertyCount') {
-      const count = parseInt(value, 10);
-      const validCount = isNaN(count) ? 20 : Math.min(Math.max(1, count), 20);
+      // uncomment to calculate count dynamically from input field
+      // const count = parseInt(value, 10);
+      // const validCount = isNaN(count) ? 20 : Math.min(Math.max(1, count), 20);
+      const validCount = MAX_CONTACTS_PER_DAY;
       setPropertyCount(validCount);
       setPropertyConfig(prev => ({ ...prev, limit: validCount }));
     } else if (name === 'redfin_url') {
@@ -315,14 +374,27 @@ export default function AutomationsPage() {
       propertyConfig.next_stage_id = nextStageId;
     }
     try {
+      // calculating delay dynamiaclly with given time window and contact count 
+      const delayMinutes = calculateDelayForXContacts(propertyConfig.campaign_payload.time_window.start, propertyConfig.campaign_payload.time_window.end, MAX_CONTACTS_PER_DAY);
+      const delayInSeconds = delayMinutes * 60;
       const createAutomationPayload = {
         ...propertyConfig,
         campaign_payload: {
           ...propertyConfig.campaign_payload,
           days: propertyConfig.campaign_payload.days.map(day => dayMapping[day]),
-          time_window: { start: convertTo24Hour(propertyConfig.campaign_payload.time_window.start), end: convertTo24Hour(propertyConfig.campaign_payload.time_window.end) }
+          time_window: { start: convertTo24Hour(propertyConfig.campaign_payload.time_window.start), end: convertTo24Hour(propertyConfig.campaign_payload.time_window.end) },
+          channels: {
+           sms: {
+            ...propertyConfig.campaign_payload.channels.sms,
+             time_interval: delayInSeconds,
+             message: `Hi {{first_name}}, this is ${user?.firstName} from NextProp. I'm reaching out about your property. I noticed it's been on the market for 90+ days. Would your seller consider an offer on terms? Just to confirm, your commission is still fully covered.`,
+
+           }
+          }
         }
-      };
+      }; 
+  
+      
       const result = await fetch('/api/automations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createAutomationPayload) });
       const resultData = await result.json();
       if (!result.ok) throw new Error(`Failed to start automation: ${resultData.message || 'Unknown error'}`);
@@ -399,60 +471,9 @@ export default function AutomationsPage() {
                   daysOfWeek: propertyConfig.campaign_payload.days
                 }}
                 onSave={(newSettings) => {
-                  function calculateDelayFor20Contacts(timeStart: string, timeEnd: string): number {
-                    console.log(`timeStart: ${timeStart}, timeEnd: ${timeEnd}`);
-
-                    if (!timeStart || !timeEnd) {
-                      console.error('Invalid inputs: timeStart or timeEnd is missing');
-                      return 0;
-                    }
-
-                    const convertTo24Hour = (time: string): string => {
-                      try {
-                        const [timePart, period] = time.trim().split(' ');
-                        let [hours, minutes] = timePart.split(':').map(Number);
-                        if (isNaN(hours) || isNaN(minutes)) throw new Error('Invalid time format');
-                        if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
-                        if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
-                        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                      } catch (error) {
-                        console.error('Error parsing time format:', error);
-                        throw error;
-                      }
-                    };
-
-                    let startTime: string, endTime: string;
-                    try {
-                      startTime = convertTo24Hour(timeStart);
-                      endTime = convertTo24Hour(timeEnd);
-                    } catch (error) {
-                      return 0;
-                    }
-
-                    const start = new Date(`1970-01-01T${startTime}:00`);
-                    const end = new Date(`1970-01-01T${endTime}:00`);
-
-                    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-                      console.error('Invalid time format after conversion');
-                      return 0;
-                    }
-
-                    let hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-                    if (hours < 0) hours += 24;
-
-                    if (hours <= 0) {
-                      console.error('Invalid time range: end time is not after start time');
-                      return 0;
-                    }
-
-                    const contacts = 20;
-                    const delayInHours = hours / (contacts - 1);
-                    const delayInMinutes = Math.round(delayInHours * 60);
-
-                    return delayInMinutes;
-                  }
-                  const delayMinutes = calculateDelayFor20Contacts(newSettings.startTime, newSettings.endTime);
-                  console.log(`Delay to process 20 contacts per day: ${delayMinutes} minutes`);
+                  const numberOfContacts = 2;
+                  const delayMinutes = calculateDelayForXContacts(newSettings.startTime, newSettings.endTime, numberOfContacts);
+                  console.log(`Delay to process ${numberOfContacts} contacts per day: ${delayMinutes} minutes`);
                   const delayInSeconds = delayMinutes * 60;
                   setPropertyConfig(prev => ({
                     ...prev,
