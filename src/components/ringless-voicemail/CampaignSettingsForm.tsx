@@ -68,8 +68,9 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-              <select
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+            <div className='border border-gray-300 rounded-md'>
+            <select
+                className="w-full p-2 rounded-md focus:ring-purple-500 focus:border-purple-500"
                 value={formSettings.startTime}
                 onChange={(e) => handleInputChange('startTime', e.target.value)}
               >
@@ -78,10 +79,12 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
                 ))}
               </select>
             </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+              <div className='border border-gray-300 rounded-md'>
               <select
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="w-full p-2 rounded-md focus:ring-purple-500 focus:border-purple-500"
                 value={formSettings.endTime}
                 onChange={(e) => handleInputChange('endTime', e.target.value)}
               >
@@ -89,11 +92,13 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
                   <option key={time} value={time}>{time}</option>
                 ))}
               </select>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
-              <select
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+             <div className='border border-gray-300 rounded-md '>
+             <select
+                className="w-full p-2  rounded-md focus:ring-purple-500 focus:border-purple-500"
                 value={formSettings.timezone}
                 onChange={(e) => handleInputChange('timezone', e.target.value)}
               >
@@ -101,6 +106,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
                   <option key={tz.value} value={tz.value}>{tz.label}</option>
                 ))}
               </select>
+             </div>
             </div>
           </div>
 
@@ -192,7 +198,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
                   value = Math.max(1, Math.min(59, value));
                   handleInputChange('delayMinutes', value);
                 }}
-                className="w-24 p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="w-24 p-2 focus:ring-purple-500 focus:border-purple-500"
               />
               <span className="text-sm text-gray-600">minutes</span>
             </div>

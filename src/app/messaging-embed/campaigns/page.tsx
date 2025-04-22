@@ -646,9 +646,9 @@ export default function RinglessVoicemailPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
                 <div className="md:flex md:items-center md:justify-between mb-8">
                     <div className="flex-1 min-w-0">
-                        <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                        {/* <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
                             SMS Campaign
-                        </h2>
+                        </h2> */}
                         <p className="mt-1 text-sm text-gray-500">
                             Create new SMS campaign to reach your contacts.
                         </p>
@@ -728,12 +728,15 @@ export default function RinglessVoicemailPage() {
                     <div className="px-4 py-5 sm:p-6">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg leading-6 font-medium text-gray-900">Create New Campaign</h3>
+                            <div
+                            className='border border-purple-300 rounded-md'>
                             <button
                                 onClick={() => setIsBulkUploadModalOpen(true)}
-                                className="inline-flex items-center px-3 py-2 border border-purple-300 text-sm leading-4 font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                className="inline-flex items-center px-3 py-2  text-sm leading-4 font-medium rounded-md text-purple-700 bg-white hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                             >
                                 Bulk Upload Contacts
                             </button>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
