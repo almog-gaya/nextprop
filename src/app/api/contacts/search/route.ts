@@ -173,7 +173,7 @@ async function searchByName(
     page: number,
     limit: number
 ) {
-     const payload = {
+    const payload = {
         locationId,
         page,
         pageLimit: limit,
@@ -200,23 +200,22 @@ async function searchByName(
     };
 
     try {
+        const headers = buildHeaders(tokenId);
         const response = await fetch("https://backend.leadconnectorhq.com/contacts/search/2", {
             method: "POST",
-            headers: {
-                "accept": "application/json",
-                "content-type": "application/json", 
-                "token-id": tokenId,
-                "Version": "2021-07-28"
-            },
+            headers,
             body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
-            console.error(`API error: ${response.status} ${response.statusText}`);
-            throw new Error(`API returned ${response.status}`);
+            const errorText = await response.text();
+            console.error(`API error: ${response.status} ${response.statusText}`, errorText);
+            throw new Error(`API returned ${response.status}: ${errorText}`);
         }
 
-        return await response.json();
+        const data = await response.json();
+        console.log(`Name search returned ${data.contacts?.length || 0} contacts, total: ${data.total || 'unknown'}`);
+        return data;
     } catch (error) {
         console.error('Error searching contacts by name:', error);
         throw error;
