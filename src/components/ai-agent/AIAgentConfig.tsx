@@ -1482,34 +1482,6 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
             </div>
           )}
 
-          {/* Full Prompt Section */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <h4 className="text-md font-medium text-[var(--nextprop-text-secondary)]">AI System Prompt:</h4>
-              <button
-                onClick={togglePromptVisibility}
-                className="text-xs px-2 py-1 bg-[var(--nextprop-surface)] text-[var(--nextprop-text-tertiary)] rounded hover:bg-[var(--nextprop-surface-hover)] border border-[var(--nextprop-border)]"
-              >
-                {showFullPrompt ? 'Hide Prompt' : 'Show Prompt'}
-              </button>
-            </div>
-            
-            {showFullPrompt && (
-              <div className="p-4 border border-[var(--nextprop-border)] rounded-lg max-h-80 overflow-y-auto bg-[var(--nextprop-surface-hover)]/50 font-mono text-sm text-[var(--nextprop-text-secondary)] whitespace-pre-wrap">
-                {loadingPrompt ? (
-                  <div className="flex justify-center items-center py-4">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--nextprop-primary)]"></div>
-                    <span className="ml-2">Loading prompt...</span>
-                  </div>
-                ) : fullPrompt ? (
-                  fullPrompt
-                ) : (
-                  'Send a message to generate and view the system prompt'
-                )}
-              </div>
-            )}
-          </div>
-
           <form onSubmit={handleTestSubmit} className="space-y-4">
             <div>
               <label htmlFor="message" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
