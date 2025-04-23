@@ -150,7 +150,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
                   value = Math.max(10, Math.min(400, value));
                   handleInputChange('maxPerHour', value);
                 }}
-                className="w-24 p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="w-24   border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
               />
               <span className="text-sm text-gray-600">voicemails/hour</span>
             </div>

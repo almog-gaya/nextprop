@@ -489,11 +489,12 @@ export default function PropertiesPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
+              <div className="border border-gray-200 rounded-md">
               <select
                 value={selectedPipeline || ''}
                 onChange={(e) => setSelectedPipeline(e.target.value)}
                 disabled={isScraping}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               >
                 {pipelines.length === 0 ? (
                   <option value="">Loading pipelines...</option>
@@ -505,6 +506,7 @@ export default function PropertiesPage() {
                   ))
                 )}
               </select>
+              </div>
               <p className="mt-2 text-xs text-gray-500">Select where contacts will be organized</p>
             </div>
 
@@ -516,11 +518,12 @@ export default function PropertiesPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
               </div>
+              <div className="border border-gray-200 rounded-md">
               <select
                 value={selectedStage || ''}
                 onChange={(e) => setSelectedStage(e.target.value)}
                 disabled={isScraping || !selectedPipeline}
-                className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               >
                 {selectedPipelineStages.length === 0 ? (
                   <option value="">Select pipeline first</option>
@@ -532,6 +535,7 @@ export default function PropertiesPage() {
                   ))
                 )}
               </select>
+              </div>
               <p className="mt-2 text-xs text-gray-500">Choose the stage for new contacts</p>
             </div>
           </div>
