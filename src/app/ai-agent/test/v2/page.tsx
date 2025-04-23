@@ -127,23 +127,36 @@ export default function AIAgentTestV2() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    
+    // Log the request payload for debugging
+    const payload = {
+      ...formData,
+      history: formData.history.map(({ id, timestamp, ...rest }) => rest)
+    };
+    console.log('Sending request with payload:', payload);
+    
     try {
-      const res = await fetch('https://us-central1-nextprop-ai.cloudfunctions.net/chatai/', {
+      const res = await fetch('/api/chatai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          history: formData.history.map(({ id, timestamp, ...rest }) => rest)
-        }),
+        body: JSON.stringify(payload),
       });
       
+      // Log the response status and headers for debugging
+      console.log('Response status:', res.status);
+      console.log('Response headers:', Object.fromEntries(res.headers.entries()));
+      
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const errorText = await res.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
       }
       
       const data = await res.json();
+      console.log('Received response:', data);
+      
       const responseStr = JSON.stringify(data, null, 2);
       setResponse(responseStr);
       
@@ -168,6 +181,7 @@ export default function AIAgentTestV2() {
         }));
       }
     } catch (error) {
+      console.error('Full error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       setError(errorMessage);
       setResponse('');
