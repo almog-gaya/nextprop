@@ -105,14 +105,17 @@ export default function SearchBarProperties({
       <div className="space-y-6">
         <div className="flex flex-col gap-4 items-center">
           <div className="w-full">
-            <label className="block text-lg font-semibold text-gray-700 mb-2">Paste Redfin Link </label>            <input
+            <label className="block text-lg font-semibold text-gray-700 mb-2">Paste Redfin Link </label>            
+           <div className="rounded-lg border border-gray-200 ">
+           <input
               type="text"
               placeholder="e.g., https://www.redfin.com/zipcode/32754/filter/min-days-on-market=3mo"
               value={link}
               onChange={(e) => setLink(e.target.value)}
               disabled={isScraping}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+              className="w-full px-4 py-3 bg-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
             />
+           </div>
           </div>
           <div className="flex gap-3">
             <button
