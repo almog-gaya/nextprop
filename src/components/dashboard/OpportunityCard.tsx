@@ -48,7 +48,7 @@ export default function OpportunityCard({
     e.preventDefault();
     e.stopPropagation();
     if (opportunity.contact?.id) {
-      router.push(`/contacts/${opportunity.contact.id}`);
+      router.push(`/messaging-embed?contactId=${opportunity.contact.id}`);
     }
   };
 
