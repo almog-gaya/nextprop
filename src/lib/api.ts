@@ -722,7 +722,7 @@ export async function getContactNote(contactId: string, noteId: string) {
     return await response.json();
   } catch (error) {
     console.error('Error getting contact note:', error);
-    throw error;
+    throw error; 
   }
 }
 
