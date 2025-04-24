@@ -24,6 +24,7 @@ import {
   ClipboardDocumentCheckIcon,
   ArrowRightOnRectangleIcon,
   BoltIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -72,7 +73,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  const links = [
+  const navigation = [
     { icon: <HomeIcon className="w-5 h-5" />, text: 'Dashboard', href: '/' },
     { icon: <UserIcon className="w-5 h-5" />, text: 'Leads', href: '/leads' },
     { icon: <UserGroupIcon className="w-5 h-5" />, text: 'Contacts', href: '/contacts' },
@@ -81,7 +82,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
     { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
     { icon: <BoltIcon className="w-5 h-5" />, text: 'AI Agent', href: '/ai-agent' },
-    { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' },
+    { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' }
   ];
 
   const sidebarClass = classNames({
@@ -109,7 +110,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
       
       {/* Navigation Links */}
       <div className="flex flex-col w-full px-2 overflow-y-auto py-4 flex-grow">
-        {links.map((link) => (
+        {navigation.map((link) => (
           <SidebarLink
             key={link.href}
             icon={link.icon}

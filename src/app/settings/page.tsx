@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserIcon, ArrowRightOnRectangleIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
+import { UserIcon, ArrowRightOnRectangleIcon, ClipboardDocumentCheckIcon, BellIcon, PhoneIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 
 export default function SettingsPage() {
-   const { user, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [locationData, setLocationData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -95,7 +95,7 @@ export default function SettingsPage() {
               <p className="text-lg font-medium text-gray-900">
                 {user?.name || (locationData && locationData.firstName && locationData.lastName) 
                   ? user?.name ?? `${locationData.firstName} ${locationData.lastName}`
-                   : 'Loading...'}
+                  : 'Loading...'}
               </p>
               <p className="text-gray-500">
                 {((user?.email ?? locationData?.email)) || 'Loading...'}
@@ -131,21 +131,64 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Bulk Actions Section */}
+          {/* Settings Actions Grid */}
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Bulk Actions</h2>
-            <p className="text-gray-500 mb-4">View and manage your bulk operations history</p>
-            <a 
-              href="/bulk-actions" 
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-            >
-              <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2" />
-              Manage Bulk Actions
-            </a>
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">Settings & Actions</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Row 1 */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Bulk Actions</h3>
+                <p className="text-gray-500 mb-4 text-sm">View and manage your bulk operations history</p>
+                <a 
+                  href="/bulk-actions" 
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2" />
+                  Manage Bulk Actions
+                </a>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Notifications</h3>
+                <p className="text-gray-500 mb-4 text-sm">Manage your notification preferences</p>
+                <a 
+                  href="/notifications" 
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <BellIcon className="h-5 w-5 mr-2" />
+                  Manage Notifications
+                </a>
+              </div>
+
+              {/* Row 2 */}
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Phone Numbers</h3>
+                <p className="text-gray-500 mb-4 text-sm">Manage your phone numbers and 10DLC registration</p>
+                <a 
+                  href="/phone-numbers" 
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <PhoneIcon className="h-5 w-5 mr-2" />
+                  Manage Phone Numbers
+                </a>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Analytics</h3>
+                <p className="text-gray-500 mb-4 text-sm">View detailed analytics and performance metrics</p>
+                <a 
+                  href="/analytics" 
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <ChartBarIcon className="h-5 w-5 mr-2" />
+                  View Analytics
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Logout Button */}
-          <div className="mt-6 flex justify-end">
+          <div className="mt-8 flex justify-end">
             <button
               type="button"
               onClick={handleLogout}
