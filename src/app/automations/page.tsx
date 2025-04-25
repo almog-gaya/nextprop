@@ -20,6 +20,7 @@ import { convertTo24Hour, dayMapping } from '@/utils/appUtils';
 import { collection, query, onSnapshot, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
 const MAX_CONTACTS_PER_DAY = 2;
+const MAX_PROPERTY_PER_RUN = 60;
 const StatusBadge = ({ status }: { status: string }) => {
   const statusStyles: { [key: string]: string } = {
     completed: 'bg-green-100 text-green-800',
@@ -113,7 +114,7 @@ export default function AutomationsPage() {
     customer_id: user?.id || '',
     pipeline_id: '',
     stage_id: '',
-    limit: MAX_CONTACTS_PER_DAY,
+    limit: MAX_PROPERTY_PER_RUN,
     redfin_url: '',
     campaign_payload: {
       name: 'Recurring Automation Job',
@@ -122,9 +123,10 @@ export default function AutomationsPage() {
       timezone: 'America/New_York',
       channels: {
         sms: {
+          max_calls_per_hour: MAX_CONTACTS_PER_DAY,
           enabled: true,
           message: `Hi {{first_name}}, this is ${user?.firstName} from NextProp. I'm reaching out about your property. I noticed it's been on the market for 90+ days. Would your seller consider an offer on terms? Just to confirm, your commission is still fully covered.`,
-          time_interval: 3000, // 50 mints
+          time_interval: 3000, // 50 mints (stale)
           from_number: ''
         }
       }
@@ -384,17 +386,16 @@ export default function AutomationsPage() {
           days: propertyConfig.campaign_payload.days.map(day => dayMapping[day]),
           time_window: { start: convertTo24Hour(propertyConfig.campaign_payload.time_window.start), end: convertTo24Hour(propertyConfig.campaign_payload.time_window.end) },
           channels: {
-           sms: {
-            ...propertyConfig.campaign_payload.channels.sms,
-             time_interval: delayInSeconds,
-             message: `Hi {{first_name}}, this is ${user?.firstName} from NextProp. I'm reaching out about your property. I noticed it's been on the market for 90+ days. Would your seller consider an offer on terms? Just to confirm, your commission is still fully covered.`,
+            sms: {
+              ...propertyConfig.campaign_payload.channels.sms,
+              time_interval: delayInSeconds, 
 
-           }
+            }
           }
         }
-      }; 
-  
-      
+      };
+
+
       const result = await fetch('/api/automations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(createAutomationPayload) });
       const resultData = await result.json();
       if (!result.ok) throw new Error(`Failed to start automation: ${resultData.message || 'Unknown error'}`);
@@ -524,7 +525,7 @@ export default function AutomationsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div><strong>Status:</strong> <StatusBadge status={automation.campaignData.status} /></div>
                   <div><strong>Total Contacts:</strong> {automation.campaignData.total_contacts}</div>
-                  <div><strong>Processed Contacts:</strong> {automation.campaignData.processed_contacts}</div>
+                  <div><strong>Processed Contacts:</strong> {automation.campaignData.delivered_contacts}</div>
                   <div><strong>Failed Contacts:</strong> {automation.campaignData.failed_contacts}</div>
                 </div>
                 <div className="mt-4">
