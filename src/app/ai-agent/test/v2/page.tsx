@@ -21,6 +21,16 @@ interface TestForm {
     topP: number;
     frequencyPenalty: number;
     presencePenalty: number;
+    tone?: 'friendly' | 'professional' | 'casual';
+    length?: 'short' | 'medium' | 'long';
+    agentName?: string; 
+    companyName?: string;
+    speakingOnBehalfOf?: string;
+    contactPhone?: string;
+    contactEmail?: string;
+    companyWebsite?: string;
+    dealObjective?: string;
+    customInstructions?: string;
   };
 }
 
@@ -39,7 +49,17 @@ const DEFAULT_CONFIG = {
   model: 'gpt-3.5-turbo',
   topP: 1,
   frequencyPenalty: 0,
-  presencePenalty: 0
+  presencePenalty: 0,
+  tone: 'friendly' as 'friendly' | 'professional' | 'casual',
+  length: 'medium' as 'short' | 'medium' | 'long',
+  agentName: 'Jane Smith',
+  companyName: 'NextProp',
+  speakingOnBehalfOf: 'NextProp Real Estate',
+  contactPhone: '555-123-4567',
+  contactEmail: 'contact@nextprop.com',
+  companyWebsite: 'www.nextprop.com',
+  dealObjective: 'realtor-creative-finance',
+  customInstructions: ''
 };
 
 const SAMPLE_CONVERSATIONS: Record<ConversationTemplate, Omit<TestForm, 'config'> & { config: typeof DEFAULT_CONFIG }> = {
@@ -68,7 +88,11 @@ const SAMPLE_CONVERSATIONS: Record<ConversationTemplate, Omit<TestForm, 'config'
         text: "ok. will i still get my fee??"
       }
     ],
-    config: { ...DEFAULT_CONFIG }
+    config: { 
+      ...DEFAULT_CONFIG,
+      dealObjective: 'realtor-creative-finance',
+      tone: 'professional' as 'friendly' | 'professional' | 'casual'
+    }
   },
   'Property Value Discussion': {
     locationId: 'n5KIiKGnIt53Fg114jSG',
@@ -85,7 +109,11 @@ const SAMPLE_CONVERSATIONS: Record<ConversationTemplate, Omit<TestForm, 'config'
         text: "Thank you for reaching out! Could you tell me more about the property? How many bedrooms and bathrooms does it have?"
       }
     ],
-    config: { ...DEFAULT_CONFIG }
+    config: { 
+      ...DEFAULT_CONFIG,
+      dealObjective: 'homeowner-cash-offer',
+      tone: 'friendly' as 'friendly' | 'professional' | 'casual'
+    }
   }
 };
 
@@ -257,7 +285,9 @@ export default function AIAgentTestV2() {
     localStorage.setItem('savedConversations', JSON.stringify(updatedConversations));
   };
 
-  const updateConfig = (key: 'temperature' | 'maxTokens' | 'model', value: number | string) => {
+  const updateConfig = (key: 'temperature' | 'maxTokens' | 'model' | 'topP' | 'frequencyPenalty' | 'presencePenalty' | 
+    'tone' | 'length' | 'agentName' | 'companyName' | 'speakingOnBehalfOf' | 
+    'contactPhone' | 'contactEmail' | 'companyWebsite' | 'dealObjective' | 'customInstructions', value: number | string) => {
     setFormData(prev => ({
       ...prev,
       config: {
@@ -312,9 +342,14 @@ export default function AIAgentTestV2() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowConfig(!showConfig)}
-                className="px-3 py-1.5 text-sm text-white border border-white/30 rounded-md hover:bg-white/10"
+                className={`px-3 py-1.5 text-sm rounded-md flex items-center gap-2 ${
+                  showConfig 
+                    ? 'bg-white text-blue-600 border border-blue-300'
+                    : 'text-white border border-white/30 hover:bg-white/10'
+                }`}
               >
-                Advanced Config
+                {showConfig ? 'Hide' : 'Show'} Advanced Config
+                {showConfig ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
               </button>
               <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
@@ -371,42 +406,209 @@ export default function AIAgentTestV2() {
 
               {showConfig && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-4">
-                  <h3 className="text-sm font-medium text-gray-900">Advanced Configuration</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-1">Temperature</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={formData.config?.temperature}
-                        onChange={(e) => updateConfig('temperature', parseFloat(e.target.value))}
-                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-700 mb-1">Max Tokens</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="4000"
-                        value={formData.config?.maxTokens}
-                        onChange={(e) => updateConfig('maxTokens', parseInt(e.target.value))}
-                        className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                      />
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">AI Agent Configuration</h3>
+                    <p className="text-sm text-gray-500">Configure how the AI agent behaves and responds</p>
+                  </div>
+                  
+                  <div className="border-b pb-4 mb-4">
+                    <h4 className="text-sm font-medium text-gray-800 mb-3">Model Settings</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Model</label>
+                        <select
+                          value={formData.config?.model}
+                          onChange={(e) => updateConfig('model', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        >
+                          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                          <option value="gpt-4">GPT-4</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Temperature</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={formData.config?.temperature}
+                          onChange={(e) => updateConfig('temperature', parseFloat(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Max Tokens</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="4000"
+                          value={formData.config?.maxTokens}
+                          onChange={(e) => updateConfig('maxTokens', parseInt(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Top P</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={formData.config?.topP}
+                          onChange={(e) => updateConfig('topP', parseFloat(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Frequency Penalty</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="2"
+                          step="0.1"
+                          value={formData.config?.frequencyPenalty}
+                          onChange={(e) => updateConfig('frequencyPenalty', parseFloat(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Presence Penalty</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="2"
+                          step="0.1"
+                          value={formData.config?.presencePenalty}
+                          onChange={(e) => updateConfig('presencePenalty', parseFloat(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
+
+                  <div className="border-b pb-4 mb-4">
+                    <h4 className="text-sm font-medium text-gray-800 mb-3">Response Style</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Tone</label>
+                        <select
+                          value={formData.config?.tone || 'friendly'}
+                          onChange={(e) => updateConfig('tone', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        >
+                          <option value="friendly">Friendly</option>
+                          <option value="professional">Professional</option>
+                          <option value="casual">Casual</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Length</label>
+                        <select
+                          value={formData.config?.length || 'medium'}
+                          onChange={(e) => updateConfig('length', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        >
+                          <option value="short">Short</option>
+                          <option value="medium">Medium</option>
+                          <option value="long">Long</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm text-gray-700 mb-1">Deal Objective</label>
+                        <select
+                          value={formData.config?.dealObjective || 'realtor-creative-finance'}
+                          onChange={(e) => updateConfig('dealObjective', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                        >
+                          <option value="realtor-off-market">Realtor - Off Market</option>
+                          <option value="realtor-short-sale">Realtor - Short Sale</option>
+                          <option value="realtor-creative-finance">Realtor - Creative Finance</option>
+                          <option value="realtor-cash-buyers">Realtor - Cash Buyers</option>
+                          <option value="homeowner-cash-offer">Homeowner - Cash Offer</option>
+                          <option value="homeowner-distressed">Homeowner - Distressed</option>
+                          <option value="homeowner-quick-sale">Homeowner - Quick Sale</option>
+                          <option value="homeowner-relocation">Homeowner - Relocation</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-b pb-4 mb-4">
+                    <h4 className="text-sm font-medium text-gray-800 mb-3">Agent Identity</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Agent Name</label>
+                        <input
+                          type="text"
+                          value={formData.config?.agentName || ''}
+                          onChange={(e) => updateConfig('agentName', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                          placeholder="Jane Smith"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Company Name</label>
+                        <input
+                          type="text"
+                          value={formData.config?.companyName || ''}
+                          onChange={(e) => updateConfig('companyName', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                          placeholder="NextProp"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Speaking On Behalf Of</label>
+                        <input
+                          type="text"
+                          value={formData.config?.speakingOnBehalfOf || ''}
+                          onChange={(e) => updateConfig('speakingOnBehalfOf', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                          placeholder="NextProp Real Estate"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Contact Phone</label>
+                        <input
+                          type="text"
+                          value={formData.config?.contactPhone || ''}
+                          onChange={(e) => updateConfig('contactPhone', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                          placeholder="555-123-4567"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Contact Email</label>
+                        <input
+                          type="email"
+                          value={formData.config?.contactEmail || ''}
+                          onChange={(e) => updateConfig('contactEmail', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                          placeholder="contact@nextprop.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Company Website</label>
+                        <input
+                          type="text"
+                          value={formData.config?.companyWebsite || ''}
+                          onChange={(e) => updateConfig('companyWebsite', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                          placeholder="www.nextprop.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
-                    <label className="block text-sm text-gray-700 mb-1">Model</label>
-                    <select
-                      value={formData.config?.model}
-                      onChange={(e) => updateConfig('model', e.target.value)}
-                      className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                    >
-                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                      <option value="gpt-4">GPT-4</option>
-                    </select>
+                    <h4 className="text-sm font-medium text-gray-800 mb-3">Custom Instructions</h4>
+                    <textarea
+                      value={formData.config?.customInstructions || ''}
+                      onChange={(e) => updateConfig('customInstructions', e.target.value)}
+                      rows={4}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      placeholder="Add any custom instructions for the AI agent..."
+                    />
                   </div>
                 </div>
               )}
