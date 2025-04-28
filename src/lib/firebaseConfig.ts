@@ -22,6 +22,7 @@ const goHighLevelFirebase = {
 // Initialize Firestore with NextProp
 const app1 = initializeApp(nextPropFirebase);
 export const db = getFirestore(app1);
+export const storage = getStorage(app1);
 
 // Initialize a second Firebase app for GoHighLevel
 const app2 = initializeApp(goHighLevelFirebase, "goHighLevelApp");

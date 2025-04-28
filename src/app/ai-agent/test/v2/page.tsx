@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { PaperAirplaneIcon, PlusIcon, TrashIcon, ArrowPathIcon, ClipboardIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, DocumentDuplicateIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, XMarkIcon, CloudArrowUpIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
+import { ref, uploadString } from 'firebase/storage';
+import { storage } from '@/lib/firebaseConfig';
 
 interface Message {
   id: string;
@@ -23,7 +25,7 @@ interface TestForm {
     presencePenalty: number;
     tone?: 'friendly' | 'professional' | 'casual';
     length?: 'short' | 'medium' | 'long';
-    agentName?: string; 
+    agentName?: string;
     companyName?: string;
     speakingOnBehalfOf?: string;
     contactPhone?: string;
@@ -88,7 +90,7 @@ const SAMPLE_CONVERSATIONS: Record<ConversationTemplate, Omit<TestForm, 'config'
         text: "ok. will i still get my fee??"
       }
     ],
-    config: { 
+    config: {
       ...DEFAULT_CONFIG,
       dealObjective: 'realtor-creative-finance',
       tone: 'professional' as 'friendly' | 'professional' | 'casual'
@@ -109,7 +111,7 @@ const SAMPLE_CONVERSATIONS: Record<ConversationTemplate, Omit<TestForm, 'config'
         text: "Thank you for reaching out! Could you tell me more about the property? How many bedrooms and bathrooms does it have?"
       }
     ],
-    config: { 
+    config: {
       ...DEFAULT_CONFIG,
       dealObjective: 'homeowner-cash-offer',
       tone: 'friendly' as 'friendly' | 'professional' | 'casual'
@@ -131,7 +133,7 @@ export default function AIAgentTestV2() {
   const [selectedTemplate, setSelectedTemplate] = useState('Terms Discussion');
   const [showJsonView, setShowJsonView] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [responseHistory, setResponseHistory] = useState<Array<{response: string, timestamp: string}>>([]);
+  const [responseHistory, setResponseHistory] = useState<Array<{ response: string, timestamp: string }>>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -139,6 +141,73 @@ export default function AIAgentTestV2() {
   const [savedConversations, setSavedConversations] = useState<SavedConversation[]>([]);
   const [showSavedConversations, setShowSavedConversations] = useState(false);
   const [currentConversationName, setCurrentConversationName] = useState<ConversationTemplate>('Terms Discussion');
+
+  // load JS file
+  const [jsLoading, setJsLoading] = useState(false);
+  const [jsError, setJsError] = useState<string | null>(null);
+  const [jsContent, setJsContent] = useState<string>('');
+  const [jsSaving, setJsSaving] = useState(false);
+  const PROMPT_FILE_PATH = 'js/prompt.js';
+
+
+  useEffect(() => {
+    loadPromptFile();
+  }, []);
+
+  const loadPromptFile = async () => {
+    try {
+      setJsLoading(true);
+      setJsError(null);
+      const response = await fetch(`/api/ai-agent/test/editor`);
+      if (!response.ok) {
+        throw new Error(`Failed to load prompt file: ${response.statusText}`);
+      }
+      const text = await response.text();
+      const cleanedContent = text
+        .replace(/^"|"$/g, '')
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+      setJsContent(cleanedContent);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load prompt file';
+      setJsError(errorMessage);
+      console.error('Error loading prompt file:', err);
+    } finally {
+      setJsLoading(false);
+    }
+  };
+
+  const savePromptFile = async (content: string) => {
+    try {
+      setJsSaving(true);
+      setJsError(null);
+      
+      const blob = new Blob([content], { type: 'text/javascript' });
+      const file = new File([blob], 'prompt.js', { type: 'text/javascript' });
+      
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/ai-agent/test/editor', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save prompt file');
+      }
+
+      return true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save prompt file';
+      setJsError(errorMessage);
+      console.error('Error saving prompt file:', error);
+      return false;
+    } finally {
+      setJsSaving(false);
+    }
+  };
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('responseHistory');
@@ -155,14 +224,14 @@ export default function AIAgentTestV2() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     // Log the request payload for debugging
     const payload = {
       ...formData,
       history: formData.history.map(({ id, timestamp, ...rest }) => rest)
     };
     console.log('Sending request with payload:', payload);
-    
+
     try {
       const res = await fetch('/api/chatai', {
         method: 'POST',
@@ -171,23 +240,23 @@ export default function AIAgentTestV2() {
         },
         body: JSON.stringify(payload),
       });
-      
+
       // Log the response status and headers for debugging
       console.log('Response status:', res.status);
       console.log('Response headers:', Object.fromEntries(res.headers.entries()));
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
       }
-      
+
       const data = await res.json();
       console.log('Received response:', data);
-      
+
       const responseStr = JSON.stringify(data, null, 2);
       setResponse(responseStr);
-      
+
       // Add to history
       const newHistory = [{
         response: responseStr,
@@ -232,9 +301,9 @@ export default function AIAgentTestV2() {
 
   const updateMessage = (index: number, newText: string, isUser: boolean) => {
     const newHistory = [...formData.history];
-    newHistory[index] = { 
+    newHistory[index] = {
       ...newHistory[index],
-      isUser, 
+      isUser,
       text: newText,
       timestamp: new Date().toISOString()
     };
@@ -260,7 +329,7 @@ export default function AIAgentTestV2() {
 
   const saveCurrentConversation = () => {
     if (!currentConversationName || !isConversationTemplate(currentConversationName)) return;
-    
+
     const newSavedConversation: SavedConversation = {
       id: Date.now().toString(),
       name: currentConversationName,
@@ -285,8 +354,8 @@ export default function AIAgentTestV2() {
     localStorage.setItem('savedConversations', JSON.stringify(updatedConversations));
   };
 
-  const updateConfig = (key: 'temperature' | 'maxTokens' | 'model' | 'topP' | 'frequencyPenalty' | 'presencePenalty' | 
-    'tone' | 'length' | 'agentName' | 'companyName' | 'speakingOnBehalfOf' | 
+  const updateConfig = (key: 'temperature' | 'maxTokens' | 'model' | 'topP' | 'frequencyPenalty' | 'presencePenalty' |
+    'tone' | 'length' | 'agentName' | 'companyName' | 'speakingOnBehalfOf' |
     'contactPhone' | 'contactEmail' | 'companyWebsite' | 'dealObjective' | 'customInstructions', value: number | string) => {
     setFormData(prev => ({
       ...prev,
@@ -316,8 +385,8 @@ export default function AIAgentTestV2() {
   };
 
   const moveMessage = (index: number, direction: 'up' | 'down') => {
-    if ((direction === 'up' && index === 0) || 
-        (direction === 'down' && index === formData.history.length - 1)) return;
+    if ((direction === 'up' && index === 0) ||
+      (direction === 'down' && index === formData.history.length - 1)) return;
 
     const newHistory = [...formData.history];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
@@ -325,7 +394,7 @@ export default function AIAgentTestV2() {
     setFormData(prev => ({ ...prev, history: newHistory }));
   };
 
-  const containerClasses = isFullscreen 
+  const containerClasses = isFullscreen
     ? "fixed inset-0 z-50 bg-white overflow-auto"
     : "min-h-screen bg-gradient-to-br from-gray-50 to-gray-100";
 
@@ -342,11 +411,10 @@ export default function AIAgentTestV2() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowConfig(!showConfig)}
-                className={`px-3 py-1.5 text-sm rounded-md flex items-center gap-2 ${
-                  showConfig 
+                className={`px-3 py-1.5 text-sm rounded-md flex items-center gap-2 ${showConfig
                     ? 'bg-white text-blue-600 border border-blue-300'
                     : 'text-white border border-white/30 hover:bg-white/10'
-                }`}
+                  }`}
               >
                 {showConfig ? 'Hide' : 'Show'} Advanced Config
                 {showConfig ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
@@ -410,7 +478,7 @@ export default function AIAgentTestV2() {
                     <h3 className="text-lg font-medium text-gray-900">AI Agent Configuration</h3>
                     <p className="text-sm text-gray-500">Configure how the AI agent behaves and responds</p>
                   </div>
-                  
+
                   <div className="border-b pb-4 mb-4">
                     <h4 className="text-sm font-medium text-gray-800 mb-3">Model Settings</h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -714,13 +782,12 @@ export default function AIAgentTestV2() {
 
                 <div className="space-y-6 max-h-[600px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-blue-500 scrollbar-track-gray-200">
                   {formData.history.map((msg, index) => (
-                    <div 
-                      key={msg.id} 
-                      className={`relative flex gap-4 items-start p-6 rounded-xl border-2 transition-colors duration-200 ${
-                        msg.isUser 
-                          ? 'bg-white border-blue-200 hover:border-blue-300' 
+                    <div
+                      key={msg.id}
+                      className={`relative flex gap-4 items-start p-6 rounded-xl border-2 transition-colors duration-200 ${msg.isUser
+                          ? 'bg-white border-blue-200 hover:border-blue-300'
                           : 'bg-white border-violet-200 hover:border-violet-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex flex-col gap-3">
                         <button
@@ -744,11 +811,10 @@ export default function AIAgentTestV2() {
                         <select
                           value={msg.isUser ? 'user' : 'assistant'}
                           onChange={(e) => updateMessage(index, msg.text, e.target.value === 'user')}
-                          className={`self-start rounded-xl border-2 px-6 py-3 text-lg min-w-[160px] ${
-                            msg.isUser
+                          className={`self-start rounded-xl border-2 px-6 py-3 text-lg min-w-[160px] ${msg.isUser
                               ? 'border-blue-300 bg-white text-blue-900'
                               : 'border-violet-300 bg-white text-violet-900'
-                          }`}
+                            }`}
                         >
                           <option value="user">User</option>
                           <option value="assistant">Assistant</option>
@@ -757,11 +823,10 @@ export default function AIAgentTestV2() {
                           value={msg.text}
                           onChange={(e) => updateMessage(index, e.target.value, msg.isUser)}
                           rows={4}
-                          className={`w-full min-h-[120px] rounded-xl border-2 px-6 py-4 text-lg bg-white ${
-                            msg.isUser
+                          className={`w-full min-h-[120px] rounded-xl border-2 px-6 py-4 text-lg bg-white ${msg.isUser
                               ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500'
                               : 'border-violet-300 focus:border-violet-500 focus:ring-violet-500'
-                          }`}
+                            }`}
                         />
                       </div>
                       <div className="flex flex-col gap-4">
@@ -849,16 +914,71 @@ export default function AIAgentTestV2() {
                         </>
                       )}
                     </button>
-                    <pre className={`p-4 rounded-lg overflow-auto max-h-[600px] text-sm shadow-inner ${
-                      showJsonView 
+                    <pre className={`p-4 rounded-lg overflow-auto max-h-[600px] text-sm shadow-inner ${showJsonView
                         ? 'bg-gray-900 text-gray-100'
                         : 'bg-white border border-gray-200'
-                    }`}>
+                      }`}>
                       {showJsonView ? response : JSON.parse(response).message || response}
                     </pre>
                   </div>
                 </div>
               )}
+
+              <div className="mt-12">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-lg font-medium text-gray-700">Prompt JS</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={loadPromptFile}
+                      disabled={jsLoading}
+                      className="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl hover:from-blue-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 shadow-sm transition-all duration-200"
+                    >
+                      {jsLoading ? (
+                        <>
+                          <ArrowPathIcon className="animate-spin h-6 w-6 mr-3" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowPathIcon className="h-6 w-6 mr-3" />
+                          Reload
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => savePromptFile(jsContent)}
+                      disabled={jsSaving}
+                      className="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl hover:from-blue-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 shadow-sm transition-all duration-200"
+                    >
+                      {jsSaving ? (
+                        <>
+                          <ArrowPathIcon className="animate-spin h-6 w-6 mr-3" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CloudArrowUpIcon className="h-6 w-6 mr-3" />
+                          Save
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {jsError && (
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-sm text-red-700">{jsError}</p>
+                  </div>
+                )}
+                <div className="relative">
+                  <textarea
+                    value={jsContent}
+                    onChange={(e) => setJsContent(e.target.value)}
+                    rows={60}
+                    className="w-full rounded-xl border-2 border-gray-300 px-6 py-4 focus:border-blue-500 focus:ring-blue-500 shadow-sm text-lg font-mono"
+                    placeholder="Enter your prompt JS here..."
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
