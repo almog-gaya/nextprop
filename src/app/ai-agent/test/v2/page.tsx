@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { PaperAirplaneIcon, PlusIcon, TrashIcon, ArrowPathIcon, ClipboardIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, DocumentDuplicateIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, XMarkIcon, CloudArrowUpIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
 import { ref, uploadString } from 'firebase/storage';
 import { storage } from '@/lib/firebaseConfig';
+import toast from 'react-hot-toast';
 
 interface Message {
   id: string;
@@ -182,10 +183,10 @@ export default function AIAgentTestV2() {
     try {
       setJsSaving(true);
       setJsError(null);
-      
+
       const blob = new Blob([content], { type: 'text/javascript' });
       const file = new File([blob], 'prompt.js', { type: 'text/javascript' });
-      
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -265,6 +266,17 @@ export default function AIAgentTestV2() {
       setResponseHistory(newHistory);
       localStorage.setItem('responseHistory', JSON.stringify(newHistory));
 
+      // show toast with longer timeout 
+      if (data.isHumanEscalationNeeded) {
+        toast.success('Moving to stage: Human Escalation', {
+          duration: 10000
+        });
+      }
+      if (data.isDND) {
+        toast.success('Moving to stage: Do Not Disturb', {
+          duration: 10000
+        });
+      }
       // Add response to conversation
       if (data.message) {
         setFormData(prev => ({
@@ -412,8 +424,8 @@ export default function AIAgentTestV2() {
               <button
                 onClick={() => setShowConfig(!showConfig)}
                 className={`px-3 py-1.5 text-sm rounded-md flex items-center gap-2 ${showConfig
-                    ? 'bg-white text-blue-600 border border-blue-300'
-                    : 'text-white border border-white/30 hover:bg-white/10'
+                  ? 'bg-white text-blue-600 border border-blue-300'
+                  : 'text-white border border-white/30 hover:bg-white/10'
                   }`}
               >
                 {showConfig ? 'Hide' : 'Show'} Advanced Config
@@ -785,8 +797,8 @@ export default function AIAgentTestV2() {
                     <div
                       key={msg.id}
                       className={`relative flex gap-4 items-start p-6 rounded-xl border-2 transition-colors duration-200 ${msg.isUser
-                          ? 'bg-white border-blue-200 hover:border-blue-300'
-                          : 'bg-white border-violet-200 hover:border-violet-300'
+                        ? 'bg-white border-blue-200 hover:border-blue-300'
+                        : 'bg-white border-violet-200 hover:border-violet-300'
                         }`}
                     >
                       <div className="flex flex-col gap-3">
@@ -812,8 +824,8 @@ export default function AIAgentTestV2() {
                           value={msg.isUser ? 'user' : 'assistant'}
                           onChange={(e) => updateMessage(index, msg.text, e.target.value === 'user')}
                           className={`self-start rounded-xl border-2 px-6 py-3 text-lg min-w-[160px] ${msg.isUser
-                              ? 'border-blue-300 bg-white text-blue-900'
-                              : 'border-violet-300 bg-white text-violet-900'
+                            ? 'border-blue-300 bg-white text-blue-900'
+                            : 'border-violet-300 bg-white text-violet-900'
                             }`}
                         >
                           <option value="user">User</option>
@@ -824,8 +836,8 @@ export default function AIAgentTestV2() {
                           onChange={(e) => updateMessage(index, e.target.value, msg.isUser)}
                           rows={4}
                           className={`w-full min-h-[120px] rounded-xl border-2 px-6 py-4 text-lg bg-white ${msg.isUser
-                              ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500'
-                              : 'border-violet-300 focus:border-violet-500 focus:ring-violet-500'
+                            ? 'border-blue-300 focus:border-blue-500 focus:ring-blue-500'
+                            : 'border-violet-300 focus:border-violet-500 focus:ring-violet-500'
                             }`}
                         />
                       </div>
@@ -915,8 +927,8 @@ export default function AIAgentTestV2() {
                       )}
                     </button>
                     <pre className={`p-4 rounded-lg overflow-auto max-h-[600px] text-sm shadow-inner ${showJsonView
-                        ? 'bg-gray-900 text-gray-100'
-                        : 'bg-white border border-gray-200'
+                      ? 'bg-gray-900 text-gray-100'
+                      : 'bg-white border border-gray-200'
                       }`}>
                       {showJsonView ? response : JSON.parse(response).message || response}
                     </pre>
