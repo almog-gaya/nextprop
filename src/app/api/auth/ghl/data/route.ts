@@ -129,33 +129,4 @@ const loadPhoneNumbers = async (locationId: string) => {
 
   return responseBody.numbers;
 }
-
-// not in use
-const _makeRefreshOAuth = async (locationId: string) => {
-  try {
-    const responseTokenId = await refreshTokenIdBackend();
-    await fetch(`https://services.leadconnectorhq.com/oauth/2/login/signin/refresh?version=2&location_id=${locationId}`, {
-      "headers": {
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "en-US,en;q=0.9",
-        "baggage": "sentry-environment=production,sentry-release=86dd6da2d904e841613a262a22a5a8e48c10f0d8,sentry-public_key=c67431ff70d6440fb529c2705792425f,sentry-trace_id=bba9f2137db64d27af1ec9da6e59b21f,sentry-sample_rate=0.1,sentry-transaction=conversations-id-v2,sentry-sampled=false",
-        "channel": "APP",
-        "developer_version": "",
-        "priority": "u=1, i",
-        "sec-ch-ua": "\"Chromium\";v=\"134\", \"Not:A-Brand\";v=\"24\", \"Google Chrome\";v=\"134\"",
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": "\"macOS\"",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "cross-site",
-        "sentry-trace": "bba9f2137db64d27af1ec9da6e59b21f-933c00777057c5d3-0",
-        "source": "WEB_USER",
-        "token-id": responseTokenId.id_token || "eyJhbGciOiJSUzI1NiIsImtpZCI6ImEwODA2N2Q4M2YwY2Y5YzcxNjQyNjUwYzUyMWQ0ZWZhNWI2YTNlMDkiLCJ0eXAiOiJKV1QifQ.eyJ1c2VyX2lkIjoiOWZRUXZCNkZkWXZ2YUFiazYxN24iLCJjb21wYW55X2lkIjoiYzE5dlgxc3BqbExKV1FLTVVXVkQiLCJyb2xlIjoiYWRtaW4iLCJ0eXBlIjoiYWdlbmN5IiwibG9jYXRpb25zIjpbInMzbU5IckZ1RHlHaUk3b1VWaXNVIiwicmhKYmE0cVpEeEx6YTY1V1l2blciXSwidmVyc2lvbiI6MiwicGVybWlzc2lvbnMiOnsid29ya2Zsb3dzX2VuYWJsZWQiOnRydWUsIndvcmtmbG93c19yZWFkX29ubHkiOmZhbHNlfSwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL2hpZ2hsZXZlbC1iYWNrZW5kIiwiYXVkIjoiaGlnaGxldmVsLWJhY2tlbmQiLCJhdXRoX3RpbWUiOjE3NDE2OTgyNzksInN1YiI6IjlmUVF2QjZGZFl2dmFBYms2MTduIiwiaWF0IjoxNzQxNzU0Mjc2LCJleHAiOjE3NDE3NTc4NzYsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnt9LCJzaWduX2luX3Byb3ZpZGVyIjoiY3VzdG9tIn19.EER7S3ldTkURDR-Pn-neDD84ctFHrs9QYiUn_Vw2d9ttBEREjKS4P6Hs6bzE94VdjX_JPDk2-jUuVBZWxYWbHBrzS1Lr6d4HG-0mF47yixouO7B20e_r4r9XBqatdetaOPl3_QjuLsHr4j6fsp88uCJI0IKNJPLgqtZ7-XUb4aWzqc98eV28gKMefUmnBCq1JEJf2F69COrD3u5tJYSELqZhWcjZpNjf6JOVk7pbgRmlHx67XylTaZeEnmCgzH6ZgLux7RvlCNXRSLh_fnArFnvfUN9VtH075EYPK9WbSX593XoQ-E_pKD4YgKi0h1aZVJqqYakaCCddMWBEU-Ek3Q",
-        "Referer": "https://app.gohighlevel.com/",
-        "Referrer-Policy": "strict-origin-when-cross-origin"
-      },
-      "body": null,
-      "method": "POST"
-    });
-  } catch (e) { }
-};
+ 

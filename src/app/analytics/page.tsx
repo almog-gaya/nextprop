@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { 
-  PaperAirplaneIcon, 
-  CheckCircleIcon, 
+import {
+  PaperAirplaneIcon,
+  CheckCircleIcon,
   ExclamationTriangleIcon,
   EnvelopeIcon,
   BellSlashIcon,
@@ -15,6 +15,35 @@ import {
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import { CalendarIcon, FunnelIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
+import { useAuth } from '@/contexts/AuthContext';
+import MessageDetailsModal from '@/components/MessageDetailsModal';
+
+const ANALYTICS_URL = '/api/reports/message-analytics';
+const MESSAGE_DETAILS_URL = '/api/reports/message-details';
+
+const getMessageDetailsUrl = (
+  status: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  direction?: string,
+  providerErrorCode?: string,
+  skip: number = 0
+) => {
+  if (!startDate || !endDate) return '';
+  
+  const params = new URLSearchParams({
+    status,
+    limit: '20',
+    skip: skip.toString(),
+    includeTotalCount: 'true',
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    ...(direction && { direction }),
+    ...(providerErrorCode && { providerErrorCode })
+  });
+
+  return `${MESSAGE_DETAILS_URL}?${params.toString()}`;
+};
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -23,6 +52,7 @@ interface StatCardProps {
   percentage: number;
   iconBgColor: string;
   tooltipText?: string;
+  errorCode?: string;
 }
 
 interface FilterOption {
@@ -82,7 +112,7 @@ const CustomHeader = ({
   </div>
 );
 
-const StatCard = ({ icon, title, value, percentage, iconBgColor, tooltipText }: StatCardProps) => (
+const StatCard = ({ icon, title, value, percentage, iconBgColor, tooltipText, errorCode }: StatCardProps) => (
   <div className="bg-white rounded-lg p-6 shadow-sm">
     <div className="flex items-start justify-between">
       <div className={`p-2 rounded-full ${iconBgColor}`}>
@@ -104,6 +134,7 @@ const StatCard = ({ icon, title, value, percentage, iconBgColor, tooltipText }: 
         </span>
       </div>
       <p className="mt-1 text-sm text-gray-600">{title}</p>
+  
     </div>
   </div>
 );
@@ -137,11 +168,10 @@ const FilterWidget = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
             <button
               key={option.value}
               onClick={() => handleFilterClick(option.value)}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                selectedFilters.includes(option.value)
+              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedFilters.includes(option.value)
                   ? 'bg-blue-50 text-blue-700'
                   : 'text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               {option.label}
             </button>
@@ -171,13 +201,97 @@ export default function AnalyticsPage() {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedModal, setSelectedModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    url: string;
+    status: string;
+    direction?: string;
+    providerErrorCode?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    url: '',
+    status: '',
+    direction: undefined,
+    providerErrorCode: undefined
+  });
   const filterContainerRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const fetchAnalytics = async () => {
+    if (!user?.locationId) {
+      console.log('No location id found, skipping analytics fetch');
+      return {
+        results: {
+          optOut: { value: 0 },
+          errorCodeCounts: {
+            buckets: {
+              is_30007: { value: 0 },
+              not_30007: { value: 0 }
+            }
+          },
+          read: { value: 0 },
+          pending: { value: 0 },
+          undelivered: { value: 0 },
+          received: { value: 0 },
+          delivered: { value: 0 },
+          failed: { value: 0 },
+          unfulfilled: { value: 0 },
+          clicked: { value: 0 },
+          sent: { value: 0 }
+        },
+        total: 0
+      };
+    }
 
+    try {
+      const response = await fetch(
+        `${ANALYTICS_URL}?startDate=${startDate?.toISOString()}&endDate=${endDate?.toISOString()}`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      throw error;
+    }
+  };
+ 
   useEffect(() => {
     setStartDate(new Date('2025-04-15'));
     setEndDate(new Date('2025-04-17'));
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      try {
+        setIsLoading(true);
+        console.log('Fetching analytics data...');
+        if (!user) {
+          console.log('User not authenticated');
+          return;
+        }
+        if (!startDate || !endDate) {
+          console.log('Date range not selected');
+          return;
+        }
+        const data = await fetchAnalytics();
+        console.log('Analytics data received:', data);
+        setAnalyticsData(data);
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadAnalytics();
+  }, [user, startDate, endDate]);
 
   const formatDateRange = (start: Date | null, end: Date | null) => {
     if (!start || !end) return '';
@@ -187,6 +301,24 @@ export default function AnalyticsPage() {
   if (!mounted) {
     return null;
   }
+
+  const calculatePercentage = (value: number, total: number) => {
+    return total > 0 ? Math.round((value / total) * 100) : 0;
+  };
+
+  const handleStatCardClick = (title: string, status: string, direction?: string, providerErrorCode?: string) => {
+    const url = getMessageDetailsUrl(status, startDate, endDate, direction, providerErrorCode, 0);
+    if (!url) return;
+    
+    setSelectedModal({
+      isOpen: true,
+      title,
+      url,
+      status,
+      direction,
+      providerErrorCode
+    });
+  };
 
   return (
     <DashboardLayout title="Analytics">
@@ -204,15 +336,24 @@ export default function AnalyticsPage() {
               startDate={startDate}
               endDate={endDate}
               selectsRange
-              customInput={<CustomDateInput value={formatDateRange(startDate, endDate)} onClick={() => {}} />}
+              customInput={<CustomDateInput value={formatDateRange(startDate, endDate)} onClick={() => { }} />}
               renderCustomHeader={CustomHeader}
               calendarClassName="shadow-lg border border-gray-200 rounded-lg"
               showPopperArrow={false}
-              monthsShown={2}
+              monthsShown={1}
               inline={false}
-              dayClassName={date => 
+              dayClassName={(date: Date) =>
                 "text-sm w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center"
               }
+              maxDate={new Date()}
+              minDate={new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
+              showMonthYearPicker={false}
+              showYearDropdown
+              showMonthDropdown
+              dropdownMode="select"
+              dateFormat="MMM d, yyyy"
+              withPortal={false}
+              shouldCloseOnSelect={false}
             />
             <div className="relative" ref={filterContainerRef}>
               <button
@@ -234,57 +375,101 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <StatCard
-            icon={<PaperAirplaneIcon className="h-6 w-6 text-green-600" />}
-            title="Sent"
-            value={38}
-            percentage={100}
-            iconBgColor="bg-green-50"
-            tooltipText="Total messages sent"
-          />
-          <StatCard
-            icon={<CheckCircleIcon className="h-6 w-6 text-green-600" />}
-            title="Delivered"
-            value={36}
-            percentage={95}
-            iconBgColor="bg-green-50"
-            tooltipText="Successfully delivered messages"
-          />
-          <StatCard
-            icon={<ExclamationTriangleIcon className="h-6 w-6 text-red-600" />}
-            title="Failed"
-            value={2}
-            percentage={5}
-            iconBgColor="bg-red-50"
-            tooltipText="Failed message deliveries"
-          />
-          <StatCard
-            icon={<XCircleIcon className="h-6 w-6 text-red-600" />}
-            title="Error[30007]"
-            value={0}
-            percentage={0}
-            iconBgColor="bg-red-50"
-            tooltipText="Messages with error code 30007"
-          />
-          <StatCard
-            icon={<EnvelopeIcon className="h-6 w-6 text-green-600" />}
-            title="Received"
-            value={8}
-            percentage={21}
-            iconBgColor="bg-green-50"
-            tooltipText="Messages received"
-          />
-          <StatCard
-            icon={<BellSlashIcon className="h-6 w-6 text-yellow-600" />}
-            title="Opted-Out"
-            value={1}
-            percentage={3}
-            iconBgColor="bg-yellow-50"
-            tooltipText="Users who opted out"
-          />
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : !user ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Please log in to view analytics</p>
+          </div>
+        ) : !user.locationId ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No location ID found. Please contact support to set up your location.</p>
+          </div>
+        ) : !startDate || !endDate ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Please select a date range to view analytics</p>
+          </div>
+        ) : analyticsData ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div onClick={() => handleStatCardClick('Sent Messages', 'sent', 'outbound')}>
+              <StatCard
+                icon={<PaperAirplaneIcon className="h-6 w-6 text-green-600" />}
+                title="Sent"
+                value={analyticsData?.results?.sent?.value || 0}
+                percentage={calculatePercentage(analyticsData?.results?.sent?.value || 0, analyticsData?.total || 0)}
+                iconBgColor="bg-green-50"
+                tooltipText="Total messages sent"
+              />
+            </div>
+            <div onClick={() => handleStatCardClick('Delivered Messages', 'delivered', 'outbound')}>
+              <StatCard
+                icon={<CheckCircleIcon className="h-6 w-6 text-green-600" />}
+                title="Delivered"
+                value={analyticsData?.results?.delivered?.value || 0}
+                percentage={calculatePercentage(analyticsData?.results?.delivered?.value || 0, analyticsData?.total || 0)}
+                iconBgColor="bg-green-50"
+                tooltipText="Successfully delivered messages"
+              />
+            </div>
+            <div onClick={() => handleStatCardClick('Failed Messages', 'unfulfilled')}>
+              <StatCard
+                icon={<ExclamationTriangleIcon className="h-6 w-6 text-red-600" />}
+                title="Failed"
+                value={analyticsData?.results?.failed?.value || 0}
+                percentage={calculatePercentage(analyticsData?.results?.failed?.value || 0, analyticsData?.total || 0)}
+                iconBgColor="bg-red-50"
+                tooltipText="Failed message deliveries"
+                errorCode={analyticsData?.results?.errorCodeCounts?.buckets?.not_30007?.value ? "21266" : undefined}
+              />
+            </div>
+            <div onClick={() => handleStatCardClick('Error[30007] Messages', 'failed', undefined, '30007')}>
+              <StatCard
+                icon={<XCircleIcon className="h-6 w-6 text-red-600" />}
+                title="Error[30007]"
+                value={analyticsData?.results?.errorCodeCounts?.buckets?.is_30007?.value || 0}
+                percentage={calculatePercentage(analyticsData?.results?.errorCodeCounts?.buckets?.is_30007?.value || 0, analyticsData?.total || 0)}
+                iconBgColor="bg-red-50"
+                tooltipText="Messages with error code 30007"
+                errorCode="30007"
+              />
+            </div>
+            <div onClick={() => handleStatCardClick('Received Messages', 'received', 'inbound')}>
+              <StatCard
+                icon={<EnvelopeIcon className="h-6 w-6 text-green-600" />}
+                title="Received"
+                value={analyticsData?.results?.received?.value || 0}
+                percentage={calculatePercentage(analyticsData?.results?.received?.value || 0, analyticsData?.total || 0)}
+                iconBgColor="bg-green-50"
+                tooltipText="Messages received"
+              />
+            </div>
+            <div onClick={() => handleStatCardClick('Opted-Out Messages', 'optOut')}>
+              <StatCard
+                icon={<BellSlashIcon className="h-6 w-6 text-yellow-600" />}
+                title="Opted-Out"
+                value={analyticsData?.results?.optOut?.value || 0}
+                percentage={calculatePercentage(analyticsData?.results?.optOut?.value || 0, analyticsData?.total || 0)}
+                iconBgColor="bg-yellow-50"
+                tooltipText="Users who opted out"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Failed to load analytics data</p>
+          </div>
+        )}
       </div>
+
+      <MessageDetailsModal
+        status={selectedModal.status}
+        isOpen={selectedModal.isOpen}
+        onClose={() => setSelectedModal({ isOpen: false, title: '', url: '', status: '', direction: undefined, providerErrorCode: undefined })}
+        title={selectedModal.title}
+        fetchUrl={selectedModal.url}
+      />
 
       <style jsx global>{`
         .react-datepicker {

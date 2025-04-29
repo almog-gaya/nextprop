@@ -1,0 +1,40 @@
+{
+  "locationId": "n5KIiKGnIt53Fg114jSG",
+  "message": "what do you mean by terms?",
+  "history": [
+    {
+      "isUser": false,
+      "text": "Hi, this is Marco from BM Realty. I'm reaching out regarding the property on 6010 CARLISLE Court. I noticed it has been listed for more than 88 days. Would you be open to considering an offer on terms?"
+    },
+    {
+      "isUser": true,
+      "text": "Hello Marco, thanks for reaching out. The property is still available."
+    },
+    {
+      "isUser": false,
+      "text": "Great to hear! I have a qualified buyer who's interested in the property but would like to explore creative financing options. Would you be open to discussing different terms?"
+    },
+    {
+      "isUser": true,
+      "text": "ok. will i still get my fee??"
+    }
+  ],
+  "config": {
+    "temperature": 0.7,
+    "maxTokens": 1000,
+    "model": "gpt-3.5-turbo",
+    "topP": 1,
+    "frequencyPenalty": 0,
+    "presencePenalty": 0,
+    "tone": "professional",
+    "length": "medium",
+    "agentName": "Jane Smith",
+    "companyName": "NextProp",
+    "speakingOnBehalfOf": "NextProp Real Estate",
+    "contactPhone": "555-123-4567",
+    "contactEmail": "contact@nextprop.com",
+    "companyWebsite": "www.nextprop.com",
+    "dealObjective": "realtor-creative-finance",
+    "customInstructions": ""
+  }
+} 
