@@ -1,6 +1,7 @@
 import { getAuthHeaders } from "@/lib/enhancedApi";
 import { refreshTokenIdBackend } from "@/utils/authUtils";
 import { NextRequest } from "next/server";
+const WORKFLOW_NAME = 'Opportunity Created Notification Trigger';
 /**
  * This basically checks if the workflow exists
  *  Returns `isExists: true` if the workflow exists 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     const workflowName = url?.searchParams?.get('workflowName');
     const { locationId } = await getAuthHeaders();
     const headers = await __buildHeaders();
-    if (workflowName === 'Opportunity Created') {
+    if (workflowName === WORKFLOW_NAME) {
         const workflow = await createInitialWorkflow(headers, locationId!, workflowName);
         const trigger = await createOpportunityCreatedTrigger(headers, locationId!, workflow.id);
         return Response.json({
@@ -44,6 +45,11 @@ export async function POST(request: NextRequest) {
             "status": "success"
         });
     }
+
+    return Response.json({
+        "status": "error",
+        "message": "Workflow name not found"
+    });
 
 }
 

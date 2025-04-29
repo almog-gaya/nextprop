@@ -1,11 +1,13 @@
 import React from "react";
 
-import { BellIcon, PhoneIcon, ChatBubbleBottomCenterIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { BellIcon, PhoneIcon, ChatBubbleBottomCenterIcon, TrashIcon, UserPlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebaseConfig";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { Timestamp } from "firebase/firestore";
 import { toast } from "react-hot-toast";
+import { CrosshairIcon, CrossIcon, Plus } from "lucide-react";
+import { RxCrossCircled } from "react-icons/rx";
 
 interface Notification {
   id: string;
@@ -97,15 +99,15 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
       case "leadStatusChange":
         return (
           <>
-            <p className="text-xs font-medium text-gray-900 truncate">Lead Status</p>
-            <p className="text-[11px] text-gray-600">{notification.data.opportunityName}'s status updated</p>
+            <p className="text-xs font-medium text-gray-900 truncate">Lead Status Updated</p>
+            <p className="text-[11px] text-gray-600">{notification.data.message}</p>
           </>
         );
       case "newLeadAssigned":
         return (
           <>
             <p className="text-xs font-medium text-gray-900 truncate">New Lead</p>
-            <p className="text-[11px] text-gray-600">{notification.data.opportunityName} assigned</p>
+            <p className="text-[11px] text-gray-600">{notification.data.message}</p>
           </>
         );
       default:
@@ -119,7 +121,10 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
         return <ChatBubbleBottomCenterIcon className="h-4 w-4 text-indigo-500" />;
       case "newCall":
         return <PhoneIcon className="h-4 w-4 text-indigo-500" />;
-        
+      case "leadStatusChange":
+        return <BellIcon className="h-4 w-4 text-indigo-500" />;
+      case "newLeadAssigned":
+        return <UserPlusIcon className="h-4 w-4 text-indigo-500" />;
     } 
   }
 
@@ -157,81 +162,93 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed right-4 top-16 w-80 bg-white rounded-xl shadow-2xl z-50 overflow-hidden transition-all duration-300 ease-in-out p-4">
-      {/* Tooltip pointer */}
+    <>
+      {/* Backdrop with blur effect */}
       <div 
-        className="absolute right-[53px] -top-2 w-3 h-3 bg-white transform rotate-45 border-t border-l border-gray-200 shadow-[-1px_-1px_1px_0_rgba(0,0,0,0.1)]"
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+        onClick={onClose}
       />
-      {/* Header */}
-      <div className="flex justify-between items-center px-4 pt-3 pb-2 border-b">
-        <div className="flex items-center">
-          <h2 className="text-[9px] font-medium text-gray-900">Notifications</h2>
-        </div>
-      </div>
-      
-      <div className="max-h-96 overflow-y-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-indigo-600"></div>
+      <div className="fixed right-4 top-16 w-80 bg-white/80 backdrop-blur-md rounded-xl shadow-2xl z-50 overflow-hidden transition-all duration-300 ease-in-out p-4">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-3 p-1.5 hover:bg-gray-100/50 rounded-full transition-colors flex items-center justify-center"
+          aria-label="Close notifications"
+        >
+          <RxCrossCircled className="h-6 w-6 text-gray-500 hover:text-gray-700" />
+        </button>
+        
+        {/* Header */}
+        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200/50">
+          <div className="flex items-center">
+            <p className="text-large font-medium text-gray-900 truncate">Notifications</p> 
           </div>
-        ) : notifications.length === 0 ? (
-          <div className="py-2 text-center text-gray-500 text-sm">No notifications</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {notifications.map((notification) => (
-              <div 
-                key={notification.id} 
-                className="p-1.5 transition-colors duration-150 cursor-pointer group hover:bg-gray-50"
-                onClick={() => onTapNotification(notification)}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0">
-                    {renderNotificationIcon(notification)}
+        </div>
+        
+        <div className="max-h-96 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-indigo-600"></div>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="py-2 text-center text-gray-500 text-sm">No notifications</div>
+          ) : (
+            <div className="divide-y divide-gray-100/50">
+              {notifications.map((notification) => (
+                <div 
+                  key={notification.id} 
+                  className="p-1.5 transition-colors duration-150 cursor-pointer group hover:bg-gray-50/50"
+                  onClick={() => onTapNotification(notification)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      {renderNotificationIcon(notification)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {renderNotificationContent(notification)}
+                      <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(notification.createdAt)}</p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPendingDelete(notification);
+                      }}
+                      className="p-1 hover:bg-gray-100/50 rounded-full border border-red-300 bg-white/80 backdrop-blur-sm"
+                    >
+                      <TrashIcon className="h-4 w-4 text-red-500" />
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    {renderNotificationContent(notification)}
-                    <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(notification.createdAt)}</p>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPendingDelete(notification);
-                    }}
-                    className="p-1 hover:bg-gray-100 rounded-full border border-red-300 bg-white"
-                  >
-                    <TrashIcon className="h-4 w-4 text-red-500" />
-                  </button>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {pendingDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <div className="bg-white/80 backdrop-blur-md rounded-lg shadow-lg p-6 w-80">
+              <h3 className="text-base font-semibold mb-2">Delete Notification?</h3>
+              <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this notification?</p>
+              <div className="flex justify-end gap-2">
+                <button
+                  className="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  onClick={() => setPendingDelete(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+                  onClick={async () => {
+                    await handleDeleteNotification(pendingDelete.id);
+                    setPendingDelete(null);
+                  }}
+                >
+                  Yes, Delete
+                </button>
               </div>
-            ))}
+            </div>
           </div>
         )}
       </div>
-      {pendingDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-80">
-            <h3 className="text-base font-semibold mb-2">Delete Notification?</h3>
-            <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this notification?</p>
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
-                onClick={() => setPendingDelete(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600"
-                onClick={async () => {
-                  await handleDeleteNotification(pendingDelete.id);
-                  setPendingDelete(null);
-                }}
-              >
-                Yes, Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }

@@ -139,8 +139,8 @@ export default function NotificationsPage() {
     const newPreference = { 
       pipelineId, 
       pipelineName: pipeline?.name || '',
-      stageId, 
-      stageName: stage?.name || '',
+      stageId: type === 'newLeadAssigned' ? '' : stageId, // Don't set stageId for newLeadAssigned
+      stageName: type === 'newLeadAssigned' ? '' : stage?.name || '', // Don't set stageName for newLeadAssigned
       enabled 
     };
     
@@ -179,14 +179,19 @@ export default function NotificationsPage() {
   const handleUpdateSettings = async () => {
     if (!user?.locationId) return;
 
-    // Validate all enabled notifications have pipeline and stage
+    // Validate all enabled notifications have pipeline and stage, except for newLeadAssigned
     const invalidPreferences = Object.entries(preferences).filter(([type, prefs]) => {
       const pref = prefs[0];
+      
+      // Skip validation for newLeadAssigned
+      if (type === 'newLeadAssigned') return false;
+      // For other types, check both pipeline and stage
       return pref?.enabled && (!pref.pipelineId || !pref.stageId);
     });
 
     if (invalidPreferences.length > 0) {
-      toast.error('Please select both pipeline and stage for all enabled notifications');
+      console.log('invalidPreferences', invalidPreferences);
+      // toast.error('Please select both pipeline and stage for all enabled notifications');
       return;
     }
 
@@ -204,14 +209,19 @@ export default function NotificationsPage() {
       // Ensure dont create the workflow if it already exists
       //
       if(preferences.newLeadAssigned[0]?.enabled) {
-        await createWorkFlow(WORKFLOW_NAME);
+        const uuidTemplateId = crypto.randomUUID();
+        const workflowResponse = await createWorkFlow(WORKFLOW_NAME);
+        const workflowId = workflowResponse.workflowId;
+        const triggerId = workflowResponse.triggerId;
+        const updateWorkflow = await updateWorkFlow(workflowId, triggerId, uuidTemplateId, WORKFLOW_NAME);
+        console.log('updateWorkflow', updateWorkflow);
+        
       } else {
         const workflowId = await getCurrentWorkflowId(WORKFLOW_NAME);
         if(workflowId) {
           await deleteWorkFlow(workflowId, WORKFLOW_NAME);
         }
       }
-
 
       toast.success('Notification settings updated successfully');
     } catch (error) {
@@ -339,94 +349,10 @@ export default function NotificationsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-8">
-                  {/* New call from lead */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-gray-700">New call from lead</span>
-                        <button
-                          onClick={() => toggleNotification('newCall')}
-                          disabled={!hasDocument}
-                          className={classNames(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2",
-                            preferences.newCall[0]?.enabled ? "bg-[#7c3aed]" : "bg-gray-200",
-                            !hasDocument && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          <span
-                            className={classNames(
-                              "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                              preferences.newCall[0]?.enabled ? "translate-x-6" : "translate-x-1"
-                            )}
-                          />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Pipeline and Stage Selectors */}
-                    <div className={classNames(
-                      "grid grid-cols-1 md:grid-cols-2 gap-6 transition-opacity duration-200",
-                      preferences.newCall[0]?.enabled ? "opacity-100" : "opacity-50 pointer-events-none"
-                    )}>
-                      {/* Pipeline Selector */}
-                      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-                        <div className="mb-3">
-                          <h3 className="text-sm font-semibold text-gray-700">Pipeline</h3>
-                        </div>
-                        <div className="border border-gray-200 rounded-md">
-                          <select
-                            value={preferences.newCall[0]?.pipelineId || ''}
-                            onChange={(e) => {
-                              const pipelineId = e.target.value;
-                              if (pipelineId) {
-                                updateLocalPreference('newCall', pipelineId, '', true);
-                              }
-                            }}
-                            className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                          >
-                            <option value="">Select Pipeline</option>
-                            {pipelines.map((pipeline) => (
-                              <option key={pipeline.id} value={pipeline.id} className="text-gray-700">
-                                {pipeline.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div> 
-                      </div>
-
-                      {/* Stage Selector */}
-                      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-                        <div className="mb-3">
-                          <h3 className="text-sm font-semibold text-gray-700">Stage</h3>
-                        </div>
-                        <div className="border border-gray-200 rounded-md">
-                          <select
-                            value={preferences.newCall[0]?.stageId || ''}
-                            onChange={(e) => {
-                              const stageId = e.target.value;
-                              const pipelineId = preferences.newCall[0]?.pipelineId;
-                              if (pipelineId && stageId) {
-                                updateLocalPreference('newCall', pipelineId, stageId, true);
-                              }
-                            }}
-                            disabled={!preferences.newCall[0]?.pipelineId}
-                            className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                          >
-                            <option value="">Select Stage</option>
-                            {newCallStages.map((stage: Stage) => (
-                              <option key={stage.id} value={stage.id} className="text-gray-700">
-                                {stage.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div> 
-                      </div>
-                    </div>
-                  </div>
-
+                <div className="space-y-6">
+                
                   {/* New SMS from lead */}
-                  <div className="space-y-4 pt-6 border-t border-gray-200">
+                  <div className="space-y-4 pt-6 border-gray-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-gray-700">New SMS from lead</span>
