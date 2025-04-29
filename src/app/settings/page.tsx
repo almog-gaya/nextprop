@@ -184,6 +184,20 @@ export default function SettingsPage() {
                   View Analytics
                 </a>
               </div>
+
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Billing</h3>
+                <p className="text-gray-500 mb-4 text-sm">View and manage your billing and usage breakdown</p>
+                <a 
+                  href="/billing" 
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5 mr-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0119.5 19.5h-15A2.25 2.25 0 012.25 17.25V6.75zm0 0L12 13.5l9.75-6.75" />
+                  </svg>
+                  Manage Billing
+                </a>
+              </div>
             </div>
           </div>
 
