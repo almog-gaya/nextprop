@@ -13,8 +13,9 @@ import { db } from '@/lib/firebaseConfig';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { NotificationSettings, NotificationPreferences } from '@/types/notifications';
 import NotificationTray from '@/components/notification/NotificationTray';
+import { isWorkflowExists, getCurrentWorkflowId, createWorkFlow, updateWorkFlow, deleteWorkFlow } from '@/lib/ghl-service';
 
-
+const WORKFLOW_NAME = 'Opportunity Created Notification Trigger';
 // Add this CSS to hide scrollbar but allow scrolling
 const globalStyles = `
   .no-scrollbar {
@@ -52,11 +53,30 @@ export default function NotificationsPage() {
   const newSMSStages = pipelines.find(p => p.id === preferences.newSMS[0]?.pipelineId)?.stages || [];
   const leadStatusStages = pipelines.find(p => p.id === preferences.leadStatusChange[0]?.pipelineId)?.stages || [];
 
+  // if workflow for lead assignd notification is exists then set the hasDocument to true and change it to enable
+  const isWorkflowEnabledInGhl = async () => {
+    const workflowId = await getCurrentWorkflowId(WORKFLOW_NAME);
+    if(workflowId) {
+      setHasDocument(true);
+      setPreferences(prev => ({
+        ...prev,
+        newLeadAssigned: [{
+          pipelineId: '',
+          pipelineName: '',
+          stageId: '',
+          stageName: '',
+          enabled: true
+        }]
+      }));
+    }
+  }
+  
   // Fetch pipelines and notification preferences on mount
   useEffect(() => {
     if (user?.locationId) {
       fetchPipelines();
       fetchNotificationPreferences();
+      isWorkflowEnabledInGhl();
     }
   }, [user?.locationId]);
 
@@ -179,6 +199,20 @@ export default function NotificationsPage() {
       });
       setInitialPreferences(preferences);
       setHasChanges(false);
+      //
+      // Update the workflow if lead assigned notification is enabled or disabled
+      // Ensure dont create the workflow if it already exists
+      //
+      if(preferences.newLeadAssigned[0]?.enabled) {
+        await createWorkFlow(WORKFLOW_NAME);
+      } else {
+        const workflowId = await getCurrentWorkflowId(WORKFLOW_NAME);
+        if(workflowId) {
+          await deleteWorkFlow(workflowId, WORKFLOW_NAME);
+        }
+      }
+
+
       toast.success('Notification settings updated successfully');
     } catch (error) {
       console.error('Error updating notification settings:', error);

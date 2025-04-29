@@ -1,9 +1,9 @@
 import React from "react";
 
-import { BellIcon, PhoneIcon, ChatBubbleBottomCenterIcon } from "@heroicons/react/24/outline";
+import { BellIcon, PhoneIcon, ChatBubbleBottomCenterIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { Timestamp } from "firebase/firestore";
 import { toast } from "react-hot-toast";
 
@@ -31,6 +31,7 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
   const { user } = useAuth();
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [pendingDelete, setPendingDelete] = React.useState<Notification | null>(null);
 
   React.useEffect(() => {
     if (isOpen && user?.locationId) {
@@ -139,6 +140,20 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
     }
   }
 
+  const handleDeleteNotification = async (notificationId: string) => {
+    if (!user?.locationId) return;
+    
+    try {
+      const notificationRef = doc(db, "app-notifications", user.locationId, "notifications", notificationId);
+      await deleteDoc(notificationRef);
+      setNotifications(notifications.filter(n => n.id !== notificationId));
+      toast.success("Notification deleted");
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      toast.error("Failed to delete notification");
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -166,7 +181,7 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
             {notifications.map((notification) => (
               <div 
                 key={notification.id} 
-                className="p-1.5 transition-colors duration-150 cursor-pointer"
+                className="p-1.5 transition-colors duration-150 cursor-pointer group hover:bg-gray-50"
                 onClick={() => onTapNotification(notification)}
               >
                 <div className="flex items-start gap-3">
@@ -177,12 +192,46 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
                     {renderNotificationContent(notification)}
                     <p className="text-[10px] text-gray-400 mt-0.5">{formatDate(notification.createdAt)}</p>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingDelete(notification);
+                    }}
+                    className="p-1 hover:bg-gray-100 rounded-full border border-red-300 bg-white"
+                  >
+                    <TrashIcon className="h-4 w-4 text-red-500" />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+      {pendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-80">
+            <h3 className="text-base font-semibold mb-2">Delete Notification?</h3>
+            <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this notification?</p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                onClick={() => setPendingDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+                onClick={async () => {
+                  await handleDeleteNotification(pendingDelete.id);
+                  setPendingDelete(null);
+                }}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
