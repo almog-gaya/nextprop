@@ -168,7 +168,7 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
         className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
         onClick={onClose}
       />
-      <div className="fixed right-4 top-16 w-80 bg-white/80 backdrop-blur-md rounded-xl shadow-2xl z-50 overflow-hidden transition-all duration-300 ease-in-out p-4">
+      <div className="fixed right-[calc(35%-12rem)] top-24 w-80 bg-white/80 backdrop-blur-md rounded-xl shadow-2xl z-50 overflow-hidden transition-all duration-300 ease-in-out p-4">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -181,8 +181,8 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
         {/* Header */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200/50">
           <div className="flex items-center">
-            <p className="text-large font-medium text-gray-900 truncate">Notifications</p> 
-          </div>
+            <p className="text-large font-bold text-gray-900 truncate">Notifications</p> 
+          </div> 
         </div>
         
         <div className="max-h-96 overflow-y-auto">
