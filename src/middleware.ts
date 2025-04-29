@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest) {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 12,
+        maxAge: 60 * 60 * 24 * 30, // 30 days
       });
       if (newTokens.refresh_token) {
         response.cookies.set('ghl_refresh_token', newTokens.refresh_token, {
@@ -72,7 +72,7 @@ export async function middleware(request: NextRequest) {
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           path: '/',
-          maxAge: 60 * 60 * 12,
+          maxAge: 60 * 60 * 24 * 30, // 30 days
         });
       }
       return response;
