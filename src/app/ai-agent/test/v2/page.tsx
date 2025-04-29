@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { PaperAirplaneIcon, PlusIcon, TrashIcon, ArrowPathIcon, ClipboardIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, DocumentDuplicateIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, XMarkIcon, CloudArrowUpIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
 import { ref, uploadString } from 'firebase/storage';
-import { storage } from '@/lib/firebaseConfig';
+import { storage, db } from '@/lib/firebaseConfig';
 import toast from 'react-hot-toast';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface Message {
   id: string;
@@ -130,6 +131,26 @@ const isConversationTemplate = (value: string): value is ConversationTemplate =>
   return value === 'Terms Discussion' || value === 'Property Value Discussion';
 };
 
+// OpenAI settings interface
+interface OpenAISettings {
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  topP: number;
+  frequencyPenalty: number;
+  presencePenalty: number;
+}
+
+// Default OpenAI settings
+const DEFAULT_OPENAI_SETTINGS: OpenAISettings = {
+  model: 'gpt-3.5-turbo',
+  temperature: 0.7,
+  maxTokens: 1000,
+  topP: 1,
+  frequencyPenalty: 0,
+  presencePenalty: 0
+};
+
 export default function AIAgentTestV2() {
   const [formData, setFormData] = useState<TestForm>({
     ...SAMPLE_CONVERSATIONS['Terms Discussion'],
@@ -149,6 +170,12 @@ export default function AIAgentTestV2() {
   const [showSavedConversations, setShowSavedConversations] = useState(false);
   const [currentConversationName, setCurrentConversationName] = useState<ConversationTemplate>('Terms Discussion');
 
+  // OpenAI settings state
+  const [openAISettings, setOpenAISettings] = useState<OpenAISettings>(DEFAULT_OPENAI_SETTINGS);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [showOpenAISettings, setShowOpenAISettings] = useState(false);
+
   // load JS file
   const [jsLoading, setJsLoading] = useState(false);
   const [jsError, setJsError] = useState<string | null>(null);
@@ -156,9 +183,88 @@ export default function AIAgentTestV2() {
   const [jsSaving, setJsSaving] = useState(false);
   const PROMPT_FILE_PATH = 'js/prompt.js';
 
+  // Load OpenAI settings from Firestore
+  const loadOpenAISettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const settingsRef = doc(db, 'settings', 'openai');
+      const docSnap = await getDoc(settingsRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data() as {
+          frequency_penalty: number;
+          max_tokens: number;
+          model: string;
+          presence_penalty: number;
+          temperature: number;
+          top_p: number;
+        };
+
+        // Map Firestore data to OpenAISettings
+        const mappedSettings: OpenAISettings = {
+          model: data.model,
+          temperature: data.temperature,
+          maxTokens: data.max_tokens,
+          topP: data.top_p,
+          frequencyPenalty: data.frequency_penalty,
+          presencePenalty: data.presence_penalty,
+        };
+
+        setOpenAISettings(mappedSettings);
+        
+        // Also update the form data to use these settings
+        setFormData(prev => ({
+          ...prev,
+          config: {
+            ...prev.config,
+            model: mappedSettings.model || prev.config.model,
+            temperature: mappedSettings.temperature || prev.config.temperature,
+            maxTokens: mappedSettings.maxTokens || prev.config.maxTokens,
+            topP: mappedSettings.topP || prev.config.topP,
+            frequencyPenalty: mappedSettings.frequencyPenalty || prev.config.frequencyPenalty,
+            presencePenalty: mappedSettings.presencePenalty || prev.config.presencePenalty
+          }
+        }));
+        
+        toast.success('OpenAI settings loaded successfully');
+      } else {
+        // Document doesn't exist, use defaults
+        setOpenAISettings(DEFAULT_OPENAI_SETTINGS);
+      }
+    } catch (error) {
+      console.error('Error loading OpenAI settings:', error);
+      toast.error('Failed to load OpenAI settings');
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  // Save OpenAI settings to Firestore
+  const saveOpenAISettings = async () => {
+    try {
+      setSavingSettings(true);
+      const settingsRef = doc(db, 'settings', 'openai');
+      await setDoc(settingsRef, openAISettings);
+      toast.success('OpenAI settings saved successfully');
+    } catch (error) {
+      console.error('Error saving OpenAI settings:', error);
+      toast.error('Failed to save OpenAI settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // Update OpenAI settings
+  const updateOpenAISettings = (key: keyof OpenAISettings, value: string | number) => {
+    setOpenAISettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
 
   useEffect(() => {
     loadPromptFile();
+    loadOpenAISettings(); // Load OpenAI settings when component mounts
   }, []);
 
   const loadPromptFile = async () => {
@@ -245,12 +351,23 @@ export default function AIAgentTestV2() {
       }));
     }
 
-    // Log the request payload for debugging
-    const payload = {
+    // Apply latest OpenAI settings to the request
+    const requestWithSettings = {
       ...formData,
+      config: {
+        ...formData.config,
+        model: openAISettings.model,
+        temperature: openAISettings.temperature,
+        maxTokens: openAISettings.maxTokens,
+        topP: openAISettings.topP,
+        frequencyPenalty: openAISettings.frequencyPenalty,
+        presencePenalty: openAISettings.presencePenalty
+      },
       history: formData.history.map(({ id, timestamp, ...rest }) => rest)
     };
-    console.log('Sending request with payload:', payload);
+
+    // Log the request payload for debugging
+    console.log('Sending request with payload:', requestWithSettings);
 
     try {
       const res = await fetch('/api/chatai', {
@@ -258,7 +375,7 @@ export default function AIAgentTestV2() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestWithSettings),
       });
 
       // Log the response status and headers for debugging
@@ -468,6 +585,16 @@ export default function AIAgentTestV2() {
                 {showConfig ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
               </button>
               <button
+                onClick={() => setShowOpenAISettings(!showOpenAISettings)}
+                className={`px-3 py-1.5 text-sm rounded-md flex items-center gap-2 ${showOpenAISettings
+                  ? 'bg-white text-blue-600 border border-blue-300'
+                  : 'text-white border border-white/30 hover:bg-white/10'
+                  }`}
+              >
+                {showOpenAISettings ? 'Hide' : 'Show'} OpenAI Settings
+                {showOpenAISettings ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
+              </button>
+              <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
                 className="text-white hover:text-blue-100"
               >
@@ -479,6 +606,160 @@ export default function AIAgentTestV2() {
               </button>
             </div>
           </div>
+
+          {showOpenAISettings && (
+            <div className="p-6 bg-gradient-to-r from-violet-50 to-blue-50 border-b border-gray-200">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">OpenAI Settings</h2>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={loadOpenAISettings}
+                      disabled={loadingSettings}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                    >
+                      {loadingSettings ? (
+                        <>
+                          <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowPathIcon className="h-4 w-4 mr-2" />
+                          Refresh
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={saveOpenAISettings}
+                      disabled={savingSettings}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-md shadow-sm hover:bg-violet-700"
+                    >
+                      {savingSettings ? (
+                        <>
+                          <ArrowPathIcon className="animate-spin h-4 w-4 mr-2" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CloudArrowUpIcon className="h-4 w-4 mr-2" />
+                          Save Settings
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white p-5 rounded-lg shadow border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Model Settings</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Model
+                        </label>
+                        <select
+                          value={openAISettings.model}
+                          onChange={(e) => updateOpenAISettings('model', e.target.value)}
+                          className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white focus:border-violet-500 focus:ring-violet-500"
+                        >
+                          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                          <option value="gpt-3.5-turbo-16k">GPT-3.5 Turbo 16K</option>
+                          <option value="gpt-4">GPT-4</option>
+                          <option value="gpt-4-32k">GPT-4 32K</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Max Tokens
+                        </label>
+                        <input
+                          type="number"
+                          value={openAISettings.maxTokens}
+                          onChange={(e) => updateOpenAISettings('maxTokens', parseInt(e.target.value))}
+                          className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white focus:border-violet-500 focus:ring-violet-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-lg shadow border border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Generation Parameters</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Temperature
+                          <span className="ml-2 text-sm text-gray-500">
+                            ({openAISettings.temperature.toFixed(1)})
+                          </span>
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="2"
+                          step="0.1"
+                          value={openAISettings.temperature}
+                          onChange={(e) => updateOpenAISettings('temperature', parseFloat(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>Precise</span>
+                          <span>Creative</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Top P
+                          <span className="ml-2 text-sm text-gray-500">
+                            ({openAISettings.topP !== undefined ? openAISettings.topP.toFixed(1) : 'N/A'})
+                          </span>
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={openAISettings.topP}
+                          onChange={(e) => updateOpenAISettings('topP', parseFloat(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Freq. Penalty
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="2"
+                            step="0.1"
+                            value={openAISettings.frequencyPenalty}
+                            onChange={(e) => updateOpenAISettings('frequencyPenalty', parseFloat(e.target.value))}
+                            className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white focus:border-violet-500 focus:ring-violet-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Pres. Penalty
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="2"
+                            step="0.1"
+                            value={openAISettings.presencePenalty}
+                            onChange={(e) => updateOpenAISettings('presencePenalty', parseFloat(e.target.value))}
+                            className="w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white focus:border-violet-500 focus:ring-violet-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 h-full">
             {/* Left Panel - Configuration */}
@@ -960,7 +1241,7 @@ export default function AIAgentTestV2() {
                 <div className="flex items-center mb-4">
                   
                   <h3 className="text-lg font-medium text-gray-800">AI Response</h3>
-                  {response && (
+              {response && (
                     <button
                       onClick={() => copyToClipboard(response)}
                       className="ml-auto px-2 py-1 text-xs bg-white rounded border shadow-sm flex items-center gap-1 hover:bg-gray-50 transition-colors duration-200"
@@ -992,8 +1273,8 @@ export default function AIAgentTestV2() {
                 ) : (
                   <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500 min-h-[400px] flex items-center justify-center">
                     <p>Send a message to see the AI response here</p>
-                  </div>
-                )}
+                </div>
+              )}
               </div>
 
               <div className="mt-12">
