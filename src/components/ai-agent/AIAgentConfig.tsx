@@ -251,10 +251,22 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
           contactEmail: config.contactEmail || userEmail,
           companyWebsite: config.companyWebsite || userWebsite,
         };
-        setConfig(updatedConfig);
-        saveAIAgentConfig(updatedConfig, user.id)
-          .then(() => triggerConfigRefresh())
-          .catch(error => console.error('Error auto-saving user details:', error));
+
+        // Check if updatedConfig is different from current config
+        const hasChanges =
+          updatedConfig.companyName !== config.companyName ||
+          updatedConfig.speakingOnBehalfOf !== config.speakingOnBehalfOf ||
+          updatedConfig.contactPhone !== config.contactPhone ||
+          updatedConfig.contactEmail !== config.contactEmail ||
+          updatedConfig.companyWebsite !== config.companyWebsite;
+
+        if (hasChanges) {
+          console.log(`[Load user details only if fields are empty] setCONFIG`);
+          setConfig(updatedConfig);
+          saveAIAgentConfig(updatedConfig, user.id)
+            .then(() => triggerConfigRefresh())
+            .catch(error => console.error('Error auto-saving user details:', error));
+        }
       }
     }
   }, [user, config]);
@@ -388,7 +400,6 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
       if (agentConfig.additionalPropertyTypes) {
         setAdditionalPropertyTypes(agentConfig.additionalPropertyTypes);
       }
-
       setConfig(agentConfig);
     } catch (error) {
       console.error('Error loading config:', error);

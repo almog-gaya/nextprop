@@ -31,4 +31,5 @@ interface SmsChannel {
     message: string;
     time_interval: number; // In minutes
     from_number: string;
+    max_calls_per_hour: number;
 }

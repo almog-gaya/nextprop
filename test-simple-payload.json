@@ -1,0 +1,19 @@
+{
+  "locationId": "n5KIiKGnIt53Fg114jSG",
+  "message": "what do you mean by terms?",
+  "history": [
+    {
+      "isUser": true,
+      "text": "Hello"
+    },
+    {
+      "isUser": false,
+      "text": "Hi there! How can I help you today?"
+    }
+  ],
+  "config": {
+    "model": "gpt-3.5-turbo",
+    "temperature": 0.7,
+    "maxTokens": 1000
+  }
+} 
