@@ -480,9 +480,9 @@ export default function AIAgentTestV2() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 h-full">
             {/* Left Panel - Configuration */}
-            <div className="p-6 space-y-6 overflow-auto">
+            <div className="p-6 space-y-6 overflow-auto lg:col-span-2">
               <div className="flex gap-4">
                 <div className="flex-1 bg-blue-50 rounded-lg p-4 border border-blue-100">
                   <label className="block text-sm font-medium text-blue-900 mb-2">Conversation Template</label>
@@ -915,7 +915,7 @@ export default function AIAgentTestV2() {
             </div>
 
             {/* Right Panel - Response */}
-            <div className="p-6 space-y-6 overflow-auto">
+            <div className="p-6 space-y-6 overflow-auto lg:col-span-3">
               <div className="flex justify-between items-center">
                 <h2 className="text-lg font-medium text-gray-900">Test Response</h2>
                 <div className="flex gap-2">
@@ -956,12 +956,14 @@ export default function AIAgentTestV2() {
                 </div>
               )}
 
-              {response && (
-                <div className="mt-4">
-                  <div className="relative">
+              <div className="bg-gradient-to-r from-blue-50 to-violet-50 border border-blue-100 rounded-xl p-6 mt-4">
+                <div className="flex items-center mb-4">
+                  
+                  <h3 className="text-lg font-medium text-gray-800">AI Response</h3>
+                  {response && (
                     <button
                       onClick={() => copyToClipboard(response)}
-                      className="absolute top-2 right-2 px-2 py-1 text-xs bg-white rounded border shadow-sm flex items-center gap-1 hover:bg-gray-50 transition-colors duration-200"
+                      className="ml-auto px-2 py-1 text-xs bg-white rounded border shadow-sm flex items-center gap-1 hover:bg-gray-50 transition-colors duration-200"
                     >
                       {copied ? (
                         <>
@@ -975,15 +977,24 @@ export default function AIAgentTestV2() {
                         </>
                       )}
                     </button>
-                    <pre className={`p-4 rounded-lg overflow-auto max-h-[600px] text-sm shadow-inner ${showJsonView
+                  )}
+                </div>
+
+                {response ? (
+                  <div className="bg-white border border-gray-200 rounded-lg shadow-md">
+                    <pre className={`p-6 rounded-lg overflow-auto min-h-[400px] max-h-[800px] text-base leading-relaxed whitespace-pre-wrap break-words ${showJsonView
                       ? 'bg-gray-900 text-gray-100'
-                      : 'bg-white border border-gray-200'
+                      : 'bg-white'
                       }`}>
                       {showJsonView ? response : JSON.parse(response).message || response}
                     </pre>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500 min-h-[400px] flex items-center justify-center">
+                    <p>Send a message to see the AI response here</p>
+                  </div>
+                )}
+              </div>
 
               <div className="mt-12">
                 <div className="flex justify-between items-center mb-4">
