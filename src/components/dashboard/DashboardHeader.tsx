@@ -2,8 +2,8 @@
 
 import React from 'react';
 import PipelineSelector from './PipelineSelector';
-import ViewToggle from './ViewToggel';
-import {  PlusIcon } from '@heroicons/react/24/outline';
+import ViewToggle from './ViewToggle';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 interface PipelineData {
   id: string;

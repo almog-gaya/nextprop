@@ -19,7 +19,7 @@ export default function PipelineSelector({
         <select
           value={pipelineId}
           onChange={onChange}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+          className="w-full p-2  rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
           disabled={isJobRunning || loadingPipelines}
         >
           <option value="">Select a pipeline</option>

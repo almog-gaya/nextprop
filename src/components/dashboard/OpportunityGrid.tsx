@@ -185,56 +185,71 @@ export default function OpportunityGrid({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex overflow-x-auto pb-6 space-x-6 h-full px-1">
-        {opportunities.map((stage) => (
-          <div
-            key={stage.id}
-            className="bg-white rounded-xl shadow-sm border border-purple-100 flex flex-col min-w-[320px] h-full"
-          >
-            <div className="px-4 py-2.5 flex justify-between items-center">
-              <div className="text-base font-semibold text-gray-900">
-                {stage.name} <span className="text-gray-600">({stage.count})</span>
-              </div>
-            </div>
-            <DroppableStage
-              id={stage.id}
-              isEmpty={getProcessedOpportunities(stage.id).length === 0}
-            >
-              <div className="flex-1 overflow-auto max-h-[calc(100vh-280px)] p-4 space-y-3">
-                <SortableContext items={getProcessedOpportunities(stage.id).map(opp => opp.id)} strategy={rectSortingStrategy}>
-                  {getProcessedOpportunities(stage.id).map((opportunity) => (
-                    <SortableOpportunityCard
-                      key={opportunity.id}
-                      opportunity={opportunity}
-                      handleCommunication={handleCommunication}
-                      handleEditOpportunity={handleEditOpportunity}
-                      isLoading={loadingOpportunityId === opportunity.id}
-                    />
-                  ))}
-                </SortableContext>
-                {getProcessedOpportunities(stage.id).length === 0 && (
-                  <div className="text-center py-8 text-gray-500 h-full flex items-center justify-center">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">No leads in this stage</p>
-                      <p className="text-xs text-gray-400">Drag and drop leads here</p>
+      <div className="w-full h-full">
+        <div className="overflow-hidden">
+          <div className="overflow-x-auto pb-6">
+            <div className="flex space-x-6 min-w-max px-1">
+              {opportunities.map((stage) => (
+                <div
+                  key={stage.id}
+                  className="bg-white rounded-xl shadow-sm flex flex-col min-w-[237px] h-full"
+                >
+                  <div
+                    className="px-2 py-2.5 flex justify-between items-center border-b border-gray-200 rounded-t-xl"
+                    style={{
+                      borderWidth: '4px 1px 1px 1px',
+                      borderStyle: 'solid',
+                      borderColor: '#16549B',
+                    }}
+                  >
+                    <div className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                      {stage.name} <span className="text-gray-600">({stage.count})</span>
                     </div>
+                    <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full">
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>
+                    </button>
                   </div>
-                )}
-                <div id={`load-more-${stage.id}`} className="h-10">
-                  {loadingStates?.[stage.id] && pagination?.[stage.id]?.hasMore && (
-                    <div className="text-center text-gray-500 py-2">
-                      <div className="inline-flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
-                        <span className="text-sm">Loading more...</span>
+                  
+                  <DroppableStage
+                    id={stage.id}
+                    isEmpty={getProcessedOpportunities(stage.id).length === 0}
+                  >
+                    <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+                      <SortableContext items={getProcessedOpportunities(stage.id).map(opp => opp.id)} strategy={rectSortingStrategy}>
+                        {getProcessedOpportunities(stage.id).map((opportunity) => (
+                          <SortableOpportunityCard
+                            key={opportunity.id}
+                            opportunity={opportunity}
+                            handleCommunication={handleCommunication}
+                            handleEditOpportunity={handleEditOpportunity}
+                            isLoading={loadingOpportunityId === opportunity.id}
+                          />
+                        ))}
+                      </SortableContext>
+                      {getProcessedOpportunities(stage.id).length === 0 && (
+                        <div className="bg-white rounded-lg border border-gray-200 mt-4 mx-2 flex items-center justify-center min-h-[80px] text-gray-500 font-semibold text-base">
+                          No Data.
+                        </div>
+                      )}
+                      <div id={`load-more-${stage.id}`} className="h-10">
+                        {loadingStates?.[stage.id] && pagination?.[stage.id]?.hasMore && (
+                          <div className="text-center text-gray-500 py-2">
+                            <div className="inline-flex items-center space-x-2">
+                              <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
+                              <span className="text-sm">Loading more...</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
+                  </DroppableStage>
                 </div>
-              </div>
-            </DroppableStage>
+              ))}
+            </div>
           </div>
-        ))}
+        </div>
       </div>
+      
       <DragOverlay>
         {activeOpportunity ? (
           <OpportunityCard

@@ -18,6 +18,9 @@ import MessageModal from '@/components/dashboard/MessageModal';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { GHLContact, GHLOpportunity, GHLPipeline, GHLPipelineResponse, GHLStage, Opportunity, PipelineData, PipelineStage } from '@/types/dashboard';
 import OpportunityEditModal from '@/components/dashboard/OpportunityEditModal';
+import LeadsTopBar from '@/components/LeadsTopBar';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { SortAscIcon, SortDescIcon } from 'lucide-react';
 
 interface PaginationState {
   page: number;
@@ -28,6 +31,14 @@ interface PaginationState {
   prevPage: number | null;
   hasMore: boolean;
 }
+
+// SVG for the dotted square icon
+const DottedSquareIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
+    <rect x="3" y="3" width="14" height="14" rx="2" stroke="#111827" strokeWidth="1.5" strokeDasharray="2 2" />
+    <rect x="7" y="7" width="6" height="6" rx="1" fill="#111827" />
+  </svg>
+);
 
 export default function LeadsPage() {
   const { user, loading } = useAuth();
@@ -173,7 +184,7 @@ export default function LeadsPage() {
   };
 
   const fetchPipelineOpportunities = async (pipelineId: string) => {
-    if (!user || loadedPipelines.has(pipelineId)) return;
+    if (!user) return;
 
     setLoadingStates((prev) => ({
       ...prev,
@@ -397,6 +408,13 @@ export default function LeadsPage() {
   const handlePipelineChange = (pipelineId: string) => {
     setSelectedPipeline(pipelineId);
     setIsDropdownOpen(false);
+    // Reset the pipeline data completely
+    setLoadedPipelines(new Set());
+    setOpportunities([]);
+    setPagination({});
+    setLoadingStates({});
+    // Force a fresh fetch of the pipeline data
+    fetchPipelineOpportunities(pipelineId);
   };
 
   const filterOpportunities = (opportunities: Opportunity[]): Opportunity[] => {
@@ -540,23 +558,65 @@ export default function LeadsPage() {
 
   const isPipelineLoading = selectedPipeline && !loadedPipelines.has(selectedPipeline);
 
+  // Calculate total leads in selected pipeline
+  const totalLeads = (() => {
+    if (!selectedPipeline) return 0;
+    const pipeline = pipelines.find((p) => p.id === selectedPipeline);
+    return pipeline ? pipeline.totalOpportunities : 0;
+  })();
+
+  // Pipeline Dropdown (dotted square icon, selected pipeline name)
+  const pipelineDropdown = (
+    <div className="relative">
+      <button
+        onClick={() => setIsDropdownOpen((open) => !open)}
+        className="flex items-center px-3 py-2 border border-gray-200 rounded bg-white text-gray-900 text-sm font-semibold gap-2 min-w-[140px]"
+      >
+        <DottedSquareIcon />
+        {pipelines.find((p) => p.id === selectedPipeline)?.name || 'Select Pipeline'}
+        <ChevronDownIcon className="w-4 h-4 ml-1" />
+      </button>
+      {isDropdownOpen && (
+        <div className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+          {pipelines.map((pipeline) => (
+            <button
+              key={pipeline.id}
+              onClick={() => {
+                setSelectedPipeline(pipeline.id);
+                setIsDropdownOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${pipeline.id === selectedPipeline ? 'bg-gray-100 font-semibold' : ''}`}
+            >
+              {pipeline.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // Sorting Dropdown UI (styled as in the screenshot)
+  const sortingDropdown = (
+    <button
+      className="flex items-center px-3 py-2 border border-gray-200 rounded bg-white text-black text-sm font-semibold gap-2"
+      onClick={() => setIsSortModalOpen(true)}
+    >
+      <SortAscIcon />
+      Sorting
+    </button>
+  );
+
   return (
     <DashboardLayout title="Leads">
-      <div className="container mx-auto px-4 py-8">
-        <div className="h-full flex flex-col bg-gray-50">
-          <DashboardHeader
-            pipelines={pipelines}
-            selectedPipeline={selectedPipeline}
-            isDropdownOpen={isDropdownOpen}
-            setIsDropdownOpen={setIsDropdownOpen}
-            handlePipelineChange={handlePipelineChange}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            apiConfigured={apiConfigured}
-            setNotification={setNotification}
-            setNotificationActive={setNotificationActive}
-            handleCommunication={handleCommunication}
-          />
+      <LeadsTopBar
+        totalLeads={totalLeads}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        pipelineDropdown={pipelineDropdown}
+        sortingDropdown={sortingDropdown}
+      />
+      <div className="container mx-auto w-full max-w-full">
+        <div className="h-full flex flex-col bg-gray-50 w-full">
           <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center">
               <FilterControls
@@ -565,7 +625,7 @@ export default function LeadsPage() {
                 filters={filters}
                 sortConfig={sortConfig}
               />
-              <SearchBar searchTerm={searchTerm} placeHolder="Search Leads..."  setSearchTerm={setSearchTerm} />
+              <SearchBar searchTerm={searchTerm} placeHolder="Search Leads..." setSearchTerm={setSearchTerm} />
             </div>
           </div>
           <ActiveFilters
@@ -631,40 +691,40 @@ export default function LeadsPage() {
               )
             )}
           </div>
-          {isFilterModalOpen && (
-            <FilterModal
-              filters={filters}
-              setFilters={setFilters}
-              setIsFilterModalOpen={setIsFilterModalOpen}
-            />
-          )}
-          {isSortModalOpen && (
-            <SortModal
-              sortConfig={sortConfig}
-              setSortConfig={setSortConfig}
-              setIsSortModalOpen={setIsSortModalOpen}
-            />
-          )}
-          <MessageModal
-            isOpen={messageModal.isOpen}
-            onClose={() => setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null })}
-            actionType={messageModal.actionType}
-            contact={messageModal.contact}
-            user={user}
-            messageContent={messageContent}
-            setMessageContent={setMessageContent}
-            onSend={async () => {
-              handleCommunication(messageModal.opportunityId!, messageModal.actionType!);
-            }}
-          />
-          <OpportunityEditModal
-            isOpen={isEditOpportunityModalOpen}
-            onClose={() => setIsEditOpportunityModalOpen(false)}
-            opportunityId={selectedOpportunity?.id ?? ""}
-            onUpdateOpportunity={handleUpdateOpportunityUI}
-          />
         </div>
       </div>
+      {isFilterModalOpen && (
+        <FilterModal
+          filters={filters}
+          setFilters={setFilters}
+          setIsFilterModalOpen={setIsFilterModalOpen}
+        />
+      )}
+      {isSortModalOpen && (
+        <SortModal
+          sortConfig={sortConfig}
+          setSortConfig={setSortConfig}
+          setIsSortModalOpen={setIsSortModalOpen}
+        />
+      )}
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        onClose={() => setMessageModal({ isOpen: false, actionType: null, opportunityId: null, contact: null })}
+        actionType={messageModal.actionType}
+        contact={messageModal.contact}
+        user={user}
+        messageContent={messageContent}
+        setMessageContent={setMessageContent}
+        onSend={async () => {
+          handleCommunication(messageModal.opportunityId!, messageModal.actionType!);
+        }}
+      />
+      <OpportunityEditModal
+        isOpen={isEditOpportunityModalOpen}
+        onClose={() => setIsEditOpportunityModalOpen(false)}
+        opportunityId={selectedOpportunity?.id ?? ""}
+        onUpdateOpportunity={handleUpdateOpportunityUI}
+      />
     </DashboardLayout>
   );
 }

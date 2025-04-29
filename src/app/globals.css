@@ -142,7 +142,7 @@ h6 {
   }
 
   .dashboard-card {
-    @apply bg-white rounded-lg shadow-sm p-6 mb-6 border-t-4 border-[var(--nextprop-primary)] hover:shadow-md transition-all duration-200;
+    @apply bg-white rounded-lg shadow-sm p-6 mb-6 border-t-0 border-[var(--nextprop-primary)] hover:shadow-md transition-all duration-200;
     background: linear-gradient(
       to bottom,
       var(--nextprop-surface),

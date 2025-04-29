@@ -17,7 +17,7 @@ export default function PropertyCountConfig({
           name="propertyCount"
           value={propertyCount}
           onChange={onChange}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+          className="w-full p-2 brder bg-white border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
           min="1"
           max="100"
           disabled={isJobRunning}

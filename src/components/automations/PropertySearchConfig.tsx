@@ -14,15 +14,17 @@ export default function PropertySearchConfig({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Redfin Property Search Link*
         </label>
-        <input
+      <div className=" border border-gray-300 rounded-md">
+      <input
           type="text"
           name="redfin_url"
           value={searchQuery}
           onChange={onChange}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+          className="w-full p-2 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
           placeholder={`e.g "${exampleLink}"`}
           disabled={isJobRunning}
         />
+      </div>
         <p className="mt-1 text-sm text-gray-500">
           Only redfin links are supported at the moment. Please use the search link from the{' '}
           <a 
