@@ -282,7 +282,7 @@ export default function NotificationsPage() {
   }, []);
  
   return (
-    <div className="p-8">
+    <div className="p-8 max-w-3xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Notification Preferences</h1>
         <div className="flex items-center gap-4">
