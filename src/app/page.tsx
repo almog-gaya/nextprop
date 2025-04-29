@@ -7,14 +7,14 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 import { Bar, Doughnut, Line, Pie } from 'react-chartjs-2';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatsCardSkeleton, TableSkeleton } from '@/components/SkeletonLoaders';
-import { 
-  CalendarDaysIcon, 
-  EnvelopeOpenIcon, 
-  UsersIcon, 
-  HomeIcon, 
-  CurrencyDollarIcon, 
+import {
+  CalendarDaysIcon,
+  EnvelopeOpenIcon,
+  UsersIcon,
+  HomeIcon,
+  CurrencyDollarIcon,
   ArrowTrendingUpIcon,
-  ArrowUpIcon, 
+  ArrowUpIcon,
   ArrowDownIcon,
   ChatBubbleLeftRightIcon,
   PhoneIcon,
@@ -104,7 +104,7 @@ export default function DashboardPage() {
         let startDate;
         let comparisonStartDate;
         let comparisonEndDate;
-        
+
         if (timeFilter === 'today') {
           startDate = endDate;
           comparisonEndDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -122,7 +122,7 @@ export default function DashboardPage() {
           comparisonEndDate = format(subDays(new Date(), 365), 'yyyy-MM-dd');
           comparisonStartDate = format(subDays(new Date(), 729), 'yyyy-MM-dd');
         }
-        
+
         const requestBody = {
           startDate,
           endDate,
@@ -133,7 +133,7 @@ export default function DashboardPage() {
         };
 
         console.log('Sending API request with:', requestBody);
-        
+
         const response = await fetch(`/api/reports/custom`, {
           method: 'POST',
           headers: {
@@ -142,22 +142,22 @@ export default function DashboardPage() {
           body: JSON.stringify(requestBody),
           cache: 'no-store' // Ensure we don't use cached responses
         });
-        
+
         console.log('API response status:', response.status);
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch report data: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         console.log('API response data:', data);
-        
+
         if (!data || !data.data) {
           console.error('API returned invalid data structure:', data);
           setError('The API returned an invalid response structure');
           return;
         }
-        
+
         setReportData(data);
       } catch (err) {
         console.error('Error fetching report data:', err);
@@ -166,7 +166,7 @@ export default function DashboardPage() {
         setIsLoadingCharts(false);
       }
     };
-    
+
     if (user) {
       fetchReportData();
     }
@@ -175,7 +175,7 @@ export default function DashboardPage() {
   // Prepare chart data based on the API response
   const prepareStatusDistributionData = () => {
     if (!reportData || !reportData.data || !reportData.data.counts) return null;
-    
+
     // Create data for current period
     const currentPeriodData = {
       labels: reportData.data.counts.map(item => item.label.charAt(0).toUpperCase() + item.label.slice(1)),
@@ -196,13 +196,13 @@ export default function DashboardPage() {
         borderWidth: 1,
       }]
     };
-    
+
     return currentPeriodData;
   };
-  
+
   const prepareComparisonData = () => {
     if (!reportData || !reportData.data || !reportData.comparisonData) return null;
-    
+
     // Format data for comparison chart (current vs previous period)
     const comparisonChartData = {
       labels: ['Current Period', 'Previous Period'],
@@ -223,24 +223,24 @@ export default function DashboardPage() {
         }
       ]
     };
-    
+
     return comparisonChartData;
   };
-  
+
   const prepareStatusComparison = () => {
     if (!reportData || !reportData.data || !reportData.data.counts || !reportData.comparisonData || !reportData.comparisonData.counts) return null;
-    
+
     // Get all unique statuses from both periods
     const allStatuses = new Set([
       ...reportData.data.counts.map(item => item.label),
       ...reportData.comparisonData.counts.map(item => item.label)
     ]);
-    
+
     // Format labels to be capitalized
     const labels = Array.from(allStatuses).map(
       status => status.charAt(0).toUpperCase() + status.slice(1)
     );
-    
+
     // Prepare datasets
     const currentValues = labels.map(label => {
       const statusItem = reportData.data.counts.find(
@@ -248,14 +248,14 @@ export default function DashboardPage() {
       );
       return statusItem ? statusItem.value : 0;
     });
-    
+
     const comparisonValues = labels.map(label => {
       const statusItem = reportData.comparisonData.counts.find(
         item => item.label.toLowerCase() === label.toLowerCase()
       );
       return statusItem ? statusItem.value : 0;
     });
-    
+
     return {
       labels,
       datasets: [
@@ -288,15 +288,18 @@ export default function DashboardPage() {
   // Always return the dashboard with static content
   return (
     <DashboardLayout title="Dashboard">
-      <div className="px-4 py-8 mx-auto container">
+      <div className="px-4 py-4 mx-auto container">
+
         {/* Welcome Header with Time Filters - always shown */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="mb-4 md:mb-0">
+
+            <div></div>
             <h1 className="text-3xl font-bold">{getGreeting()}, {userLoading ? ' ' : (user?.name || ' ')}</h1>
             <p className="text-gray-500">Here's what's happening with your real estate business</p>
           </div>
         </div>
-        
+
         {/* Display any API errors */}
         {error && (
           <div className="rounded-md bg-red-50 p-4 mb-6">
@@ -315,7 +318,7 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
-        
+
         {/* Summary Statistics Cards - always shown */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
@@ -373,8 +376,8 @@ export default function DashboardPage() {
               </div>
               <div className="px-4 py-3 bg-white">
                 <span className="text-xs text-emerald-600 font-medium">
-                  {reportData && reportData.data && reportData.comparisonData ? 
-                    (reportData.comparisonData.total - reportData.data.total) : 
+                  {reportData && reportData.data && reportData.comparisonData ?
+                    (reportData.comparisonData.total - reportData.data.total) :
                     '0'
                   } difference
                 </span>
@@ -429,27 +432,27 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="mt-4 flex items-center">
-                  {reportData && reportData.data && reportData.comparisonData && 
-                   reportData.data.counts && reportData.comparisonData.counts && 
-                   reportData.comparisonData.counts.find(c => c.label === 'open') && (
-                    <>
-                      <div className={`flex items-center ${(reportData.data.counts.find(c => c.label === 'open')?.value || 0) >= 
-                        (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0) ? 'text-green-600' : 'text-red-600'}`}>
-                        {(reportData.data.counts.find(c => c.label === 'open')?.value || 0) >= 
-                         (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0) ? (
-                          <ArrowUpIcon className="h-4 w-4 mr-1" />
-                        ) : (
-                          <ArrowDownIcon className="h-4 w-4 mr-1" />
-                        )}
-                        <span className="text-xs font-semibold">
-                          {reportData ? Math.abs(((reportData.data.counts.find(c => c.label === 'open')?.value || 0) - 
-                                               (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0)) / 
-                                              (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 1) * 100).toFixed(1) : '0'}%
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500 ml-1">vs previous {timeFilter}</span>
-                    </>
-                  )}
+                  {reportData && reportData.data && reportData.comparisonData &&
+                    reportData.data.counts && reportData.comparisonData.counts &&
+                    reportData.comparisonData.counts.find(c => c.label === 'open') && (
+                      <>
+                        <div className={`flex items-center ${(reportData.data.counts.find(c => c.label === 'open')?.value || 0) >=
+                          (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0) ? 'text-green-600' : 'text-red-600'}`}>
+                          {(reportData.data.counts.find(c => c.label === 'open')?.value || 0) >=
+                            (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0) ? (
+                            <ArrowUpIcon className="h-4 w-4 mr-1" />
+                          ) : (
+                            <ArrowDownIcon className="h-4 w-4 mr-1" />
+                          )}
+                          <span className="text-xs font-semibold">
+                            {reportData ? Math.abs(((reportData.data.counts.find(c => c.label === 'open')?.value || 0) -
+                              (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 0)) /
+                              (reportData.comparisonData.counts.find(c => c.label === 'open')?.value || 1) * 100).toFixed(1) : '0'}%
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500 ml-1">vs previous {timeFilter}</span>
+                      </>
+                    )}
                 </div>
               </div>
               <div className="px-4 py-3 bg-white">
@@ -491,7 +494,7 @@ export default function DashboardPage() {
                           backgroundColor: 'rgba(0, 0, 0, 0.7)',
                           padding: 10,
                           callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                               const value = context.raw as number;
                               const total = reportData.data.total;
                               const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
@@ -582,9 +585,9 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-center h-full w-full">
                     <p className="text-gray-500">Loading chart data...</p>
                   </div>
-                ) : reportData && reportData.data && reportData.comparisonData && 
-                    reportData.data.counts && reportData.comparisonData.counts ? (
-                  <Bar 
+                ) : reportData && reportData.data && reportData.comparisonData &&
+                  reportData.data.counts && reportData.comparisonData.counts ? (
+                  <Bar
                     data={prepareStatusComparison() || {
                       labels: [],
                       datasets: []

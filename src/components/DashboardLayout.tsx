@@ -37,31 +37,34 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
   }, []);
   
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-[#F7F7F7]">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block">
+      <div className="hidden md:block fixed top-0 left-0 h-screen w-16 z-40">
         <Sidebar />
       </div>
       
       {/* Mobile Sidebar */}
       <Sidebar isMobile isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      {/* Mobile Sidebar Toggle Button */}
-      <button 
-        onClick={() => setIsSidebarOpen(true)} 
-        className="sidebar-toggle-button"
-        aria-label="Toggle Sidebar"
-      >
-        <Bars3Icon className="h-6 w-6" />
-      </button>
-      
-      <div className="min-h-screen main-content-mobile flex-1 flex flex-col">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Mobile Sidebar Toggle Button */}
+        <button 
+          onClick={() => setIsSidebarOpen(true)} 
+          className="md:hidden fixed top-3 left-3 z-50 bg-white p-2 rounded-lg shadow-lg"
+          aria-label="Toggle Sidebar"
+        >
+          <Bars3Icon className="h-5 w-5 text-gray-600" />
+        </button>
+
         <Header title={title} />
-        <main className="flex-1"> 
+        
+        <main className="flex-1 pt-16 md:pl-16">
           {children}
         </main>
       </div>
-      <Toaster position="top-right" />
+      
+      <Toaster position="bottom-right" />
     </div>
   );
 } 

@@ -20,14 +20,14 @@ export default function SmsTemplateConfig({
   return (
     <div className="p-4 bg-gray-50 rounded-lg">
       <div className="flex items-center mb-3">
-        <ChatBubbleLeftRightIcon className="h-5 w-5 text-emerald-600 mr-2" />
+        <ChatBubbleLeftRightIcon className="h-5 w-5 text-emerald-600 mr-2 mb-6" />
         <h3 className="text-md font-medium text-gray-900">SMS Template</h3>
       </div>
       <textarea
         ref={textareaRef}
         value={message}
         onChange={onChange}
-        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all h-32 font-mono text-sm"
+        className="w-full p-3 bg-white border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all h-32 font-mono text-sm"
         placeholder="Enter your SMS template with placeholders like {{firstName}}, {{propertyAddress}}, etc."
         disabled={isJobRunning}
       />

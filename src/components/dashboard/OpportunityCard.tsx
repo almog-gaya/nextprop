@@ -27,6 +27,7 @@ interface Opportunity {
     // ... other contact fields
   };
   lastActivityType?: 'voicemail' | 'sms' | 'call' | 'email' | 'optout';
+  createdAt?: string;
 }
 
 interface OpportunityCardProps {
@@ -54,23 +55,37 @@ export default function OpportunityCard({
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md ${
-        isDragging ? 'opacity-50 scale-105 shadow-lg' : ''
-      }`}
+      className={`bg-white rounded-lg border border-gray-300 shadow-sm mb-4 mx-2 transition-all duration-200 hover:shadow-md ${isDragging ? 'opacity-50 scale-105 shadow-lg' : ''
+        }`}
+      style={{
+        minHeight: 140,
+        width: '237.5px'
+      }}
     >
-      <div className="p-4">
-        <button 
-          onClick={handleNameClick}
-          className="block w-full text-left hover:text-gray-700 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-opacity-50 rounded"
+      <div className="p-2 relative">
+      <div className="flex justify-between items-center mb-4">
+      <p
+          className="text-gray-900 hover:text-gray-700 font-bold text-[11px] leading-tight truncate max-w-[150px] my-0 mr-2"
+          title={opportunity.name}
         >
-          <h3 className="font-medium text-gray-900 hover:text-gray-700">{opportunity.name}</h3>
+          {opportunity.name}
+        </p>
+        <button
+          onClick={() => handleEditOpportunity(opportunity)}
+          className="text-xs font-semibold text-red-700 bg-white border border-red-200 rounded px-2 py-[6px] hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-200 focus:ring-opacity-50 transition-colors duration-200"
+        >
+          Open
         </button>
+      </div>
+        
         {opportunity.businessName && (
           <p className="text-sm text-gray-500">{opportunity.businessName}</p>
         )}
+       
         {opportunity.value && (
           <p className="text-sm font-medium text-gray-700">{opportunity.value}</p>
         )}
+        
         <div className="mt-3 flex flex-wrap gap-1.5">
           {opportunity.contact?.tags?.map((tag, index) => (
             <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-600 border border-gray-100">
@@ -95,14 +110,14 @@ export default function OpportunityCard({
             className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 w-7 h-7 flex items-center justify-center"
           />
         </div>
-        <div className="-mr-1">
+        {/* <div className="-mr-1">
           <IconButton
             icon={<PencilIcon className="h-4 w-4" />}
             onClick={() => handleEditOpportunity(opportunity)}
             tooltip="Edit opportunity"
             className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 w-7 h-7 flex items-center justify-center"
           />
-        </div>
+        </div> */}
       </div>
     </div>
   );
