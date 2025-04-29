@@ -33,6 +33,7 @@ interface TestForm {
     contactEmail?: string;
     companyWebsite?: string;
     dealObjective?: string;
+    buyingCriteria?: string;
     customInstructions?: string;
   };
 }
@@ -45,6 +46,8 @@ interface SavedConversation {
 }
 
 type ConversationTemplate = 'Terms Discussion' | 'Property Value Discussion';
+
+const DEFAULT_BUYING_CRITERIA = "Properties between $500,000 and $2 million in the Bay Area, single-family homes, cosmetic rehabs only, no long-term projects";
 
 const DEFAULT_CONFIG = {
   temperature: 0.7,
@@ -62,6 +65,7 @@ const DEFAULT_CONFIG = {
   contactEmail: 'contact@nextprop.com',
   companyWebsite: 'www.nextprop.com',
   dealObjective: 'realtor-creative-finance',
+  buyingCriteria: DEFAULT_BUYING_CRITERIA,
   customInstructions: ''
 };
 
@@ -94,7 +98,8 @@ const SAMPLE_CONVERSATIONS: Record<ConversationTemplate, Omit<TestForm, 'config'
     config: {
       ...DEFAULT_CONFIG,
       dealObjective: 'realtor-creative-finance',
-      tone: 'professional' as 'friendly' | 'professional' | 'casual'
+      tone: 'professional' as 'friendly' | 'professional' | 'casual',
+      buyingCriteria: "Properties between $300,000 and $1.5 million in any location, looking for seller financing options, flexible on property condition and type"
     }
   },
   'Property Value Discussion': {
@@ -115,7 +120,8 @@ const SAMPLE_CONVERSATIONS: Record<ConversationTemplate, Omit<TestForm, 'config'
     config: {
       ...DEFAULT_CONFIG,
       dealObjective: 'homeowner-cash-offer',
-      tone: 'friendly' as 'friendly' | 'professional' | 'casual'
+      tone: 'friendly' as 'friendly' | 'professional' | 'casual',
+      buyingCriteria: "Properties up to $750,000 in urban areas, single-family homes and condos, ready for immediate cash purchase, minor repairs acceptable"
     }
   }
 };
@@ -226,6 +232,19 @@ export default function AIAgentTestV2() {
     setLoading(true);
     setError(null);
 
+    // Add the current user message to the conversation history first
+    if (formData.message.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        history: [...prev.history, {
+          id: Date.now().toString(),
+          isUser: true,
+          text: formData.message,
+          timestamp: new Date().toISOString()
+        }]
+      }));
+    }
+
     // Log the request payload for debugging
     const payload = {
       ...formData,
@@ -249,7 +268,23 @@ export default function AIAgentTestV2() {
       if (!res.ok) {
         const errorText = await res.text();
         console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${res.status}, message: ${errorText}`);
+        
+        // Try to parse the error as JSON first, fallback to plain text if it fails
+        let errorMessage;
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error) {
+            errorMessage = errorJson.error;
+          } else if (Object.keys(errorJson).length === 0) {
+            errorMessage = `The cloud function returned a ${res.status} error with an empty response. Please check the cloud function logs.`;
+          } else {
+            errorMessage = `HTTP error! status: ${res.status}`;
+          }
+        } catch (e) {
+          errorMessage = `HTTP error! status: ${res.status}, message: ${errorText}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await res.json();
@@ -286,7 +321,8 @@ export default function AIAgentTestV2() {
             isUser: false,
             text: data.message,
             timestamp: new Date().toISOString()
-          }]
+          }],
+          message: '' // Clear the input field after sending
         }));
       }
     } catch (error) {
@@ -368,7 +404,7 @@ export default function AIAgentTestV2() {
 
   const updateConfig = (key: 'temperature' | 'maxTokens' | 'model' | 'topP' | 'frequencyPenalty' | 'presencePenalty' |
     'tone' | 'length' | 'agentName' | 'companyName' | 'speakingOnBehalfOf' |
-    'contactPhone' | 'contactEmail' | 'companyWebsite' | 'dealObjective' | 'customInstructions', value: number | string) => {
+    'contactPhone' | 'contactEmail' | 'companyWebsite' | 'dealObjective' | 'buyingCriteria' | 'customInstructions', value: number | string) => {
     setFormData(prev => ({
       ...prev,
       config: {
@@ -467,7 +503,7 @@ export default function AIAgentTestV2() {
                 </div>
 
                 <div className="flex gap-2">
-                  <button
+                  {/* <button
                     onClick={() => setShowSavedConversations(true)}
                     className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100"
                   >
@@ -480,7 +516,7 @@ export default function AIAgentTestV2() {
                   >
                     <CloudArrowUpIcon className="h-4 w-4 mr-1" />
                     Save
-                  </button>
+                  </button> */}
                 </div>
               </div>
 
@@ -490,7 +526,7 @@ export default function AIAgentTestV2() {
                     <h3 className="text-lg font-medium text-gray-900">AI Agent Configuration</h3>
                     <p className="text-sm text-gray-500">Configure how the AI agent behaves and responds</p>
                   </div>
-
+{/* 
                   <div className="border-b pb-4 mb-4">
                     <h4 className="text-sm font-medium text-gray-800 mb-3">Model Settings</h4>
                     <div className="grid grid-cols-2 gap-4">
@@ -565,7 +601,7 @@ export default function AIAgentTestV2() {
                         />
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="border-b pb-4 mb-4">
                     <h4 className="text-sm font-medium text-gray-800 mb-3">Response Style</h4>
@@ -610,6 +646,19 @@ export default function AIAgentTestV2() {
                           <option value="homeowner-quick-sale">Homeowner - Quick Sale</option>
                           <option value="homeowner-relocation">Homeowner - Relocation</option>
                         </select>
+                      </div>
+                      <div className="col-span-2 mt-2">
+                        <label className="block text-sm text-gray-700 mb-1">Buying Criteria</label>
+                        <textarea
+                          value={formData.config?.buyingCriteria || DEFAULT_BUYING_CRITERIA}
+                          onChange={(e) => updateConfig('buyingCriteria', e.target.value)}
+                          rows={3}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                          placeholder="Describe your property buying criteria..."
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Example: Properties between $500,000 and $2 million in the Bay Area, single-family homes, cosmetic rehabs only
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -680,7 +729,7 @@ export default function AIAgentTestV2() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="border-b pb-4 mb-4">
                     <h4 className="text-sm font-medium text-gray-800 mb-3">Custom Instructions</h4>
                     <textarea
                       value={formData.config?.customInstructions || ''}
