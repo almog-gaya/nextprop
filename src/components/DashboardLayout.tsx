@@ -39,7 +39,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
   return (
     <div className="min-h-screen flex bg-[#F7F7F7]">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block fixed top-0 left-0 h-screen w-16 z-40">
+      <div className="hidden md:block fixed top-0 left-0 h-screen w-50 z-40">
         <Sidebar />
       </div>
       
@@ -47,7 +47,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
       <Sidebar isMobile isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col md:ml-50">
         {/* Mobile Sidebar Toggle Button */}
         <button 
           onClick={() => setIsSidebarOpen(true)} 
@@ -59,7 +59,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
 
         <Header title={title} />
         
-        <main className="flex-1 pt-16 md:pl-16">
+        <main className="flex-1 pt-16">
           {children}
         </main>
       </div>

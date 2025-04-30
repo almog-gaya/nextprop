@@ -17,7 +17,7 @@ export default function Header({ title }: HeaderProps) {
   const { user, logout } = useAuth();
 
   return (
-    <header className="fixed top-0 left-0 md:left-16 right-0 bg-white h-16 border-b border-gray-200 z-50">
+    <header className="fixed top-0 left-0 md:left-50 right-0 bg-white h-16 border-b border-gray-200 z-50">
       <div className="h-full max-w-[1920px] mx-auto px-6 flex items-center">
         {/* Left side - Logo */}
         <div className="flex items-center">

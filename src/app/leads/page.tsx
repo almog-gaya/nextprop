@@ -608,92 +608,105 @@ export default function LeadsPage() {
 
   return (
     <DashboardLayout title="Leads">
-      <LeadsTopBar
-        totalLeads={totalLeads}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        pipelineDropdown={pipelineDropdown}
-        sortingDropdown={sortingDropdown}
-      />
-       <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center">
-              <FilterControls
-                setIsFilterModalOpen={setIsFilterModalOpen}
-                setIsSortModalOpen={setIsSortModalOpen}
-                filters={filters}
-                sortConfig={sortConfig}
-              />
-              <SearchBar searchTerm={searchTerm} placeHolder="Search Leads..." setSearchTerm={setSearchTerm} />
+      <div className="w-full h-full flex flex-col"style={{ width: '84.8vw' }}>
+        <div className="w-full flex-none" >
+          <div className="w-full" style={{ width: 'inherit' }}>
+            <LeadsTopBar
+              totalLeads={totalLeads}
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              pipelineDropdown={pipelineDropdown}
+              sortingDropdown={sortingDropdown}
+            />
+            <div className="bg-white border-b border-gray-200 px-4 py-4" style={{ width: 'inherit' }}>
+              <div className="flex justify-between items-center">
+                <FilterControls
+                  setIsFilterModalOpen={setIsFilterModalOpen}
+                  setIsSortModalOpen={setIsSortModalOpen}
+                  filters={filters}
+                  sortConfig={sortConfig}
+                />
+                <SearchBar searchTerm={searchTerm} placeHolder="Search Leads..." setSearchTerm={setSearchTerm} />
+              </div>
             </div>
-          </div>
-          <ActiveFilters
-            filters={filters}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            setFilters={setFilters}
-            setSortConfig={setSortConfig}
-          />
-      <div className="container mx-auto w-full">
-        
-         
-          <div className="px-2 pt-4 sm:px-2 lg:px-2 flex-1">
-            <AutomationPreview className="mb-6" />
-
-            {isLoading || loading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
-            ) : error ? (
-              <div className="bg-red-50 p-4 rounded-md text-red-800">{error}</div>
-            ) : !apiConfigured ? (
-              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-                <div className="flex items-center">
-                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
-                  <span>API configuration required</span>
-                </div>
-                <div className="mt-4">
-                  <p className="mb-4">
-                    It looks like you need to configure your API integration. Please go to the settings page to set up
-                    your integration.
-                  </p>
-                  <Link href="/settings">
-                    <button className="nextprop-button-secondary">Go to Settings</button>
-                  </Link>
-                </div>
-              </div>
-            ) : !selectedPipeline ? (
-              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-                <div className="flex items-center">
-                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
-                  <span>No pipeline selected</span>
-                </div>
-              </div>
-            ) : isPipelineLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading opportunities...</div>
-            ) : (
-              viewMode === 'grid' ? (
-                <OpportunityGrid
-                  opportunities={opportunities}
-                  getProcessedOpportunities={getProcessedOpportunities}
-                  handleCommunication={handleCommunication}
-                  handleEditOpportunity={handleEditOpportunity}
-                  handleMoveOpportunity={handleMoveOpportunity}
-                  loadingOpportunityId={loadingOperation.id}
-                  pagination={pagination[selectedPipeline]}
-                  loadingStates={loadingStates[selectedPipeline]}
-                />
-              ) : (
-                <OpportunityList
-                  opportunities={opportunities}
-                  getProcessedOpportunities={getProcessedOpportunities}
-                  handleCommunication={handleCommunication}
-                  handleEditOpportunity={handleEditOpportunity}
-                  handleMoveOpportunity={handleMoveOpportunity}
-                  loadingOpportunityId={loadingOperation.id}
-                />
-              )
-            )}
+            <ActiveFilters
+              filters={filters}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              setFilters={setFilters}
+              setSortConfig={setSortConfig}
+            />
           </div>
         </div>
- 
+        
+        <div className="flex-1 min-h-0">
+          <div className="h-full">
+            <div className="px-2 pt-4 h-full">
+              <AutomationPreview className="mb-6" />
+
+              {isLoading || loading ? (
+                <div className="text-center py-8 text-gray-500">Loading...</div>
+              ) : error ? (
+                <div className="bg-red-50 p-4 rounded-md text-red-800">{error}</div>
+              ) : !apiConfigured ? (
+                <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                  <div className="flex items-center">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
+                    <span>API configuration required</span>
+                  </div>
+                  <div className="mt-4">
+                    <p className="mb-4">
+                      It looks like you need to configure your API integration. Please go to the settings page to set up
+                      your integration.
+                    </p>
+                    <Link href="/settings">
+                      <button className="nextprop-button-secondary">Go to Settings</button>
+                    </Link>
+                  </div>
+                </div>
+              ) : !selectedPipeline ? (
+                <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                  <div className="flex items-center">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500 mr-2" />
+                    <span>No pipeline selected</span>
+                  </div>
+                </div>
+              ) : isPipelineLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading opportunities...</div>
+              ) : (
+                <div className="h-full">
+                  <div className="h-full overflow-hidden">
+                    <div className="h-full" style={{ width: 'inherit' }}>
+                      {viewMode === 'grid' ? (
+                        <OpportunityGrid
+                          opportunities={opportunities}
+                          getProcessedOpportunities={getProcessedOpportunities}
+                          handleCommunication={handleCommunication}
+                          handleEditOpportunity={handleEditOpportunity}
+                          handleMoveOpportunity={handleMoveOpportunity}
+                          loadingOpportunityId={loadingOperation.id}
+                          pagination={pagination[selectedPipeline]}
+                          loadingStates={loadingStates[selectedPipeline]}
+                        />
+                      ) : (
+                        <OpportunityList
+                          opportunities={opportunities}
+                          getProcessedOpportunities={getProcessedOpportunities}
+                          handleCommunication={handleCommunication}
+                          handleEditOpportunity={handleEditOpportunity}
+                          handleMoveOpportunity={handleMoveOpportunity}
+                          loadingOpportunityId={loadingOperation.id}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {isFilterModalOpen && (
         <FilterModal
           filters={filters}
