@@ -48,8 +48,9 @@ export default function OpportunityCard({
   const handleNameClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (opportunity.contact?.id) {
-      router.push(`/messaging-embed?contactId=${opportunity.contact.id}`);
+    console.log(`opportunity: ${JSON.stringify(opportunity)}`);
+    if (opportunity?.contact?.phone) {
+      router.push(`/messaging-embed/${opportunity?.contact?.phone}`);
     }
   };
 
@@ -67,6 +68,7 @@ export default function OpportunityCard({
       <p
           className="text-gray-900 hover:text-gray-700 font-bold text-[13px] leading-tight truncate max-w-[150px] my-0 mr-2"
           title={opportunity.name}
+          onClick={handleNameClick}
         >
           {opportunity.name}
         </p>
