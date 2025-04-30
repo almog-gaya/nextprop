@@ -116,11 +116,11 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
             <input
               type="range"
               min="10"
-              max="400"
+              max="200"
               step="10"
               value={formSettings.maxPerHour}
               onChange={(e) => {
-                const value = Math.max(10, Math.min(400, parseInt(e.target.value)));
+                const value = Math.max(10, Math.min(200, parseInt(e.target.value)));
                 handleInputChange('maxPerHour', value);
               }}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
@@ -128,9 +128,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
             <div className="flex justify-between text-sm text-gray-500 mt-2 mb-4">
               <span>10</span>
               <span>100</span>
-              <span>200</span>
-              <span>300</span>
-              <span>400</span>
+              <span>200</span> 
             </div>
             <div className="flex items-center gap-4">
               <input

@@ -19,7 +19,6 @@ import {
     MessageCircleOffIcon
 } from 'lucide-react';
 import PipelineSelector from '@/components/dashboard/PipelineSelector';
-import ViewToggle from '@/components/dashboard/ViewToggel';
 import EnhancedBulkUploadForm from '@/components/EnhancedBulkUploadForm';
 import StageSelector, { Stage } from '@/components/dashboard/StageSelector';
 
