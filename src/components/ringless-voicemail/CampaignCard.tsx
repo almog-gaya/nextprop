@@ -32,6 +32,7 @@ interface Contact {
   last_name?: string;
   email?: string;
   status?: string;
+  eta?: string;
   [key: string]: any; // For any additional fields
 }
 
@@ -122,6 +123,23 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
   const maxCallsPerHour = voicedropCampagin?.max_calls_per_hour;
   const intervalBetweenCalls = smsCampaign?.time_interval;
  
+
+  const renderFirestoreTimeStamp = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    if (typeof timestamp === 'object' && 'seconds' in timestamp) {
+      const date = new Date(timestamp.seconds * 1000);
+      /// ddmmyyyy hh:mm a
+      return date.toLocaleString('en-US', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+    return timestamp;
+  };
 
   // If we have the old progress format, use it directly, otherwise construct progress from API data
   const progress = {
@@ -398,7 +416,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
       </li>
 
       {showDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-gray-200 px-6 py-4">
               <h2 className="text-xl font-semibold text-gray-900">{name}</h2>
@@ -629,9 +647,15 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Status
                             </th>
+                             {/* ETA */}
+                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              ETA
+                            </th>
+                    
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Actions
                             </th>
+                           
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -679,6 +703,10 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                                       'bg-yellow-100 text-yellow-800'}`}>
                                   {contact.status || 'pending'}
                                 </span>
+                              </td>
+                              {/* ETA */}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {renderFirestoreTimeStamp(contact.eta)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {editingContact?.id === contact.id ? (

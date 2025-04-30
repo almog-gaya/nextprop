@@ -469,7 +469,9 @@ export default function RinglessVoicemailPage() {
   async function handleUpdateSettings(newSettings: any) {
     console.log('Updating settings:', newSettings);
     setSettings(newSettings);
-    toast.success('Settings saved');
+    toast.success('Settings saved', {
+      position: "top-right"
+    });
   }
 
   async function createCampaign() {
