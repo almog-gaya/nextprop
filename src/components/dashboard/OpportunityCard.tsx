@@ -65,14 +65,14 @@ export default function OpportunityCard({
       <div className="p-2 relative">
       <div className="flex justify-between items-center mb-4">
       <p
-          className="text-gray-900 hover:text-gray-700 font-bold text-[11px] leading-tight truncate max-w-[150px] my-0 mr-2"
+          className="text-gray-900 hover:text-gray-700 font-bold text-[13px] leading-tight truncate max-w-[150px] my-0 mr-2"
           title={opportunity.name}
         >
           {opportunity.name}
         </p>
         <button
           onClick={() => handleEditOpportunity(opportunity)}
-          className="text-xs font-semibold text-red-700 bg-white border border-red-200 rounded px-2 py-[6px] hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-200 focus:ring-opacity-50 transition-colors duration-200"
+          className="text-xs font-semibold text-red-700 bg-white border border-red-200 rounded px-2 py-[4px] hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-200 focus:ring-opacity-50 transition-colors duration-200"
         >
           Open
         </button>
