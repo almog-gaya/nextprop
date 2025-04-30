@@ -546,7 +546,7 @@ function MessagingContent() {
   ]);
 
   const ConversationFilters = () => (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
+    <div className="flex items-center justify-between px-2 py-2 border-b border-gray-200">
       <div className="flex space-x-1 pr-2">
         {['All', 'Unread', 'Recents'].map((tab) => {
           const tabValue = tab.toLowerCase() as 'unread' | 'recents' | 'all';

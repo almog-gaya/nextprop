@@ -4,10 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import classNames from 'classnames';
-import { 
-  HomeIcon, 
-  UserGroupIcon, 
-  PhoneIcon, 
+import {
+  HomeIcon,
+  UserGroupIcon,
+  PhoneIcon,
   ChartBarIcon,
   CurrencyDollarIcon,
   Cog6ToothIcon,
@@ -46,7 +46,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     "fixed top-0 left-0 h-screen flex flex-col items-center py-4 z-40",
     "bg-gradient-to-r from-[#3045FF] to-[#9A04FF]",
     {
-      "w-16": !isMobile,
+      "w-50": !isMobile,
       "w-full": isMobile,
       "translate-x-0": isOpen,
       "-translate-x-full": isMobile && !isOpen,
@@ -56,7 +56,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
   return (
     <div className={sidebarClass}>
       {isMobile && (
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-white/80 hover:text-white rounded-lg transition-colors"
         >
@@ -74,7 +74,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={classNames(
-                "w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200",
+                "w-45 h-10 flex items-center justify-start rounded-lg transition-all duration-200",
                 {
                   "bg-[#01010B] text-white": isActive,
                   "text-white hover:text-white hover:bg-black/5": !isActive
@@ -83,7 +83,11 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
               onClick={isMobile ? onClose : undefined}
               title={item.text}
             >
-              {item.icon}
+
+
+              <span className="ml-2">{item.icon}</span>
+              <span className="text-sm font-medium ml-2">{item.text}</span>
+
             </Link>
           );
         })}
@@ -93,14 +97,17 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
       <Link
         href="/settings"
         className={classNames(
-          "mb-12 mt-auto w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200",
+          "mb-12 mt-auto w-45 h-10 flex items-center justify-start rounded-lg transition-all duration-200",
           pathname === "/settings"
             ? "bg-[#01010B] text-white"
             : "text-white hover:text-white hover:bg-black/5"
         )}
         title="Settings"
       >
-        <Cog6ToothIcon className="w-5 h-5" strokeWidth={2.5} />
+        <div className='relative flex'>
+          <Cog6ToothIcon className="w-5 h-5 ml-2" strokeWidth={2.5} />
+          <span className="text-sm font-medium ml-2">Settings</span>
+        </div>
       </Link>
     </div>
   );

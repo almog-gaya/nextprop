@@ -388,17 +388,19 @@ const ConversationList = memo(function ConversationList({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="p-3 border-b border-gray-200 sticky top-0 z-10 bg-white">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-start items-center ">
+   
         <SearchBar
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
               placeHolder="Search conversations"
           
             />
+       
           
           <button
             onClick={() => setIsNewConversationModalOpen(true)}
-            className="ml-2 px-2 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className=" mr-10 ml-2 px-2 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <MessageSquarePlus className="h-5 w-5" />
           </button>

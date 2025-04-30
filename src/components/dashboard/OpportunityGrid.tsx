@@ -186,9 +186,9 @@ export default function OpportunityGrid({
       onDragEnd={handleDragEnd}
     >
       <div className="w-full h-full">
-        <div className="overflow-hidden">
-          <div className="overflow-x-auto pb-2">
-            <div className="flex space-x-6 min-w-max px-1">
+        <div className="h-full overflow-hidden">
+          <div className="h-full overflow-x-auto" style={{ maxWidth: '100%' }}>
+            <div className="flex space-x-4 min-w-max px-1 pb-3 h-full" style={{ maxWidth: 'fit-content' }}>
               {opportunities.map((stage) => (
                 <div
                   key={stage.id}
@@ -210,39 +210,37 @@ export default function OpportunityGrid({
                     </button>
                   </div>
                   
-                  <DroppableStage
+                  <div
                     id={stage.id}
-                    isEmpty={getProcessedOpportunities(stage.id).length === 0}
+                    className="overflow-y-auto max-h-[calc(100vh-200px)] mt-4" 
                   >
-                    <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
-                      <SortableContext items={getProcessedOpportunities(stage.id).map(opp => opp.id)} strategy={rectSortingStrategy}>
-                        {getProcessedOpportunities(stage.id).map((opportunity) => (
-                          <SortableOpportunityCard
-                            key={opportunity.id}
-                            opportunity={opportunity}
-                            handleCommunication={handleCommunication}
-                            handleEditOpportunity={handleEditOpportunity}
-                            isLoading={loadingOpportunityId === opportunity.id}
-                          />
-                        ))}
-                      </SortableContext>
-                      {getProcessedOpportunities(stage.id).length === 0 && (
-                        <div className="bg-white rounded-lg border border-gray-200 mt-4 mx-2 flex items-center justify-center min-h-[80px] text-gray-500 font-semibold text-base">
-                          No Data.
+                    <SortableContext items={getProcessedOpportunities(stage.id).map(opp => opp.id)} strategy={rectSortingStrategy}>
+                      {getProcessedOpportunities(stage.id).map((opportunity) => (
+                        <SortableOpportunityCard
+                          key={opportunity.id}
+                          opportunity={opportunity}
+                          handleCommunication={handleCommunication}
+                          handleEditOpportunity={handleEditOpportunity}
+                          isLoading={loadingOpportunityId === opportunity.id}
+                        />
+                      ))}
+                    </SortableContext>
+                    {getProcessedOpportunities(stage.id).length === 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200 mt-4 mx-2 flex items-center justify-center min-h-[80px] text-gray-500 font-semibold text-base">
+                        No Data.
+                      </div>
+                    )}
+                    <div id={`load-more-${stage.id}`} className="h-10">
+                      {loadingStates?.[stage.id] && pagination?.[stage.id]?.hasMore && (
+                        <div className="text-center text-gray-500 py-2">
+                          <div className="inline-flex items-center space-x-2">
+                            <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
+                            <span className="text-sm">Loading more...</span>
+                          </div>
                         </div>
                       )}
-                      <div id={`load-more-${stage.id}`} className="h-10">
-                        {loadingStates?.[stage.id] && pagination?.[stage.id]?.hasMore && (
-                          <div className="text-center text-gray-500 py-2">
-                            <div className="inline-flex items-center space-x-2">
-                              <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
-                              <span className="text-sm">Loading more...</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
                     </div>
-                  </DroppableStage>
+                  </div>
                 </div>
               ))}
             </div>
