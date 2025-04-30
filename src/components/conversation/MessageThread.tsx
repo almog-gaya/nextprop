@@ -218,7 +218,7 @@ export default function MessageThread({
 
     const conversationType = getConversationAppropriateType(getConvoType(activeConversation!)!);
     return (
-        <div className="flex flex-col h-full relative">
+        <div className="flex flex-col h-full">
             <div className="border-b border-gray-200 p-3 sticky top-0 z-10 bg-white">
                 <div className="flex items-center">
                     <div className="md:hidden mr-2">
@@ -247,165 +247,49 @@ export default function MessageThread({
                             disabled={loading || refreshing}
                             tooltip="Refresh messages"
                         />
-                        {/* <IconButton
-                            icon={<Phone size={20} className="text-gray-600" />}
-                            onClick={handleCall}
-                            tooltip="Call contact"
-                        /> */}
-                        <IconButton 
-                            icon={<StickyNote size={20} className={isNoteSidebarOpen ? 'text-purple-600' : 'text-gray-600'} />}
-                            onClick={() => setIsNoteSidebarOpen(true)}
-                            tooltip="Contact notes"
-                            className={isNoteSidebarOpen ? 'bg-purple-100 text-purple-600' : ''}
-                        />
-                        {/* <IconButton 
-                            icon={<MoreVertical size={20} className="text-gray-600" />}
-                            tooltip="More options"
-                        /> */}
                     </div>
                 </div>
-            </div> 
-
-            <div className="flex-grow overflow-y-auto p-4 relative">
-                {hasMore && (
-                    <div className="flex justify-center mb-4">
-                        <button
-                            onClick={() => onLoadMore()}
-                            className="bg-white text-purple-600 px-4 py-2 rounded-full border border-blue-300 text-sm font-medium hover:bg-blue-50 transition-colors"
-                            disabled={loading}
-                        >
-                            {loading ? 'Loading...' : 'Load earlier messages'}
-                        </button>
-                    </div>
-                )}
-
-                {loading && messages.length === 0 ? (
-                    renderSkeletonLoader()
-                ) : messages && messages.length > 0 ? (
-                    messages.map((message: Message) => (
-                        <div
-                            key={message.id}
-                            className={`flex mb-4 ${message.activity
-                                ? 'w-full px-4'
-                                : (message.direction
-                                    ? message.direction === 'outbound'
-                                    : message.meta?.email?.direction === 'outbound')
-                                    ? 'justify-end'
-                                    : 'justify-start'
-                                }`}
-                        >
-                            {getMessageRenderer(message, handleRetrySendMessage)}
-                        </div>
-                    ))
-                ) : (
-                    <div className="flex flex-col h-full items-center justify-center text-gray-500">
-                        <div className="text-center p-4">
-                            {loading ? (
-                                <p>Loading messages...</p>
-                            ) : activeConversation ? (
-                                <p>No messages in this conversation yet. Send a message to start olas.</p>
-                            ) : (
-                                <p>Select a conversation to view messages.</p>
-                            )}
-                        </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
             </div>
-
-            <div className="border-t border-gray-200 p-3 bg-white">
-                <div className="space-y-2">
-                    {conversationType === 'SMS' && (
-                        <div className="flex justify-between text-sm text-gray-600">
-                            <div className="relative">
-                                <span className="font-medium">From:</span>{' '}
-                                {!phoneNumbers || phoneNumbers.length === 0 ? (
-                                    <span className="text-red-500">No numbers available</span>
-                                ) : phoneNumbers.length === 1 ? (
-                                    <span>{formatPhoneNumber(phoneNumbers[0].phoneNumber)}</span>
-                                ) : (
-                                    <div className="inline-block">
-                                        <button
-                                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                            className="flex items-center space-x-1 hover:text-purple-600"
-                                        >
-                                            <span>{formatPhoneNumber(selectedNumber || '')}</span>
-                                            <ChevronDown size={16} />
-                                        </button>
-                                        {isDropdownOpen && (
-                                            <div className="absolute left-0 mb-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 bottom-full">
-                                                {phoneNumbers.map((number: PhoneNumber) => (
-                                                    <button
-                                                        key={number.phoneNumber}
-                                                        onClick={() => {
-                                                            onNumberSelect?.(number.phoneNumber);
-                                                            setIsDropdownOpen(false);
-                                                        }}
-                                                        className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                                                    >
-                                                        {formatPhoneNumber(number.phoneNumber)}
-                                                        {number.isDefaultNumber && (
-                                                            <span className="ml-2 text-xs text-gray-500">(Default)</span>
-                                                        )}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+            <div className="flex-1 overflow-y-auto h-[calc(100vh-180px)]">
+                {loading ? renderSkeletonLoader() : (
+                    <div className="p-4 space-y-4">
+                        {hasMore && (
+                            <div className="flex justify-center mb-4">
+                                <button
+                                    onClick={() => onLoadMore()}
+                                    className="bg-white text-purple-600 px-4 py-2 rounded-full border border-purple-300 text-sm font-medium hover:bg-purple-50 transition-colors"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Loading...' : 'Load earlier messages'}
+                                </button>
                             </div>
-                            <div>
-                                <span className="font-medium">To:</span>{' '}
-                                {activeConversation.phone || 'Unknown Contact'}
+                        )}
+                        {messages.map((message) => (
+                            <div key={message.id}>
+                                {getMessageRenderer(message, handleRetrySendMessage)}
                             </div>
-                        </div>
-                    )}
-
-                    <div className="flex items-end">
-                        <div className="relative flex-grow">
-                            <textarea
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none min-h-[80px] max-h-[160px]"
-                                placeholder="Type a message..."
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                disabled={sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)}
-                            />
-                            <button
-                                onClick={() => setIsTemplatesOpen(true)}
-                                className="absolute bottom-2 right-2 text-gray-400 hover:text-purple-600 p-1 rounded-full hover:bg-gray-100"
-                                title="Use message template"
-                            >
-                                <FileText size={18} />
-                            </button>
-                        </div>
-                        <button
-                            onClick={handleSend}
-                            disabled={!newMessage.trim() || sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)}
-                            className={`ml-2 p-3 rounded-full flex items-center justify-center ${!newMessage.trim() || sendingStatus === 'sending' || (conversationType === 'SMS' && !selectedNumber)
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : 'bg-purple-600 text-white hover:bg-blue-700'
-                                }`}
-                        >
-                            {sendingStatus === 'sending' ? (
-                                <div className="w-5 h-5 border-2 border-t-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                <Send size={18} className={!newMessage.trim() ? 'text-gray-400' : 'text-white'} />
-                            )}
-                        </button>
+                        ))}
+                        <div ref={messagesEndRef} />
                     </div>
-
-                    {sendingStatus === 'success' && (
-                        <div className="mt-1 text-xs text-green-600 flex items-center">
-                            <CheckCircle size={12} className="mr-1" /> Message sent successfully
-                        </div>
-                    )}
-                    {((sendingStatus === 'error') || errorMessage) && (
-                        <div className="mt-1 text-xs text-red-600 flex items-center">
-                            <AlertCircle size={12} className="mr-1" />
-                            {errorMessage || 'Failed to send message. Please try again.'}
-                        </div>
-                    )}
+                )}
+            </div>
+            <div className="border-t border-gray-200 p-3 sticky bottom-0 z-10 bg-white">
+                <div className="flex items-center space-x-2">
+                    <textarea
+                        className="flex-1 min-h-[40px] max-h-[120px] p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder={`Type your ${conversationType} message...`}
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        rows={1}
+                    />
+                    <button
+                        className="p-2 rounded-full bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        onClick={handleSend}
+                        disabled={!newMessage.trim() || sendingStatus === 'sending'}
+                    >
+                        <Send size={20} />
+                    </button>
                 </div>
             </div>
 
