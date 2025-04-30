@@ -607,109 +607,172 @@ export default function ContactsPage() {
         onClick={() => (isEdit ? setIsEditModalOpen(false) : setIsAddModalOpen(false))}
       >
         <div
-          className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
+          className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-auto p-4"
           onClick={e => e.stopPropagation()}
         >
-          <button
-            onClick={() => {
-              if (isEdit) {
-                setIsEditModalOpen(false);
-              } else {
-                setIsAddModalOpen(false);
-                setNewContact({
-                  id: '',
-                  name: '',
-                  firstName: '',
-                  lastName: '',
-                  locationId: user?.locationId || '',
-                  email: '',
-                  phone: '',
-                  tags: [],
-                  timezone: '',
-                  dnd: false,
-                  customFields: {},
-                  source: '',
-                  postalCode: '',
-                  city: '',
-                  state: '',
-                  country: 'US',
-                  address1: '',
-                });
-              }
-            }}
-            className="absolute top-4 right-4 w-6 h-6 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <h3 className="text-xl font-semibold mb-2 text-gray-900">{isEdit ? 'Edit Contact' : 'Add New Contact'}</h3>
-          <p className="text-sm text-gray-600 mb-6">{isEdit ? 'Update contact details below' : 'Create a new contact'}</p>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-5">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">{isEdit ? 'Edit Contact' : 'Add New Contact'}</h3>
+              <p className="text-xs text-gray-600">{isEdit ? 'Update contact details below' : 'Create a new contact'}</p>
+            </div>
+            <button
+              onClick={() => {
+                if (isEdit) {
+                  setIsEditModalOpen(false);
+                } else {
+                  setIsAddModalOpen(false);
+                  setNewContact({
+                    id: '',
+                    name: '',
+                    firstName: '',
+                    lastName: '',
+                    locationId: user?.locationId || '',
+                    email: '',
+                    phone: '',
+                    tags: [],
+                    timezone: '',
+                    dnd: false,
+                    customFields: {},
+                    source: '',
+                    postalCode: '',
+                    city: '',
+                    state: '',
+                    country: 'US',
+                    address1: '',
+                  });
+                }
+              }}
+              className="w-6 h-6 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Name Fields */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                  <div className='border border-gray-200 rounded-md'>
-                    <input
-                      type="text"
-                      value={formData.firstName || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                      disabled={isSubmitting}
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">First Name</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="text"
+                    value={formData.firstName || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                  <div className='border border-gray-200 rounded-md'>
-                    <input
-                      type="text"
-                      value={formData.lastName || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                      disabled={isSubmitting}
-                    />
-                  </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Last Name</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="text"
+                    value={formData.lastName || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
                 </div>
               </div>
 
               {/* Contact Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <div className='border border-gray-200 rounded-md'>
-                    <input
-                      type="email"
-                      value={formData.email || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <div className='border border-gray-200 rounded-md'>
-                    <input
-                      type="tel"
-                      value={formData.phone || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                      disabled={isSubmitting}
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Email</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="email"
+                    value={formData.email || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
                 </div>
               </div>
-              {/* Timezone and DND */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Phone</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="tel"
+                    value={formData.phone || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Address Fields */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Address Line 1</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="text"
+                    value={formData.address1 || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, address1: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">City</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="text"
+                    value={formData.city || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">State</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="text"
+                    value={formData.state || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Postal Code</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="text"
+                    value={formData.postalCode || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Country</label>
+                <div className='border border-gray-200 rounded-md'>
+                  <input
+                    type="text"
+                    value={formData.country || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              {/* Timezone and DND */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Timezone</label>
                 <div className='border border-gray-200 rounded-md'>
                   <select
                     value={formData.timezone || ''}
                     onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                    className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                     disabled={isSubmitting}
                   >
                     <option value="">Select Timezone</option>
@@ -721,8 +784,8 @@ export default function ContactsPage() {
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="flex items-center text-sm font-medium text-gray-700 mb-1">
+              <div className="sm:col-span-2">
+                <label className="flex items-center text-xs font-medium text-gray-700">
                   <input
                     type="checkbox"
                     checked={formData.dnd}
@@ -734,80 +797,15 @@ export default function ContactsPage() {
                 </label>
               </div>
 
-              {/* Address Fields */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
-                <div className='border border-gray-200 rounded-md'>
-                  <input
-                    type="text"
-                    value={formData.address1 || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, address1: e.target.value }))}
-                    className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                  <div className='border border-gray-200 rounded-md'>
-                    <input
-                      type="text"
-                      value={formData.city || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                      className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                  <div className='border border-gray-200 rounded-md'>
-                    <input
-                      type="text"
-                      value={formData.state || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                      className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-                  <div className='border border-gray-200 rounded-md'>
-                    <input
-                      type="text"
-                      value={formData.postalCode || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
-                      className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                  <div className='border border-gray-200 rounded-md'>
-                    <input
-                      type="text"
-                      value={formData.country || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                      className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+              {/* Source */}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Source</label>
                 <div className='border border-gray-200 rounded-md'>
                   <input
                     type="text"
                     value={formData.source || ''}
                     onChange={e => setFormData(prev => ({ ...prev, source: e.target.value }))}
-                    className="w-full rounded-md p-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                    className="w-full rounded-md p-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -820,8 +818,8 @@ export default function ContactsPage() {
                     ? formData.customFields[field.fieldKey] || (field.dataType === 'CHECKBOX' ? [] : '')
                     : field.dataType === 'CHECKBOX' ? [] : '';
                 return (
-                  <div key={field.id}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{field.name}</label>
+                  <div key={field.id} className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">{field.name}</label>
                     {renderCustomFieldInput(field, customFieldValue, value => {
                       const updatedCustomFields = {
                         ...(formData.customFields || {}),
@@ -833,18 +831,18 @@ export default function ContactsPage() {
                 );
               })}
             </div>
-            <div className="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-2 pt-3 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => (isEdit ? setIsEditModalOpen(false) : setIsAddModalOpen(false))}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
                 disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm disabled:opacity-50"
+                className="px-3 py-1.5 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm disabled:opacity-50"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Saving...' : isEdit ? 'Update Contact' : 'Add Contact'}
@@ -1470,8 +1468,8 @@ export default function ContactsPage() {
 
   return (
     <DashboardLayout title="Contacts">
-      <div className="dashboard-card">
-        <div className="flex justify-between items-center mb-6">
+      <div className="dashboard-card h-[calc(100vh-4rem)] flex flex-col">
+        <div className="flex justify-between items-center mb-2">
           <h2 className="dashboard-card-title">All Contacts</h2>
           <div className="flex space-x-3">
             <ColumnManager />
@@ -1495,46 +1493,26 @@ export default function ContactsPage() {
           </div>
         </div>
 
-        {/* Search Input Moved Here */}
-        <div className="mb-6">
-          <div className="relative">
-            <div className="mb-6">
-              <div className="relative border border-gray-300 rounded-md ">
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSearchQuery(value);
-
-                    // Clear previous timeout
-                    if (searchTimeoutRef.current) {
-                      clearTimeout(searchTimeoutRef.current);
-                    }
-
-                    // Set new timeout
-                    searchTimeoutRef.current = setTimeout(() => {
-                      searchContactsByName(value);
-                    }, 300);
-                  }}
-                  placeholder="Search contacts by name..."
-                  className="w-full px-4 py-2 pl-10 rounded-md focus:ring-purple-500 focus:border-purple-500"
-                  disabled={isSearching}
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  {isSearching ? (
-                    <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-            </div>
+        {/* Search Input */}
+        <div className="mb-2">
+          <div className="relative border border-gray-300 rounded-md">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchQuery(value);
+                if (searchTimeoutRef.current) {
+                  clearTimeout(searchTimeoutRef.current);
+                }
+                searchTimeoutRef.current = setTimeout(() => {
+                  searchContactsByName(value);
+                }, 300);
+              }}
+              placeholder="Search contacts by name..."
+              className="w-full px-4 py-2 pl-10 rounded-md focus:ring-purple-500 focus:border-purple-500"
+              disabled={isSearching}
+            />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               {isSearching ? (
                 <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24">
@@ -1586,6 +1564,7 @@ export default function ContactsPage() {
             </div>
           </div>
         )}
+
         {isBulkDeleteModalOpen && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
@@ -1618,6 +1597,7 @@ export default function ContactsPage() {
             </div>
           </div>
         )}
+
         <BulkAddToPipelineStage
           contacts={selectedContacts}
           isOpen={isBulkAddOpportunities}
@@ -1629,7 +1609,9 @@ export default function ContactsPage() {
           }}
           isSubmitting={isSubmitting}
         />
+
         {isVerifyModalOpen && <PhoneLookupModal />}
+
         {isBulkUploadModalOpen && (
           <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
@@ -1659,9 +1641,7 @@ export default function ContactsPage() {
           >
             <div
               className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6"
-              onClick={e => {
-                return e.stopPropagation();
-              }}
+              onClick={e => e.stopPropagation()}
             >
               <h3 className="text-xl font-semibold mb-2 text-gray-900">Send Bulk Message</h3>
               <p className="text-sm text-gray-600 mb-6">
@@ -1785,49 +1765,51 @@ export default function ContactsPage() {
         )}
 
         {isLoading ? (
-          <div className="relative max-w-full overflow-x-auto">
-            <table className="w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
-                    <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-                  </th>
-                  {columns.filter(col => col.visible).map(column => (
-                    <th
-                      key={column.id}
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Array(5).fill(0).map((_, idx) => (
-                  <tr key={idx}>
-                    <td className="pl-4 pr-3 py-4 whitespace-nowrap">
+          <div className="flex-1 overflow-hidden">
+            <div className="relative h-full overflow-x-auto">
+              <table className="w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
                       <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-                    </td>
+                    </th>
                     {columns.filter(col => col.visible).map(column => (
-                      <td key={column.id} className="px-4 py-4">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                      </td>
+                      <th
+                        key={column.id}
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        {column.label}
+                      </th>
                     ))}
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-                    </td>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {Array(5).fill(0).map((_, idx) => (
+                    <tr key={idx}>
+                      <td className="pl-4 pr-3 py-4 whitespace-nowrap">
+                        <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                      </td>
+                      {columns.filter(col => col.visible).map(column => (
+                        <td key={column.id} className="px-4 py-4">
+                          <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                        </td>
+                      ))}
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : error ? (
           <div className="bg-red-50 p-4 rounded-md text-red-800">{error}</div>
         ) : contacts.length > 0 ? (
-          <div>
+          <div className="flex-1 flex flex-col overflow-hidden">
             {selectedContacts.length > 0 && (
-              <div className="mb-4 flex items-center justify-between bg-purple-50 p-3 rounded-md border border-purple-100">
+              <div className="mb-2 flex items-center justify-between bg-purple-50 p-3 rounded-md border border-purple-100">
                 <span className="text-sm text-purple-800">
                   <span className="font-semibold">{selectedContacts.length}</span> contacts selected
                 </span>
@@ -1854,71 +1836,75 @@ export default function ContactsPage() {
                 </div>
               </div>
             )}
-            <div className="relative max-w-full overflow-x-auto">
-              <table className="w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr>
-                    <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
-                      <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                      />
-                    </th>
-                    {columns.filter(col => col.visible).map(column => (
-                      <th
-                        key={column.id}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        {column.label}
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {contacts.map((contact: Contact) => (
-                    <tr key={contact.id} className="hover:bg-gray-50">
-                      <td className="pl-4 pr-3 py-4 whitespace-nowrap">
+            <div className="flex-1 overflow-hidden">
+              <div className="relative h-full overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
                         <input
                           type="checkbox"
-                          checked={selectedContacts.includes(contact)}
-                          onChange={() => toggleSelectContact(contact)}
+                          checked={isAllSelected}
+                          onChange={toggleSelectAll}
                           className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                         />
-                      </td>
+                      </th>
                       {columns.filter(col => col.visible).map(column => (
-                        <td key={column.id} className="px-4 py-4 truncate max-w-[200px]">
-                          {renderCell(column, contact)}
-                        </td>
+                        <th
+                          key={column.id}
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          {column.label}
+                        </th>
                       ))}
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-3">
-                          <IconButton
-                            icon={<ChatBubbleLeftRightIcon className="h-5 w-5" />}
-                            onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
-                            tooltip="Message this contact"
-                          />
-                          <IconButton
-                            icon={<PencilIcon className="h-5 w-5" />}
-                            onClick={() => handleEdit(contact)}
-                            tooltip="Edit contact"
-                          />
-                          <IconButton
-                            icon={<TrashIcon className="h-5 w-5" />}
-                            onClick={() => handleDelete(contact)}
-                            tooltip="Delete contact"
-                            variant="destructive"
-                          />
-                        </div>
-                      </td>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {contacts.map((contact: Contact) => (
+                      <tr key={contact.id} className="hover:bg-gray-50">
+                        <td className="pl-4 pr-3 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedContacts.includes(contact)}
+                            onChange={() => toggleSelectContact(contact)}
+                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          />
+                        </td>
+                        {columns.filter(col => col.visible).map(column => (
+                          <td key={column.id} className="px-4 py-4 truncate max-w-[200px]">
+                            {renderCell(column, contact)}
+                          </td>
+                        ))}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center space-x-3">
+                            <IconButton
+                              icon={<ChatBubbleLeftRightIcon className="h-5 w-5" />}
+                              onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
+                              tooltip="Message this contact"
+                            />
+                            <IconButton
+                              icon={<PencilIcon className="h-5 w-5" />}
+                              onClick={() => handleEdit(contact)}
+                              tooltip="Edit contact"
+                            />
+                            <IconButton
+                              icon={<TrashIcon className="h-5 w-5" />}
+                              onClick={() => handleDelete(contact)}
+                              tooltip="Delete contact"
+                              variant="destructive"
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <PaginationControls />
+            <div className="mt-auto">
+              <PaginationControls />
+            </div>
           </div>
         ) : (
           <p className="text-gray-500">
