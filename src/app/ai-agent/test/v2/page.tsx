@@ -5,7 +5,10 @@ import { PaperAirplaneIcon, PlusIcon, TrashIcon, ArrowPathIcon, ClipboardIcon, C
 import { ref, uploadString } from 'firebase/storage';
 import { storage, db } from '@/lib/firebaseConfig';
 import toast from 'react-hot-toast';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getDocs } from 'firebase/firestore';
+import { getMultiAgentConfig, saveMultiAgentConfig } from '@/lib/ai-agent';
+import type { MultiAgentConfig, AIAgentConfig } from '@/types/ai-agent';
+import { collection } from 'firebase/firestore';
 
 interface Message {
   id: string;
@@ -153,7 +156,9 @@ const DEFAULT_OPENAI_SETTINGS: OpenAISettings = {
 
 export default function AIAgentTestV2() {
   const [formData, setFormData] = useState<TestForm>({
-    ...SAMPLE_CONVERSATIONS['Terms Discussion'],
+    locationId: '',
+    message: '',
+    history: [],
     config: { ...DEFAULT_CONFIG }
   });
   const [response, setResponse] = useState<string>('');
@@ -164,7 +169,7 @@ export default function AIAgentTestV2() {
   const [responseHistory, setResponseHistory] = useState<Array<{ response: string, timestamp: string }>>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
   const [savedConversations, setSavedConversations] = useState<SavedConversation[]>([]);
   const [showSavedConversations, setShowSavedConversations] = useState(false);
@@ -182,6 +187,16 @@ export default function AIAgentTestV2() {
   const [jsContent, setJsContent] = useState<string>('');
   const [jsSaving, setJsSaving] = useState(false);
   const PROMPT_FILE_PATH = 'js/prompt.js';
+
+  // Multi-agent config state (must be inside the component)
+  const [multiAgentConfig, setMultiAgentConfig] = useState<MultiAgentConfig | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | undefined>(undefined);
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentSaving, setAgentSaving] = useState(false);
+
+  // Add a new state for available locationIds
+  const [availableLocations, setAvailableLocations] = useState<Array<{id: string, name: string}>>([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
 
   // Load OpenAI settings from Firestore
   const loadOpenAISettings = async () => {
@@ -213,18 +228,21 @@ export default function AIAgentTestV2() {
         setOpenAISettings(mappedSettings);
         
         // Also update the form data to use these settings
-        setFormData(prev => ({
-          ...prev,
-          config: {
-            ...prev.config,
-            model: mappedSettings.model || prev.config.model,
-            temperature: mappedSettings.temperature || prev.config.temperature,
-            maxTokens: mappedSettings.maxTokens || prev.config.maxTokens,
-            topP: mappedSettings.topP || prev.config.topP,
-            frequencyPenalty: mappedSettings.frequencyPenalty || prev.config.frequencyPenalty,
-            presencePenalty: mappedSettings.presencePenalty || prev.config.presencePenalty
-          }
-        }));
+        setFormData(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            config: {
+              ...prev.config,
+              model: mappedSettings.model || prev.config.model || DEFAULT_CONFIG.model,
+              temperature: mappedSettings.temperature || prev.config.temperature || DEFAULT_CONFIG.temperature,
+              maxTokens: mappedSettings.maxTokens || prev.config.maxTokens || DEFAULT_CONFIG.maxTokens,
+              topP: mappedSettings.topP || prev.config.topP || DEFAULT_CONFIG.topP,
+              frequencyPenalty: mappedSettings.frequencyPenalty || prev.config.frequencyPenalty || DEFAULT_CONFIG.frequencyPenalty,
+              presencePenalty: mappedSettings.presencePenalty || prev.config.presencePenalty || DEFAULT_CONFIG.presencePenalty
+            }
+          };
+        });
         
         toast.success('OpenAI settings loaded successfully');
       } else {
@@ -333,41 +351,37 @@ export default function AIAgentTestV2() {
     }
   }, []);
 
+  // Block all actions until config is loaded from Firestore
+  const configLoaded = multiAgentConfig && selectedAgentId && multiAgentConfig.agents[selectedAgentId];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!configLoaded) return;
     setLoading(true);
     setError(null);
 
-    // Add the current user message to the conversation history first
-    if (formData.message.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        history: [...prev.history, {
-          id: Date.now().toString(),
-          isUser: true,
-          text: formData.message,
-          timestamp: new Date().toISOString()
-        }]
-      }));
+    // Get the selected agent config from multiAgentConfig
+    const agentConfig = multiAgentConfig?.agents[selectedAgentId || ''];
+    if (!agentConfig) {
+      setError('No agent config loaded from Firestore.');
+      setLoading(false);
+      return;
     }
 
-    // Apply latest OpenAI settings to the request
-    const requestWithSettings = {
-      ...formData,
-      config: {
-        ...formData.config,
-        model: openAISettings.model,
-        temperature: openAISettings.temperature,
-        maxTokens: openAISettings.maxTokens,
-        topP: openAISettings.topP,
-        frequencyPenalty: openAISettings.frequencyPenalty,
-        presencePenalty: openAISettings.presencePenalty
-      },
-      history: formData.history.map(({ id, timestamp, ...rest }) => rest)
+    // Use a local message state for the test message
+    const message = formData && formData.message ? formData.message : '';
+    const history = formData && formData.history ? formData.history : [];
+
+    const requestPayload = {
+      locationId: formData ? formData.locationId : '',
+      agentId: selectedAgentId,
+      agentConfig,
+      message,
+      history: history.map(({ id, timestamp, ...rest }) => rest)
     };
 
     // Log the request payload for debugging
-    console.log('Sending request with payload:', requestWithSettings);
+    console.log('Sending request with payload:', requestPayload);
 
     try {
       const res = await fetch('/api/chatai', {
@@ -375,7 +389,7 @@ export default function AIAgentTestV2() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestWithSettings),
+        body: JSON.stringify(requestPayload),
       });
 
       // Log the response status and headers for debugging
@@ -385,8 +399,6 @@ export default function AIAgentTestV2() {
       if (!res.ok) {
         const errorText = await res.text();
         console.error('Error response:', errorText);
-        
-        // Try to parse the error as JSON first, fallback to plain text if it fails
         let errorMessage;
         try {
           const errorJson = JSON.parse(errorText);
@@ -400,7 +412,6 @@ export default function AIAgentTestV2() {
         } catch (e) {
           errorMessage = `HTTP error! status: ${res.status}, message: ${errorText}`;
         }
-        
         throw new Error(errorMessage);
       }
 
@@ -430,18 +441,16 @@ export default function AIAgentTestV2() {
         });
       }
       // Add response to conversation
-      if (data.message) {
-        setFormData(prev => ({
-          ...prev,
-          history: [...prev.history, {
-            id: Date.now().toString(),
-            isUser: false,
-            text: data.message,
-            timestamp: new Date().toISOString()
-          }],
-          message: '' // Clear the input field after sending
-        }));
-      }
+      setFormData(prev => ({
+        ...prev,
+        history: [...prev.history, {
+          id: Date.now().toString(),
+          isUser: false,
+          text: data.message,
+          timestamp: new Date().toISOString()
+        }],
+        message: ''
+      }));
     } catch (error) {
       console.error('Full error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
@@ -453,18 +462,24 @@ export default function AIAgentTestV2() {
   };
 
   const addMessage = () => {
-    setFormData(prev => ({
-      ...prev,
-      history: [...prev.history, {
-        id: Date.now().toString(),
-        isUser: true,
-        text: '',
-        timestamp: new Date().toISOString()
-      }]
-    }));
+    setFormData(prev => {
+      if (!prev) return prev;
+      return {
+        locationId: prev.locationId,
+        message: prev.message,
+        history: [...prev.history, {
+          id: Date.now().toString(),
+          isUser: true,
+          text: '',
+          timestamp: new Date().toISOString()
+        }],
+        config: prev.config
+      };
+    });
   };
 
   const updateMessage = (index: number, newText: string, isUser: boolean) => {
+    if (!formData) return;
     const newHistory = [...formData.history];
     newHistory[index] = {
       ...newHistory[index],
@@ -472,14 +487,27 @@ export default function AIAgentTestV2() {
       text: newText,
       timestamp: new Date().toISOString()
     };
-    setFormData(prev => ({ ...prev, history: newHistory }));
+    setFormData(prev => {
+      if (!prev) return prev;
+      return {
+        locationId: prev.locationId,
+        message: prev.message,
+        history: newHistory,
+        config: prev.config
+      };
+    });
   };
 
   const removeMessage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      history: prev.history.filter((_, i) => i !== index)
-    }));
+    setFormData(prev => {
+      if (!prev) return prev;
+      return {
+        locationId: prev.locationId,
+        message: prev.message,
+        history: prev.history.filter((_, i) => i !== index),
+        config: prev.config
+      };
+    });
   };
 
   const handleTemplateChange = (template: ConversationTemplate) => {
@@ -498,7 +526,12 @@ export default function AIAgentTestV2() {
     const newSavedConversation: SavedConversation = {
       id: Date.now().toString(),
       name: currentConversationName,
-      form: formData,
+      form: formData || {
+        locationId: '',
+        message: '',
+        history: [],
+        config: DEFAULT_CONFIG
+      },
       createdAt: new Date()
     };
 
@@ -522,13 +555,18 @@ export default function AIAgentTestV2() {
   const updateConfig = (key: 'temperature' | 'maxTokens' | 'model' | 'topP' | 'frequencyPenalty' | 'presencePenalty' |
     'tone' | 'length' | 'agentName' | 'companyName' | 'speakingOnBehalfOf' |
     'contactPhone' | 'contactEmail' | 'companyWebsite' | 'dealObjective' | 'buyingCriteria' | 'customInstructions', value: number | string) => {
-    setFormData(prev => ({
-      ...prev,
-      config: {
-        ...prev.config,
-        [key]: value
-      }
-    }));
+    setFormData(prev => {
+      if (!prev) return prev;
+      return {
+        locationId: prev.locationId,
+        message: prev.message,
+        history: prev.history,
+        config: {
+          ...prev.config,
+          [key]: value
+        }
+      };
+    });
   };
 
   const copyToClipboard = (text: string) => {
@@ -538,35 +576,135 @@ export default function AIAgentTestV2() {
   };
 
   const duplicateMessage = (index: number) => {
+    if (!formData) return;
     const message = formData.history[index];
-    setFormData(prev => ({
-      ...prev,
-      history: [
-        ...prev.history.slice(0, index + 1),
-        { ...message, id: Date.now().toString(), timestamp: new Date().toISOString() },
-        ...prev.history.slice(index + 1)
-      ]
-    }));
+    setFormData(prev => {
+      if (!prev) return prev;
+      return {
+        locationId: prev.locationId,
+        message: prev.message,
+        history: [
+          ...prev.history.slice(0, index + 1),
+          { ...message, id: Date.now().toString(), timestamp: new Date().toISOString() },
+          ...prev.history.slice(index + 1)
+        ],
+        config: prev.config
+      };
+    });
   };
 
   const moveMessage = (index: number, direction: 'up' | 'down') => {
+    if (!formData) return;
     if ((direction === 'up' && index === 0) ||
       (direction === 'down' && index === formData.history.length - 1)) return;
-
     const newHistory = [...formData.history];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     [newHistory[index], newHistory[newIndex]] = [newHistory[newIndex], newHistory[index]];
-    setFormData(prev => ({ ...prev, history: newHistory }));
+    setFormData(prev => {
+      if (!prev) return prev;
+      return {
+        locationId: prev.locationId,
+        message: prev.message,
+        history: newHistory,
+        config: prev.config
+      };
+    });
   };
 
   const containerClasses = isFullscreen
-    ? "fixed inset-0 z-50 bg-white overflow-auto"
+    ? "fixed inset-0 z-50 bg-white flex flex-col h-screen"
     : "min-h-screen bg-gradient-to-br from-gray-50 to-gray-100";
+
+  // Load multi-agent config when locationId changes
+  useEffect(() => {
+    if (!formData) return;
+    if (!formData.locationId) return;
+    setAgentLoading(true);
+    getMultiAgentConfig(formData.locationId)
+      .then(config => {
+        setMultiAgentConfig(config);
+        setSelectedAgentId(config.activeAgentId || Object.keys(config.agents)[0]);
+      })
+      .catch(err => {
+        toast.error('Failed to load agent config');
+        setMultiAgentConfig(null);
+      })
+      .finally(() => setAgentLoading(false));
+  }, [formData?.locationId]);
+
+  // Handler to update agent config in state
+  const updateAgentField = (key: keyof AIAgentConfig, value: any) => {
+    if (!multiAgentConfig || !selectedAgentId) return;
+    setMultiAgentConfig((prev: MultiAgentConfig | null) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        agents: {
+          ...prev.agents,
+          [selectedAgentId]: {
+            ...prev.agents[selectedAgentId],
+            [key]: value,
+            updatedAt: new Date(),
+          }
+        }
+      };
+    });
+  };
+
+  // Save handler
+  const handleSaveAgentConfig = async () => {
+    if (!multiAgentConfig || !formData) return;
+    if (!formData.locationId) return;
+    setAgentSaving(true);
+    try {
+      await saveMultiAgentConfig(formData.locationId, multiAgentConfig);
+      toast.success('Agent config saved!');
+    } catch (e) {
+      toast.error('Failed to save agent config');
+    } finally {
+      setAgentSaving(false);
+    }
+  };
+
+  // Add a function to load all available configs from Firestore
+  const loadAvailableLocations = async () => {
+    try {
+      setLoadingLocations(true);
+      // Assuming you're storing the multi-agent configs in a 'multi-agent-configs' collection
+      const configsRef = collection(db, 'multi-agent-configs');
+      const snapshot = await getDocs(configsRef);
+      
+      const locations = snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name || doc.id // Use a name field if available, otherwise use ID
+      }));
+      
+      setAvailableLocations(locations);
+      
+      // If we have locations and no locationId is selected, select the first one
+      if (locations.length > 0 && !formData.locationId) {
+        setFormData(prev => ({
+          ...prev,
+          locationId: locations[0].id
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading available locations:', error);
+      toast.error('Failed to load available locations');
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  // Call the function on component mount
+  useEffect(() => {
+    loadAvailableLocations();
+  }, []);
 
   return (
     <div className={containerClasses}>
-      <div className={isFullscreen ? 'h-full' : 'max-w-7xl mx-auto px-4 py-8'}>
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full">
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 flex-1 flex flex-col min-h-0">
           {/* Header */}
           <div className="border-b border-gray-200 bg-gradient-to-r from-blue-600 to-violet-600 px-6 py-4 flex justify-between items-center">
             <div>
@@ -595,7 +733,7 @@ export default function AIAgentTestV2() {
                 {showOpenAISettings ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
               </button>
               <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
+                onClick={() => setIsFullscreen(true)}
                 className="text-white hover:text-blue-100"
               >
                 {isFullscreen ? (
@@ -761,9 +899,9 @@ export default function AIAgentTestV2() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 h-full">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
             {/* Left Panel - Configuration */}
-            <div className="p-6 space-y-6 overflow-auto lg:col-span-2">
+            <div className="p-6 space-y-6 overflow-y-auto min-h-0 lg:col-span-2">
               <div className="flex gap-4">
                 <div className="flex-1 bg-blue-50 rounded-lg p-4 border border-blue-100">
                   <label className="block text-sm font-medium text-blue-900 mb-2">Conversation Template</label>
@@ -807,219 +945,403 @@ export default function AIAgentTestV2() {
                     <h3 className="text-lg font-medium text-gray-900">AI Agent Configuration</h3>
                     <p className="text-sm text-gray-500">Configure how the AI agent behaves and responds</p>
                   </div>
-{/* 
-                  <div className="border-b pb-4 mb-4">
-                    <h4 className="text-sm font-medium text-gray-800 mb-3">Model Settings</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Model</label>
-                        <select
-                          value={formData.config?.model}
-                          onChange={(e) => updateConfig('model', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        >
-                          <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                          <option value="gpt-4">GPT-4</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Temperature</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={formData.config?.temperature}
-                          onChange={(e) => updateConfig('temperature', parseFloat(e.target.value))}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Max Tokens</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="4000"
-                          value={formData.config?.maxTokens}
-                          onChange={(e) => updateConfig('maxTokens', parseInt(e.target.value))}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Top P</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={formData.config?.topP}
-                          onChange={(e) => updateConfig('topP', parseFloat(e.target.value))}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Frequency Penalty</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="2"
-                          step="0.1"
-                          value={formData.config?.frequencyPenalty}
-                          onChange={(e) => updateConfig('frequencyPenalty', parseFloat(e.target.value))}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Presence Penalty</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="2"
-                          step="0.1"
-                          value={formData.config?.presencePenalty}
-                          onChange={(e) => updateConfig('presencePenalty', parseFloat(e.target.value))}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        />
-                      </div>
-                    </div>
-                  </div> */}
 
-                  <div className="border-b pb-4 mb-4">
-                    <h4 className="text-sm font-medium text-gray-800 mb-3">Response Style</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Tone</label>
-                        <select
-                          value={formData.config?.tone || 'friendly'}
-                          onChange={(e) => updateConfig('tone', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        >
-                          <option value="friendly">Friendly</option>
-                          <option value="professional">Professional</option>
-                          <option value="casual">Casual</option>
-                        </select>
+                  {/* Agent selection UI - move here */}
+                  {multiAgentConfig && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Select Agent</label>
+                      <select
+                        value={selectedAgentId}
+                        onChange={e => setSelectedAgentId(e.target.value)}
+                        className="w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      >
+                        {Object.entries(multiAgentConfig.agents).map(([agentId, agent]) => {
+                          const typedAgent = agent as AIAgentConfig;
+                          return (
+                            <option key={agentId} value={agentId}>{typedAgent.name || typedAgent.agentName || agentId}</option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Config fields - bind to selected agent */}
+                  {multiAgentConfig && selectedAgentId && (
+                    <>
+                      <div className="border-b pb-4 mb-4">
+                        <h4 className="text-sm font-medium text-gray-800 mb-3">Response Style</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Tone</label>
+                            <select
+                              value={multiAgentConfig.agents[selectedAgentId]?.tone || 'friendly'}
+                              onChange={e => updateAgentField('tone', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                            >
+                              <option value="friendly">Friendly</option>
+                              <option value="professional">Professional</option>
+                              <option value="casual">Casual</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Length</label>
+                            <select
+                              value={multiAgentConfig.agents[selectedAgentId]?.length || 'medium'}
+                              onChange={e => updateAgentField('length', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                            >
+                              <option value="short">Short</option>
+                              <option value="medium">Medium</option>
+                              <option value="long">Long</option>
+                            </select>
+                          </div>
+                          <div className="col-span-2">
+                            <label className="block text-sm text-gray-700 mb-1">Deal Objective</label>
+                            <select
+                              value={multiAgentConfig.agents[selectedAgentId]?.dealObjective || 'realtor-creative-finance'}
+                              onChange={e => updateAgentField('dealObjective', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                            >
+                              <option value="realtor-off-market">Realtor - Off Market</option>
+                              <option value="realtor-short-sale">Realtor - Short Sale</option>
+                              <option value="realtor-creative-finance">Realtor - Creative Finance</option>
+                              <option value="realtor-cash-buyers">Realtor - Cash Buyers</option>
+                              <option value="homeowner-cash-offer">Homeowner - Cash Offer</option>
+                              <option value="homeowner-distressed">Homeowner - Distressed</option>
+                              <option value="homeowner-quick-sale">Homeowner - Quick Sale</option>
+                              <option value="homeowner-relocation">Homeowner - Relocation</option>
+                            </select>
+                          </div>
+                          <div className="col-span-2 mt-2">
+                            <label className="block text-sm text-gray-700 mb-1">Buying Criteria</label>
+                            <textarea
+                              value={multiAgentConfig.agents[selectedAgentId]?.buyingCriteria || ''}
+                              onChange={e => updateAgentField('buyingCriteria', e.target.value)}
+                              rows={3}
+                              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                              placeholder="Describe your property buying criteria..."
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Length</label>
-                        <select
-                          value={formData.config?.length || 'medium'}
-                          onChange={(e) => updateConfig('length', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        >
-                          <option value="short">Short</option>
-                          <option value="medium">Medium</option>
-                          <option value="long">Long</option>
-                        </select>
+
+                      <div className="border-b pb-4 mb-4">
+                        <h4 className="text-sm font-medium text-gray-800 mb-3">Agent Identity</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Agent Name</label>
+                            <input
+                              type="text"
+                              value={multiAgentConfig.agents[selectedAgentId]?.agentName || ''}
+                              onChange={e => updateAgentField('agentName', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="Jane Smith"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Company Name</label>
+                            <input
+                              type="text"
+                              value={multiAgentConfig.agents[selectedAgentId]?.companyName || ''}
+                              onChange={e => updateAgentField('companyName', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="NextProp"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Speaking On Behalf Of</label>
+                            <input
+                              type="text"
+                              value={multiAgentConfig.agents[selectedAgentId]?.speakingOnBehalfOf || ''}
+                              onChange={e => updateAgentField('speakingOnBehalfOf', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="NextProp Real Estate"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Contact Phone</label>
+                            <input
+                              type="text"
+                              value={multiAgentConfig.agents[selectedAgentId]?.contactPhone || ''}
+                              onChange={e => updateAgentField('contactPhone', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="555-123-4567"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Contact Email</label>
+                            <input
+                              type="email"
+                              value={multiAgentConfig.agents[selectedAgentId]?.contactEmail || ''}
+                              onChange={e => updateAgentField('contactEmail', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="contact@nextprop.com"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Company Website</label>
+                            <input
+                              type="text"
+                              value={multiAgentConfig.agents[selectedAgentId]?.companyWebsite || ''}
+                              onChange={e => updateAgentField('companyWebsite', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="www.nextprop.com"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <label className="block text-sm text-gray-700 mb-1">Deal Objective</label>
-                        <select
-                          value={formData.config?.dealObjective || 'realtor-creative-finance'}
-                          onChange={(e) => updateConfig('dealObjective', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                        >
-                          <option value="realtor-off-market">Realtor - Off Market</option>
-                          <option value="realtor-short-sale">Realtor - Short Sale</option>
-                          <option value="realtor-creative-finance">Realtor - Creative Finance</option>
-                          <option value="realtor-cash-buyers">Realtor - Cash Buyers</option>
-                          <option value="homeowner-cash-offer">Homeowner - Cash Offer</option>
-                          <option value="homeowner-distressed">Homeowner - Distressed</option>
-                          <option value="homeowner-quick-sale">Homeowner - Quick Sale</option>
-                          <option value="homeowner-relocation">Homeowner - Relocation</option>
-                        </select>
-                      </div>
-                      <div className="col-span-2 mt-2">
-                        <label className="block text-sm text-gray-700 mb-1">Buying Criteria</label>
+
+                      <div className="border-b pb-4 mb-4">
+                        <h4 className="text-sm font-medium text-gray-800 mb-3">Custom Instructions</h4>
                         <textarea
-                          value={formData.config?.buyingCriteria || DEFAULT_BUYING_CRITERIA}
-                          onChange={(e) => updateConfig('buyingCriteria', e.target.value)}
-                          rows={3}
+                          value={multiAgentConfig.agents[selectedAgentId]?.customInstructions || ''}
+                          onChange={e => updateAgentField('customInstructions', e.target.value)}
+                          rows={4}
                           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                          placeholder="Describe your property buying criteria..."
+                          placeholder="Add any custom instructions for the AI agent..."
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Example: Properties between $500,000 and $2 million in the Bay Area, single-family homes, cosmetic rehabs only
-                        </p>
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="border-b pb-4 mb-4">
-                    <h4 className="text-sm font-medium text-gray-800 mb-3">Agent Identity</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Agent Name</label>
-                        <input
-                          type="text"
-                          value={formData.config?.agentName || ''}
-                          onChange={(e) => updateConfig('agentName', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                          placeholder="Jane Smith"
-                        />
+                      {/* Structured Buying Criteria Section */}
+                      <div className="border-b pb-4 mb-4">
+                        <h4 className="text-sm font-medium text-gray-800 mb-3">Buying Criteria</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Min Price</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={multiAgentConfig.agents[selectedAgentId]?.minPrice ?? ''}
+                              onChange={e => updateAgentField('minPrice', e.target.value ? Number(e.target.value) : undefined)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="No Limit"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Max Price</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={multiAgentConfig.agents[selectedAgentId]?.maxPrice ?? ''}
+                              onChange={e => updateAgentField('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="$2,000,000"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="block text-sm text-gray-700 mb-1">Area / Region</label>
+                            <input
+                              type="text"
+                              value={multiAgentConfig.agents[selectedAgentId]?.region || ''}
+                              onChange={e => updateAgentField('region', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="All States, Bay Area, etc."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Property Type</label>
+                            <select
+                              value={multiAgentConfig.agents[selectedAgentId]?.propertyType || ''}
+                              onChange={e => updateAgentField('propertyType', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                            >
+                              <option value="">Select type</option>
+                              <option value="single-family">Single-family</option>
+                              <option value="multi-family">Multi-family</option>
+                              <option value="condo">Condo</option>
+                              <option value="townhouse">Townhouse</option>
+                              <option value="land">Land</option>
+                              <option value="commercial">Commercial</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">Additional Types (comma separated)</label>
+                            <input
+                              type="text"
+                              value={multiAgentConfig.agents[selectedAgentId]?.additionalPropertyTypes || ''}
+                              onChange={e => updateAgentField('additionalPropertyTypes', e.target.value)}
+                              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+                              placeholder="Duplex, Vacation Homes, etc."
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <label className="block text-sm text-gray-700 mb-1">Buying Criteria (summary/advanced)</label>
+                          <textarea
+                            value={multiAgentConfig.agents[selectedAgentId]?.buyingCriteria || ''}
+                            onChange={e => updateAgentField('buyingCriteria', e.target.value)}
+                            rows={3}
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                            placeholder="Describe your property buying criteria..."
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Company Name</label>
-                        <input
-                          type="text"
-                          value={formData.config?.companyName || ''}
-                          onChange={(e) => updateConfig('companyName', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                          placeholder="NextProp"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Speaking On Behalf Of</label>
-                        <input
-                          type="text"
-                          value={formData.config?.speakingOnBehalfOf || ''}
-                          onChange={(e) => updateConfig('speakingOnBehalfOf', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                          placeholder="NextProp Real Estate"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Contact Phone</label>
-                        <input
-                          type="text"
-                          value={formData.config?.contactPhone || ''}
-                          onChange={(e) => updateConfig('contactPhone', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                          placeholder="555-123-4567"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Contact Email</label>
-                        <input
-                          type="email"
-                          value={formData.config?.contactEmail || ''}
-                          onChange={(e) => updateConfig('contactEmail', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                          placeholder="contact@nextprop.com"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Company Website</label>
-                        <input
-                          type="text"
-                          value={formData.config?.companyWebsite || ''}
-                          onChange={(e) => updateConfig('companyWebsite', e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-                          placeholder="www.nextprop.com"
-                        />
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="border-b pb-4 mb-4">
-                    <h4 className="text-sm font-medium text-gray-800 mb-3">Custom Instructions</h4>
-                    <textarea
-                      value={formData.config?.customInstructions || ''}
-                      onChange={(e) => updateConfig('customInstructions', e.target.value)}
-                      rows={4}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                      placeholder="Add any custom instructions for the AI agent..."
-                    />
-                  </div>
+                      {/* Q&A Section */}
+                      <div className="border-b pb-4 mb-4">
+                        <h4 className="text-sm font-medium text-gray-800 mb-3">Q&A Entries</h4>
+                        <div className="space-y-4">
+                          {(multiAgentConfig.agents[selectedAgentId]?.qaEntries || []).map((qa, idx) => (
+                            <div key={qa.id} className="flex flex-col md:flex-row gap-2 items-start md:items-center border rounded-lg p-3 bg-white">
+                              <input
+                                type="text"
+                                value={qa.question}
+                                onChange={e => {
+                                  const updated = [...(multiAgentConfig.agents[selectedAgentId]?.qaEntries || [])];
+                                  updated[idx] = { ...qa, question: e.target.value };
+                                  updateAgentField('qaEntries', updated);
+                                }}
+                                className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm mb-2 md:mb-0"
+                                placeholder="Question"
+                              />
+                              <textarea
+                                value={qa.answer}
+                                onChange={e => {
+                                  const updated = [...(multiAgentConfig.agents[selectedAgentId]?.qaEntries || [])];
+                                  updated[idx] = { ...qa, answer: e.target.value };
+                                  updateAgentField('qaEntries', updated);
+                                }}
+                                className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm mb-2 md:mb-0"
+                                placeholder="Answer"
+                                rows={2}
+                              />
+                              <label className="flex items-center gap-1 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={qa.isEnabled}
+                                  onChange={e => {
+                                    const updated = [...(multiAgentConfig.agents[selectedAgentId]?.qaEntries || [])];
+                                    updated[idx] = { ...qa, isEnabled: e.target.checked };
+                                    updateAgentField('qaEntries', updated);
+                                  }}
+                                /> Enabled
+                              </label>
+                              <button
+                                type="button"
+                                className="text-red-500 text-xs ml-2"
+                                onClick={() => {
+                                  const updated = (multiAgentConfig.agents[selectedAgentId]?.qaEntries || []).filter((_, i) => i !== idx);
+                                  updateAgentField('qaEntries', updated);
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-200"
+                            onClick={() => {
+                              const qaEntries = multiAgentConfig.agents[selectedAgentId]?.qaEntries || [];
+                              updateAgentField('qaEntries', [
+                                ...qaEntries,
+                                { id: Date.now().toString(), question: '', answer: '', isEnabled: true }
+                              ]);
+                            }}
+                          >
+                            + Add Q&A
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Rules Section */}
+                      <div className="border-b pb-4 mb-4">
+                        <h4 className="text-sm font-medium text-gray-800 mb-3">Rules</h4>
+                        <div className="space-y-4">
+                          {(multiAgentConfig.agents[selectedAgentId]?.rules || []).map((rule, idx) => (
+                            <div key={rule.id} className="flex flex-col md:flex-row gap-2 items-start md:items-center border rounded-lg p-3 bg-white">
+                              <input
+                                type="text"
+                                value={rule.text}
+                                onChange={e => {
+                                  const updated = [...(multiAgentConfig.agents[selectedAgentId]?.rules || [])];
+                                  updated[idx] = { ...rule, text: e.target.value };
+                                  updateAgentField('rules', updated);
+                                }}
+                                className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm mb-2 md:mb-0"
+                                placeholder="Rule text"
+                              />
+                              <select
+                                value={rule.category}
+                                onChange={e => {
+                                  const updated = [...(multiAgentConfig.agents[selectedAgentId]?.rules || [])];
+                                  updated[idx] = { ...rule, category: e.target.value as 'communication' | 'compliance' | 'business' | 'representation' | 'other' };
+                                  updateAgentField('rules', updated);
+                                }}
+                                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm mb-2 md:mb-0"
+                              >
+                                <option value="communication">Communication</option>
+                                <option value="compliance">Compliance</option>
+                                <option value="business">Business</option>
+                                <option value="representation">Representation</option>
+                                <option value="other">Other</option>
+                              </select>
+                              <input
+                                type="text"
+                                value={rule.description || ''}
+                                onChange={e => {
+                                  const updated = [...(multiAgentConfig.agents[selectedAgentId]?.rules || [])];
+                                  updated[idx] = { ...rule, description: e.target.value };
+                                  updateAgentField('rules', updated);
+                                }}
+                                className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm mb-2 md:mb-0"
+                                placeholder="Description (optional)"
+                              />
+                              <label className="flex items-center gap-1 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={(multiAgentConfig.agents[selectedAgentId]?.enabledRules || []).includes(rule.id)}
+                                  onChange={e => {
+                                    const enabled = new Set(multiAgentConfig.agents[selectedAgentId]?.enabledRules || []);
+                                    if (e.target.checked) enabled.add(rule.id); else enabled.delete(rule.id);
+                                    updateAgentField('enabledRules', Array.from(enabled));
+                                  }}
+                                /> Enabled
+                              </label>
+                              <button
+                                type="button"
+                                className="text-red-500 text-xs ml-2"
+                                onClick={() => {
+                                  const updated = (multiAgentConfig.agents[selectedAgentId]?.rules || []).filter((_, i) => i !== idx);
+                                  updateAgentField('rules', updated);
+                                  // Also remove from enabledRules if present
+                                  const enabled = new Set(multiAgentConfig.agents[selectedAgentId]?.enabledRules || []);
+                                  enabled.delete(rule.id);
+                                  updateAgentField('enabledRules', Array.from(enabled));
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-md border border-blue-200 hover:bg-blue-200"
+                            onClick={() => {
+                              const rules = multiAgentConfig.agents[selectedAgentId]?.rules || [];
+                              updateAgentField('rules', [
+                                ...rules,
+                                { id: Date.now().toString(), text: '', category: 'communication', description: '' }
+                              ]);
+                            }}
+                          >
+                            + Add Rule
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Save button - move here for comfort */}
+                      <div className="flex justify-end">
+                        <button
+                          onClick={handleSaveAgentConfig}
+                          disabled={agentSaving}
+                          className="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl hover:from-blue-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 shadow-sm transition-all duration-200"
+                        >
+                          {agentSaving ? 'Saving...' : 'Save Agent Config'}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -1069,22 +1391,60 @@ export default function AIAgentTestV2() {
               )}
 
               <div>
-                <label className="block text-lg font-medium text-gray-700 mb-4">Location ID</label>
-                <input
-                  type="text"
+                <div className="flex justify-between mb-2">
+                  <label className="block text-lg font-medium text-gray-700">Location</label>
+                  <button
+                    onClick={loadAvailableLocations}
+                    disabled={loadingLocations}
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100"
+                  >
+                    {loadingLocations ? (
+                      <>
+                        <ArrowPathIcon className="animate-spin h-4 w-4 mr-1" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowPathIcon className="h-4 w-4 mr-1" />
+                        Refresh
+                      </>
+                    )}
+                  </button>
+                </div>
+                <select
                   value={formData.locationId}
                   onChange={(e) => setFormData(prev => ({ ...prev, locationId: e.target.value }))}
                   className="w-full rounded-xl border-2 border-gray-300 px-6 py-4 focus:border-blue-500 focus:ring-blue-500 shadow-sm text-lg"
-                  placeholder="Enter location ID..."
-                />
+                >
+                  <option value="" disabled>Select a location</option>
+                  {availableLocations.map(location => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                  {availableLocations.length === 0 && !loadingLocations && (
+                    <option value="" disabled>No locations found</option>
+                  )}
+                  {loadingLocations && (
+                    <option value="" disabled>Loading locations...</option>
+                  )}
+                </select>
               </div>
 
               <div className="mt-12">
                 <label className="block text-lg font-medium text-gray-700 mb-4">Current Message</label>
                 <div className="relative">
                   <textarea
-                    value={formData.message}
-                    onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                    value={formData ? formData.message : ''}
+                    onChange={(e) => setFormData(prev => {
+                      if (!prev) return prev;
+                      return {
+                        locationId: prev.locationId,
+                        message: e.target.value,
+                        history: prev.history,
+                        config: prev.config
+                      };
+                    })}
                     rows={6}
                     className="w-full rounded-xl border-2 border-gray-300 px-6 py-4 focus:border-blue-500 focus:ring-blue-500 shadow-sm text-lg pr-36"
                     placeholder="Type your message here..."
@@ -1196,7 +1556,7 @@ export default function AIAgentTestV2() {
             </div>
 
             {/* Right Panel - Response */}
-            <div className="p-6 space-y-6 overflow-auto lg:col-span-3">
+            <div className="p-6 space-y-6 overflow-y-auto min-h-0 lg:col-span-3">
               <div className="flex justify-between items-center">
                 <h2 className="text-lg font-medium text-gray-900">Test Response</h2>
                 <div className="flex gap-2">
