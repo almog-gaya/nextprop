@@ -615,9 +615,7 @@ export default function LeadsPage() {
         pipelineDropdown={pipelineDropdown}
         sortingDropdown={sortingDropdown}
       />
-      <div className="container mx-auto w-full max-w-full">
-        <div className="h-full flex flex-col bg-gray-50 w-full">
-          <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
+       <div className="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center">
               <FilterControls
                 setIsFilterModalOpen={setIsFilterModalOpen}
@@ -635,7 +633,10 @@ export default function LeadsPage() {
             setFilters={setFilters}
             setSortConfig={setSortConfig}
           />
-          <div className="px-4 py-6 sm:px-6 lg:px-8 flex-1">
+      <div className="container mx-auto w-full">
+        
+         
+          <div className="px-2 pt-4 sm:px-2 lg:px-2 flex-1">
             <AutomationPreview className="mb-6" />
 
             {isLoading || loading ? (
@@ -692,7 +693,7 @@ export default function LeadsPage() {
             )}
           </div>
         </div>
-      </div>
+ 
       {isFilterModalOpen && (
         <FilterModal
           filters={filters}

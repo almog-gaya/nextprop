@@ -187,7 +187,7 @@ export default function OpportunityGrid({
     >
       <div className="w-full h-full">
         <div className="overflow-hidden">
-          <div className="overflow-x-auto pb-6">
+          <div className="overflow-x-auto pb-2">
             <div className="flex space-x-6 min-w-max px-1">
               {opportunities.map((stage) => (
                 <div
