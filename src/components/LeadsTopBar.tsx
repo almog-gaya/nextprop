@@ -57,13 +57,13 @@ export default function LeadsTopBar({
         {sortingDropdown}
 
         {/* Add Lead Button (UI only) */}
-        <button className="bg-[#A020F0] hover:bg-[#7c16c4] text-white font-medium rounded-lg px-2 py-1.5 flex items-center gap-2">
+        {/* <button className="bg-[#A020F0] hover:bg-[#7c16c4] text-white font-medium rounded-lg px-2 py-1.5 flex items-center gap-2">
           <PlusCircle className="h-5 w-5 " />
           Add Lead
-        </button>
+        </button> */}
 
         {/* Last four items (UI only, placeholders) */}
-        <button className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
+        {/* <button className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
         <ExpandIcon className="h-5 w-5 text-black" />
         </button>
         <button className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
@@ -71,7 +71,7 @@ export default function LeadsTopBar({
            </button>
         <button className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
         <CircleArrowDown className="h-5 w-5 text-black" />
-        </button>
+        </button> */}
       </div>
     </div>
   );

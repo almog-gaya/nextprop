@@ -618,7 +618,7 @@ function MessagingContent() {
 
   return (
     <DashboardLayout title="Messaging">
-      <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-96px)] bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-52px)] bg-white rounded-lg shadow-sm overflow-hidden pb-6">
 
         {/* Conversation List Section */}
         <div className="md:col-span-3 border-r border-gray-200 overflow-y-auto">

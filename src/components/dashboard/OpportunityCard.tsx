@@ -24,6 +24,7 @@ interface Opportunity {
     id: string;
     name: string;
     tags?: string[];
+    phone?: string;
     // ... other contact fields
   };
   lastActivityType?: 'voicemail' | 'sms' | 'call' | 'email' | 'optout';
@@ -48,9 +49,10 @@ export default function OpportunityCard({
   const handleNameClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`opportunity: ${JSON.stringify(opportunity)}`);
     if (opportunity?.contact?.phone) {
-      router.push(`/messaging-embed/${opportunity?.contact?.phone}`);
+      router.push(`/messaging-embed/${opportunity.contact.phone}`);
+    } else {
+      router.push('/messaging-embed');
     }
   };
 
