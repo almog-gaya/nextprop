@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Phone, ChevronDown, ChevronUp, MoreVertical, Plus, X, Calendar } from 'lucide-react';
+import { Mail, Phone, ChevronDown, ChevronUp, MoreVertical, Plus, X, Calendar, Trash as TrashIcon, Pencil as EditIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateContactById, getContactById } from "@/lib/api";
 import toast, { Toaster } from 'react-hot-toast';
@@ -717,14 +717,34 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
         <div className="h-full w-full max-w-md bg-white flex flex-col overflow-hidden font-sans px-2">
             {/* Contact Header */}
             {contact && (
-                <div className="py-4 flex flex-col items-center border-b border-gray-200 ">
-                    <div className="w-16 h-16 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium text-xl mb-2">
-                        {contact.firstName?.[0]}{contact.lastName?.[0]}
+                <div className="px-2 pt-4 pb-3">
+                    <div className="flex items-center gap-3 mb-2">
+                        {contact.avatarUrl
+                          ? (
+                            <img src={contact.avatarUrl} alt={contact.firstName} className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium text-base">
+                              {contact.firstName?.[0]}{contact.lastName?.[0]}
+                            </div>
+                          )
+                        }
+                        <div className='flex flex-col items-start'>
+                            <span className="text-[12px] font-semibold text-gray-900">{contact.firstName}{contact.lastName}</span>
+                            {contact.email && (
+                                <a href={contact.email} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] text-sm hover:underline">{contact.email}</a>
+                            )}
+                        </div>
                     </div>
-                    <div className="text-center">
-                        <h2 className="text-lg font-semibold text-gray-800">
-                            {contact.firstName} {contact.lastName}
-                        </h2>
+                    <div className="flex items-center gap-2 mt-8 ml-4">
+                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
+                            <TrashIcon className="w-4 h-4" />
+                        </button>
+                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
+                            <EditIcon className="w-4 h-4" />
+                        </button>
+                        <button className="ml-2 px-6 h-8 rounded-md bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] text-white font-semibold text-sm shadow-none">
+                            Unsubscribe
+                        </button>
                     </div>
                 </div>
             )}
