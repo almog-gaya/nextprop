@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchBar from '@/components/dashboard/SearchBar'; 
+
 interface Conversation {
   id: string;
   name: string;
@@ -12,6 +13,7 @@ interface Conversation {
   lastMessage: string;
   timestamp: string;
   unread: boolean;
+  unreadCount?: number;
 }
 
 interface Contact {
@@ -417,27 +419,21 @@ const ConversationList = memo(function ConversationList({
             <div
               key={conversation.id}
               ref={(el) => (conversationRefs.current[conversation.id] = el)}
-              className={`p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${activeId === conversation.id ? 'bg-gray-100' : ''}`}
+              className={`flex items-center h-20 px-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${activeId === conversation.id ? 'bg-gray-100' : ''}`}
               onClick={() => onSelect(conversation.id)}
             >
-              <div className="flex items-start gap-2 py-5">
-                <Avatar initials={conversation.avatar} />
-                <div className="flex-grow min-w-0">
-                  <div className="flex justify-between items-baseline">
-                    <p className="text-sm text-gray-900 truncate">{conversation.name}</p>
-                    <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                      {convertTimeStampToDate(conversation.timestamp)}
-                    </span>
-                  </div>
-                  <p
-                    className={`text-xs truncate ${conversation.unread ? 'font-medium text-gray-900' : 'text-gray-500'}`}
-                  >
-                    {truncateMessage(conversation.lastMessage)}
-                  </p>
+              <Avatar initials={conversation.avatar} />
+              <div className="flex flex-col justify-center flex-1 min-w-0 ml-3">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-gray-900 text-base truncate">{conversation.name}</p>
+                  <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{convertTimeStampToDate(conversation.timestamp)}</span>
                 </div>
-                {conversation.unread && (
-                  <div className="w-2.5 h-2.5 rounded-full bg-purple-600 flex-shrink-0 mt-1.5"></div>
-                )}
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-gray-500 truncate">{truncateMessage(conversation.lastMessage)}</p>
+                  {(conversation.unreadCount ?? 0) > 0 && (
+                    <span className="ml-2 flex items-center justify-center w-4 h-4 rounded-full bg-[#3244FF] text-white text-xs font-semibold leading-none">{conversation.unreadCount}</span>
+                  )}
+                </div>
               </div>
             </div>
           ))

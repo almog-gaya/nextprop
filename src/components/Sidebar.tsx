@@ -67,8 +67,8 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         </button>
       )}
 
-      <div className="flex items-start mt-2 border-b border-[#0000001A] pb-3 mr-5" style={{ width: '172px', marginLeft: '17px',  }}>
-        <Link href="/" className="flex items-start">
+      <div className="flex items-center justify-center mt-2 border-b-2 border-[#0000001A] pb-3 px-[30px]">
+        <Link href="/" className="flex items-center">
           <Image
             src="/logo.png"
             alt="NextProp AI"

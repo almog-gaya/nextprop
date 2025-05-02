@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { IconButton } from '@/components/ui/iconButton';
 import { DNDMessageRenderer } from "./renderers/DNDMessageRenderer";
 
-const getMessageRenderer = (message: Message, handleRetrySendMessage: any) => {
+const getMessageRenderer = (message: Message, handleRetrySendMessage: any, activeConversation: ConversationDisplay) => {
     const isMe = message.direction
         ? message.direction === 'outbound'
         : message.meta?.email?.direction === 'outbound';
@@ -33,7 +33,7 @@ const getMessageRenderer = (message: Message, handleRetrySendMessage: any) => {
     }
 
     else if (message.text || message.type == "2") {
-        return <NormalMessageRenderer message={message} isMe={isMe} onRetry={(msg)=>handleRetrySendMessage(msg)} />;
+        return <NormalMessageRenderer message={message} isMe={isMe} onRetry={(msg)=>handleRetrySendMessage(msg)} activeConversation={activeConversation} />;
     }
     return null;
 };
@@ -219,8 +219,8 @@ export default function MessageThread({
     const conversationType = getConversationAppropriateType(getConvoType(activeConversation!)!);
     return (
         <div className="flex flex-col h-full">
-            <div className="border-b border-gray-200 p-3 sticky top-0 z-10 bg-white">
-                <div className="flex items-center">
+            <div className="sticky top-0 z-10" style={{ background: 'linear-gradient(90deg, #E6C2FF 0%, #B6BCFF 100%)', height: '56px' }}>
+                <div className="flex items-center h-full px-4">
                     <div className="md:hidden mr-2">
                         <button className="p-2 rounded-md hover:bg-gray-100">
                             <ArrowLeft size={20} />
@@ -228,15 +228,7 @@ export default function MessageThread({
                     </div>
                     <Avatar initials={getInitials(activeConversation.name)} />
                     <div className="ml-3 flex-grow">
-                        <p className="font-medium">{activeConversation.name || 'Unknown Contact'}</p>
-                        <div className="flex items-center text-sm text-gray-500">
-                            {activeConversation.phone && (
-                                <span className="mr-2">{activeConversation.phone}</span>
-                            )}
-                            {activeConversation.email && (
-                                <span>{activeConversation.email}</span>
-                            )}
-                        </div>
+                        <p className="font-medium text-base text-gray-900">{activeConversation.name || 'Unknown Contact'}</p>
                     </div>
                     <div className="flex items-center space-x-2">
                         <IconButton
@@ -266,7 +258,7 @@ export default function MessageThread({
                         )}
                         {messages.map((message) => (
                             <div key={message.id}>
-                                {getMessageRenderer(message, handleRetrySendMessage)}
+                                {getMessageRenderer(message, handleRetrySendMessage, activeConversation)}
                             </div>
                         ))}
                         <div ref={messagesEndRef} />
