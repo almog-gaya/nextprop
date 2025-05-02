@@ -19,23 +19,14 @@ export default function Header({ title }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 md:left-50 right-0 bg-white h-16 border-b border-gray-200 z-50">
       <div className="h-full max-w-[1920px] mx-auto px-6 flex items-center">
-        {/* Left side - Logo */}
-        <div className="flex items-center">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/logo.png"
-              alt="NextProp AI"
-              width={120}
-              height={28}
-              priority
-              className="h-7 w-auto"
-            />
-          </Link>
+            {/* Left - Title */}
+            <div className="flex items-center pt-6 ">
+          <h2 className="text-lg font-semibold ">{title}</h2>
         </div>
 
         {/* Center - Search */}
         <div className="flex-1 flex justify-center">
-          <div className="relative">
+          {/* <div className="relative">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
               <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
             </div>
@@ -44,13 +35,13 @@ export default function Header({ title }: HeaderProps) {
               placeholder="Search"
               className="h-8 w-[250px] pl-10 pr-4 rounded-lg bg-gray-50 border-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 focus:outline-none"
             />
-          </div>
+          </div> */}
         </div>
 
         {/* Right side - Actions */}
         <div className="flex items-center gap-2">
           {/* Add Button */}
-          <button className="h-10 bg-gradient-to-r from-[#3045FF] to-[#9A04FF] hover:opacity-90 text-white rounded-lg transition-all duration-200 flex items-center text-sm font-medium">
+          {/* <button className="h-10 bg-gradient-to-r from-[#3045FF] to-[#9A04FF] hover:opacity-90 text-white rounded-lg transition-all duration-200 flex items-center text-sm font-medium">
             <div className="flex items-center gap-2 px-3">
               <PlusIcon className="w-4 h-4 stroke-[2.5]" />
               <span>Add</span>
@@ -59,7 +50,7 @@ export default function Header({ title }: HeaderProps) {
             <div className="px-2">
               <ChevronDownIcon className="w-4 h-4 stroke-[2.5]" />
             </div>
-          </button>
+          </button> */}
 
           {/* Calendar Icon */}
           <button className="w-10 h-10 rounded-lg bg-[#ECD0FFBF] hover:bg-[#e5c1ff] transition-colors duration-200 flex items-center justify-center">

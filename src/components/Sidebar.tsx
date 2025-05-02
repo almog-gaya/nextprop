@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import classNames from 'classnames';
 import {
@@ -27,15 +28,15 @@ interface SidebarProps {
 }
 
 const navigation = [
-  { icon: <HomeIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'Dashboard', href: '/' },
-  { icon: <UserIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'Leads', href: '/leads' },
-  { icon: <UserGroupIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'Contacts', href: '/contacts' },
-  { icon: <ChatBubbleLeftRightIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'Messaging', href: '/messaging-embed' },
-  { icon: <EnvelopeIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'SMS Campaigns', href: '/messaging-embed/campaigns' },
-  { icon: <PhoneIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
-  { icon: <HomeModernIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'Properties', href: '/properties' },
-  { icon: <BoltIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'AI Agent', href: '/ai-agent' },
-  { icon: <ClockIcon className="w-5 h-5" strokeWidth={2.5} />, text: 'Automations', href: '/automations' }
+  { icon: <HomeIcon className="w-5 h-5" />, text: 'Dashboard', href: '/' },
+  { icon: <UserIcon className="w-5 h-5" />, text: 'Leads', href: '/leads' },
+  { icon: <UserGroupIcon className="w-5 h-5" />, text: 'Contacts', href: '/contacts' },
+  { icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />, text: 'Messaging', href: '/messaging-embed' },
+  { icon: <EnvelopeIcon className="w-5 h-5" />, text: 'SMS Campaigns', href: '/messaging-embed/campaigns' },
+  { icon: <PhoneIcon className="w-5 h-5" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
+  { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
+  { icon: <BoltIcon className="w-5 h-5" />, text: 'AI Agent', href: '/ai-agent' },
+  { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' }
 ];
 
 export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
@@ -44,10 +45,10 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
 
   const sidebarClass = classNames(
     "fixed top-0 left-0 h-screen flex flex-col items-center py-4 z-40",
-    "bg-gradient-to-r from-[#3045FF] to-[#9A04FF]",
+    "bg-gradient-to-r from-[#B5BCFF] to-[#E6C2FF]",
     {
       "w-50": !isMobile,
-      "w-full": isMobile,
+      "w-212": isMobile,
       "translate-x-0": isOpen,
       "-translate-x-full": isMobile && !isOpen,
     }
@@ -66,28 +67,39 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         </button>
       )}
 
-      <div className="flex flex-col items-center space-y-1 w-full mt-12">
+      <div className="flex items-start mt-2 border-b border-[#0000001A] pb-3 mr-5" style={{ width: '172px', marginLeft: '17px',  }}>
+        <Link href="/" className="flex items-start">
+          <Image
+            src="/logo.png"
+            alt="NextProp AI"
+            width={149}
+            height={38.52}
+            priority
+            className="h-7 w-auto"
+          />
+        </Link>
+      </div>
+
+      <div className="flex flex-col items-center space-y-1 w-full mt-4">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           return (
+            
             <Link
               key={item.href}
               href={item.href}
               className={classNames(
                 "w-45 h-10 flex items-center justify-start rounded-lg transition-all duration-200",
                 {
-                  "bg-[#01010B] text-white": isActive,
-                  "text-white hover:text-white hover:bg-black/5": !isActive
+                  "bg-[#FFFFFF] text-black": isActive,
+                  "text-[#1C1C1C] hover:text-[#1C1C1C] hover:bg-black/5": !isActive
                 }
               )}
               onClick={isMobile ? onClose : undefined}
               title={item.text}
             >
-
-
               <span className="ml-2">{item.icon}</span>
-              <span className="text-sm font-medium ml-2">{item.text}</span>
-
+              <span className="text-[14px] font-normal ml-2">{item.text}</span>
             </Link>
           );
         })}
@@ -99,14 +111,14 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         className={classNames(
           "mb-12 mt-auto w-45 h-10 flex items-center justify-start rounded-lg transition-all duration-200",
           pathname === "/settings"
-            ? "bg-[#01010B] text-white"
-            : "text-white hover:text-white hover:bg-black/5"
+            ? "bg-[#FFFFFF] text-black"
+            : "text-[#1C1C1C] hover:text-[#1C1C1C] hover:bg-black/5"
         )}
         title="Settings"
       >
         <div className='relative flex'>
-          <Cog6ToothIcon className="w-5 h-5 ml-2" strokeWidth={2.5} />
-          <span className="text-sm font-medium ml-2">Settings</span>
+          <Cog6ToothIcon className="w-5 h-5 ml-2" />
+          <span className="text-[14px] font-normal ml-2">Settings</span>
         </div>
       </Link>
     </div>
