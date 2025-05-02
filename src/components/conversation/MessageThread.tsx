@@ -1,5 +1,5 @@
 import { PhoneNumber } from "@/contexts/AuthContext";
-import { ArrowLeft, RefreshCw, Phone, MoreVertical, AlertCircle, Send, CheckCircle, ChevronDown, StickyNote, FileText } from "lucide-react";
+import { ArrowLeft, RefreshCw, Phone, MoreVertical, AlertCircle, Send, CheckCircle, ChevronDown, StickyNote, FileText, Paperclip, MessageSquare, Smile } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import Avatar from "./Avatar";
@@ -265,22 +265,39 @@ export default function MessageThread({
                     </div>
                 )}
             </div>
-            <div className="border-t border-gray-200 p-3 sticky bottom-0 z-10 bg-white">
-                <div className="flex items-center space-x-2">
-                    <textarea
-                        className="flex-1 min-h-[40px] max-h-[120px] p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder={`Type your ${conversationType} message...`}
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        rows={1}
-                    />
+            <div className="bg-[#F4F7F9] px-4 py-3">
+                <div className="flex items-center w-full">
+                    {/* Attachment Icon */}
+                    <button className="text-gray-400 hover:text-gray-500 mr-3">
+                        <Paperclip className="w-5 h-5" />
+                    </button>
+                    {/* Input + icons */}
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            className="w-full h-10 rounded-full bg-white px-5 pr-24 text-gray-700 placeholder-gray-400 outline-none border-none shadow-sm"
+                            placeholder="Write a message"
+                            value={newMessage}
+                            onChange={e => setNewMessage(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                        />
+                        <div className="absolute inset-y-0 right-4 flex items-center space-x-3">
+                            <button className="text-gray-400 hover:text-gray-500">
+                                <MessageSquare className="w-5 h-5" />
+                            </button>
+                            <button className="text-gray-400 hover:text-gray-500">
+                                <Smile className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                    {/* Send Button OUTSIDE the input */}
                     <button
-                        className="p-2 rounded-full bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="ml-3 w-10 h-10 flex items-center justify-center rounded-full bg-purple-600 text-white hover:bg-purple-700 transition"
                         onClick={handleSend}
-                        disabled={!newMessage.trim() || sendingStatus === 'sending'}
+                        disabled={!newMessage.trim()}
+                        type="button"
                     >
-                        <Send size={20} />
+                        <Send className="w-5 h-5" />
                     </button>
                 </div>
             </div>
