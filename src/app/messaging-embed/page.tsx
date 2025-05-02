@@ -557,10 +557,11 @@ function MessagingContent() {
                 setState((prev) => ({ ...prev, activeTab: tabValue, lastConversationDate: null, conversations: [] }));
                 fetchConversations(tabValue);
               }}
-              className={`px-2 py-2 text-sm font-medium rounded-md ${state.activeTab === tabValue
-                ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`px-2 py-2 text-xs font-normal rounded-md ${
+                state.activeTab === tabValue
+                  ? 'bg-[#9806FF1A] text-gray-900'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
             >
               {tab}
             </button>
@@ -571,7 +572,7 @@ function MessagingContent() {
       <div className="relative">
         <button
           onClick={() => setState((prev) => ({ ...prev, showSortDropdown: !prev.showSortDropdown }))}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+          className="flex items-center text-xs font-normal text-gray-500 hover:text-gray-700"
         >
           Sort
           <ChevronDown className="w-5 h-5 ml-1" />
@@ -598,7 +599,7 @@ function MessagingContent() {
                     }));
                     fetchConversations(state.activeTab, undefined, newSortOrder);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className="w-full text-left px-4 py-2 text-xs font-normal text-gray-700 hover:bg-gray-100"
                 >
                   {option}
                 </button>
