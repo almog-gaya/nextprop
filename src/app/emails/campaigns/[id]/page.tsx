@@ -83,7 +83,7 @@ export default function CampaignDetailPage() {
         className="nextprop-outline-button flex items-center"
       >
         {updatingStatus ? (
-          <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-600 mr-2"></div>
+          <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#7c3aed] mr-2"></div>
         ) : (
           <PlayIcon className="h-4 w-4 mr-2" />
         )}
@@ -96,7 +96,7 @@ export default function CampaignDetailPage() {
         className="nextprop-outline-button flex items-center"
       >
         {updatingStatus ? (
-          <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-600 mr-2"></div>
+          <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#7c3aed] mr-2"></div>
         ) : (
           <PauseIcon className="h-4 w-4 mr-2" />
         )}
@@ -111,7 +111,7 @@ export default function CampaignDetailPage() {
       case 'analytics':
         return (
           <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-950 mb-4">Campaign Analytics</h3>
+            <h3 className="text-lg font-medium text-[#1e1b4b] mb-4">Campaign Analytics</h3>
             <p className="text-gray-600 mb-4">
               View detailed performance metrics for this campaign.
             </p>
@@ -139,7 +139,7 @@ export default function CampaignDetailPage() {
         return (
           <div className="bg-gray-50 rounded-lg p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-950">Campaign Leads</h3>
+              <h3 className="text-lg font-medium text-[#1e1b4b]">Campaign Leads</h3>
               <button className="nextprop-outline-button">Add Lead</button>
             </div>
             <p className="text-gray-600 mb-4">
@@ -155,7 +155,7 @@ export default function CampaignDetailPage() {
       case 'emails':
         return (
           <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-950 mb-4">Campaign Emails</h3>
+            <h3 className="text-lg font-medium text-[#1e1b4b] mb-4">Campaign Emails</h3>
             <p className="text-gray-600 mb-4">
               View emails sent from this campaign.
             </p>
@@ -169,7 +169,7 @@ export default function CampaignDetailPage() {
       case 'settings':
         return (
           <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-950 mb-4">Campaign Settings</h3>
+            <h3 className="text-lg font-medium text-[#1e1b4b] mb-4">Campaign Settings</h3>
             <p className="text-gray-600 mb-4">
               Configure this campaign's settings.
             </p>
@@ -213,7 +213,7 @@ export default function CampaignDetailPage() {
         <div className="p-6 max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#7c3aed] mb-4"></div>
               <p className="text-gray-600">Loading campaign details...</p>
             </div>
           </div>
@@ -265,8 +265,8 @@ export default function CampaignDetailPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <div className="flex items-center gap-2">
-              <EnvelopeIcon className="h-6 w-6 text-primary-600" />
-              <h1 className="text-2xl font-bold text-gray-950">{formatCampaignName(selectedCampaign.name)}</h1>
+              <EnvelopeIcon className="h-6 w-6 text-[#7c3aed]" />
+              <h1 className="text-2xl font-bold text-[#1e1b4b]">{formatCampaignName(selectedCampaign.name)}</h1>
             </div>
             <div className="flex items-center gap-2 mt-2">
               <span className={`px-2 py-1 text-xs rounded-full ${
@@ -291,7 +291,7 @@ export default function CampaignDetailPage() {
               className="nextprop-outline-button flex items-center"
             >
               {loading.selectedCampaign ? (
-                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-600 mr-2"></div>
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#7c3aed] mr-2"></div>
               ) : (
                 <ArrowPathIcon className="h-4 w-4 mr-2" />
               )}
@@ -314,7 +314,7 @@ export default function CampaignDetailPage() {
               <button
                 className={`mr-6 py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
                   activeTab === 'analytics'
-                    ? 'border-primary-600 text-primary-600'
+                    ? 'border-[#7c3aed] text-[#7c3aed]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 onClick={() => setActiveTab('analytics')}
@@ -326,7 +326,7 @@ export default function CampaignDetailPage() {
               <button
                 className={`mr-6 py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
                   activeTab === 'leads'
-                    ? 'border-primary-600 text-primary-600'
+                    ? 'border-[#7c3aed] text-[#7c3aed]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 onClick={() => setActiveTab('leads')}
@@ -338,7 +338,7 @@ export default function CampaignDetailPage() {
               <button
                 className={`mr-6 py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
                   activeTab === 'emails'
-                    ? 'border-primary-600 text-primary-600'
+                    ? 'border-[#7c3aed] text-[#7c3aed]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 onClick={() => setActiveTab('emails')}
@@ -350,7 +350,7 @@ export default function CampaignDetailPage() {
               <button
                 className={`mr-6 py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
                   activeTab === 'settings'
-                    ? 'border-primary-600 text-primary-600'
+                    ? 'border-[#7c3aed] text-[#7c3aed]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 onClick={() => setActiveTab('settings')}
@@ -367,7 +367,7 @@ export default function CampaignDetailPage() {
         </div>
         
         <div className="text-center text-sm text-gray-500 mt-8">
-          <Link href="/emails" className="text-primary-600 hover:underline">
+          <Link href="/emails" className="text-[#7c3aed] hover:underline">
             ← Back to Email Campaigns
           </Link>
         </div>

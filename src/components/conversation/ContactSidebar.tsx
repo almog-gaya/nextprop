@@ -731,15 +731,15 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         <div className='flex flex-col items-start'>
                             <span className="text-[12px] font-semibold text-gray-900">{contact.firstName}{contact.lastName}</span>
                             {contact.email && (
-                                <a href={contact.email} target="_blank" rel="noopener noreferrer" className="text-info text-sm hover:underline">{contact.email}</a>
+                                <a href={contact.email} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] text-sm hover:underline">{contact.email}</a>
                             )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2 mt-8 ml-4">
-                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-info border border-gray-200 hover:bg-gray-100">
+                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
                             <TrashIcon className="w-4 h-4" />
                         </button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-info border border-gray-200 hover:bg-gray-100">
+                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
                             <EditIcon className="w-4 h-4" />
                         </button>
                         <button className="ml-2 px-6 h-8 rounded-md bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] text-white font-semibold text-sm shadow-none">

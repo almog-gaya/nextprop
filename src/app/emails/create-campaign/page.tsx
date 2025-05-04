@@ -66,7 +66,7 @@ export default function CreateCampaignPage() {
     <DashboardLayout title="Create Campaign">
       <div className="p-6 max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-950">Create New Campaign</h1>
+          <h1 className="text-2xl font-bold text-[#1e1b4b]">Create New Campaign</h1>
           <Link href="/emails" className="nextprop-outline-button flex items-center">
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Back to Campaigns

@@ -62,7 +62,7 @@ export default function CampaignAnalyticsPage() {
       <div className="p-6 max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-950">Campaign Analytics</h1>
+            <h1 className="text-2xl font-bold text-[#1e1b4b]">Campaign Analytics</h1>
             <p className="text-gray-600">
               Overview of your email campaign performance
             </p>
@@ -75,7 +75,7 @@ export default function CampaignAnalyticsPage() {
               className="nextprop-outline-button flex items-center"
             >
               {(loading.campaigns || loading.analytics) ? (
-                <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-600 mr-2"></span>
+                <span className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#7c3aed] mr-2"></span>
               ) : (
                 <ArrowPathIcon className="h-4 w-4 mr-2" />
               )}
@@ -98,38 +98,38 @@ export default function CampaignAnalyticsPage() {
             <h3 className="text-sm font-medium text-gray-600 uppercase mb-2">
               Total Campaigns
             </h3>
-            <div className="text-3xl font-bold text-gray-950">{totalStats.campaigns}</div>
+            <div className="text-3xl font-bold text-[#1e1b4b]">{totalStats.campaigns}</div>
           </div>
           
           <div className="nextprop-card">
             <h3 className="text-sm font-medium text-gray-600 uppercase mb-2">
               Total Leads
             </h3>
-            <div className="text-3xl font-bold text-gray-950">{totalStats.leads}</div>
+            <div className="text-3xl font-bold text-[#1e1b4b]">{totalStats.leads}</div>
           </div>
           
           <div className="nextprop-card">
             <h3 className="text-sm font-medium text-gray-600 uppercase mb-2">
               Total Emails Sent
             </h3>
-            <div className="text-3xl font-bold text-gray-950">{totalStats.emails}</div>
+            <div className="text-3xl font-bold text-[#1e1b4b]">{totalStats.emails}</div>
           </div>
           
           <div className="nextprop-card">
             <h3 className="text-sm font-medium text-gray-600 uppercase mb-2">
               Total Opens
             </h3>
-            <div className="text-3xl font-bold text-gray-950">{totalStats.opens}</div>
+            <div className="text-3xl font-bold text-[#1e1b4b]">{totalStats.opens}</div>
           </div>
         </div>
 
         <div className="nextprop-card">
           <div className="flex items-center mb-6">
-            <div className="p-3 rounded-full bg-purple-100 text-primary-600 mr-4">
+            <div className="p-3 rounded-full bg-purple-100 text-[#7c3aed] mr-4">
               <ChartBarIcon className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-950 text-lg">Performance Metrics</h3>
+              <h3 className="font-semibold text-[#1e1b4b] text-lg">Performance Metrics</h3>
               <p className="text-gray-600 text-sm">Key metrics across all your campaigns</p>
             </div>
           </div>
@@ -137,19 +137,19 @@ export default function CampaignAnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-700">Open Rate</p>
-              <p className="text-2xl font-bold text-gray-950">{calculateRate(totalStats.opens, totalStats.emails)}</p>
+              <p className="text-2xl font-bold text-[#1e1b4b]">{calculateRate(totalStats.opens, totalStats.emails)}</p>
               <p className="text-xs text-gray-500">Percentage of emails that were opened</p>
             </div>
             
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-700">Reply Rate</p>
-              <p className="text-2xl font-bold text-gray-950">{calculateRate(totalStats.replies, totalStats.emails)}</p>
+              <p className="text-2xl font-bold text-[#1e1b4b]">{calculateRate(totalStats.replies, totalStats.emails)}</p>
               <p className="text-xs text-gray-500">Percentage of emails that received replies</p>
             </div>
             
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-700">Emails per Lead</p>
-              <p className="text-2xl font-bold text-gray-950">
+              <p className="text-2xl font-bold text-[#1e1b4b]">
                 {totalStats.leads > 0 ? (totalStats.emails / totalStats.leads).toFixed(1) : '0'}
               </p>
               <p className="text-xs text-gray-500">Average number of emails sent per lead</p>
@@ -159,7 +159,7 @@ export default function CampaignAnalyticsPage() {
         
         {/* Link back to campaigns */}
         <div className="text-center text-sm text-gray-500 mt-8">
-          <Link href="/emails" className="text-primary-600 hover:underline">
+          <Link href="/emails" className="text-[#7c3aed] hover:underline">
             ← Back to Email Campaigns
           </Link>
         </div>

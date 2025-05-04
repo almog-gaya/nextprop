@@ -53,7 +53,7 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-lg shadow-md border-t-4 border-primary-600">
+      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-lg shadow-md border-t-4 border-[#7c3aed]">
         {/* Logo - Centered */}
         <div className="flex justify-center">
           <Image
@@ -64,7 +64,7 @@ function LoginForm() {
           />
         </div>
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-950">Sign in to NextProp.ai</h2>
+          <h2 className="text-center text-3xl font-bold text-[#1e1b4b]">Sign in to NextProp.ai</h2>
         </div>
 
         {/* Add OAuth button here */}
@@ -73,7 +73,7 @@ function LoginForm() {
             type="button"
             onClick={handleOAuthLogin}
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600 disabled:opacity-50"
+            className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-[#6d28d9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed] disabled:opacity-50"
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" />
@@ -84,7 +84,7 @@ function LoginForm() {
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link href="/auth/signup" className="font-medium text-primary-600 hover:text-primary-700">
+              <Link href="/auth/signup" className="font-medium text-[#7c3aed] hover:text-[#6d28d9]">
                 Sign up here
               </Link>
             </p>

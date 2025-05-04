@@ -5,9 +5,9 @@
   --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-heading: var(--font-outfit), var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: var(--font-mono);
-  --tw-color-primary: #9061fc;
-  --tw-color-secondary: #9d7afd;
-  --tw-color-accent: #b77cfc;
+  --tw-color-primary: #7c3aed;
+  --tw-color-secondary: #8b5cf6;
+  --tw-color-accent: #a78bfa;
   --tw-color-error: #ef4444;
   --tw-color-warning: #f59e0b;
   --tw-color-success: #10b981;
@@ -18,73 +18,23 @@
   --background-start-rgb: 248, 250, 252;
   --background-end-rgb: 255, 255, 255;
   
-  /* NextProp brand colors - Refined System */
-  --color-primary-50: #f3effb;
-  --color-primary-100: #e6dff7;
-  --color-primary-200: #d0c0ef;
-  --color-primary-300: #b5bcff; /* sidebar gradient start */
-  --color-primary-400: #a191e3;
-  --color-primary-500: #9d7afd; /* adjusted secondary - softer */
-  --color-primary-600: #9061fc; /* adjusted primary - softer */
-  --color-primary-700: #8344fb; /* adjusted primary dark - softer */
-  --color-primary-800: #7a32f8;
-  --color-primary-900: #8344fb;
-  
-  --color-accent-50: #f5f0ff;
-  --color-accent-100: #ece1ff;
-  --color-accent-200: var(--color-accent-200); /* sidebar gradient end */
-  --color-accent-300: #d8b4fe;
-  --color-accent-400: #c591fd; /* softer accent */
-  --color-accent-500: #b77cfc; /* softer accent */
-  --color-accent-600: #a855f7;
-  --color-accent-700: #9333ea;
-  --color-accent-800: #7e22ce;
-  --color-accent-900: #6b21a8;
-  
-  --color-gray-50: var(--nextprop-surface-hover);
-  --color-gray-100: #f1f5f9;
-  --color-gray-200: var(--nextprop-border);
-  --color-gray-300: #cbd5e1;
-  --color-gray-400: var(--nextprop-text-tertiary);
-  --color-gray-500: var(--nextprop-text-secondary);
-  --color-gray-600: #475569;
-  --color-gray-700: #334155;
-  --color-gray-800: var(--nextprop-text-primary);
-  --color-gray-900: #0f172a;
-  --color-gray-950: var(--nextprop-dark);
-  
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
-  
-  --color-surface-light: #ffffff;
-  --color-surface-hover: var(--nextprop-surface-hover);
-  
-  /* Semantic color mappings */
-  --nextprop-primary: var(--color-primary-600);
-  --nextprop-primary-light: var(--color-primary-500);
-  --nextprop-primary-dark: var(--color-primary-700);
-  --nextprop-secondary: var(--color-primary-500);
-  --nextprop-accent: var(--color-accent-500);
-  --nextprop-dark: var(--color-gray-950);
-  --nextprop-light: var(--color-gray-50);
-  --nextprop-gray: var(--color-gray-500);
+  /* NextProp brand colors - Enhanced palette */
+  --nextprop-primary: #7c3aed;
+  --nextprop-primary-light: #8b5cf6;
+  --nextprop-primary-dark: #6d28d9;
+  --nextprop-secondary: #8b5cf6;
+  --nextprop-accent: #a78bfa;
+  --nextprop-dark: #1e1b4b;
+  --nextprop-light: #f5f7fa;
+  --nextprop-gray: #6b7280;
   
   /* Semantic colors with brand influence */
-  --nextprop-surface: var(--color-surface-light);
-  --nextprop-surface-hover: var(--color-surface-hover);
-  --nextprop-border: var(--color-gray-200);
-  --nextprop-text-primary: var(--color-gray-800);
-  --nextprop-text-secondary: var(--color-gray-500);
-  --nextprop-text-tertiary: var(--color-gray-400);
-
-  /* Gradients */
-  --gradient-sidebar: linear-gradient(to right, var(--color-primary-300), var(--color-accent-200));
-  --gradient-button-primary: linear-gradient(to bottom, var(--color-primary-600), var(--color-primary-700));
-  --gradient-button-secondary: linear-gradient(to bottom, var(--color-primary-500), var(--color-primary-600));
-  --gradient-card: linear-gradient(to bottom, var(--color-surface-light), var(--color-surface-hover));
-  --gradient-brand-text: linear-gradient(to right, var(--color-primary-600), var(--color-primary-500), var(--color-accent-500));
+  --nextprop-surface: #ffffff;
+  --nextprop-surface-hover: #f8fafc;
+  --nextprop-border: #e2e8f0;
+  --nextprop-text-primary: #1e293b;
+  --nextprop-text-secondary: #64748b;
+  --nextprop-text-tertiary: #94a3b8;
 
   /* Refined Typography Scale */
   --text-xs: 0.75rem;     /* 12px */
@@ -100,8 +50,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: var(--color-gray-950);
-    --foreground: var(--color-gray-50);
+    --background: #1e1b4b;
+    --foreground: #f5f7fa;
   }
 }
 
@@ -125,7 +75,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   line-height: 1.3;
   margin-bottom: 1.5rem;
-  color: var(--nextprop-text-primary);
+  color: #1e293b;
 }
 
 h1 {
@@ -192,7 +142,7 @@ h6 {
   }
 
   .dashboard-card {
-    @apply bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-200 hover:shadow-md transition-all duration-200;
+    @apply bg-white rounded-lg shadow-sm p-6 mb-6 border-t-0 border-[var(--nextprop-primary)] hover:shadow-md transition-all duration-200;
     background: linear-gradient(
       to bottom,
       var(--nextprop-surface),
@@ -201,11 +151,11 @@ h6 {
   }
 
   .dashboard-card-title {
-    @apply text-xl font-semibold text-[var(--nextprop-dark)] mb-4;
+    @apply text-xl font-semibold text-[#1e1b4b] mb-4;
   }
 
   .stat-card {
-    @apply bg-white border border-gray-200 rounded-lg p-5 flex flex-col shadow-sm hover:shadow-md transition-all duration-200;
+    @apply bg-white border rounded-lg p-5 flex flex-col shadow-sm hover:shadow-md transition-all duration-200;
     background: linear-gradient(
       to bottom,
       var(--nextprop-surface),
@@ -214,7 +164,7 @@ h6 {
   }
 
   .stat-value {
-    @apply text-3xl font-bold text-[#9061fc];
+    @apply text-3xl font-bold text-[#7c3aed];
   }
 
   .stat-label {
@@ -240,11 +190,11 @@ h6 {
   }
   
   .nextprop-border {
-    @apply border-[var(--nextprop-primary)];
+    @apply border-[#7c3aed];
   }
   
   .nextprop-text {
-    @apply text-[var(--nextprop-primary)];
+    @apply text-[#7c3aed];
   }
 
   .nextprop-gradient-text {
@@ -261,12 +211,12 @@ h6 {
   
   /* Updated loader with NextProp branding */
   .loader {
-    @apply inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-[var(--nextprop-primary)] motion-reduce:animate-[spin_1.5s_linear_infinite];
+    @apply inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-[#7c3aed] motion-reduce:animate-[spin_1.5s_linear_infinite];
   }
 
   /* NextProp card styles */
   .nextprop-card {
-    @apply bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-all duration-200;
+    @apply bg-white rounded-lg shadow-sm p-6 border-b-4 border-b-[var(--nextprop-primary)] hover:shadow-md transition-all duration-200;
     background: linear-gradient(
       to bottom,
       var(--nextprop-surface),
@@ -288,7 +238,7 @@ h6 {
 
   /* NextProp text input styles */
   .nextprop-input {
-    @apply block w-full rounded-md border-gray-200 shadow-sm focus:border-[var(--nextprop-primary)] focus:ring focus:ring-[var(--nextprop-primary)] transition-all duration-200;
+    @apply block w-full rounded-md border-[var(--nextprop-border)] shadow-sm focus:border-[var(--nextprop-primary)] focus:ring focus:ring-[var(--nextprop-primary)] transition-all duration-200;
     background: linear-gradient(
       to bottom,
       var(--nextprop-surface),
@@ -336,7 +286,7 @@ h6 {
 
   /* Enhanced link styles */
   a {
-    @apply text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)] transition-colors duration-200;
+    @apply text-[#7c3aed] hover:text-[#6d28d9] transition-colors duration-200;
   }
 
   /* Enhanced button hover states */
@@ -409,7 +359,7 @@ h6 {
 
   /* Enhanced select dropdown hover */
   select option:hover {
-    @apply bg-[var(--nextprop-primary)]/10;
+    @apply bg-[#7c3aed]/10;
   }
 
   /* Enhanced checkbox and radio hover */
@@ -643,11 +593,11 @@ h6 {
   /* Enhanced table styles */
   th {
     @apply bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-secondary)] font-semibold;
-    border-bottom: 2px solid var(--color-gray-200);
+    border-bottom: 2px solid var(--nextprop-border);
   }
 
   td {
-    @apply text-[var(--nextprop-text-primary)] border-b border-gray-200;
+    @apply text-[var(--nextprop-text-primary)] border-b border-[var(--nextprop-border)];
   }
 
   tr:hover td {
@@ -676,7 +626,7 @@ h6 {
 
   /* Enhanced modal styles */
   .nextprop-modal {
-    @apply fixed inset-0 z-50 overflow-y-auto bg-var(--nextprop-border)/50 backdrop-blur-sm transition-opacity duration-200;
+    @apply fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm transition-opacity duration-200;
   }
 
   .nextprop-modal-content {
@@ -711,8 +661,6 @@ table {
   border-collapse: separate;
   border-spacing: 0;
   margin: 1rem 0;
-  @apply w-full border-collapse;
-  border: 1px solid var(--color-gray-200);
 }
 
 th {
@@ -720,22 +668,22 @@ th {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
-  color: var(--nextprop-text-secondary);
+  color: #64748b;
   padding: 0.75rem 1rem;
   text-align: left;
-  border-bottom: 1px solid var(--color-gray-200);
-  background-color: var(--nextprop-surface-hover);
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
 }
 
 td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-gray-200);
-  color: var(--nextprop-text-primary);
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
   font-size: 0.875rem;
 }
 
 tr:hover td {
-  background-color: var(--nextprop-surface-hover);
+  background-color: #f8fafc;
   transition: background-color 0.2s ease-in-out;
 }
 
@@ -748,12 +696,10 @@ input[type="tel"],
 input[type="url"],
 select,
 textarea {
-  @apply block w-full p-2.5 text-gray-900 border border-gray-200 rounded-md;
-  background: linear-gradient(
-    to bottom,
-    var(--nextprop-surface),
-    var(--nextprop-surface-hover)
-  );
+  @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-[#7c3aed] focus:ring focus:ring-[#7c3aed] transition-all duration-200;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  letter-spacing: 0.025em;
 }
 
 input[type="text"]:disabled,
@@ -778,12 +724,12 @@ select {
 
 /* Enhanced checkbox styles */
 input[type="checkbox"] {
-  @apply h-4 w-4 rounded border-gray-300 text-[var(--nextprop-primary)] focus:ring-[var(--nextprop-primary)] transition-all duration-200;
+  @apply h-4 w-4 rounded border-gray-300 text-[#7c3aed] focus:ring-[#7c3aed] transition-all duration-200;
 }
 
 /* Enhanced radio styles */
 input[type="radio"] {
-  @apply h-4 w-4 border-gray-300 text-[var(--nextprop-primary)] focus:ring-[var(--nextprop-primary)] transition-all duration-200;
+  @apply h-4 w-4 border-gray-300 text-[#7c3aed] focus:ring-[#7c3aed] transition-all duration-200;
 }
 
 /* Label styles */
@@ -871,7 +817,7 @@ label {
 
 /* Enhanced focus styles for accessibility */
 :focus-visible {
-  @apply outline-none ring-2 ring-[var(--nextprop-primary)] ring-offset-2;
+  @apply outline-none ring-2 ring-[#7c3aed] ring-offset-2;
 }
 
 /* Enhanced scrollbar styles */
@@ -890,7 +836,7 @@ label {
 
 /* Enhanced selection styles */
 ::selection {
-  @apply bg-[var(--nextprop-primary)]/20 text-[var(--nextprop-text-primary)];
+  @apply bg-[#7c3aed]/20 text-[#1e293b];
 }
 
 /* Brand pattern overlay */
@@ -909,9 +855,9 @@ label {
   @apply fixed top-0 left-0 h-screen w-64 text-white transition-all duration-300 ease-in-out z-40;
   background: linear-gradient(
     135deg,
-    var(--color-primary-300) 0%,
-    var(--color-primary-600) 50%,
-    var(--color-primary-300) 100%
+    #4F46E5 0%,
+    #7C3AED 50%,
+    #4F46E5 100%
   );
   box-shadow: 0 0 40px rgba(124, 58, 237, 0.3);
 }
@@ -950,8 +896,8 @@ label {
   @apply absolute bottom-0 left-0 right-0 p-4 border-t border-white/20;
   background: linear-gradient(
     to top,
-    color-mix(in srgb, var(--color-primary-300) 80%, transparent),
-    color-mix(in srgb, var(--color-primary-600) 40%, transparent)
+    rgba(79, 70, 229, 0.8),
+    rgba(124, 58, 237, 0.4)
   );
   backdrop-filter: blur(8px);
 }
@@ -1040,8 +986,8 @@ label {
     transition-all duration-200 scale-0 origin-left;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--color-primary-500) 95%, transparent),
-    color-mix(in srgb, var(--color-accent-400) 95%, transparent)
+    rgba(79, 70, 229, 0.95) 0%,
+    rgba(124, 58, 237, 0.95) 100%
   );
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(8px);
@@ -1052,9 +998,9 @@ label {
   @apply fixed top-0 left-0 h-screen w-full z-50 transform transition-all duration-300 ease-in-out;
   background: linear-gradient(
     135deg,
-    var(--color-primary-300) 0%,
-    var(--color-primary-600) 50%,
-    var(--color-primary-300) 100%
+    #4F46E5 0%,
+    #7C3AED 50%,
+    #4F46E5 100%
   );
   backdrop-filter: blur(8px);
 }

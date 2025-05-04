@@ -88,7 +88,7 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h2>
           
           <div className="flex items-start space-x-3 mb-6">
-            <div className="h-12 w-12 bg-primary-600 rounded-full flex items-center justify-center text-white">
+            <div className="h-12 w-12 bg-[#7c3aed] rounded-full flex items-center justify-center text-white">
               <UserIcon className="h-6 w-6" />
             </div>
             <div>
@@ -141,7 +141,7 @@ export default function SettingsPage() {
                 <p className="text-gray-500 mb-4 text-sm">View and manage your bulk operations history</p>
                 <a 
                   href="/bulk-actions" 
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                 >
                   <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2" />
                   Manage Bulk Actions
@@ -153,7 +153,7 @@ export default function SettingsPage() {
                 <p className="text-gray-500 mb-4 text-sm">Manage your notification preferences</p>
                 <a 
                   href="/notifications" 
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                 >
                   <BellIcon className="h-5 w-5 mr-2" />
                   Manage Notifications
@@ -166,7 +166,7 @@ export default function SettingsPage() {
                 <p className="text-gray-500 mb-4 text-sm">Manage your phone numbers and 10DLC registration</p>
                 <a 
                   href="/phone-numbers" 
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                 >
                   <PhoneIcon className="h-5 w-5 mr-2" />
                   Manage Phone Numbers
@@ -178,7 +178,7 @@ export default function SettingsPage() {
                 <p className="text-gray-500 mb-4 text-sm">View detailed analytics and performance metrics</p>
                 <a 
                   href="/analytics" 
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                 >
                   <ChartBarIcon className="h-5 w-5 mr-2" />
                   View Analytics
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                 <p className="text-gray-500 mb-4 text-sm">View and manage your billing and usage breakdown</p>
                 <a 
                   href="/billing" 
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7c3aed] hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5 mr-2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75A2.25 2.25 0 014.5 4.5h15a2.25 2.25 0 012.25 2.25v10.5A2.25 2.25 0 0119.5 19.5h-15A2.25 2.25 0 012.25 17.25V6.75zm0 0L12 13.5l9.75-6.75" />

@@ -168,7 +168,7 @@ export default function BulkEmailsPage() {
           <a href="/emails" className="text-gray-600 hover:text-gray-900 mr-4">
             <ArrowLeftIcon className="w-5 h-5" />
           </a>
-          <h1 className="text-2xl font-bold text-gray-950">Bulk Email Campaign</h1>
+          <h1 className="text-2xl font-bold text-[#1e1b4b]">Bulk Email Campaign</h1>
         </div>
         
         <form onSubmit={handleSubmit}>
@@ -176,8 +176,8 @@ export default function BulkEmailsPage() {
             <div className="lg:col-span-1">
               <div className="nextprop-card">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-950">Select Contacts</h3>
-                  <div className="text-primary-600 bg-purple-50 p-3 rounded-full">
+                  <h3 className="text-lg font-semibold text-[#1e1b4b]">Select Contacts</h3>
+                  <div className="text-[#7c3aed] bg-purple-50 p-3 rounded-full">
                     <UserIcon className="w-5 h-5" />
                   </div>
                 </div>
@@ -195,7 +195,7 @@ export default function BulkEmailsPage() {
                 <div className="mb-3 flex items-center justify-between">
                   <button
                     type="button"
-                    className="text-sm text-primary-600 hover:text-primary-700"
+                    className="text-sm text-[#7c3aed] hover:text-[#6d28d9]"
                     onClick={handleSelectAll}
                   >
                     {selectedContacts.length === filteredContacts.length ? 'Deselect All' : 'Select All'}
@@ -208,7 +208,7 @@ export default function BulkEmailsPage() {
                 <div className="overflow-y-auto max-h-96 border rounded-md">
                   {loading ? (
                     <div className="flex justify-center items-center p-4">
-                      <svg className="animate-spin h-5 w-5 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-5 w-5 text-[#7c3aed]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -229,7 +229,7 @@ export default function BulkEmailsPage() {
                         >
                           <div className="mr-3">
                             {selectedContacts.some(c => c.id === contact.id) ? (
-                              <div className="h-5 w-5 bg-primary-600 rounded flex items-center justify-center">
+                              <div className="h-5 w-5 bg-[#7c3aed] rounded flex items-center justify-center">
                                 <CheckCircleIcon className="h-4 w-4 text-white" />
                               </div>
                             ) : (
@@ -252,8 +252,8 @@ export default function BulkEmailsPage() {
             <div className="lg:col-span-2">
               <div className="nextprop-card">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-950">Compose Email</h3>
-                  <div className="text-primary-600 bg-purple-50 p-3 rounded-full">
+                  <h3 className="text-lg font-semibold text-[#1e1b4b]">Compose Email</h3>
+                  <div className="text-[#7c3aed] bg-purple-50 p-3 rounded-full">
                     <EnvelopeIcon className="w-5 h-5" />
                   </div>
                 </div>

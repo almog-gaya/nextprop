@@ -179,7 +179,7 @@ export default function BulkCallsPage() {
       <div className="m-6">
         <Link 
           href="/calls" 
-          className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700"
+          className="inline-flex items-center text-sm text-[#7c3aed] hover:text-[#6d28d9]"
         >
           <ArrowLeftIcon className="w-4 h-4 mr-1" />
           Back to Calls
@@ -195,8 +195,8 @@ export default function BulkCallsPage() {
         <div className="space-y-6">
           <div className="nextprop-card p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-950">Send Bulk Voicemails</h3>
-              <div className="text-primary-600 bg-purple-50 p-3 rounded-full">
+              <h3 className="text-lg font-semibold text-[#1e1b4b]">Send Bulk Voicemails</h3>
+              <div className="text-[#7c3aed] bg-purple-50 p-3 rounded-full">
                 <PhoneIcon className="w-5 h-5" />
               </div>
             </div>
@@ -208,7 +208,7 @@ export default function BulkCallsPage() {
                   <button 
                     type="button" 
                     onClick={handleBack}
-                    className="text-sm text-primary-600 hover:text-primary-700"
+                    className="text-sm text-[#7c3aed] hover:text-[#6d28d9]"
                   >
                     Change Selection
                   </button>
@@ -276,7 +276,7 @@ export default function BulkCallsPage() {
                     <button
                       type="button"
                       onClick={handleGenerateDefaultScript}
-                      className="text-xs text-primary-600 hover:text-primary-700"
+                      className="text-xs text-[#7c3aed] hover:text-[#6d28d9]"
                       disabled={isSubmitting && campaignStatus !== 'paused'}
                     >
                       Generate Default
@@ -306,18 +306,18 @@ export default function BulkCallsPage() {
                 
                 {(results.success > 0 || results.failed > 0 || results.pending > 0) && (
                   <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
-                    <h4 className="font-medium text-gray-950 mb-4">Campaign Progress</h4>
+                    <h4 className="font-medium text-[#1e1b4b] mb-4">Campaign Progress</h4>
                     
                     {/* Progress bars */}
                     <div className="space-y-4">
                       <div>
                         <div className="flex justify-between text-sm mb-1.5">
                           <span className="font-medium">Current Batch Progress</span>
-                          <span className="text-primary-600">{currentBatchProgress}%</span>
+                          <span className="text-[#7c3aed]">{currentBatchProgress}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                           <div 
-                            className="bg-primary-600 h-2.5 rounded-full transition-all duration-500" 
+                            className="bg-[#7c3aed] h-2.5 rounded-full transition-all duration-500" 
                             style={{ width: `${currentBatchProgress}%` }}
                           ></div>
                         </div>
@@ -355,7 +355,7 @@ export default function BulkCallsPage() {
                     
                     {isSubmitting && (
                       <div className="mt-4 flex items-center justify-center p-3 bg-blue-50 rounded-md border border-blue-100">
-                        <svg className="animate-spin mr-2 h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin mr-2 h-4 w-4 text-[#7c3aed]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -370,7 +370,7 @@ export default function BulkCallsPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600 flex justify-center items-center"
+                      className="flex-1 py-3 px-4 bg-[#7c3aed] text-white rounded-md shadow-sm hover:bg-[#6d28d9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed] flex justify-center items-center"
                     >
                       <PhoneIcon className="w-5 h-5 mr-2" />
                       Start Campaign ({selectedContacts.length} Contacts)
@@ -386,7 +386,7 @@ export default function BulkCallsPage() {
                       </button>
                       <div className="flex-1 bg-gray-100 rounded-md shadow-sm flex items-center justify-center">
                         <div className="flex items-center space-x-2">
-                          <svg className="animate-spin h-5 w-5 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-5 w-5 text-[#7c3aed]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
@@ -398,7 +398,7 @@ export default function BulkCallsPage() {
                     <button
                       type="button"
                       onClick={handlePauseResume}
-                      className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600 flex justify-center items-center"
+                      className="flex-1 py-3 px-4 bg-[#7c3aed] text-white rounded-md shadow-sm hover:bg-[#6d28d9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed] flex justify-center items-center"
                     >
                       Resume Campaign
                     </button>
@@ -406,7 +406,7 @@ export default function BulkCallsPage() {
                     <button
                       type="button"
                       onClick={handleBack}
-                      className="flex-1 py-3 px-4 bg-primary-600 text-white rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600 flex justify-center items-center"
+                      className="flex-1 py-3 px-4 bg-[#7c3aed] text-white rounded-md shadow-sm hover:bg-[#6d28d9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed] flex justify-center items-center"
                     >
                       Create New Campaign
                     </button>

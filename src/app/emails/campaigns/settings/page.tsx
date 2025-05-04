@@ -42,7 +42,7 @@ export default function CampaignSettingsPage() {
       <div className="p-6 max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-950">Campaign Settings</h1>
+            <h1 className="text-2xl font-bold text-[#1e1b4b]">Campaign Settings</h1>
             <p className="text-gray-600">
               Configure your email campaign settings
             </p>
@@ -59,11 +59,11 @@ export default function CampaignSettingsPage() {
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="nextprop-card">
             <div className="flex items-center mb-6">
-              <div className="p-3 rounded-full bg-purple-100 text-primary-600 mr-4">
+              <div className="p-3 rounded-full bg-purple-100 text-[#7c3aed] mr-4">
                 <CogIcon className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-950 text-lg">API Configuration</h3>
+                <h3 className="font-semibold text-[#1e1b4b] text-lg">API Configuration</h3>
                 <p className="text-gray-600 text-sm">Configure your Instantly API connection settings</p>
               </div>
             </div>
@@ -91,7 +91,7 @@ export default function CampaignSettingsPage() {
 
           <div className="nextprop-card">
             <div className="mb-6">
-              <h3 className="font-semibold text-gray-950 text-lg">Default Sender Information</h3>
+              <h3 className="font-semibold text-[#1e1b4b] text-lg">Default Sender Information</h3>
               <p className="text-gray-600 text-sm">The default information used when creating new campaigns</p>
             </div>
             
@@ -130,7 +130,7 @@ export default function CampaignSettingsPage() {
 
           <div className="nextprop-card">
             <div className="mb-6">
-              <h3 className="font-semibold text-gray-950 text-lg">Synchronization & Analytics</h3>
+              <h3 className="font-semibold text-[#1e1b4b] text-lg">Synchronization & Analytics</h3>
               <p className="text-gray-600 text-sm">Configure how campaign data is synchronized and analyzed</p>
             </div>
             
@@ -149,7 +149,7 @@ export default function CampaignSettingsPage() {
                     type="checkbox"
                     id="enableAnalytics"
                     name="enableAnalytics"
-                    className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                    className="h-4 w-4 text-[#7c3aed] rounded border-gray-300"
                     checked={settings.enableAnalytics}
                     onChange={handleInputChange}
                   />
@@ -170,7 +170,7 @@ export default function CampaignSettingsPage() {
                     type="checkbox"
                     id="autoSyncCampaigns"
                     name="autoSyncCampaigns"
-                    className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                    className="h-4 w-4 text-[#7c3aed] rounded border-gray-300"
                     checked={settings.autoSyncCampaigns}
                     onChange={handleInputChange}
                   />

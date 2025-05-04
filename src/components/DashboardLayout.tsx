@@ -37,7 +37,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
   }, []);
   
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-[#F7F7F7]">
       {/* Desktop Sidebar */}
       <div className="hidden md:block fixed top-0 left-0 h-screen w-50 z-40">
         <Sidebar />

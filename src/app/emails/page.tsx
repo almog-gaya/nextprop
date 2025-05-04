@@ -156,7 +156,7 @@ export default function EmailsPage() {
     <DashboardLayout title="Email Campaigns">
       <div className="p-6 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-gray-950">Email Campaigns</h1>
+          <h1 className="text-2xl font-bold text-[#1e1b4b]">Email Campaigns</h1>
           <div className="flex gap-2">
             <button 
               onClick={handleRefresh} 
@@ -164,7 +164,7 @@ export default function EmailsPage() {
               className="nextprop-outline-button flex items-center"
             >
               {loading.campaigns ? (
-                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-600 mr-2"></div>
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#7c3aed] mr-2"></div>
               ) : (
                 <ArrowPathIcon className="h-4 w-4 mr-2" />
               )}
@@ -183,11 +183,11 @@ export default function EmailsPage() {
         
         <div className="nextprop-card mb-6">
           <div className="flex items-center mb-4">
-            <div className="p-3 rounded-full bg-purple-100 text-primary-600 mr-4">
+            <div className="p-3 rounded-full bg-purple-100 text-[#7c3aed] mr-4">
               <EnvelopeIcon className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-950 text-lg">Manage Campaigns</h3>
+              <h3 className="font-semibold text-[#1e1b4b] text-lg">Manage Campaigns</h3>
               <p className="text-gray-600 text-sm">View and manage your email campaigns</p>
             </div>
           </div>
@@ -237,10 +237,10 @@ export default function EmailsPage() {
                         onClick={() => router.push(`/emails/campaigns/${campaign.id}`)}
                       >
                         <div className="flex-shrink-0">
-                          <EnvelopeIcon className="h-6 w-6 text-primary-600" />
+                          <EnvelopeIcon className="h-6 w-6 text-[#7c3aed]" />
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-950">{formatCampaignName(campaign.name)}</h4>
+                          <h4 className="font-medium text-[#1e1b4b]">{formatCampaignName(campaign.name)}</h4>
                           <div className="flex items-center space-x-2 mt-1">
                             <span className={`px-2 py-0.5 text-xs rounded-full ${getCampaignStatusClass(campaign.status)}`}>
                               {getCampaignStatusText(campaign.status)}
@@ -254,7 +254,7 @@ export default function EmailsPage() {
                       <div className="flex items-center">
                         <Link 
                           href={`/emails/campaigns/analytics`} 
-                          className="text-primary-600 hover:underline text-sm font-medium mr-4"
+                          className="text-[#7c3aed] hover:underline text-sm font-medium mr-4"
                         >
                           <ChartBarIcon className="h-5 w-5 inline-block mr-1" />
                           Analytics
@@ -280,12 +280,12 @@ export default function EmailsPage() {
           <div className="nextprop-card">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-600 text-sm uppercase">Total Campaigns</h3>
-              <EnvelopeIcon className="h-5 w-5 text-primary-600" />
+              <EnvelopeIcon className="h-5 w-5 text-[#7c3aed]" />
             </div>
             {loading.campaigns && campaignsArray.length === 0 ? (
               <div className="h-8 bg-gray-200 rounded w-16 mt-2 animate-pulse"></div>
             ) : (
-              <p className="text-3xl font-bold text-gray-950 mt-2">{campaignsArray.length}</p>
+              <p className="text-3xl font-bold text-[#1e1b4b] mt-2">{campaignsArray.length}</p>
             )}
           </div>
           
@@ -297,7 +297,7 @@ export default function EmailsPage() {
             {loading.campaigns && campaignsArray.length === 0 ? (
               <div className="h-8 bg-gray-200 rounded w-16 mt-2 animate-pulse"></div>
             ) : (
-              <p className="text-3xl font-bold text-gray-950 mt-2">
+              <p className="text-3xl font-bold text-[#1e1b4b] mt-2">
                 {campaignsArray.filter(campaign => 
                   typeof campaign.status === 'string' 
                     ? campaign.status.toLowerCase() === 'active' 
@@ -315,7 +315,7 @@ export default function EmailsPage() {
             {loading.campaigns && campaignsArray.length === 0 ? (
               <div className="h-8 bg-gray-200 rounded w-16 mt-2 animate-pulse"></div>
             ) : (
-              <p className="text-3xl font-bold text-gray-950 mt-2">
+              <p className="text-3xl font-bold text-[#1e1b4b] mt-2">
                 {campaignsArray.filter(campaign => 
                   typeof campaign.status === 'string' 
                     ? campaign.status.toLowerCase() === 'paused' 
