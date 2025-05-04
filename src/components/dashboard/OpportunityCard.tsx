@@ -68,7 +68,7 @@ export default function OpportunityCard({
       <div className="p-2 relative">
       <div className="flex justify-between items-center mb-4">
       <p
-          className="text-gray-900 hover:text-gray-700 font-bold text-[13px] leading-tight truncate max-w-[150px] my-0 mr-2"
+          className="text-gray-900 hover:text-gray-700 font-bold text-[13px] leading-tight truncate max-w-[150px] my-0 mr-2 cursor-pointer"
           title={opportunity.name}
           onClick={handleNameClick}
         >
