@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Tab } from '@headlessui/react';
 import classNames from 'classnames';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 interface NotificationTrayProps {
   isOpen: boolean;
@@ -19,11 +20,6 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ isOpen, onClose }) 
     { id: 'missed-calls', label: 'Missed Calls', icon: (
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
-      </svg>
-    )},
-    { id: 'tasks', label: 'Tasks', icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
       </svg>
     )},
     { id: 'sms', label: 'SMS', icon: (
@@ -64,42 +60,47 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ isOpen, onClose }) 
   return (
     <>
       {/* Overlay */}
-      <div 
-        className="fixed inset-0 z-40 bg-black/5"
+      <div
+        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
         onClick={onClose}
       />
-          
-      <div className="fixed top-16 right-0 w-[480px] h-[calc(95vh-72px)] z-50">
-        {/* Tooltip pointer */}
-        <div 
-          className="absolute left-[210px] -top-2 w-3 h-3 bg-white transform rotate-45 border-t border-l border-gray-200"
-        />
-        
-        <div className="h-full bg-white shadow-xl flex flex-col border border-gray-200 rounded-md">
+
+      {/* Tray */}
+      <div className="fixed top-20 right-4 w-[380px] sm:w-[420px] max-h-[calc(95vh-80px)] z-50">
+        <div className="bg-white/90 backdrop-blur-xl shadow-2xl flex flex-col border border-gray-100 rounded-xl max-h-full overflow-hidden">
           {/* Header */}
-          <div className="flex justify-between items-center px-4 py-3 border-b">
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-[15px] font-medium text-gray-900">Notifications</h2>
-              <span className="text-[13px] text-gray-500 mb-4">(0 Unread)</span>
+          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200/70 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-gray-900">Notifications</h2>
+              <span className="text-xs text-gray-500">(0 Unread)</span>
             </div>
-            <button 
-              className="text-[#0A855C] text-[13px] hover:text-[#097a54] font-medium mb-4"
-            >
-              Mark all as Read
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                Mark all as Read
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1 hover:bg-gray-100 rounded"
+                aria-label="Close notification tray"
+              >
+                <XMarkIcon className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex w-full overflow-x-auto no-scrollbar border-b">
+          <div className="flex w-full overflow-x-auto no-scrollbar border-b border-gray-200 bg-gray-50/60 backdrop-blur-sm">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
                 className={classNames(
-                  'px-4 py-2.5 flex items-center gap-1.5 text-[13px] whitespace-nowrap transition-colors',
+                  'px-4 py-2 flex items-center gap-1.5 text-xs whitespace-nowrap transition-colors',
                   selectedTab === tab.id
-                    ? 'text-[#7c3aed] border-b-2 border-[#7c3aed] font-medium'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600 font-medium bg-white'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 )}
               >
                 <span className="w-4 h-4 flex items-center justify-center">
@@ -111,7 +112,7 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ isOpen, onClose }) 
           </div>
 
           {/* Content */}
-          <div className="flex-1 flex items-center justify-center text-[13px] text-gray-500">
+          <div className="flex-1 flex items-center justify-center text-sm text-gray-500 p-6">
             {getTabContent(selectedTab)}
           </div>
         </div>
