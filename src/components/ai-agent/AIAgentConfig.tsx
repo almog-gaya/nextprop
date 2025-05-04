@@ -194,7 +194,15 @@ const EXAMPLE_MESSAGES = [
   "What kind of properties are you looking for?"
 ];
 
-export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: string | null }) {
+export default function AIAgentConfig({ 
+  selectedAgentId, 
+  activeSection,
+  hideContainer = false
+}: { 
+  selectedAgentId: string | null;
+  activeSection?: string;
+  hideContainer?: boolean;
+}) {
   const { user } = useAuth();
   const [config, setConfig] = useState<AIAgentConfigType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -792,6 +800,14 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     );
   }
 
+  // Helper function to check if a section should be rendered
+  const shouldRenderSection = (section: string) => {
+    // If no activeSection is specified, show everything
+    if (!activeSection) return true;
+    // Otherwise only show the requested section
+    return activeSection === section;
+  };
+
   const placeholders = {
     agentName: 'Jane Smith',
     companyName: user?.firstName || 'Your Name',
@@ -801,673 +817,607 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
     companyWebsite: user?.website || 'www.yourcompany.com',
   };
 
-  return (
-    <div className="bg-gradient-to-br from-[var(--nextprop-surface)] to-[var(--nextprop-surface-hover)] rounded-lg shadow-lg p-6 border border-[var(--nextprop-border)]">
-      <div className="flex items-center space-x-4 mb-8">
-        <div className="bg-[var(--nextprop-primary)] p-3 rounded-full shadow-md">
-          <BoltIcon className="h-8 w-8 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--nextprop-text-primary)] bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] bg-clip-text text-transparent">
-            AI Agent Configuration
-          </h1>
-          <p className="text-[var(--nextprop-text-secondary)] text-sm">Configure your automated real estate assistant</p>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <FunnelIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-5" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)] leading-tight mt-0.5">
-              Pipeline Configuration
-            </h3>
+  // Content to render with or without container
+  const content = (
+    <React.Fragment>
+      {!hideContainer && (
+        <div className="flex items-center space-x-4 mb-8">
+          <div className="bg-[var(--nextprop-primary)] p-3 rounded-full shadow-md">
+            <BoltIcon className="h-8 w-8 text-white" />
           </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--nextprop-text-primary)] bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] bg-clip-text text-transparent">
+              AI Agent Configuration
+            </h1>
+            <p className="text-[var(--nextprop-text-secondary)] text-sm">Configure your automated real estate assistant</p>
+          </div>
+        </div>
+      )}
 
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-3">
-              <div>
-                <p className="text-sm font-medium text-[var(--nextprop-text-secondary)]">
-                  Enable AI Agent for specific pipelines
-                </p>
-                <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
-                  The AI Agent will only respond to messages from leads in the selected pipelines
-                </p>
-              </div>
-              <div className="space-x-2">
-                <button
-                  onClick={() => handleToggleAllPipelines(true)}
-                  className="text-xs bg-[var(--nextprop-surface-hover)] px-2 py-1 rounded text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-primary-light)]/10 border border-[var(--nextprop-border)]"
-                >
-                  Select All
-                </button>
-                <button
-                  onClick={() => handleToggleAllPipelines(false)}
-                  className="text-xs bg-[var(--nextprop-surface-hover)] px-2 py-1 rounded text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-primary-light)]/10 border border-[var(--nextprop-border)]"
-                >
-                  Clear All
-                </button>
-              </div>
+      {shouldRenderSection('pipeline') && (
+        <div className="mb-6">
+          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+              <FunnelIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-5" />
+              <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)] leading-tight mt-0.5">
+                Pipeline Configuration
+              </h3>
             </div>
 
-            {loadingPipelines ? (
-              <div className="p-4 flex justify-center">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--nextprop-primary)]"></div>
-              </div>
-            ) : pipelines.length === 0 ? (
-              <div className="p-4 text-center text-[var(--nextprop-text-tertiary)]">
-                No pipelines found. Please create pipelines in your CRM.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {pipelines.map(pipeline => (
-                  <div
-                    key={pipeline.id}
-                    className={`border rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-[var(--nextprop-surface-hover)] transition-colors ${config.enabledPipelines.some(p => p.id === pipeline.id)
-                      ? 'border-[var(--nextprop-primary)] bg-[var(--nextprop-primary-light)]/5'
-                      : 'border-[var(--nextprop-border)]'
-                      }`}
-                    onClick={() => handleTogglePipeline(pipeline)}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-3">
+                <div>
+                  <p className="text-sm font-medium text-[var(--nextprop-text-secondary)]">
+                    Enable AI Agent for specific pipelines
+                  </p>
+                  <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                    The AI Agent will only respond to messages from leads in the selected pipelines
+                  </p>
+                </div>
+                <div className="space-x-2">
+                  <button
+                    onClick={() => handleToggleAllPipelines(true)}
+                    className="text-xs bg-[var(--nextprop-surface-hover)] px-2 py-1 rounded text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-primary-light)]/10 border border-[var(--nextprop-border)]"
                   >
-                    <span className="text-sm font-medium text-[var(--nextprop-text-primary)] truncate">
-                      {pipeline.name}
-                    </span>
-                    <Switch
-                      checked={config.enabledPipelines.some(p => p.id === pipeline.id)}
-                      onChange={() => handleTogglePipeline(pipeline)}
-                      onClick={(e) => e.stopPropagation()}
-                      className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
-                        ? 'bg-[var(--nextprop-primary)]'
-                        : 'bg-gray-200'
-                        } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none`}
-                    >
-                      <span
-                        className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
-                          ? 'translate-x-5'
-                          : 'translate-x-1'
-                          } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
-                      />
-                    </Switch>
-                  </div>
-                ))}
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => handleToggleAllPipelines(false)}
+                    className="text-xs bg-[var(--nextprop-surface-hover)] px-2 py-1 rounded text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-primary-light)]/10 border border-[var(--nextprop-border)]"
+                  >
+                    Clear All
+                  </button>
+                </div>
               </div>
-            )}
+
+              {loadingPipelines ? (
+                <div className="p-4 flex justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--nextprop-primary)]"></div>
+                </div>
+              ) : pipelines.length === 0 ? (
+                <div className="p-4 text-center text-[var(--nextprop-text-tertiary)]">
+                  No pipelines found. Please create pipelines in your CRM.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {pipelines.map(pipeline => (
+                    <div
+                      key={pipeline.id}
+                      className={`border rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-[var(--nextprop-surface-hover)] transition-colors ${config.enabledPipelines.some(p => p.id === pipeline.id)
+                        ? 'border-[var(--nextprop-primary)] bg-[var(--nextprop-primary-light)]/5'
+                        : 'border-[var(--nextprop-border)]'
+                        }`}
+                      onClick={() => handleTogglePipeline(pipeline)}
+                    >
+                      <span className="text-sm font-medium text-[var(--nextprop-text-primary)] truncate">
+                        {pipeline.name}
+                      </span>
+                      <Switch
+                        checked={config.enabledPipelines.some(p => p.id === pipeline.id)}
+                        onChange={() => handleTogglePipeline(pipeline)}
+                        onClick={(e) => e.stopPropagation()}
+                        className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
+                          ? 'bg-[var(--nextprop-primary)]'
+                          : 'bg-gray-200'
+                          } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none`}
+                      >
+                        <span
+                          className={`${config.enabledPipelines.some(p => p.id === pipeline.id)
+                            ? 'translate-x-5'
+                            : 'translate-x-1'
+                            } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                        />
+                      </Switch>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <UserCircleIcon className="h-6 w-6 text-[var(--nextprop-primary)] mb-5" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Agent Identity</h3>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="agentName" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                Agent Name
-              </label>
-              <div className='border border-[var(--nextprop-border)] rounded-lg'>
-                <input
-                  type="text"
-                  id="agentName"
-                  name="agentName"
-                  value={config.agentName}
-                  onChange={handleInputChange}
-                  className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                />
-              </div>
+        {shouldRenderSection('identity') && (
+          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+              <UserCircleIcon className="h-6 w-6 text-[var(--nextprop-primary)] mb-5" />
+              <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Agent Identity</h3>
             </div>
-
-            <div>
-              <label htmlFor="companyName" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                Your Name
-              </label>
-              <div className='border border-[var(--nextprop-border)] rounded-lg'>
-                <input
-                  type="text"
-                  id="companyName"
-                  name="companyName"
-                  value={config.companyName || ''}
-                  onChange={handleInputChange}
-                  placeholder={placeholders.companyName}
-                  className="nextprop-input w-full p-2.5 rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                />
-              </div>
-
-              <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
-                This is your name that will be used when the AI agent refers to you
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="speakingOnBehalfOf" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                Company Name
-              </label>
-              <div className='border border-[var(--nextprop-border)] rounded-lg '>
-                <input
-                  type="text"
-                  id="speakingOnBehalfOf"
-                  name="speakingOnBehalfOf"
-                  value={config.speakingOnBehalfOf || ''}
-                  onChange={handleInputChange}
-                  placeholder={placeholders.speakingOnBehalfOf}
-                  className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <EnvelopeIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Company Information</h3>
-          </div>
-          <div className="space-y-4">
-            <div className="relative">
-              <label htmlFor="contactPhone" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                Phone Number
-              </label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
-                  <PhoneIcon className="h-4 w-4" />
-                </span>
-                <div className='w-full rounded-r-lg border border-[var(--nextprop-border)]'>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="agentName" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  Agent Name
+                </label>
+                <div className='border border-[var(--nextprop-border)] rounded-lg'>
                   <input
-                    type="tel"
-                    id="contactPhone"
-                    name="contactPhone"
-                    value={config.contactPhone || ''}
+                    type="text"
+                    id="agentName"
+                    name="agentName"
+                    value={config.agentName}
                     onChange={handleInputChange}
-                    placeholder={placeholders.contactPhone}
-                    className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                    className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                   />
                 </div>
               </div>
+
+              <div>
+                <label htmlFor="companyName" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  Your Name
+                </label>
+                <div className='border border-[var(--nextprop-border)] rounded-lg'>
+                  <input
+                    type="text"
+                    id="companyName"
+                    name="companyName"
+                    value={config.companyName || ''}
+                    onChange={handleInputChange}
+                    placeholder={placeholders.companyName}
+                    className="nextprop-input w-full p-2.5 rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                  />
+                </div>
+
+                <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                  This is your name that will be used when the AI agent refers to you
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="speakingOnBehalfOf" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  Company Name
+                </label>
+                <div className='border border-[var(--nextprop-border)] rounded-lg '>
+                  <input
+                    type="text"
+                    id="speakingOnBehalfOf"
+                    name="speakingOnBehalfOf"
+                    value={config.speakingOnBehalfOf || ''}
+                    onChange={handleInputChange}
+                    placeholder={placeholders.speakingOnBehalfOf}
+                    className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {shouldRenderSection('company') && (
+          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+              <EnvelopeIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
+              <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Company Information</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="relative">
+                <label htmlFor="contactPhone" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  Phone Number
+                </label>
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                    <PhoneIcon className="h-4 w-4" />
+                  </span>
+                  <div className='w-full rounded-r-lg border border-[var(--nextprop-border)]'>
+                    <input
+                      type="tel"
+                      id="contactPhone"
+                      name="contactPhone"
+                      value={config.contactPhone || ''}
+                      onChange={handleInputChange}
+                      placeholder={placeholders.contactPhone}
+                      className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label htmlFor="contactEmail" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                    Email Address
+                  </label>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                      <EnvelopeIcon className="h-4 w-4" />
+                    </span>
+                    <div className='rounded-r-lg border border-[var(--nextprop-border)]'>
+                      <input
+                        type="email"
+                        id="contactEmail"
+                        name="contactEmail"
+                        value={config.contactEmail || ''}
+                        onChange={handleInputChange}
+                        placeholder={placeholders.contactEmail}
+                        className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <label htmlFor="companyWebsite" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                    Company Website
+                  </label>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
+                      </svg>
+                    </span>
+                    <div className='rounded-r-lg border border-[var(--nextprop-border)]'>
+                      <input
+                        type="url"
+                        id="companyWebsite"
+                        name="companyWebsite"
+                        value={config.companyWebsite || ''}
+                        onChange={handleInputChange}
+                        placeholder={placeholders.companyWebsite}
+                        className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="companyAbout" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  About Company <span className="text-xs text-[var(--nextprop-text-tertiary)]">(optional)</span>
+                </label>
+                <div className='border border-[var(--nextprop-border)] rounded-lg'>
+                  <textarea
+                    id="companyAbout"
+                    name="companyAbout"
+                    value={config.companyAbout || ''}
+                    onChange={handleInputChange}
+                    placeholder="Briefly describe your company or services..."
+                    rows={3}
+                    className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                  />
+                </div>
+                <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1 pt-2">
+                  This information helps the AI provide context about your company to potential clients.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {shouldRenderSection('buyingCriteria') && (
+        <div className="mt-6">
+          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
+            <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+              <BuildingOfficeIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
+              <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Buying Criteria</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
-                <label htmlFor="contactEmail" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                  Email Address
-                </label>
-                <div className="flex">
-                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
-                    <EnvelopeIcon className="h-4 w-4" />
-                  </span>
-                  <div className='rounded-r-lg border border-[var(--nextprop-border)]'>
-                    <input
-                      type="email"
-                      id="contactEmail"
-                      name="contactEmail"
-                      value={config.contactEmail || ''}
-                      onChange={handleInputChange}
-                      placeholder={placeholders.contactEmail}
-                      className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                    />
+              <div>
+                <div className="flex items-center mb-2">
+                  <CurrencyDollarIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2 mb-1" />
+                  <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
+                    Price Range
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border border-[var(--nextprop-border)] rounded-lg">
+                    <select
+                      className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                      value={priceRange.min}
+                      onChange={(e) => handlePriceChange(Number(e.target.value), 'min')}
+                    >
+                      <option value={0}>Min: No Limit</option>
+                      <option value={250000}>Min: $250K</option>
+                      <option value={500000}>Min: $500K</option>
+                      <option value={750000}>Min: $750K</option>
+                      <option value={1000000}>Min: $1M</option>
+                      <option value={1250000}>Min: $1.25M</option>
+                      <option value={1500000}>Min: $1.5M</option>
+                      <option value={1750000}>Min: $1.75M</option>
+                      <option value={2000000}>Min: $2M</option>
+                      <option value={2250000}>Min: $2.25M</option>
+                      <option value={2500000}>Min: $2.5M</option>
+                    </select>
+                  </div>
+                  <div className="text-[var(--nextprop-text-tertiary)] text-sm">to</div>
+                  <div className="flex-1 border border-[var(--nextprop-border)] rounded-lg">
+                    <select
+                      className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                      value={priceRange.max}
+                      onChange={(e) => handlePriceChange(Number(e.target.value), 'max')}
+                    >
+                      <option value={250000}>Max: $250K</option>
+                      <option value={500000}>Max: $500K</option>
+                      <option value={750000}>Max: $750K</option>
+                      <option value={1000000}>Max: $1M</option>
+                      <option value={1250000}>Max: $1.25M</option>
+                      <option value={1500000}>Max: $1.5M</option>
+                      <option value={1750000}>Max: $1.75M</option>
+                      <option value={2000000}>Max: $2M</option>
+                      <option value={2250000}>Max: $2.25M</option>
+                      <option value={2500000}>Max: $2.5M</option>
+                      <option value={2750000}>Max: $2.75M</option>
+                      <option value={3000000}>Max: $3M</option>
+                      <option value={5000000}>Max: $5M</option>
+                      <option value={10000000}>Max: $10M+</option>
+                    </select>
                   </div>
                 </div>
               </div>
 
-              <div className="relative">
-                <label htmlFor="companyWebsite" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                  Company Website
-                </label>
-                <div className="flex">
-                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                    </svg>
-                  </span>
-                  <div className='rounded-r-lg border border-[var(--nextprop-border)]'>
-                    <input
-                      type="url"
-                      id="companyWebsite"
-                      name="companyWebsite"
-                      value={config.companyWebsite || ''}
-                      onChange={handleInputChange}
-                      placeholder={placeholders.companyWebsite}
-                      className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                    />
-                  </div>
+              <div>
+                <div className="flex items-center mb-2">
+                  <MapPinIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2 mb-1" />
+                  <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
+                    In Area
+                  </label>
                 </div>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="companyAbout" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                About Company <span className="text-xs text-[var(--nextprop-text-tertiary)]">(optional)</span>
-              </label>
-              <div className='border border-[var(--nextprop-border)] rounded-lg'>
-                <textarea
-                  id="companyAbout"
-                  name="companyAbout"
-                  value={config.companyAbout || ''}
-                  onChange={handleInputChange}
-                  placeholder="Briefly describe your company or services..."
-                  rows={3}
-                  className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                />
-              </div>
-              <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1 pt-2">
-                This information helps the AI provide context about your company to potential clients.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <BuildingOfficeIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Buying Criteria</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center mb-2">
-                <CurrencyDollarIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2 mb-1" />
-                <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
-                  Price Range
-                </label>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 border border-[var(--nextprop-border)] rounded-lg">
-                  <select
-                    className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
-                    value={priceRange.min}
-                    onChange={(e) => handlePriceChange(Number(e.target.value), 'min')}
-                  >
-                    <option value={0}>Min: No Limit</option>
-                    <option value={250000}>Min: $250K</option>
-                    <option value={500000}>Min: $500K</option>
-                    <option value={750000}>Min: $750K</option>
-                    <option value={1000000}>Min: $1M</option>
-                    <option value={1250000}>Min: $1.25M</option>
-                    <option value={1500000}>Min: $1.5M</option>
-                    <option value={1750000}>Min: $1.75M</option>
-                    <option value={2000000}>Min: $2M</option>
-                    <option value={2250000}>Min: $2.25M</option>
-                    <option value={2500000}>Min: $2.5M</option>
-                  </select>
-                </div>
-                <div className="text-[var(--nextprop-text-tertiary)] text-sm">to</div>
-                <div className="flex-1 border border-[var(--nextprop-border)] rounded-lg">
-                  <select
-                    className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
-                    value={priceRange.max}
-                    onChange={(e) => handlePriceChange(Number(e.target.value), 'max')}
-                  >
-                    <option value={250000}>Max: $250K</option>
-                    <option value={500000}>Max: $500K</option>
-                    <option value={750000}>Max: $750K</option>
-                    <option value={1000000}>Max: $1M</option>
-                    <option value={1250000}>Max: $1.25M</option>
-                    <option value={1500000}>Max: $1.5M</option>
-                    <option value={1750000}>Max: $1.75M</option>
-                    <option value={2000000}>Max: $2M</option>
-                    <option value={2250000}>Max: $2.25M</option>
-                    <option value={2500000}>Max: $2.5M</option>
-                    <option value={2750000}>Max: $2.75M</option>
-                    <option value={3000000}>Max: $3M</option>
-                    <option value={5000000}>Max: $5M</option>
-                    <option value={10000000}>Max: $10M+</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center mb-2">
-                <MapPinIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2 mb-1" />
-                <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
-                  In Area
-                </label>
-              </div>
-              {/* Textfield to ask "In Area: " */}
-              <div className='border border-[var(--nextprop-border)] rounded-lg'>
-                <input
-                  type="text"
-                  id="inArea"
-                  name="inArea"
-                  value={region || ''}
-                  onChange={handleRegionInputChange}
-                  placeholder="i.e: Bay area of San Francisco"
-                  className="nextprop-input w-full p-2 border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center mb-2">
-                <HomeIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2 mb-1" />
-                <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
-                  Property Type
-                </label>
-              </div>
-
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="w-full md:w-1/2 border border-[var(--nextprop-border)] rounded-lg">
-                  <select
-                    className="nextprop-input w-full p-2 border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
-                    value={propertyTypes[0]}
-                    onChange={(e) => setPropertyTypes([e.target.value])}
-                  >
-                    {PROPERTY_TYPES.map(type => (
-                      <option key={type} value={type}>{type === 'All' ? 'All Property Types' : type}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="w-full md:w-1/2 border border-[var(--nextprop-border)] rounded-lg">
+                {/* Textfield to ask "In Area: " */}
+                <div className='border border-[var(--nextprop-border)] rounded-lg'>
                   <input
                     type="text"
-                    value={additionalPropertyTypes}
-                    onChange={(e) => setAdditionalPropertyTypes(e.target.value)}
-                    placeholder="Additional types (optional)"
-                    className="nextprop-input w-full p-2 border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                    id="inArea"
+                    name="inArea"
+                    value={region || ''}
+                    onChange={handleRegionInputChange}
+                    placeholder="i.e: Bay area of San Francisco"
+                    className="nextprop-input w-full p-2 border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                   />
                 </div>
               </div>
 
-              <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
-                Optionally add more types like "Duplex, Vacation Homes" in the second field
-              </p>
-            </div>
-          </div>
+              <div>
+                <div className="flex items-center mb-2">
+                  <HomeIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2 mb-1" />
+                  <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)]">
+                    Property Type
+                  </label>
+                </div>
 
-          {/* <div className="mt-4">
-            <label htmlFor="additionalCriteria" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-2">
-              Additional Requirements (Optional)
-            </label>
-            <textarea
-              id="additionalCriteria"
-              value={additionalCriteria}
-              onChange={(e) => setAdditionalCriteria(e.target.value)}
-              className="nextprop-input w-full p-3 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-              rows={2}
-              placeholder="E.g., cosmetic rehabs only, no structural issues, etc."
-            />
-            <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
-              Additional preferences beyond price, location, and property type
-            </p>
-          </div> */}
-        </div>
-
-        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Deal Objective</h3>
-          </div>
-
-          <div className="space-y-5">
-            <div>
-              <h4 className="text-base font-medium text-[var(--nextprop-text-primary)] mb-3 flex items-center">
-                <UserCircleIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
-                For Realtors
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                {([
-                  { value: 'realtor-off-market', label: 'Off Market Deals' },
-                  { value: 'realtor-short-sale', label: 'Short Sales' },
-                  { value: 'realtor-creative-finance', label: 'Creative Finance' },
-                  { value: 'realtor-cash-buyers', label: 'Cash Buyers' },
-                ] as const).map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleDealObjectiveChange(option.value)}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
-                      ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
-                      : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
-                      }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-base font-medium text-[var(--nextprop-text-primary)] mb-3 flex items-center">
-                <HomeIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
-                For Home Owners
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                {([
-                  { value: 'homeowner-cash-offer', label: 'Cash Offer' },
-                  { value: 'homeowner-distressed', label: 'Distressed Seller' },
-                  { value: 'homeowner-relocation', label: 'Relocation' },
-                ] as const).map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleDealObjectiveChange(option.value)}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
-                      ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
-                      : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
-                      }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-
-      {/* Q&A Section */}
-      <div className="mt-6">
-        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Q&A Entries</h3>
-          </div>
-
-          <div className="space-y-4">
-            <p className="text-sm text-[var(--nextprop-text-secondary)]">
-              Select Q&A entries that the AI must follow when responding to users
-            </p>
-
-            {config.qaEntries && config.qaEntries.length > 0 ? (
-              <div className="space-y-3">
-                {config.qaEntries.map((qa) => (
-                  <div
-                    key={qa.id}
-                    className={`relative p-3 border rounded-lg transition-colors ${qa.isEnabled
-                      ? 'bg-[var(--nextprop-primary)]/5 border-[var(--nextprop-primary)]'
-                      : 'border-[var(--nextprop-border)] hover:bg-[var(--nextprop-surface-hover)]'
-                      }`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={qa.isEnabled}
-                          onChange={() => handleToggleQA(qa.id, !qa.isEnabled)}
-                          className={`${qa.isEnabled ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
-                            } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2`}
-                        >
-                          <span
-                            className={`${qa.isEnabled ? 'translate-x-5' : 'translate-x-1'
-                              } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
-                          />
-                        </Switch>
-                        <span className="font-medium text-[var(--nextprop-text-primary)]">Q&A Entry</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs px-2 py-1 rounded-full bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
-                          {qa.id.startsWith('qa_custom_') ? 'Custom' : 'Default'}
-                        </span>
-
-                        {/* Only show delete button for custom Q&A entries */}
-                        {qa.id.startsWith('qa_custom_') && (
-                          <button
-                            onClick={() => handleDeleteQA(qa.id)}
-                            className="text-red-500 hover:text-red-700 p-1"
-                            aria-label="Delete Q&A entry"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                          Question
-                        </label>
-                        <div className='border border-[var(--nextprop-border)] rounded-lg'>
-                          <input
-                            type="text"
-                            value={qa.question}
-                            onChange={(e) => {
-                              handleUpdateQA(qa.id, 'question', e.target.value);
-
-                              // Save to Firebase after a delay (debounce)
-                              if (user?.id) {
-                                const timer = setTimeout(() => {
-                                  setConfig(prev => {
-                                    if (!prev) return prev;
-                                    const updatedConfig = { ...prev };
-                                    saveAIAgentConfig(updatedConfig, user.id)
-                                      .then(() => triggerConfigRefresh())
-                                      .catch(error => console.error('Error saving Q&A update:', error));
-                                    return prev;
-                                  });
-                                }, 500);
-
-                                return () => clearTimeout(timer);
-                              }
-                            }}
-                            className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                          Answer
-                        </label>
-                        <div className='border border-[var(--nextprop-border)] rounded-lg'>
-                          <textarea
-                            rows={3}
-                            value={qa.answer}
-                            onChange={(e) => {
-                              handleUpdateQA(qa.id, 'answer', e.target.value);
-
-                              // Save to Firebase after a delay (debounce)
-                              if (user?.id) {
-                                const timer = setTimeout(() => {
-                                  setConfig(prev => {
-                                    if (!prev) return prev;
-                                    const updatedConfig = { ...prev };
-                                    saveAIAgentConfig(updatedConfig, user.id)
-                                      .then(() => triggerConfigRefresh())
-                                      .catch(error => console.error('Error saving Q&A update:', error));
-                                    return prev;
-                                  });
-                                }, 500);
-
-                                return () => clearTimeout(timer);
-                              }
-                            }}
-                            className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm resize-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="w-full md:w-1/2 border border-[var(--nextprop-border)] rounded-lg">
+                    <select
+                      className="nextprop-input w-full p-2 border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                      value={propertyTypes[0]}
+                      onChange={(e) => setPropertyTypes([e.target.value])}
+                    >
+                      {PROPERTY_TYPES.map(type => (
+                        <option key={type} value={type}>{type === 'All' ? 'All Property Types' : type}</option>
+                      ))}
+                    </select>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-[var(--nextprop-text-tertiary)]">
-                No Q&A entries configured
-              </div>
-            )}
 
-            <div className="pt-2">
-              <button
-                onClick={handleAddQA}
-                className="w-full py-2 px-4 border border-dashed border-[var(--nextprop-border)] rounded-lg text-sm text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)] transition-colors"
-              >
-                + Add Custom Q&A Entry
-              </button>
+                  <div className="w-full md:w-1/2 border border-[var(--nextprop-border)] rounded-lg">
+                    <input
+                      type="text"
+                      value={additionalPropertyTypes}
+                      onChange={(e) => setAdditionalPropertyTypes(e.target.value)}
+                      placeholder="Additional types (optional)"
+                      className="nextprop-input w-full p-2 border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm text-sm"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                  Optionally add more types like "Duplex, Vacation Homes" in the second field
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* DISABLED FOR NOW */}
-      {/* Advanced Customization Section */}
-      {/* <div className="mt-6">
-        <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Advanced Customization</h3>
-          </div>
+      {shouldRenderSection('dealObjective') && (
+        <div className="mt-6">
+          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+              <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
+              <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Deal Objective</h3>
+            </div>
 
-          <div className="space-y-4">
-            <p className="text-sm text-[var(--nextprop-text-secondary)] mb-2">
-              Add additional custom instructions for your AI agent
-            </p>
+            <div className="space-y-5">
+              <div>
+                <h4 className="text-base font-medium text-[var(--nextprop-text-primary)] mb-3 flex items-center">
+                  <UserCircleIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                  For Realtors
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {([
+                    { value: 'realtor-off-market', label: 'Off Market Deals' },
+                    { value: 'realtor-short-sale', label: 'Short Sales' },
+                    { value: 'realtor-creative-finance', label: 'Creative Finance' },
+                    { value: 'realtor-cash-buyers', label: 'Cash Buyers' },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleDealObjectiveChange(option.value)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
+                        ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
+                        : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
+                        }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            <textarea
-              rows={5}
-              name="customInstructions"
-              value={config.customInstructions || ''}
-              onChange={handleInputChange}
-              placeholder="Enter additional instructions for the AI agent..."
-              className="nextprop-input w-full p-2.5 border border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-            ></textarea>
-
-            <p className="text-xs text-[var(--nextprop-text-tertiary)]">
-              These instructions will be added to the end of the AI prompt. Be careful not to contradict earlier instructions.
-            </p>
+              <div>
+                <h4 className="text-base font-medium text-[var(--nextprop-text-primary)] mb-3 flex items-center">
+                  <HomeIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                  For Home Owners
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {([
+                    { value: 'homeowner-cash-offer', label: 'Cash Offer' },
+                    { value: 'homeowner-distressed', label: 'Distressed Seller' },
+                    { value: 'homeowner-relocation', label: 'Relocation' },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleDealObjectiveChange(option.value)}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
+                        ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
+                        : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
+                        }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div> */}
+      )}
 
-
-      <div className="flex justify-end mt-8 space-x-4">
-        <button
-          onClick={() => setShowTestPanel(!showTestPanel)}
-          className="px-6 py-2.5 bg-[var(--nextprop-surface)] border border-[var(--nextprop-border)] text-[var(--nextprop-text-primary)] rounded-lg hover:bg-[var(--nextprop-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 font-medium shadow-md"
-        >
-          {showTestPanel ? 'Hide Test Panel' : 'Test Agent'}
-        </button>
-
-        <button
-          className="px-6 py-2.5 bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] text-white rounded-lg hover:from-[var(--nextprop-primary-dark)] hover:to-[var(--nextprop-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md transform transition-transform hover:scale-105"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <div className="flex items-center space-x-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Saving...</span>
+      {shouldRenderSection('qa') && (
+        <div className="mt-6">
+          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
+            <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
+              <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
+              <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Q&A Entries</h3>
             </div>
-          ) : (
-            'Save Changes'
-          )}
-        </button>
-      </div>
 
-      {/* Test Panel Section */}
-      {showTestPanel && (
-        <div className="mt-8 bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-md">
-          <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-            <BoltIcon className="h-5 w-5 text-[var(--nextprop-primary)]" />
-            <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">
-              Test {config.agentName} - Real Estate Agent
-            </h3>
+            <div className="space-y-4">
+              <p className="text-sm text-[var(--nextprop-text-secondary)]">
+                Select Q&A entries that the AI must follow when responding to users
+              </p>
+
+              {config.qaEntries && config.qaEntries.length > 0 ? (
+                <div className="space-y-3">
+                  {config.qaEntries.map((qa) => (
+                    <div
+                      key={qa.id}
+                      className={`relative p-3 border rounded-lg transition-colors ${qa.isEnabled
+                        ? 'bg-[var(--nextprop-primary)]/5 border-[var(--nextprop-primary)]'
+                        : 'border-[var(--nextprop-border)] hover:bg-[var(--nextprop-surface-hover)]'
+                        }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={qa.isEnabled}
+                            onChange={() => handleToggleQA(qa.id, !qa.isEnabled)}
+                            className={`${qa.isEnabled ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
+                              } relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2`}
+                          >
+                            <span
+                              className={`${qa.isEnabled ? 'translate-x-5' : 'translate-x-1'
+                                } inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}
+                            />
+                          </Switch>
+                          <span className="font-medium text-[var(--nextprop-text-primary)]">Q&A Entry</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs px-2 py-1 rounded-full bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                            {qa.id.startsWith('qa_custom_') ? 'Custom' : 'Default'}
+                          </span>
+
+                          {/* Only show delete button for custom Q&A entries */}
+                          {qa.id.startsWith('qa_custom_') && (
+                            <button
+                              onClick={() => handleDeleteQA(qa.id)}
+                              className="text-red-500 hover:text-red-700 p-1"
+                              aria-label="Delete Q&A entry"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                            Question
+                          </label>
+                          <div className='border border-[var(--nextprop-border)] rounded-lg'>
+                            <input
+                              type="text"
+                              value={qa.question}
+                              onChange={(e) => {
+                                handleUpdateQA(qa.id, 'question', e.target.value);
+
+                                // Save to Firebase after a delay (debounce)
+                                if (user?.id) {
+                                  const timer = setTimeout(() => {
+                                    setConfig(prev => {
+                                      if (!prev) return prev;
+                                      const updatedConfig = { ...prev };
+                                      saveAIAgentConfig(updatedConfig, user.id)
+                                        .then(() => triggerConfigRefresh())
+                                        .catch(error => console.error('Error saving Q&A update:', error));
+                                      return prev;
+                                    });
+                                  }, 500);
+
+                                  return () => clearTimeout(timer);
+                                }
+                              }}
+                              className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                            Answer
+                          </label>
+                          <div className='border border-[var(--nextprop-border)] rounded-lg'>
+                            <textarea
+                              rows={3}
+                              value={qa.answer}
+                              onChange={(e) => {
+                                handleUpdateQA(qa.id, 'answer', e.target.value);
+
+                                // Save to Firebase after a delay (debounce)
+                                if (user?.id) {
+                                  const timer = setTimeout(() => {
+                                    setConfig(prev => {
+                                      if (!prev) return prev;
+                                      const updatedConfig = { ...prev };
+                                      saveAIAgentConfig(updatedConfig, user.id)
+                                        .then(() => triggerConfigRefresh())
+                                        .catch(error => console.error('Error saving Q&A update:', error));
+                                      return prev;
+                                    });
+                                  }, 500);
+
+                                  return () => clearTimeout(timer);
+                                }
+                              }}
+                              className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm resize-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-[var(--nextprop-text-tertiary)]">
+                  No Q&A entries configured
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  onClick={handleAddQA}
+                  className="w-full py-2 px-4 border border-dashed border-[var(--nextprop-border)] rounded-lg text-sm text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)] transition-colors"
+                >
+                  + Add Custom Q&A Entry
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+      )}
 
+      {shouldRenderSection('testing') && (
+        <div className="mt-6">
           <div className="mb-6">
             <h4 className="text-md font-medium mb-2 text-[var(--nextprop-text-secondary)]">Example Messages:</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1500,65 +1450,129 @@ export default function AIAgentConfig({ selectedAgentId }: { selectedAgentId: st
               {conversation.map((msg, index) => (
                 <div
                   key={index}
-                  className={`mb-3 p-3 rounded-lg ${msg.isUser
-                    ? 'bg-[var(--nextprop-primary-light)]/10 border-[var(--nextprop-primary-light)]/20 ml-8'
-                    : 'bg-[var(--nextprop-surface)] border-[var(--nextprop-border)] mr-8'
-                    } ${msg.isLoading ? 'animate-pulse' : ''} border`}
+                  className={`mb-4 ${msg.isUser ? 'text-right' : 'text-left'}`}
                 >
-                  <div className="flex items-start">
-                    <div className="mr-2 font-semibold text-[var(--nextprop-text-primary)]">
-                      {msg.isUser ? 'You:' : `${config.agentName}:`}
-                    </div>
-                    <div className="flex-1 text-[var(--nextprop-text-secondary)]">{msg.text}</div>
+                  <div
+                    className={`inline-block rounded-lg p-3 max-w-[80%] ${msg.isUser
+                      ? 'bg-[var(--nextprop-primary)] text-white'
+                      : 'bg-[var(--nextprop-surface)] border border-[var(--nextprop-border)] text-[var(--nextprop-text-primary)]'
+                      }`}
+                  >
+                    {msg.isLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{msg.text}</div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          <form onSubmit={handleTestSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="message" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                Message
-              </label>
-              <textarea
-                id="message"
+          <form onSubmit={handleTestSubmit} className="mb-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="nextprop-input w-full p-3 border border-[var(--nextprop-border)] rounded-lg focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)]"
-                rows={4}
-                placeholder="Enter a message to test the AI agent..."
+                className="flex-1 border border-[var(--nextprop-border)] rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)]"
+                placeholder="Type a message to test the AI agent..."
+                disabled={isSending}
               />
-            </div>
-
-            <div className="flex space-x-2">
               <button
                 type="submit"
-                disabled={isSending || !message.trim() || !config.isEnabled}
-                className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] text-white rounded-lg px-4 py-2 hover:from-[var(--nextprop-primary-dark)] hover:to-[var(--nextprop-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!message.trim() || isSending}
               >
                 {isSending ? (
-                  <>
-                    <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
-                    Sending...
-                  </>
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Sending...</span>
+                  </div>
                 ) : (
-                  <>
-                    <PaperAirplaneIcon className="h-4 w-4 mr-2" />
-                    Send Message
-                  </>
+                  <div className="flex items-center space-x-2">
+                    <PaperAirplaneIcon className="h-4 w-4" />
+                    <span>Send</span>
+                  </div>
                 )}
               </button>
             </div>
           </form>
 
           {testError && (
-            <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-lg">
-              {testError}
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
+              <div className="font-medium">Error</div>
+              <div>{testError}</div>
+            </div>
+          )}
+
+          {fullPrompt && showFullPrompt && (
+            <div className="mt-6 p-4 border border-[var(--nextprop-border)] rounded-lg bg-[var(--nextprop-surface-hover)]/50">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-md font-medium text-[var(--nextprop-text-secondary)]">Full AI Prompt:</h4>
+                <button
+                  onClick={togglePromptVisibility}
+                  className="text-xs px-2 py-1 bg-[var(--nextprop-surface)] text-[var(--nextprop-text-tertiary)] rounded hover:bg-[var(--nextprop-surface-hover)] border border-[var(--nextprop-border)]"
+                >
+                  Hide Prompt
+                </button>
+              </div>
+              <pre className="whitespace-pre-wrap text-xs overflow-auto max-h-96 bg-black text-green-400 p-4 rounded">
+                {fullPrompt}
+              </pre>
+            </div>
+          )}
+
+          {fullPrompt && !showFullPrompt && (
+            <div className="mt-6">
+              <button
+                onClick={togglePromptVisibility}
+                className="w-full py-2 px-4 border border-dashed border-[var(--nextprop-border)] rounded-lg text-sm text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)] transition-colors"
+              >
+                Show Full AI Prompt
+              </button>
             </div>
           )}
         </div>
       )}
+
+      {/* Only show save button if not hiding container */}
+      {!hideContainer && (
+        <div className="flex justify-end mt-8 space-x-4">
+          <button
+            onClick={() => shouldRenderSection('testing') ? setShowTestPanel(!showTestPanel) : null}
+            className={shouldRenderSection('testing') ? "px-6 py-2.5 bg-[var(--nextprop-surface)] border border-[var(--nextprop-border)] text-[var(--nextprop-text-primary)] rounded-lg hover:bg-[var(--nextprop-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 font-medium shadow-md" : "hidden"}
+          >
+            {showTestPanel ? 'Hide Test Panel' : 'Test Agent'}
+          </button>
+
+          <button
+            className="px-6 py-2.5 bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] text-white rounded-lg hover:from-[var(--nextprop-primary-dark)] hover:to-[var(--nextprop-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md transform transition-transform hover:scale-105"
+            onClick={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Saving...</span>
+              </div>
+            ) : (
+              'Save Changes'
+            )}
+          </button>
+        </div>
+      )}
+    </React.Fragment>
+  );
+
+  // Return the content with or without the container
+  return hideContainer ? content : (
+    <div className="bg-gradient-to-br from-[var(--nextprop-surface)] to-[var(--nextprop-surface-hover)] rounded-lg shadow-lg p-6 border border-[var(--nextprop-border)]">
+      {content}
     </div>
   );
 }
