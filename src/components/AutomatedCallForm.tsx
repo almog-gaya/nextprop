@@ -94,8 +94,8 @@ export default function AutomatedCallForm({ onCallSubmit, isLoading = false }: A
   return (
     <div className="nextprop-card">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-950">Set Up Ringless Voicemail</h3>
-        <div className="text-primary-600 bg-purple-50 p-3 rounded-full">
+        <h3 className="text-lg font-semibold text-[#1e1b4b]">Set Up Ringless Voicemail</h3>
+        <div className="text-[#7c3aed] bg-purple-50 p-3 rounded-full">
           <PhoneIcon className="w-5 h-5" />
         </div>
       </div>

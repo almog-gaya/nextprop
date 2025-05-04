@@ -60,7 +60,7 @@ export default function PhoneNumbersPage() {
                   placeholder="Company Name"
                   value={formData.legalCompanyName}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
               <div>
@@ -71,7 +71,7 @@ export default function PhoneNumbersPage() {
                   placeholder="DBA Name"
                   value={formData.dbaName}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
             </div>
@@ -87,7 +87,7 @@ export default function PhoneNumbersPage() {
                   placeholder="First Name"
                   value={formData.firstName}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
               <div className="pt-11">
@@ -97,7 +97,7 @@ export default function PhoneNumbersPage() {
                   placeholder="Last Name"
                   value={formData.lastName}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
             </div>
@@ -113,7 +113,7 @@ export default function PhoneNumbersPage() {
                   placeholder="EIN"
                   value={formData.ein}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
               <div>
@@ -126,7 +126,7 @@ export default function PhoneNumbersPage() {
                   placeholder="EIN issuing country"
                   value={formData.einCountry}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function PhoneNumbersPage() {
                   placeholder="amvecayz@gmail.com"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
               <div>
@@ -155,7 +155,7 @@ export default function PhoneNumbersPage() {
                   placeholder="(123) 456-7890"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function PhoneNumbersPage() {
                 placeholder="http://resimpli.com/"
                 value={formData.website}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -194,7 +194,7 @@ export default function PhoneNumbersPage() {
                   placeholder="http://resimpli.com/"
                   value={formData.termsPage}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
               <div>
@@ -205,7 +205,7 @@ export default function PhoneNumbersPage() {
                   placeholder="http://resimpli.com/"
                   value={formData.privacyPage}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
             </div>
@@ -232,7 +232,7 @@ export default function PhoneNumbersPage() {
                 placeholder="Your address"
                 value={formData.address}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -246,7 +246,7 @@ export default function PhoneNumbersPage() {
                   placeholder="City"
                   value={formData.city}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
               <div>
@@ -259,7 +259,7 @@ export default function PhoneNumbersPage() {
                   placeholder="State"
                   value={formData.state}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
             </div>
@@ -274,7 +274,7 @@ export default function PhoneNumbersPage() {
                   placeholder="Zip"
                   value={formData.zip}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
               <div>
@@ -287,7 +287,7 @@ export default function PhoneNumbersPage() {
                   placeholder="Country"
                   value={formData.country}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
                 />
               </div>
             </div>
@@ -312,7 +312,7 @@ export default function PhoneNumbersPage() {
                 value={formData.campaignDescription}
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
               />
             </div>
             <div>
@@ -323,7 +323,7 @@ export default function PhoneNumbersPage() {
                 value={formData.sampleMessage1}
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
               />
             </div>
             <div>
@@ -334,7 +334,7 @@ export default function PhoneNumbersPage() {
                 value={formData.sampleMessage2}
                 onChange={handleInputChange}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-success transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
               />
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function PhoneNumbersPage() {
             Cancel
           </button>
           <button 
-            className="px-6 py-2 bg-success text-white rounded hover:bg-[#097a54] font-medium"
+            className="px-6 py-2 bg-[#0A855C] text-white rounded hover:bg-[#097a54] font-medium"
             onClick={() => {
               // Handle form submission
               console.log(formData);
@@ -377,8 +377,8 @@ export default function PhoneNumbersPage() {
             <div className="flex items-start gap-2 mt-3">
               <input type="checkbox" className="mt-1" />
               <p className="text-sm text-gray-600">
-                I agree to <span className="text-success">Terms & Conditions</span> and{' '}
-                <span className="text-success">Privacy Policy</span>. By submitting this form, you consent to receive SMS messages and/or calls from COMPANY NAME. To unsubscribe, follow the instructions provided in our communications. Msg & data rates may apply for SMS. Your information is secure and will not be sold to third parties. Message frequency varies. Text HELP for Help. Text STOP to cancel.
+                I agree to <span className="text-[#0A855C]">Terms & Conditions</span> and{' '}
+                <span className="text-[#0A855C]">Privacy Policy</span>. By submitting this form, you consent to receive SMS messages and/or calls from COMPANY NAME. To unsubscribe, follow the instructions provided in our communications. Msg & data rates may apply for SMS. Your information is secure and will not be sold to third parties. Message frequency varies. Text HELP for Help. Text STOP to cancel.
               </p>
             </div>
           </div>
@@ -420,8 +420,8 @@ export default function PhoneNumbersPage() {
             <div className="flex items-start gap-3 mt-4">
               <input type="checkbox" className="mt-1" disabled />
               <p className="text-sm text-white/80">
-                I agree to <span className="text-success hover:underline cursor-pointer">Terms & Conditions</span> and{' '}
-                <span className="text-success hover:underline cursor-pointer">Privacy Policy</span>. By submitting this form, you consent to receive SMS messages and/or calls from COMPANY NAME. To unsubscribe, follow the instructions provided in our communications. Msg & data rates may apply for SMS. Your information is secure and will not be sold to third parties. Message frequency varies. Text HELP for Help. Text STOP to cancel.
+                I agree to <span className="text-[#0A855C] hover:underline cursor-pointer">Terms & Conditions</span> and{' '}
+                <span className="text-[#0A855C] hover:underline cursor-pointer">Privacy Policy</span>. By submitting this form, you consent to receive SMS messages and/or calls from COMPANY NAME. To unsubscribe, follow the instructions provided in our communications. Msg & data rates may apply for SMS. Your information is secure and will not be sold to third parties. Message frequency varies. Text HELP for Help. Text STOP to cancel.
               </p>
             </div>
           </div>
@@ -442,16 +442,16 @@ export default function PhoneNumbersPage() {
             <div className="flex items-center justify-center mb-8">
               <div className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  currentStep >= 1 ? 'bg-success text-white' : 'bg-gray-200'
+                  currentStep >= 1 ? 'bg-[#0A855C] text-white' : 'bg-gray-200'
                 }`}>
                   1
                 </div>
                 <span className="ml-2 text-sm font-medium">10DLC FAQ</span>
-                <div className="w-32 h-[2px] mx-4 bg-success"></div>
+                <div className="w-32 h-[2px] mx-4 bg-[#0A855C]"></div>
               </div>
               <div className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  currentStep >= 2 ? 'bg-success text-white' : 'bg-gray-200'
+                  currentStep >= 2 ? 'bg-[#0A855C] text-white' : 'bg-gray-200'
                 }`}>
                   2
                 </div>
@@ -530,7 +530,7 @@ export default function PhoneNumbersPage() {
                     <div className="flex items-center gap-3">
                       <span className="text-gray-500">Continue as</span>
                       <button 
-                        className="px-4 py-2 bg-success text-white rounded hover:bg-[#097a54] font-medium"
+                        className="px-4 py-2 bg-[#0A855C] text-white rounded hover:bg-[#097a54] font-medium"
                         onClick={() => setCurrentStep(2)}
                       >
                         Private Company

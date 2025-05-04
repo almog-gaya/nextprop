@@ -108,13 +108,13 @@ export default function Header({ title }: HeaderProps) {
           {/* Notification Bell */}
           <button 
             onClick={() => setIsNotificationTrayOpen(!isNotificationTrayOpen)} 
-            className="w-10 h-10 rounded-lg bg-[#ECD0FFBF] hover:bg-accent-200 transition-colors duration-200 flex items-center justify-center relative"
+            className="w-10 h-10 rounded-lg bg-[#ECD0FFBF] hover:bg-[#e5c1ff] transition-colors duration-200 flex items-center justify-center relative"
           >
             <BellIcon className="w-5 h-5 text-gray-600" />
           </button>
 
           {/* Balance */}
-          <button className="h-10 px-4 rounded-lg bg-[#ECD0FFBF] hover:bg-accent-200 transition-colors duration-200 flex items-center">
+          <button className="h-10 px-4 rounded-lg bg-[#ECD0FFBF] hover:bg-[#e5c1ff] transition-colors duration-200 flex items-center">
             <span className="text-sm font-medium text-gray-700">Balance</span>
           </button>
 

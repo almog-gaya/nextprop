@@ -305,8 +305,8 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
   return (
     <div className="nextprop-card">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-950">Bulk Upload Contacts</h3>
-        <div className="text-primary-600 bg-purple-50 p-3 rounded-full">
+        <h3 className="text-lg font-semibold text-[#1e1b4b]">Bulk Upload Contacts</h3>
+        <div className="text-[#7c3aed] bg-purple-50 p-3 rounded-full">
           <DocumentTextIcon className="w-5 h-5" />
         </div>
       </div>
@@ -334,7 +334,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
             </div>
             {selectedPipeline && (
               <div className="flex items-center mt-2 bg-purple-50 p-2 rounded-md max-w-md">
-                <div className="w-3 h-3 rounded-full bg-primary-600 mr-2"></div>
+                <div className="w-3 h-3 rounded-full bg-[#7c3aed] mr-2"></div>
                 <p className="text-xs text-gray-700 truncate">
                   <span className="font-medium">Selected Pipeline:</span> {pipelines.find(p => p.id === selectedPipeline)?.name || 'Unknown'}
                 </p>
@@ -361,7 +361,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                   className="cursor-pointer flex flex-col items-center justify-center"
                 >
                   <DocumentTextIcon className="w-10 h-10 text-gray-400 mb-2" />
-                  <span className="text-sm font-medium text-primary-600">Click to upload Excel file</span>
+                  <span className="text-sm font-medium text-[#7c3aed]">Click to upload Excel file</span>
                   <span className="text-xs text-gray-500 mt-1">XLSX, XLS, or CSV</span>
                 </label>
               </div>
@@ -371,7 +371,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                   <button
                     type="button"
                     onClick={handleDownloadSample}
-                    className="text-sm text-primary-600 hover:text-primary-700 flex items-center"
+                    className="text-sm text-[#7c3aed] hover:text-[#6d28d9] flex items-center"
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -425,7 +425,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="text-sm text-primary-600 hover:text-primary-700"
+                  className="text-sm text-[#7c3aed] hover:text-[#6d28d9]"
                 >
                   Upload Different File
                 </button>
@@ -437,7 +437,7 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                     id="selectAll"
                     checked={allSelected}
                     onChange={handleSelectAll}
-                    className="h-4 w-4 text-primary-600 rounded border-gray-300 focus:ring-primary-600"
+                    className="h-4 w-4 text-[#7c3aed] rounded border-gray-300 focus:ring-[#7c3aed]"
                   />
                   <label htmlFor="selectAll" className="ml-2 text-sm font-medium text-gray-700">
                     Select All
@@ -460,13 +460,13 @@ export default function BulkUploadForm({ onContactsSelect, isLoading = false, pi
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {contacts.map((contact, index) => (
-                        <tr key={index} className={contact.selected ? 'bg-primary-50' : ''}>
+                        <tr key={index} className={contact.selected ? 'bg-[#f5f3ff]' : ''}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <input
                               type="checkbox"
                               checked={contact.selected}
                               onChange={(e) => handleSelectContact(index, e.target.checked)}
-                              className="h-4 w-4 text-primary-600 rounded border-gray-300 focus:ring-primary-600"
+                              className="h-4 w-4 text-[#7c3aed] rounded border-gray-300 focus:ring-[#7c3aed]"
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">

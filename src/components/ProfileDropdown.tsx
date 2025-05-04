@@ -50,7 +50,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user, onLogout }) => 
       {open && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-6 min-w-[260px]">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-full bg-primary-600 flex items-center justify-center text-white text-xl font-bold">
+            <div className="w-14 h-14 rounded-full bg-[#7c3aed] flex items-center justify-center text-white text-xl font-bold">
               {user?.firstName?.[0] || user?.name?.[0] || 'U'}
               {user?.lastName?.[0] || ''}
             </div>

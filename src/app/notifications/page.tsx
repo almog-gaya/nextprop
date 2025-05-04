@@ -289,7 +289,7 @@ export default function NotificationsPage() {
           {!loading && !hasDocument && (
             <button
               onClick={handleEnableNotifications}
-              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+              className="px-4 py-2 bg-[#7c3aed] text-white rounded-md hover:bg-[#6d28d9] transition-colors"
             >
               Enable Notifications
             </button>
@@ -301,7 +301,7 @@ export default function NotificationsPage() {
               className={classNames(
                 "px-4 py-2 rounded-md transition-all duration-200 flex items-center gap-2",
                 hasChanges && !isUpdating
-                  ? "bg-primary-600 text-white hover:bg-primary-700 cursor-pointer"
+                  ? "bg-[#7c3aed] text-white hover:bg-[#6d28d9] cursor-pointer"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               )}
             >
@@ -336,14 +336,14 @@ export default function NotificationsPage() {
             <TabPanel>
               {loading ? (
                 <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#7c3aed]"></div>
                 </div>
               ) : !hasDocument ? (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
                   <p className="text-gray-600 mb-4">Notifications are currently disabled</p>
                   <button
                     onClick={handleEnableNotifications}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+                    className="px-4 py-2 bg-[#7c3aed] text-white rounded-md hover:bg-[#6d28d9] transition-colors"
                   >
                     Enable Notifications
                   </button>
@@ -360,8 +360,8 @@ export default function NotificationsPage() {
                           onClick={() => toggleNotification('newSMS')}
                           disabled={!hasDocument}
                           className={classNames(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2",
-                            preferences.newSMS[0]?.enabled ? "bg-primary-600" : "bg-gray-200",
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2",
+                            preferences.newSMS[0]?.enabled ? "bg-[#7c3aed]" : "bg-gray-200",
                             !hasDocument && "opacity-50 cursor-not-allowed"
                           )}
                         >
@@ -445,8 +445,8 @@ export default function NotificationsPage() {
                           onClick={() => toggleNotification('leadStatusChange')}
                           disabled={!hasDocument}
                           className={classNames(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2",
-                            preferences.leadStatusChange[0]?.enabled ? "bg-primary-600" : "bg-gray-200",
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2",
+                            preferences.leadStatusChange[0]?.enabled ? "bg-[#7c3aed]" : "bg-gray-200",
                             !hasDocument && "opacity-50 cursor-not-allowed"
                           )}
                         >
@@ -530,8 +530,8 @@ export default function NotificationsPage() {
                           onClick={() => toggleNotification('newLeadAssigned')}
                           disabled={!hasDocument}
                           className={classNames(
-                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2",
-                            preferences.newLeadAssigned[0]?.enabled ? "bg-primary-600" : "bg-gray-200",
+                            "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#7c3aed] focus:ring-offset-2",
+                            preferences.newLeadAssigned[0]?.enabled ? "bg-[#7c3aed]" : "bg-gray-200",
                             !hasDocument && "opacity-50 cursor-not-allowed"
                           )}
                         >

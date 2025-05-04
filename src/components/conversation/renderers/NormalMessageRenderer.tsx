@@ -28,10 +28,10 @@ export const NormalMessageRenderer = ({ message, isMe, onRetry, activeConversati
 
     return (
         <div className={`flex mb-3 ${isMe ? 'justify-end' : 'justify-start'}`}> 
-            <div className={`relative max-w-[65%] min-w-[200px] ${isMe ? 'bg-primary-50 text-gray-900 rounded-2xl rounded-br-sm' : 'bg-gray-50 text-gray-900 rounded-2xl rounded-bl-sm border border-gray-200'} shadow-md px-5 py-3`}>
+            <div className={`relative max-w-[65%] min-w-[200px] ${isMe ? 'bg-[#FCF8FF] text-gray-900 rounded-2xl rounded-br-sm' : 'bg-[#EFF3F5] text-gray-900 rounded-2xl rounded-bl-sm border border-gray-200'} shadow-md px-5 py-3`}>
                 {/* Sender name for received messages */}
              
-                    <span className="block text-xs font-semibold text-info mb-1">{isMe ? 'Company' : activeConversation.name || 'Unknown'}</span>
+                    <span className="block text-xs font-semibold text-[#3244FF] mb-1">{isMe ? 'Company' : activeConversation.name || 'Unknown'}</span>
                 
                 {/* Message Text */}
                 <p className="break-words whitespace-pre-wrap text-sm font-normal leading-relaxed">{text}</p>

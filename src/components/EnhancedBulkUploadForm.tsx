@@ -322,7 +322,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
 
   return (
     <div className="nextprop-card p-6 max-h-[80vh] overflow-y-auto">
-      <h3 className="text-lg font-semibold text-gray-950 mb-6">Bulk Upload Contacts</h3>
+      <h3 className="text-lg font-semibold text-[#1e1b4b] mb-6">Bulk Upload Contacts</h3>
 
       <form onSubmit={step === 1 ? (e) => e.preventDefault() : handleSubmitMapping}>
         {step === 1 && (
@@ -389,7 +389,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
               />
               <label htmlFor="excelFile" className="cursor-pointer flex flex-col items-center justify-center">
                 <DocumentTextIcon className="w-10 h-10 text-gray-400 mb-2" />
-                <span className="text-sm font-medium text-primary-600">Click to upload Excel file</span>
+                <span className="text-sm font-medium text-[#7c3aed]">Click to upload Excel file</span>
                 <span className="text-xs text-gray-500 mt-1">XLSX, XLS, or CSV</span>
               </label>
             </div>
@@ -400,7 +400,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
           <div className="space-y-6">
             <div>
               <p className="text-sm text-gray-700">Uploaded: {fileName}</p>
-              <button type="button" onClick={handleReset} className="text-sm text-primary-600 hover:text-primary-700">
+              <button type="button" onClick={handleReset} className="text-sm text-[#7c3aed] hover:text-[#6d28d9]">
                 Upload Different File
               </button>
             </div>
@@ -464,7 +464,7 @@ export default function EnhancedBulkUploadForm({ onContactsSelect, isLoading = f
             <button
               type="submit"
               disabled={isLoading || !selectedPipeline}
-              className={`w-full py-2 px-4 bg-primary-600 text-white rounded-md ${isLoading || !selectedPipeline ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full py-2 px-4 bg-[#7c3aed] text-white rounded-md ${isLoading || !selectedPipeline ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isLoading ? 'Processing...' : 'Import Contacts'}
             </button>

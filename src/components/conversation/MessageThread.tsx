@@ -265,7 +265,7 @@ export default function MessageThread({
                     </div>
                 )}
             </div>
-            <div className="bg-gray-50 px-4 py-3">
+            <div className="bg-[#F4F7F9] px-4 py-3">
                 <div className="flex items-center w-full">
                     {/* Attachment Icon */}
                     <button className="text-gray-400 hover:text-gray-500 mr-3">

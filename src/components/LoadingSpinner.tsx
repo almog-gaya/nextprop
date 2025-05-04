@@ -23,7 +23,7 @@ export default function LoadingSpinner({
   
   const colorClasses = {
     purple: 'border-purple-600',
-    blue: 'border-info',
+    blue: 'border-[#0057ff]',
     gray: 'border-gray-600'
   };
 

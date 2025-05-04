@@ -74,22 +74,22 @@ export default function CallsPage() {
       <div className="space-y-6">
         {/* Header section */}
         <div className="nextprop-card p-6">
-          <h2 className="text-xl font-semibold text-gray-950 mb-2">Voicemail Campaigns</h2>
+          <h2 className="text-xl font-semibold text-[#1e1b4b] mb-2">Voicemail Campaigns</h2>
           <p className="text-gray-600 mb-6">Send personalized voicemails to multiple contacts with controlled delivery schedules.</p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-l-4 border-primary-600 rounded-lg p-5">
-              <h3 className="font-medium text-gray-950">Total Contacts</h3>
-              <p className="text-2xl font-bold text-primary-600 mt-1">{totalCalls}</p>
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-l-4 border-[#7c3aed] rounded-lg p-5">
+              <h3 className="font-medium text-[#1e1b4b]">Total Contacts</h3>
+              <p className="text-2xl font-bold text-[#7c3aed] mt-1">{totalCalls}</p>
             </div>
             
             <div className="bg-gradient-to-br from-green-50 to-teal-50 border-l-4 border-green-500 rounded-lg p-5">
-              <h3 className="font-medium text-gray-950">Delivered</h3>
+              <h3 className="font-medium text-[#1e1b4b]">Delivered</h3>
               <p className="text-2xl font-bold text-green-600 mt-1">{callLogs.filter(log => log.status === 'completed').length}</p>
             </div>
             
             <div className="bg-gradient-to-br from-blue-50 to-sky-50 border-l-4 border-blue-500 rounded-lg p-5">
-              <h3 className="font-medium text-gray-950">Pending</h3>
+              <h3 className="font-medium text-[#1e1b4b]">Pending</h3>
               <p className="text-2xl font-bold text-blue-600 mt-1">{callLogs.filter(log => log.status === 'pending').length}</p>
             </div>
           </div>
@@ -98,7 +98,7 @@ export default function CallsPage() {
           <div className="flex flex-wrap gap-4 mt-6 justify-between items-center">
             <a 
               href="/calls/bulk" 
-              className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600"
+              className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-[#7c3aed] border border-transparent rounded-md shadow-sm hover:bg-[#6d28d9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed]"
             >
               Create New Campaign
             </a>
@@ -106,7 +106,7 @@ export default function CallsPage() {
             <button
               type="button"
               onClick={() => document.getElementById('manual-voicemail-section')?.classList.toggle('hidden')}
-              className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-primary-600 bg-white border border-primary-600 rounded-md shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-600"
+              className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-[#7c3aed] bg-white border border-[#7c3aed] rounded-md shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7c3aed]"
             >
               Manual Voicemail
             </button>
@@ -115,7 +115,7 @@ export default function CallsPage() {
         
         {/* Campaign Delivery Settings */}
         <div className="nextprop-card p-6">
-          <h3 className="text-lg font-semibold text-gray-950 mb-4">Campaign Delivery Settings</h3>
+          <h3 className="text-lg font-semibold text-[#1e1b4b] mb-4">Campaign Delivery Settings</h3>
    
           <div className="mt-6">
             <button
@@ -139,7 +139,7 @@ export default function CallsPage() {
         
         {/* Call Logs */}
         <div className="nextprop-card p-6">
-          <h3 className="text-lg font-semibold text-gray-950 mb-4">Voicemail History</h3>
+          <h3 className="text-lg font-semibold text-[#1e1b4b] mb-4">Voicemail History</h3>
           
           {isLoading ? (
             <CallLogsSkeleton />

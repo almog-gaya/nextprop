@@ -431,7 +431,7 @@ const ConversationList = memo(function ConversationList({
                 <div className="flex items-center justify-between mt-1">
                   <p className="text-xs text-gray-500 truncate">{truncateMessage(conversation.lastMessage)}</p>
                   {(conversation.unreadCount ?? 0) > 0 && (
-                    <span className="ml-2 flex items-center justify-center w-4 h-4 rounded-full bg-info text-white text-xs font-semibold leading-none">{conversation.unreadCount}</span>
+                    <span className="ml-2 flex items-center justify-center w-4 h-4 rounded-full bg-[#3244FF] text-white text-xs font-semibold leading-none">{conversation.unreadCount}</span>
                   )}
                 </div>
               </div>

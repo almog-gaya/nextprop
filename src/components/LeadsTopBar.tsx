@@ -36,17 +36,17 @@ export default function LeadsTopBar({
         {pipelineDropdown}
 
         {/* Grid/List Toggle (updated UI) */}
-        <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+        <div className="flex items-center bg-[#F4F6FA] rounded-lg p-0.5 border border-gray-200">
           <button
             onClick={() => setViewMode('grid')}
-            className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-colors duration-150 ${viewMode === 'grid' ? 'bg-info text-white' : 'bg-transparent text-black'}`}
+            className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-colors duration-150 ${viewMode === 'grid' ? 'bg-[#2643FF] text-white' : 'bg-transparent text-black'}`}
           >
             <Squares2X2Icon className={`h-5 w-5 ${viewMode === 'grid' ? 'text-white' : 'text-black'}`} />
             <span className="font-medium">Grid</span>
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-colors duration-150 ${viewMode === 'list' ? 'bg-info text-white' : 'bg-transparent text-black'}`}
+            className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-colors duration-150 ${viewMode === 'list' ? 'bg-[#2643FF] text-white' : 'bg-transparent text-black'}`}
           >
             <Bars4Icon className={`h-5 w-5 ${viewMode === 'list' ? 'text-white' : 'text-black'}`} />
             <span className="font-medium">List</span>
@@ -57,7 +57,7 @@ export default function LeadsTopBar({
         {sortingDropdown}
 
         {/* Add Lead Button (UI only) */}
-        {/* <button className="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg px-2 py-1.5 flex items-center gap-2">
+        {/* <button className="bg-[#A020F0] hover:bg-[#7c16c4] text-white font-medium rounded-lg px-2 py-1.5 flex items-center gap-2">
           <PlusCircle className="h-5 w-5 " />
           Add Lead
         </button> */}
