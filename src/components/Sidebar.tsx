@@ -67,7 +67,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         </button>
       )}
 
-      <div className="flex items-center justify-center mt-2 border-b-2 border-[#0000001A] pb-3 px-[30px]">
+      <div className="flex items-center justify-center border-b-2 border-[#0000001A] pb-3 px-[30px]">
         <Link href="/" className="flex items-center">
           <Image
             src="/logo.png"
@@ -91,7 +91,8 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
               className={classNames(
                 "w-45 h-10 flex items-center justify-start rounded-lg transition-all duration-200",
                 {
-                  "bg-[#FFFFFF] text-black": isActive,
+                  //white needs 80% to it
+                  "bg-[#FFFFFF80] text-black": isActive,
                   "text-[#1C1C1C] hover:text-[#1C1C1C] hover:bg-black/5": !isActive
                 }
               )}
@@ -111,7 +112,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         className={classNames(
           "mb-12 mt-auto w-45 h-10 flex items-center justify-start rounded-lg transition-all duration-200",
           pathname === "/settings"
-            ? "bg-[#FFFFFF] text-black"
+            ? "bg-[#FFFFFF65] text-black"
             : "text-[#1C1C1C] hover:text-[#1C1C1C] hover:bg-black/5"
         )}
         title="Settings"

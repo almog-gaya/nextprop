@@ -388,7 +388,7 @@ const ConversationList = memo(function ConversationList({
   }, []);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className=" flex flex-col">
       <div className="p-3 border-b border-gray-200 sticky top-0 z-10 bg-white">
         <div className="flex justify-start items-center ">
    
@@ -412,7 +412,7 @@ const ConversationList = memo(function ConversationList({
       <div 
         ref={conversationListRef}
         className="overflow-y-auto flex-grow"
-        style={{ maxHeight: 'calc(100vh - 170px)' }}
+        style={{ maxHeight: 'calc(100vh - 240px)' }}
       >
         {filteredConversations.length > 0 ? (
           filteredConversations.map((conversation: Conversation) => (
