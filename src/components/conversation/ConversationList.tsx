@@ -412,7 +412,7 @@ const ConversationList = memo(function ConversationList({
       <div 
         ref={conversationListRef}
         className="overflow-y-auto flex-grow"
-        style={{ maxHeight: 'calc(100vh - 240px)' }}
+        style={{ maxHeight: 'calc(100vh - 220px)' }}
       >
         {filteredConversations.length > 0 ? (
           filteredConversations.map((conversation: Conversation) => (
