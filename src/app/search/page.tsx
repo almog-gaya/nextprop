@@ -101,5 +101,9 @@ function SearchClient() {
 }
 
 export default function SearchPageWrapper() {
-  return <SearchClient />;
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <SearchClient />
+    </Suspense>
+  );
 } 
