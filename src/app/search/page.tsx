@@ -1,6 +1,9 @@
+'use client';
+
 import React, { Suspense } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useSearchParams } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,8 +14,6 @@ function SearchClient() {
   'use client';
 
   const { useState, useEffect } = React;
-  const { useSearchParams } = require('next/navigation');
-
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const [loading, setLoading] = useState(false);
