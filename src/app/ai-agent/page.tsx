@@ -4,6 +4,10 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import AIAgentConfig from '@/components/ai-agent/AIAgentConfig';
 import MultiAgentSelector from '@/components/ai-agent/MultiAgentSelector';
+import { useAuth } from '@/contexts/AuthContext';
+import { updateAgentConfig } from '@/lib/ai-agent';
+import { toast } from 'react-hot-toast';
+import type { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
 
 // Tab types for better type safety
 type TabType = 'dashboard' | 'goals' | 'testing' | 'training' | 'settings';
@@ -12,11 +16,32 @@ type TabType = 'dashboard' | 'goals' | 'testing' | 'training' | 'settings';
 // but layout.tsx handles this for us now
 
 export default function AIAgentPage() {
+  const { user } = useAuth();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [isSaving, setIsSaving] = useState(false);
+  const [currentConfig, setCurrentConfig] = useState<AIAgentConfigType | null>(null);
   
   const handleAgentSelect = (agentId: string) => {
     setSelectedAgentId(agentId);
+  };
+
+  const handleSave = async () => {
+    if (!user || !selectedAgentId || !currentConfig) {
+      toast.error('Please select an agent and make changes to save');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateAgentConfig(user.id, selectedAgentId, currentConfig);
+      toast.success('Configuration saved successfully');
+    } catch (error) {
+      console.error('Error saving configuration:', error);
+      toast.error('Failed to save configuration');
+    } finally {
+      setIsSaving(false);
+    }
   };
   
   return (
@@ -66,16 +91,22 @@ export default function AIAgentPage() {
               selectedAgentId={selectedAgentId} 
               activeSection="dealObjective" 
               hideContainer={true} 
+              onConfigChange={setCurrentConfig}
             />
             <AIAgentConfig 
               selectedAgentId={selectedAgentId} 
               activeSection="buyingCriteria" 
               hideContainer={true} 
+              onConfigChange={setCurrentConfig}
             />
             
             <div className="flex justify-end mt-8">
-              <button className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition">
-                Save Changes
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -88,11 +119,16 @@ export default function AIAgentPage() {
               selectedAgentId={selectedAgentId} 
               activeSection="testing" 
               hideContainer={true} 
+              onConfigChange={setCurrentConfig}
             />
             
             <div className="flex justify-end mt-8">
-              <button className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition">
-                Save Changes
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -105,16 +141,22 @@ export default function AIAgentPage() {
               selectedAgentId={selectedAgentId} 
               activeSection="qa" 
               hideContainer={true} 
+              onConfigChange={setCurrentConfig}
             />
             <AIAgentConfig 
               selectedAgentId={selectedAgentId} 
               activeSection="rules" 
               hideContainer={true} 
+              onConfigChange={setCurrentConfig}
             />
             
             <div className="flex justify-end mt-8">
-              <button className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition">
-                Save Changes
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -128,6 +170,7 @@ export default function AIAgentPage() {
                 selectedAgentId={selectedAgentId} 
                 activeSection="identity" 
                 hideContainer={true} 
+                onConfigChange={setCurrentConfig}
               />
             </div>
             
@@ -136,6 +179,7 @@ export default function AIAgentPage() {
                 selectedAgentId={selectedAgentId} 
                 activeSection="company" 
                 hideContainer={true} 
+                onConfigChange={setCurrentConfig}
               />
             </div>
             
@@ -144,12 +188,17 @@ export default function AIAgentPage() {
                 selectedAgentId={selectedAgentId} 
                 activeSection="pipeline" 
                 hideContainer={true} 
+                onConfigChange={setCurrentConfig}
               />
             </div>
             
             <div className="flex justify-end mt-8">
-              <button className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition">
-                Save Changes
+              <button 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
