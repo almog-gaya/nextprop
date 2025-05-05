@@ -40,7 +40,7 @@ const getMessageRenderer = (message: Message, handleRetrySendMessage: any, activ
 
 interface MessageThreadProps {
     activeConversation: ConversationDisplay;
-    onSendMessage: (message: string, fromNumber?: string) => void;
+    onSendMessage: (message: string, fromNumber?: string, toNumber?: string) => void;
     messages: Message[];
     onLoadMore: (isRefresh?: boolean) => void;
     hasMore: boolean;
@@ -87,6 +87,8 @@ export default function MessageThread({
     const [errorMessage, setErrorMessage] = useState('');
     const [sendingStatus, setSendingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isToDropdownOpen, setToDropdownOpen] = useState(false);
+    const [selectedToNumber, setSelectedToNumber] = useState<string | null>(activeConversation?.phone || null);
     const [refreshing, setRefreshing] = useState(false);
     const [isNoteSidebarOpen, setIsNoteSidebarOpen] = useState(false);
     const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
@@ -106,6 +108,10 @@ export default function MessageThread({
         }
     }, [sendingStatus]);
 
+    useEffect(() => {
+        setSelectedToNumber(activeConversation?.phone || null);
+    }, [activeConversation]);
+
     const getInitials = (name: string) => {
         if (!name) return 'U';
         return name.split(' ')
@@ -122,7 +128,8 @@ export default function MessageThread({
         if (conversationType === 'SMS') {
             if (newMessage.trim() && selectedNumber) {
                 setSendingStatus('sending');
-                onSendMessage(newMessage, selectedNumber);
+                const toNumber = selectedToNumber || activeConversation.phone;
+                onSendMessage(newMessage, selectedNumber, toNumber);
                 setNewMessage('');
                 setTimeout(() => setSendingStatus('idle'), 3000);
             }
@@ -276,40 +283,125 @@ export default function MessageThread({
                     </div>
                 )}
             </div>
-            <div className="bg-[#F4F7F9] px-4 py-3">
-                <div className="flex items-center w-full">
-                    {/* Attachment Icon */}
-                    {/* <button className="text-gray-400 hover:text-gray-500 mr-3">
-                        <Paperclip className="w-5 h-5" />
-                    </button> */}
-                    {/* Input + icons */}
-                    <div className="flex-1 relative">
-                        <input
-                            type="text"
-                            className="w-full h-10 rounded-full bg-white px-5 pr-24 text-gray-700 placeholder-gray-400 outline-none border-none shadow-sm"
-                            placeholder="Write a message"
-                            value={newMessage}
-                            onChange={e => setNewMessage(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                        />
-                        <div className="absolute inset-y-0 right-4 flex items-center space-x-3">
-                            {/* <button className="text-gray-400 hover:text-gray-500">
-                                <MessageSquare className="w-5 h-5" />
-                            </button>
-                            <button className="text-gray-400 hover:text-gray-500">
-                                <Smile className="w-5 h-5" />
-                            </button> */}
+            <div className="bg-white">
+                {conversationType === 'SMS' && (
+                    <div className="border-b border-gray-200">
+                        {/* FROM and TO dropdowns side by side */}
+                        <div className="flex items-center justify-between px-4 py-2">
+                            {/* FROM dropdown on the left */}
+                            <div className="flex items-center">
+                                <div className="text-gray-600 text-sm mr-1">From:</div>
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        className="flex items-center justify-between text-sm text-gray-700"
+                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    >
+                                        <span>{selectedNumber ? formatPhoneNumber(selectedNumber) : '+1 Select a number'}</span>
+                                        <ChevronDown className="h-4 w-4 text-gray-400 ml-1" />
+                                    </button>
+                                    
+                                    {isDropdownOpen && (
+                                        <div className="absolute z-10 bottom-full mb-1 w-56 origin-bottom-left rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                            {phoneNumbers.map((phone) => (
+                                                <button
+                                                    key={phone.phoneNumber}
+                                                    className={`flex w-full items-center px-4 py-2 text-xs ${
+                                                        selectedNumber === phone.phoneNumber ? 'bg-purple-50 text-purple-700' : 'text-gray-700'
+                                                    } hover:bg-gray-100`}
+                                                    onClick={() => {
+                                                        if (onNumberSelect) {
+                                                            onNumberSelect(phone.phoneNumber);
+                                                        }
+                                                        setIsDropdownOpen(false);
+                                                    }}
+                                                >
+                                                    {formatPhoneNumber(phone.phoneNumber)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* TO dropdown on the right */}
+                            <div className="flex items-center">
+                                <div className="text-gray-600 text-sm mr-1">To:</div>
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        className="flex items-center justify-between text-sm text-gray-700"
+                                        onClick={() => setToDropdownOpen(!isToDropdownOpen)}
+                                    >
+                                        <span>{selectedToNumber ? formatPhoneNumber(selectedToNumber) : formatPhoneNumber(activeConversation.phone)}</span>
+                                        <ChevronDown className="h-4 w-4 text-gray-400 ml-1" />
+                                    </button>
+                                    
+                                    {isToDropdownOpen && (
+                                        <div className="absolute z-10 bottom-full mb-1 w-56 origin-bottom-left rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                            {/* Always show the primary phone */}
+                                            <button
+                                                key={activeConversation.phone}
+                                                className={`flex w-full items-center px-4 py-2 text-xs ${
+                                                    selectedToNumber === activeConversation.phone ? 'bg-purple-50 text-purple-700' : 'text-gray-700'
+                                                } hover:bg-gray-100`}
+                                                onClick={() => {
+                                                    setSelectedToNumber(activeConversation.phone);
+                                                    setToDropdownOpen(false);
+                                                }}
+                                            >
+                                                {formatPhoneNumber(activeConversation.phone)}
+                                            </button>
+                                            
+                                            {/* Show additional phone numbers if they exist */}
+                                            {activeConversation.phones && activeConversation.phones
+                                                .filter(phone => phone !== activeConversation.phone) // Filter out the primary phone
+                                                .map((phone) => (
+                                                    <button
+                                                        key={phone}
+                                                        className={`flex w-full items-center px-4 py-2 text-xs ${
+                                                            selectedToNumber === phone ? 'bg-purple-50 text-purple-700' : 'text-gray-700'
+                                                        } hover:bg-gray-100`}
+                                                        onClick={() => {
+                                                            setSelectedToNumber(phone);
+                                                            setToDropdownOpen(false);
+                                                        }}
+                                                    >
+                                                        {formatPhoneNumber(phone)}
+                                                    </button>
+                                                ))
+                                            }
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    {/* Send Button OUTSIDE the input */}
-                    <button
-                        className="ml-3 w-9 h-9 flex items-center justify-center rounded-full bg-purple-600 text-white hover:bg-purple-700 transition"
-                        onClick={handleSend}
-                        disabled={!newMessage.trim()}
-                        type="button"
-                    >
-                        <Send className="w-4.5 h-4.5" />
-                    </button>
+                )}
+                
+                <div className="py-3 px-4">
+                    {/* Input with rounded corners */}
+                    <div className="flex items-center">
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                className="w-full py-2 px-4 text-sm rounded-lg bg-gray-100 text-gray-700 placeholder-gray-500 outline-none border-none"
+                                placeholder="Type a message..."
+                                value={newMessage}
+                                onChange={e => setNewMessage(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                            />
+                        </div>
+                        {/* Send Button */}
+                        <button
+                            className="ml-3 w-8 h-8 flex items-center justify-center rounded-md bg-blue-600 text-white hover:bg-blue-700 transition"
+                            onClick={handleSend}
+                            disabled={!newMessage.trim()}
+                            type="button"
+                        >
+                            <Send className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
