@@ -149,7 +149,7 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
       propertyType: 'Single-family',
       maxPrice: 2000000,
       minPrice: 0,
-      region: 'All',
+      region: 'All States',
       qaEntries: defaultQA,
     };
   } catch (error) {
@@ -234,6 +234,9 @@ export default function AIAgentConfig({
   const [showFullPrompt, setShowFullPrompt] = useState(false);
   const togglePromptVisibility = () => setShowFullPrompt(!showFullPrompt);
 
+  // Add this at the top of the component with other state declarations
+  const prevConfigRef = useRef<AIAgentConfigType | null>(null);
+
   // Load initial config and pipelines
   useEffect(() => {
     if (user?.id && selectedAgentId) {
@@ -292,11 +295,31 @@ export default function AIAgentConfig({
   useEffect(() => {
     if (!isLoading && config) {
       const timer = setTimeout(() => {
-        updateBuyingCriteria();
-      }, 100);
+        const currentConfig = {
+          ...config,
+          buyingCriteria: config.buyingCriteria,
+          propertyType: config.propertyType,
+          maxPrice: priceRange.max,
+          minPrice: priceRange.min,
+          region: region,
+          additionalPropertyTypes: additionalPropertyTypes,
+        };
+        
+        // Only update if there are actual changes and the region hasn't been manually set
+        const hasChanges = 
+          currentConfig.buyingCriteria !== config.buyingCriteria ||
+          currentConfig.propertyType !== config.propertyType ||
+          currentConfig.maxPrice !== config.maxPrice ||
+          currentConfig.minPrice !== config.minPrice ||
+          currentConfig.additionalPropertyTypes !== config.additionalPropertyTypes;
+
+        if (hasChanges) {
+          updateBuyingCriteria();
+        }
+      }, 500); // Increased debounce time to 500ms
       return () => clearTimeout(timer);
     }
-  }, [priceRange, region, propertyTypes, additionalCriteria, isLoading]);
+  }, [priceRange, propertyTypes, additionalCriteria, additionalPropertyTypes, isLoading, config?.buyingCriteria]);
 
   const fetchPipelines = async () => {
     try {
@@ -388,34 +411,27 @@ export default function AIAgentConfig({
         throw new Error(`Agent ${selectedAgentId} not found`);
       }
 
-      // Ensure the loaded config has all the required fields
-      if (!agentConfig.qaEntries) {
-        console.log('Adding missing fields to the config...');
-        // Load default rules and Q&A from the function above
-        const defaultConfig = await loadAIAgentConfig('default');
-        agentConfig.qaEntries = agentConfig.qaEntries || defaultConfig.qaEntries;
-
-        // Save the updated config back to Firestore
-        if (user.id) {
-          try {
-            const { updateAgentConfig } = await import('@/lib/ai-agent');
-            await updateAgentConfig(user.id, selectedAgentId, agentConfig);
-          } catch (saveError) {
-            console.error('Error saving default rules and Q&A:', saveError);
-          }
-        }
-      }
-
       // Load additional property types if they exist
       if (agentConfig.additionalPropertyTypes) {
         setAdditionalPropertyTypes(agentConfig.additionalPropertyTypes);
       }
+
+      console.log(`region: ${agentConfig.region}`);
+
+      // Set the region state from the loaded config
+      // Always use the region from the config, even if it's empty
+      setRegion(agentConfig.region || 'All States');
+
+      // Set the config after setting all the individual states
       setConfig(agentConfig);
     } catch (error) {
       console.error('Error loading config:', error);
 
       // Get a default config
       const defaultConfig = await loadAIAgentConfig('default');
+
+      // Set default region state
+      setRegion('All States');
 
       setConfig({
         isEnabled: true,
@@ -436,7 +452,7 @@ export default function AIAgentConfig({
         propertyType: 'Single-family',
         maxPrice: 2000000,
         minPrice: 0,
-        region: 'All',
+        region: 'All States',
         qaEntries: defaultConfig.qaEntries || [],
         additionalPropertyTypes: '',
       });
@@ -459,8 +475,15 @@ export default function AIAgentConfig({
         setPriceRange({ min: 0, max: Math.round(maxPrice) });
       }
 
-      const foundState = US_STATES.find(state => criteriaText.toLowerCase().includes(state.toLowerCase()));
-      setRegion(foundState || (criteriaText.toLowerCase().includes('nationwide') ? 'All States' : 'All States'));
+      // Only update region if it's not already set
+      if (!region || region === 'All States') {
+        const foundState = US_STATES.find(state => criteriaText.toLowerCase().includes(state.toLowerCase()));
+        if (foundState) {
+          setRegion(foundState);
+        } else if (criteriaText.toLowerCase().includes('nationwide')) {
+          setRegion('All States');
+        }
+      }
 
       const foundType = PROPERTY_TYPES.slice(1).find(type => criteriaText.toLowerCase().includes(type.toLowerCase()));
       setPropertyTypes(foundType ? [foundType] : ['All']);
@@ -483,7 +506,6 @@ export default function AIAgentConfig({
     } catch (e) {
       console.error('Error parsing buying criteria:', e);
       setPriceRange({ min: 500000, max: 2000000 });
-      setRegion('All States');
       setPropertyTypes(['All']);
       setAdditionalPropertyTypes('');
       setAdditionalCriteria('');
@@ -514,15 +536,26 @@ export default function AIAgentConfig({
       propertyType: propertyText,
       maxPrice: priceRange.max,
       minPrice: priceRange.min,
-      region: region === 'All States' ? 'Nationwide' : region,
+      region: region,
       additionalPropertyTypes: additionalPropertyTypes,
     };
-    setConfig(updatedConfig);
 
-    if (user?.id) {
-      saveAIAgentConfig(updatedConfig, user.id)
-        .then(() => triggerConfigRefresh())
-        .catch(error => console.error('Error auto-saving buying criteria:', error));
+    // Only update if there are actual changes
+    if (
+      updatedConfig.buyingCriteria !== config.buyingCriteria ||
+      updatedConfig.propertyType !== config.propertyType ||
+      updatedConfig.maxPrice !== config.maxPrice ||
+      updatedConfig.minPrice !== config.minPrice ||
+      updatedConfig.region !== config.region ||
+      updatedConfig.additionalPropertyTypes !== config.additionalPropertyTypes
+    ) {
+      setConfig(updatedConfig);
+
+      if (user?.id) {
+        saveAIAgentConfig(updatedConfig, user.id)
+          .then(() => triggerConfigRefresh())
+          .catch(error => console.error('Error auto-saving buying criteria:', error));
+      }
     }
   };
 
@@ -559,6 +592,25 @@ export default function AIAgentConfig({
   const handleRegionInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setRegion(value);
+    
+    // Update config with new region value
+    if (config) {
+      const updatedConfig = {
+        ...config,
+        region: value
+      };
+      setConfig(updatedConfig);
+      
+      // Save to Firebase after a delay (debounce)
+      if (user?.id) {
+        const timer = setTimeout(() => {
+          saveAIAgentConfig(updatedConfig, user.id)
+            .then(() => triggerConfigRefresh())
+            .catch(error => console.error('Error saving region update:', error));
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
   };
 
   const handlePriceChange = (value: number, field: 'min' | 'max') => {
@@ -796,7 +848,12 @@ export default function AIAgentConfig({
 
    useEffect(() => {
     if (config && onConfigChange) {
-      onConfigChange(config);
+      // Only call onConfigChange if the config has actually changed
+      const hasChanges = JSON.stringify(config) !== JSON.stringify(prevConfigRef.current);
+      if (hasChanges) {
+        prevConfigRef.current = config;
+        onConfigChange(config);
+      }
     }
   }, [config, onConfigChange]);
 
@@ -1165,7 +1222,6 @@ export default function AIAgentConfig({
                       In Area
                     </label>
                   </div>
-                  {/* Textfield to ask "In Area: " */}
                   <div className='border border-[var(--nextprop-border)] rounded-lg'>
                     <input
                       type="text"
