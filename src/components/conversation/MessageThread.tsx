@@ -188,6 +188,12 @@ export default function MessageThread({
         setNewMessage(text);
     };
 
+    const handleContactClick = () => {
+        if (activeConversation.contactId) {
+            window.location.href = `/contacts/${activeConversation.contactId}`;
+        }
+    };
+
     if (!activeConversation) {
         return (
             <div className="flex flex-col h-full items-center justify-center text-gray-500 p-8">
@@ -228,7 +234,12 @@ export default function MessageThread({
                     </div>
                     <Avatar initials={getInitials(activeConversation.name)} />
                     <div className="ml-3 flex-grow">
-                        <p className="font-medium text-base text-gray-900">{activeConversation.name || 'Unknown Contact'}</p>
+                        <p 
+                            className="font-medium text-base text-gray-900 cursor-pointer hover:underline"
+                            onClick={handleContactClick}
+                        >
+                            {activeConversation.name || 'Unknown Contact'}
+                        </p>
                     </div>
                     <div className="flex items-center space-x-2">
                         <IconButton

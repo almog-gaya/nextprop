@@ -239,7 +239,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                 }
             };
 
-            const isAllInactive = Object.values(updatedSettings).every(setting => setting.status === 'inactive');
+            const isAllInactive = Object.values(updatedSettings).every((setting: any) => setting.status === 'inactive');
 
 
             // Simulate POST request - replace with your actual API endpoint
@@ -252,7 +252,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
             setContact(updatedContactResponse);
 
             // Update overall DND status if any channel is active
-            const anyActive = Object.values(updatedContactResponse.dndSettings).some(setting => setting.status === 'active');
+            const anyActive = Object.values(updatedContactResponse.dndSettings).some((setting: any) => setting.status === 'active');
             setContact(prev => prev ? { ...prev, dnd: anyActive } : prev);
 
         } catch (err) {
@@ -410,7 +410,9 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                                 const emailIndex = index - (primaryEmail ? 1 : 0);
 
                                                 if (typeof updatedEmails[emailIndex] === 'string') {
-                                                    updatedEmails[emailIndex] = newEmail;
+                                                    updatedEmails[emailIndex] = {
+                                                        email: newEmail
+                                                    };
                                                 } else {
                                                     updatedEmails[emailIndex] = {
                                                         email: newEmail
@@ -1150,58 +1152,118 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 onClick={() => toggleSection('dnd')}
                                 className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
                             >
-                                <span className='text-[13px]'>DND Settings</span>
+                                <div className="flex items-center">
+                                    <span className='text-[13px]'>DND Settings</span>
+                                    {contact?.dnd && (
+                                        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-red-100 text-red-800 rounded-full">
+                                            Active
+                                        </span>
+                                    )}
+                                    {contact?.dndSettings && !contact?.dnd && (
+                                        <span className="ml-2 px-2 py-0.5 text-[10px] font-medium bg-green-100 text-green-800 rounded-full">
+                                            Inactive
+                                        </span>
+                                    )}
+                                </div>
                                 {collapsedSections.dnd ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                             </button>
-                            {!collapsedSections.dnd && contact.dndSettings && (
+                            {!collapsedSections.dnd && (
                                 <div className="mt-2 space-y-2">
-                                    <div className="flex items-center justify-between py-1">
-                                        <span className="text-[12px] text-gray-500">DND Enabled</span>
-                                        <span className="text-[12px] text-gray-900">{contact.dnd ? 'Yes' : 'No'}</span>
-                                    </div>
-                                    {Object.entries(contact.dndSettings).map(([channel, settings]) => (
-                                        <div key={channel} className="flex items-center justify-between py-1 pl-4">
-                                            <div className="flex items-center space-x-2">
-                                                <span className="text-[12px] text-gray-500">{channel}</span>
+                                    {contact?.dndSettings ? (
+                                        <>
+                                            <div className="flex items-center justify-between py-1">
+                                                <span className="text-[12px] text-gray-500">DND Status</span>
+                                                <span className={`text-[12px] font-medium ${contact?.dnd ? 'text-red-600' : 'text-green-600'}`}>
+                                                    {contact?.dnd ? 'Do Not Contact' : 'Available for Contact'}
+                                                </span>
                                             </div>
-                                            <label className=" relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={settings.status === 'active'}
-                                                    onChange={(e) => handleDndUpdate(
-                                                        channel as keyof DndSettings,
-                                                        e.target.checked ? 'active' : 'inactive'
-                                                    )}
-                                                    disabled={dndLoading === channel}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className="w-10 h-5 bg-gray-200 rounded-full peer  
-                                                    peer-checked:bg-purple-600
-                                                    after:content-[''] after:absolute after:top-0.0 after:left-[2px]
-                                                    after:bg-white after:border-gray-300 after:border
-                                                    after:rounded-full after:h-5 after:w-5 after:transition-all
-                                                    peer-checked:after:translate-x-full peer-checked:after:border-white">
+                                            <div className="border-t border-gray-100 pt-2">
+                                                <div className="mb-2 text-[11px] text-gray-400">Channel Settings</div>
+                                                {Object.entries(contact.dndSettings || {}).map(([channel, settings]) => (
+                                                    <div key={channel} className="flex items-center justify-between py-1.5 pl-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="text-[12px] text-gray-500">{channel}</span>
+                                                            {settings.status === 'active' && (
+                                                                <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                                                            )}
+                                                        </div>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={settings.status === 'active'}
+                                                                onChange={(e) => handleDndUpdate(
+                                                                    channel as keyof DndSettings,
+                                                                    e.target.checked ? 'active' : 'inactive'
+                                                                )}
+                                                                disabled={dndLoading === channel}
+                                                                className="sr-only peer"
+                                                            />
+                                                            <div className="w-10 h-5 bg-gray-200 rounded-full peer  
+                                                                peer-checked:bg-red-500
+                                                                after:content-[''] after:absolute after:top-0.0 after:left-[2px]
+                                                                after:bg-white after:border-gray-300 after:border
+                                                                after:rounded-full after:h-5 after:w-5 after:transition-all
+                                                                peer-checked:after:translate-x-full peer-checked:after:border-white">
+                                                            </div>
+                                                            {dndLoading === channel && (
+                                                                <div className="ml-2 animate-spin h-3 w-3 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                                                            )}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {contact?.dnd && (
+                                                <div className="mt-2 text-[11px] text-red-500 italic">
+                                                    This contact will not receive communications through enabled DND channels.
                                                 </div>
-                                                {dndLoading === channel && (
-                                                    <div className="ml-2 animate-spin h-3 w-3 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-                                                )}
-                                            </label>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-4">
+                                            <p className="text-sm text-gray-500 mb-3">Configure communication preferences for this contact</p>
+                                            <button
+                                                onClick={() => {
+                                                    // Initialize DND settings
+                                                    const newDndSettings: DndSettings = {
+                                                        Call: { status: 'inactive', message: 'Not configured', code: 'AUTO' },
+                                                        Email: { status: 'inactive', message: 'Not configured', code: 'AUTO' },
+                                                        SMS: { status: 'inactive', message: 'Not configured', code: 'AUTO' },
+                                                        GMB: { status: 'inactive', message: 'Not configured', code: 'AUTO' },
+                                                        FB: { status: 'inactive', message: 'Not configured', code: 'AUTO' }
+                                                    };
+                                                    
+                                                    updateContactById(contact!.id, {
+                                                        dnd: false,
+                                                        dndSettings: newDndSettings
+                                                    }).then(updatedContact => {
+                                                        setContact(updatedContact);
+                                                        setContactDetails(updatedContact);
+                                                        toast.success('DND settings initialized');
+                                                    }).catch(err => {
+                                                        toast.error('Failed to initialize DND settings');
+                                                        console.error(err);
+                                                    });
+                                                }}
+                                                className="px-4 py-2 text-sm bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-md transition-colors font-medium"
+                                            >
+                                                Set Up DND Preferences
+                                            </button>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             )}
                         </div>
 
-                        {contact.additionalPhones.length > 0 && <hr className="border-gray-200" />}
+                            {(contact?.additionalPhones?.length ?? 0) > 0 && <hr className="border-gray-200" />}
 
-                        {/* Additional Info */}
-                        {contact.additionalPhones.length > 0 && (
+                            {/* Additional Info */}
+                            {(contact?.additionalPhones?.length ?? 0) > 0 && (
                             <div>
                                 <button
                                     onClick={() => toggleSection('additional')}
                                     className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
                                 >
-                                    <span className='text-[13px]'>Additional Info ({contact.additionalPhones.length})</span>
+                                    <span className='text-[13px]'>Additional Info ({contact?.additionalPhones?.length ?? 0})</span>
                                     {collapsedSections.additional ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                                 </button>
                                 {!collapsedSections.additional && (
