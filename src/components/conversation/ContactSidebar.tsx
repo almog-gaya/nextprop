@@ -25,7 +25,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
     });
     const [newEmail, setNewEmail] = useState('');
     const [newPhone, setNewPhone] = useState('');
-    const [newPhoneLabel, setNewPhoneLabel] = useState('Mobile'); 
+    const [newPhoneLabel, setNewPhoneLabel] = useState('Mobile');
     const [addingEmail, setAddingEmail] = useState(false);
     const [addingPhone, setAddingPhone] = useState(false);
     const [newTag, setNewTag] = useState('');
@@ -67,7 +67,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
             setContact(updatedContactResponse);
             setContactDetails(updatedContactResponse);
             setEditingField(null);
-        } catch (err: any) { 
+        } catch (err: any) {
             toast.error(err.toString());
         } finally {
             setIsLoading(false);
@@ -77,18 +77,18 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
     const handleAddEmail = async () => {
         if (!newEmail.trim()) return;
         setIsLoading(true);
-        try { 
+        try {
             const newEmailpayload = {
-                "email" : newEmail
+                "email": newEmail
             }
             // Call the API to update the contact with the new email
             const updatedContactResponse = await updateContactById(contact!.id, {
                 email: contact?.email || newEmail,
-                additionalEmails: contact!.additionalEmails 
-                    ? [...contact!.additionalEmails, newEmailpayload] 
+                additionalEmails: contact!.additionalEmails
+                    ? [...contact!.additionalEmails, newEmailpayload]
                     : [newEmailpayload]
             });
-            
+
             // Update state with the API response
             setContact(updatedContactResponse);
             setContactDetails(updatedContactResponse);
@@ -105,20 +105,20 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
     const handleAddPhone = async () => {
         if (!newPhone.trim()) return;
         setIsLoading(true);
-        try { 
+        try {
             const newPhoneObj: AdditionalPhone = {
                 phone: newPhone,
-                phoneLabel: newPhoneLabel 
+                phoneLabel: newPhoneLabel
             };
-            
+
             // Update with the new phone object
             const updatedContactResponse = await updateContactById(contact!.id, {
                 phone: contact?.phone || newPhone,
-                additionalPhones: contact!.additionalPhones 
-                    ? [...contact!.additionalPhones, newPhoneObj] 
+                additionalPhones: contact!.additionalPhones
+                    ? [...contact!.additionalPhones, newPhoneObj]
                     : [newPhoneObj]
             });
-            
+
             setContact(updatedContactResponse);
             setContactDetails(updatedContactResponse);
             setNewPhone('');
@@ -126,7 +126,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
             setAddingPhone(false);
         } catch (err: any) {
             /// show error as toast
-            toast.error(err.toString()); 
+            toast.error(err.toString());
             setError('Failed to add phone');
         } finally {
             setIsLoading(false);
@@ -139,13 +139,13 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
         try {
             const updatedEmails = [...(contact.additionalEmails || [])];
             updatedEmails.splice(index, 1);
-            
+
             // Call the API to update the contact
             const updatedContactResponse = await updateContactById(contact.id, {
                 email: contact.email,
                 additionalEmails: updatedEmails
             });
-            
+
             // Update state with the API response
             setContact(updatedContactResponse);
             setContactDetails(updatedContactResponse);
@@ -161,7 +161,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
     const handleDeletePhone = async (index: number, isPrimary: boolean) => {
         if (!contact) return;
         setIsLoading(true);
-        try { 
+        try {
             if (isPrimary) {
                 const updatedPhones = [...(contact.additionalPhones || [])];
                 const newPrimary = updatedPhones.shift();
@@ -179,7 +179,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                     additionalPhones: updatedPhones,
                     phone: contact!.phone // Always include phone in payload
                 });
-                
+
                 // Use the API response to update state consistently
                 setContact(updatedContactResponse);
                 setContactDetails(updatedContactResponse);
@@ -307,8 +307,8 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
         }
         return (
             <div key={key} className="flex items-center justify-between py-1">
-                <span className="text-sm text-gray-500">{label}</span>
-                <span className="text-sm text-gray-900 truncate">{typeof value === 'string' ? value : 'N/A'}</span>
+                <span className="text-[12px] text-gray-500">{label}</span>
+                <span className="text-[12px] text-gray-900 truncate">{typeof value === 'string' ? value : 'N/A'}</span>
             </div>
         );
     };
@@ -322,8 +322,8 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
             <div className="space-y-1">
                 <div className="flex items-center justify-between py-1">
                     <div className="flex items-center space-x-2">
-                        <Mail size={16} className="text-gray-500" />
-                        <span className="text-sm text-gray-500">Email</span>
+                        <Mail size={14} className="text-gray-500" />
+                        <span className="text-[12px] text-gray-500">Email</span>
                     </div>
                     {!addingEmail && !editingField && (
                         <button
@@ -334,7 +334,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         </button>
                     )}
                 </div>
-                
+
                 {/* Add Email Form */}
                 {addingEmail && (
                     <div className="space-y-2 pl-6 py-2 border-t border-gray-100">
@@ -361,13 +361,13 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         </div>
                     </div>
                 )}
-                
+
                 {/* Email List */}
                 {allEmails.map((email, index) => {
                     // Handle both string and object email formats
                     const emailValue = typeof email === 'string' ? email : email.email;
                     const isPrimary = index === 0 && primaryEmail !== null;
-                    
+
                     // If editing this email, show edit form
                     if (editingField === `email-${index}`) {
                         return (
@@ -382,7 +382,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                     <button
                                         onClick={async () => {
                                             if (!newEmail.trim()) return;
-                                            
+
                                             if (isPrimary) {
                                                 // Update primary email
                                                 const updatedContactResponse = await updateContactById(contact!.id, {
@@ -394,7 +394,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                                 // Update additional email
                                                 const updatedEmails = [...(contact?.additionalEmails || [])];
                                                 const emailIndex = index - (primaryEmail ? 1 : 0);
-                                                
+
                                                 if (typeof updatedEmails[emailIndex] === 'string') {
                                                     updatedEmails[emailIndex] = newEmail;
                                                 } else {
@@ -402,15 +402,15 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                                         email: newEmail
                                                     };
                                                 }
-                                                
+
                                                 const updatedContactResponse = await updateContactById(contact!.id, {
                                                     additionalEmails: updatedEmails
                                                 });
-                                                
+
                                                 setContact(updatedContactResponse);
                                                 setContactDetails(updatedContactResponse);
                                             }
-                                            
+
                                             setNewEmail('');
                                             setEditingField(null);
                                         }}
@@ -432,13 +432,13 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                             </div>
                         );
                     }
-                    
+
                     // Display mode
                     return (
                         <div key={index} className="relative flex items-center justify-between py-1 pl-6">
                             <div className="flex flex-col">
-                                <span className="text-sm text-purple-600 truncate">{emailValue}</span>
-                                {isPrimary && <span className="text-xs text-gray-500">Primary</span>}
+                                <span className="text-[12px] text-purple-600 truncate">{emailValue}</span>
+                                {isPrimary && <span className="text-[12px] text-gray-500">Primary</span>}
                             </div>
                             <button
                                 onClick={() => setShowEmailMenu(index === showEmailMenu ? null : index)}
@@ -477,14 +477,14 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
         const primaryPhone = contact?.phone;
         const additionalPhones = contact?.additionalPhones || [];
         const allPhones = primaryPhone ? [primaryPhone, ...additionalPhones] : additionalPhones;
-    
+
         return (
             <div className="space-y-1">
                 {/* Header */}
                 <div className="flex items-center justify-between py-1">
                     <div className="flex items-center space-x-2">
-                        <Phone size={16} className="text-gray-500" />
-                        <span className="text-sm text-gray-500">Phone</span>
+                        <Phone size={14} className="text-gray-500" />
+                        <span className="text-[12px] text-gray-500">Phone</span>
                     </div>
                     {!addingPhone && !editingField && (
                         <button
@@ -495,7 +495,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         </button>
                     )}
                 </div>
-    
+
                 {/* Add Phone Form */}
                 {addingPhone && (
                     <div className="space-y-2 pl-6 py-2 border-t border-gray-100">
@@ -532,14 +532,14 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         </div>
                     </div>
                 )}
-    
+
                 {/* Phone List */}
                 {allPhones.map((phone, index) => {
                     const phoneObj = typeof phone === 'string'
                         ? { phone, phoneLabel: index === 0 ? 'Primary' : 'Mobile' }
                         : phone;
                     const isPrimary = index === 0 && primaryPhone !== null;
-    
+
                     // If editing this phone, show edit form instead of display
                     if (editingField === `phone-${index}`) {
                         return (
@@ -566,7 +566,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                     <button
                                         onClick={async () => {
                                             if (!newPhone.trim()) return;
-    
+
                                             if (isPrimary) {
                                                 await handleUpdateContact('phone', newPhone);
                                             } else {
@@ -584,7 +584,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                                     additionalPhones: updatedPhones
                                                 } : null);
                                             }
-    
+
                                             setNewPhone('');
                                             setNewPhoneLabel('Mobile');
                                             setEditingField(null);
@@ -608,13 +608,13 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                             </div>
                         );
                     }
-    
+
                     // Display mode
                     return (
                         <div key={index} className="relative flex items-center justify-between py-1 pl-6">
                             <div className="flex flex-col">
-                                <span className="text-sm text-gray-900 truncate">{phoneObj.phone}</span>
-                                <span className="text-xs text-gray-500">{isPrimary ? 'Primary' : phoneObj.phoneLabel}</span>
+                                <span className="text-[12px] text-gray-900 truncate">{phoneObj.phone}</span>
+                                <span className="text-[12px] text-gray-500">{isPrimary ? 'Primary' : phoneObj.phoneLabel}</span>
                             </div>
                             <button
                                 onClick={() => setShowPhoneMenu(index === showPhoneMenu ? null : index)}
@@ -665,23 +665,23 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                             </span>
                         ))}
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                         <input
                             value={newTag}
                             onChange={(e) => setNewTag(e.target.value)}
-                            className="flex-1 p-1 text-sm bg-gray-50 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
+                            className="w-40 p-1 text-sm bg-gray-50 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
                             placeholder="New tag"
                         />
                         <button
                             onClick={handleAddTag}
                             disabled={!newTag.trim() || isLoading}
-                            className="p-1 text-purple-500 hover:text-purple-700 disabled:text-gray-400 transition-colors"
+                            className="text-purple-500 hover:text-purple-700 disabled:text-gray-400 transition-colors"
                         >
                             <Plus size={16} />
                         </button>
                         <button
                             onClick={() => setEditingField(null)}
-                            className="p-1 text-gray-500 hover:text-gray-700"
+                            className="p-0 text-gray-500 hover:text-gray-700"
                         >
                             <X size={14} />
                         </button>
@@ -690,25 +690,29 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
             );
         }
         return (
-            <div className="flex flex-wrap gap-2 py-1">
-                {tags.length > 0 ? (
-                    tags.map((tag, index) => (
-                        <span
-                            key={index}
-                            className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full"
-                        >
-                            {tag}
-                        </span>
-                    ))
-                ) : (
-                    <button
-                        onClick={() => setEditingField('tags')}
-                        className="text-purple-500 hover:text-purple-700 text-sm flex items-center"
-                    >
-                        <Plus size={16} className="mr-1" /> Add Tag
-                    </button>
-                )}
+            <div className='flex flex-col'>
+                <div className="flex flex-wrap gap-2 py-1">
+                    {tags.length > 0 ? (
+                        tags.map((tag, index) => (
+                            <span
+                                key={index}
+                                className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full"
+                            >
+                                {tag}
+                            </span>
+                        ))
+                    ) : null}
+
+
+                </div>
+                <button
+                    onClick={() => setEditingField('tags')}
+                    className="text-purple-500 hover:text-purple-700 text-sm flex items-center pt-2"
+                >
+                    <Plus size={16} className="mr-1" /> Add Tag
+                </button>
             </div>
+
         );
     };
 
@@ -719,15 +723,9 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
             {contact && (
                 <div className="px-2 pt-4 pb-3">
                     <div className="flex items-center gap-3 mb-2">
-                        {contact.avatarUrl
-                          ? (
-                            <img src={contact.avatarUrl} alt={contact.firstName} className="w-10 h-10 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium text-base">
-                              {contact.firstName?.[0]}{contact.lastName?.[0]}
-                            </div>
-                          )
-                        }
+                    <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium text-base">
+                                    {contact.firstName?.[0]}{contact.lastName?.[0]}
+                                </div>
                         <div className='flex flex-col items-start'>
                             <span className="text-[12px] font-semibold text-gray-900">{contact.firstName}{contact.lastName}</span>
                             {contact.email && (
@@ -768,7 +766,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 onClick={() => toggleSection('personal')}
                                 className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
                             >
-                                <span>Personal Info</span>
+                                <span className='text-[13px]'>Personal Info</span>
                                 {collapsedSections.personal ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                             </button>
                             {!collapsedSections.personal && (
@@ -790,7 +788,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 onClick={() => toggleSection('address')}
                                 className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
                             >
-                                <span>Address</span>
+                                <span className='text-[13px]'>Address</span>
                                 {collapsedSections.address ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                             </button>
                             {!collapsedSections.address && (
@@ -812,7 +810,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 onClick={() => toggleSection('tags')}
                                 className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
                             >
-                                <span>Tags ({contact.tags.length})</span>
+                                <span className='text-[13px]'>Tags ({contact.tags.length})</span>
                                 {collapsedSections.tags ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                             </button>
                             {!collapsedSections.tags && (
@@ -826,21 +824,21 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 onClick={() => toggleSection('dnd')}
                                 className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
                             >
-                                <span>DND Settings</span>
+                                <span className='text-[13px]'>DND Settings</span>
                                 {collapsedSections.dnd ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                             </button>
                             {!collapsedSections.dnd && contact.dndSettings && (
                                 <div className="mt-2 space-y-2">
                                     <div className="flex items-center justify-between py-1">
-                                        <span className="text-sm text-gray-500">DND Enabled</span>
-                                        <span className="text-sm text-gray-900">{contact.dnd ? 'Yes' : 'No'}</span>
+                                        <span className="text-[12px] text-gray-500">DND Enabled</span>
+                                        <span className="text-[12px] text-gray-900">{contact.dnd ? 'Yes' : 'No'}</span>
                                     </div>
                                     {Object.entries(contact.dndSettings).map(([channel, settings]) => (
                                         <div key={channel} className="flex items-center justify-between py-1 pl-4">
                                             <div className="flex items-center space-x-2">
-                                                <span className="text-sm text-gray-500">{channel}</span>
+                                                <span className="text-[12px] text-gray-500">{channel}</span>
                                             </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
+                                            <label className=" relative inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
                                                     checked={settings.status === 'active'}
@@ -851,15 +849,15 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                                     disabled={dndLoading === channel}
                                                     className="sr-only peer"
                                                 />
-                                                <div className="w-11 h-6 bg-gray-200 rounded-full peer  
+                                                <div className="w-10 h-5 bg-gray-200 rounded-full peer  
                                                     peer-checked:bg-purple-600
-                                                    after:content-[''] after:absolute after:top-0.5 after:left-[2px]
+                                                    after:content-[''] after:absolute after:top-0.0 after:left-[2px]
                                                     after:bg-white after:border-gray-300 after:border
                                                     after:rounded-full after:h-5 after:w-5 after:transition-all
                                                     peer-checked:after:translate-x-full peer-checked:after:border-white">
                                                 </div>
                                                 {dndLoading === channel && (
-                                                    <div className="ml-2 animate-spin h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                                                    <div className="ml-2 animate-spin h-3 w-3 border-2 border-purple-600 border-t-transparent rounded-full"></div>
                                                 )}
                                             </label>
                                         </div>
@@ -877,7 +875,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                     onClick={() => toggleSection('additional')}
                                     className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
                                 >
-                                    <span>Additional Info ({contact.additionalPhones.length})</span>
+                                    <span className='text-[13px]'>Additional Info ({contact.additionalPhones.length})</span>
                                     {collapsedSections.additional ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                                 </button>
                                 {!collapsedSections.additional && (
@@ -907,7 +905,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
     );
 }
 
- interface Contact {
+interface Contact {
     id: string;
     tags: string[];
     dateAdded: string;
