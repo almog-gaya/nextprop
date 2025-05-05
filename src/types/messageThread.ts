@@ -76,6 +76,7 @@ export interface ConversationDisplay extends Conversation {
   lastMessage: string;
   timestamp: string;
   unread: boolean;
-  originalData?: any; 
+  originalData?: any;
+  phones?: string[]; // Array of phone numbers for the contact
 }
 
