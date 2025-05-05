@@ -1043,19 +1043,19 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
     return (
         <div className="h-full w-full max-w-md bg-white flex flex-col overflow-hidden font-sans px-2 relative">
             {/* Contact Header */}
-            {contact && (
-                <div className="px-2 pt-4 pb-3">
-                    <div className="flex items-center gap-3 mb-2">
-                    <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium text-base">
-                                    {contact.firstName?.[0]}{contact.lastName?.[0]}
-                                </div>
-                        <div className='flex flex-col items-start'>
-                            <span className="text-[12px] font-semibold text-gray-900">{contact.firstName}{contact.lastName}</span>
-                            {contact.email && (
-                                <a href={contact.email} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] text-sm hover:underline">{contact.email}</a>
+            <div className="border-b border-gray-200 bg-white">
+                <div className="px-2 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 flex-shrink-0 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium text-base">
+                            {contact?.firstName?.[0]}{contact?.lastName?.[0]}
+                        </div>
+                        <div className='flex flex-col items-start min-w-0 flex-1'>
+                            <span className="text-[13px] font-semibold text-gray-900 truncate w-full">{contact?.firstName} {contact?.lastName}</span>
+                            {contact?.email && (
+                                <a href={`mailto:${contact.email}`} className="text-[#2563eb] text-[12px] hover:underline truncate w-full">{contact.email}</a>
                             )}
                         </div>
-                        <div className="ml-auto">
+                        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
                             <button 
                                 onClick={() => {
                                     setShowNotesSection(true);
@@ -1067,20 +1067,8 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                             </button>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
-                        {/* <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
-                            <TrashIcon className="w-4 h-4" />
-                        </button>
-                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
-                            <EditIcon className="w-4 h-4" />
-                        </button> */}
-
-                        {/* <button className="ml-2 px-6 h-8 rounded-md bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] text-white font-semibold text-sm shadow-none">
-                            Unsubscribe
-                        </button> */}
-                    </div>
                 </div>
-            )}
+            </div>
 
             {error && (
                 <div className="bg-red-50 text-red-600 text-sm p-3 my-3 rounded-lg">
