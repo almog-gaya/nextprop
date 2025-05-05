@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import AIAgentConfig from '@/components/ai-agent/AIAgentConfig';
+import AIAgentDashboard from '@/components/ai-agent/AIAgentDashboard';
 import MultiAgentSelector from '@/components/ai-agent/MultiAgentSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateAgentConfig } from '@/lib/ai-agent';
@@ -84,9 +85,14 @@ export default function AIAgentPage() {
         {/* Dashboard View */}
         {activeTab === 'dashboard' && (
           <>
-            <div className="">
+            <div className="mb-6">
               <MultiAgentSelector onAgentSelect={handleAgentSelect} showAddAgent={true} />
             </div>
+            {selectedAgentId && (
+              <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
+                <AIAgentDashboard />
+              </div>
+            )}
           </>
         )}
 
