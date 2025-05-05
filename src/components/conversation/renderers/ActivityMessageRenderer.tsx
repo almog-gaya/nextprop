@@ -66,9 +66,7 @@ export const ActivityMessageRenderer = ({ message }: { message: Message }) => {
     return pipeline || "Unknown Pipeline";
   };
 
-  const stageDisplay = message.activity?.title?.toLowerCase().includes("updated")
-    ? "Tested Sabrina SMS"
-    : "New Lead";
+  const stageDisplay = message.activity?.title?.toLowerCase().includes("updated")? "New Lead" : "";
 
   return (
     <div className="w-full max-w-full overflow-hidden text-sm">
