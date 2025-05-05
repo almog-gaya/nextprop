@@ -47,7 +47,12 @@ const LeadSummary: React.FC = () => {
         {leadData.trends.map((item, index) => (
           <div key={index} className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className={`w-2 h-2 rounded-full ${index === 0 ? 'bg-purple-500' : index === 1 ? 'bg-blue-500' : index === 2 ? 'bg-green-500' : 'bg-yellow-500'} mr-2`}></div>
+              <div className={`w-2 h-2 rounded-full ${
+                index === 0 ? 'bg-[var(--nextprop-primary)]' : 
+                index === 1 ? 'bg-[var(--nextprop-secondary)]' : 
+                index === 2 ? 'bg-green-500' : 
+                'bg-yellow-500'
+              } mr-2`}></div>
               <span className="text-sm">{item.label}</span>
             </div>
             <div className="flex items-center">
@@ -65,7 +70,7 @@ const LeadSummary: React.FC = () => {
       </div>
       
       <div className="mt-6 pt-4 border-t border-gray-200">
-        <button className="text-sm text-purple-600 hover:text-blue-800">
+        <button className="text-sm text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)]">
           View Detailed Report
         </button>
       </div>

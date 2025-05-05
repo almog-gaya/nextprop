@@ -76,7 +76,7 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ isOpen, onClose }) 
             </div>
             <div className="flex items-center gap-2">
               <button
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                className="text-xs font-medium text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)]"
               >
                 Mark all as Read
               </button>
@@ -99,7 +99,7 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ isOpen, onClose }) 
                 className={classNames(
                   'px-4 py-2 flex items-center gap-1.5 text-xs whitespace-nowrap transition-colors',
                   selectedTab === tab.id
-                    ? 'text-indigo-600 border-b-2 border-indigo-600 font-medium bg-white'
+                    ? 'text-[var(--nextprop-primary)] border-b-2 border-[var(--nextprop-primary)] font-medium bg-white'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 )}
               >

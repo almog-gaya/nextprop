@@ -22,12 +22,12 @@ const RealEstateWidget: React.FC<RealEstateWidgetProps> = ({ className = '' }) =
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <h3 className="font-medium text-gray-900 flex items-center">
-            <HomeModernIcon className="h-5 w-5 mr-2 text-blue-500" />
+            <HomeModernIcon className="h-5 w-5 mr-2 text-[var(--nextprop-primary)]" />
             Real Estate Leads
           </h3>
           <Link 
             href="/properties" 
-            className="text-sm text-purple-600 hover:text-blue-800 flex items-center"
+            className="text-sm text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)] flex items-center"
           >
             View All
             <ArrowRightIcon className="h-3 w-3 ml-1" />
@@ -37,7 +37,7 @@ const RealEstateWidget: React.FC<RealEstateWidgetProps> = ({ className = '' }) =
       
       <div className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <div className="bg-blue-50 p-3 rounded-lg">
+          <div className="bg-[var(--nextprop-primary)]/10 p-3 rounded-lg">
             <p className="text-xs text-gray-600">Total Listings</p>
             <p className="text-lg font-bold text-gray-900">{stats.totalListings}</p>
           </div>
@@ -45,7 +45,7 @@ const RealEstateWidget: React.FC<RealEstateWidgetProps> = ({ className = '' }) =
             <p className="text-xs text-gray-600">New Today</p>
             <p className="text-lg font-bold text-gray-900">{stats.newToday}</p>
           </div>
-          <div className="bg-purple-50 p-3 rounded-lg">
+          <div className="bg-[var(--nextprop-primary)]/10 p-3 rounded-lg">
             <p className="text-xs text-gray-600">Leads Generated</p>
             <p className="text-lg font-bold text-gray-900">{stats.leadsGenerated}</p>
           </div>
@@ -61,14 +61,14 @@ const RealEstateWidget: React.FC<RealEstateWidgetProps> = ({ className = '' }) =
             <input
               type="text"
               placeholder="Enter city name (e.g., Miami)"
-              className="w-full p-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)]"
               value={citySearch}
               onChange={(e) => setCitySearch(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && window.location.assign(`/properties?city=${encodeURIComponent(citySearch)}`)}
             />
             <Link
               href={`/properties?city=${encodeURIComponent(citySearch)}`}
-              className="bg-purple-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-r-lg"
+              className="bg-[var(--nextprop-primary)] hover:bg-[var(--nextprop-primary-dark)] text-white font-medium py-2 px-4 rounded-r-lg"
             >
               Search
             </Link>

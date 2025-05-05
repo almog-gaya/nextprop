@@ -201,7 +201,7 @@ const DroppableStage = ({ id, children }: { id: string; children: React.ReactNod
   return (
     <div
       ref={setNodeRef}
-      className={`p-2 overflow-y-auto max-h-[calc(100vh-240px)] ${isOver ? 'bg-blue-50' : ''}`}
+      className={`p-2 overflow-y-auto max-h-[calc(100vh-240px)] ${isOver ? 'bg-[var(--nextprop-primary)]/10' : ''}`}
     >
       {children}
     </div>
@@ -433,16 +433,16 @@ export default function PipelineBoard() {
         
         <div className="flex items-center space-x-3">
           <button className="bg-white border border-gray-300 rounded p-1 text-gray-500 hover:bg-gray-50">
-            <Squares2X2Icon className={`h-5 w-5 ${viewMode === 'grid' ? 'text-purple-600' : 'text-gray-500'}`} onClick={() => setViewMode('grid')} />
+            <Squares2X2Icon className={`h-5 w-5 ${viewMode === 'grid' ? 'text-[var(--nextprop-primary)]' : 'text-gray-500'}`} onClick={() => setViewMode('grid')} />
           </button>
           <button className="bg-white border border-gray-300 rounded p-1 text-gray-500 hover:bg-gray-50">
-            <Bars4Icon className={`h-5 w-5 ${viewMode === 'list' ? 'text-purple-600' : 'text-gray-500'}`} onClick={() => setViewMode('list')} />
+            <Bars4Icon className={`h-5 w-5 ${viewMode === 'list' ? 'text-[var(--nextprop-primary)]' : 'text-gray-500'}`} onClick={() => setViewMode('list')} />
           </button>
           <button className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-800 hover:bg-gray-50 flex items-center space-x-1">
             <ArrowDownTrayIcon className="h-4 w-4" />
             <span>Import</span>
           </button>
-          <button className="bg-purple-600 text-white rounded px-3 py-2 hover:bg-blue-700 flex items-center space-x-1">
+          <button className="bg-[var(--nextprop-primary)] text-white rounded px-3 py-2 hover:bg-[var(--nextprop-primary-dark)] flex items-center space-x-1">
             <PlusIcon className="h-4 w-4" />
             <span>Add lead</span>
           </button>
@@ -453,7 +453,7 @@ export default function PipelineBoard() {
       <div className="mb-4">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-6">
-            <button className="border-blue-500 text-purple-600 whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm">
+            <button className="border-[var(--nextprop-primary)] text-[var(--nextprop-primary)] whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm">
               All
             </button>
             <button className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap pb-3 px-1 border-b-2 font-medium text-sm">
@@ -527,12 +527,12 @@ export default function PipelineBoard() {
         
         <DragOverlay>
           {activeOpportunity && (
-            <div className="bg-white shadow-lg border-2 border-blue-500 rounded-md p-3">
+            <div className="bg-white shadow-lg border-2 border-[var(--nextprop-primary)] rounded-md p-3">
               <div className="font-medium text-gray-800">{activeOpportunity.name}</div>
               {activeOpportunity.businessName && (
                 <div className="text-sm text-gray-500">{activeOpportunity.businessName}</div>
               )}
-              <div className="text-sm text-purple-600">{activeOpportunity.value}</div>
+              <div className="text-sm text-[var(--nextprop-primary)]">{activeOpportunity.value}</div>
             </div>
           )}
         </DragOverlay>

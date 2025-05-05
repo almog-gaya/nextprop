@@ -31,10 +31,10 @@ export default function ActiveFilters({
     return (
         <div className="mt-3 flex flex-wrap gap-2">
             {searchTerm && (
-                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
+                <div className="flex items-center bg-[var(--nextprop-primary)]/10 text-[var(--nextprop-primary)] rounded-full px-3 py-1 text-sm">
                     <span>Search: {searchTerm}</span>
                     <button
-                        className="ml-2 text-blue-500 hover:text-blue-700"
+                        className="ml-2 text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)]"
                         onClick={() => setSearchTerm('')}
                     >
                         <XMarkIcon className="h-4 w-4" />
@@ -43,10 +43,10 @@ export default function ActiveFilters({
             )}
 
             {filters.value.min && (
-                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
+                <div className="flex items-center bg-[var(--nextprop-primary)]/10 text-[var(--nextprop-primary)] rounded-full px-3 py-1 text-sm">
                     <span>Min Value: ${filters.value.min}</span>
                     <button
-                        className="ml-2 text-blue-500 hover:text-blue-700"
+                        className="ml-2 text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)]"
                         onClick={() => setFilters({ ...filters, value: { ...filters.value, min: '' } })}
                     >
                         <XMarkIcon className="h-4 w-4" />
@@ -55,10 +55,10 @@ export default function ActiveFilters({
             )}
 
             {filters.value.max && (
-                <div className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm">
+                <div className="flex items-center bg-[var(--nextprop-primary)]/10 text-[var(--nextprop-primary)] rounded-full px-3 py-1 text-sm">
                     <span>Max Value: ${filters.value.max}</span>
                     <button
-                        className="ml-2 text-blue-500 hover:text-blue-700"
+                        className="ml-2 text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)]"
                         onClick={() => setFilters({ ...filters, value: { ...filters.value, max: '' } })}
                     >
                         <XMarkIcon className="h-4 w-4" />
@@ -69,11 +69,11 @@ export default function ActiveFilters({
             {filters.lastActivityType.map((type: string) => (
                 <div
                     key={type}
-                    className="flex items-center bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm"
+                    className="flex items-center bg-[var(--nextprop-primary)]/10 text-[var(--nextprop-primary)] rounded-full px-3 py-1 text-sm"
                 >
                     <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
                     <button
-                        className="ml-2 text-blue-500 hover:text-blue-700"
+                        className="ml-2 text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)]"
                         onClick={() =>
                             setFilters({
                                 ...filters,

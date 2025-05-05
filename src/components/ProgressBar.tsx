@@ -13,7 +13,7 @@ interface ProgressBarProps {
 export default function ProgressBar({
   progress,
   label,
-  color = '#7c3aed', // Default color (purple)
+  color = 'var(--nextprop-primary)', // Use CSS variable
   height = 8,
   showPercentage = true,
   animate = true,

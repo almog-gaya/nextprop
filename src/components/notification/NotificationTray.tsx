@@ -118,13 +118,13 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
   const renderNotificationIcon = (notification: Notification) => {
     switch (notification.type) {
       case "newSMS":
-        return <ChatBubbleBottomCenterIcon className="h-4 w-4 text-indigo-500" />;
+        return <ChatBubbleBottomCenterIcon className="h-4 w-4 text-[var(--nextprop-primary)]" />;
       case "newCall":
-        return <PhoneIcon className="h-4 w-4 text-indigo-500" />;
+        return <PhoneIcon className="h-4 w-4 text-[var(--nextprop-primary)]" />;
       case "leadStatusChange":
-        return <BellIcon className="h-4 w-4 text-indigo-500" />;
+        return <BellIcon className="h-4 w-4 text-[var(--nextprop-primary)]" />;
       case "newLeadAssigned":
-        return <UserPlusIcon className="h-4 w-4 text-indigo-500" />;
+        return <UserPlusIcon className="h-4 w-4 text-[var(--nextprop-primary)]" />;
     } 
   }
 
@@ -188,7 +188,7 @@ export default function NotificationTray({ isOpen, onClose }: NotificationTrayPr
         <div className="max-h-96 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-indigo-600"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-[var(--nextprop-primary)]"></div>
             </div>
           ) : notifications.length === 0 ? (
             <div className="py-2 text-center text-gray-500 text-sm">No notifications</div>
