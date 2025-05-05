@@ -12,7 +12,7 @@ interface StatsCardProps {
   iconColor?: string;   // Add this property
 }
 
-export default function StatsCard({ title, value, icon, iconBgColor = "bg-purple-100", iconColor = "text-purple-600" }: StatsCardProps) {
+export default function StatsCard({ title, value, icon, iconBgColor = "bg-[var(--nextprop-primary)]/10", iconColor = "text-[var(--nextprop-primary)]" }: StatsCardProps) {
   return (
     <div className="bg-white overflow-hidden shadow rounded-lg ">
       <div className="p-8">

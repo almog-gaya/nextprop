@@ -33,7 +33,7 @@ export default function FilterControls({
                 <FunnelIcon className="h-4 w-4 mr-2 text-gray-500" />
                 Advanced Filters
                 {hasActiveFilters && (
-                    <span className="ml-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="ml-1 bg-[var(--nextprop-primary)] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         {Object.values(filters).reduce((acc, val) => {
                             if (Array.isArray(val)) return acc + (val.length > 0 ? 1 : 0);
                             if (typeof val === 'object') {
@@ -51,7 +51,7 @@ export default function FilterControls({
                 <ArrowPathIcon className="h-4 w-4 mr-2 text-gray-500" />
                 Sort
                 {sortConfig && (
-                    <span className="ml-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="ml-1 bg-[var(--nextprop-primary)] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                         1
                     </span>
                 )}

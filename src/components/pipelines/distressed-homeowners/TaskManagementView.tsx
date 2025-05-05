@@ -81,7 +81,7 @@ export default function TaskManagementView() {
   
   // Task priority colors
   const priorityColors = {
-    low: 'bg-blue-100 text-blue-800',
+    low: 'bg-[var(--nextprop-primary)]/10 text-[var(--nextprop-primary)]',
     medium: 'bg-amber-100 text-amber-800',
     high: 'bg-red-100 text-red-800',
   };
@@ -89,7 +89,7 @@ export default function TaskManagementView() {
   // Task status colors
   const statusColors = {
     'pending': 'bg-gray-100 text-gray-800',
-    'in-progress': 'bg-purple-100 text-purple-800',
+    'in-progress': 'bg-[var(--nextprop-primary)]/10 text-[var(--nextprop-primary)]',
     'completed': 'bg-green-100 text-green-800',
   };
   
@@ -181,19 +181,19 @@ export default function TaskManagementView() {
           </h3>
           <div className="flex space-x-2">
             <button 
-              className={`px-3 py-1 rounded-md ${filter === 'all' ? 'bg-primary text-white' : 'bg-gray-100'}`}
+              className={`px-3 py-1 rounded-md ${filter === 'all' ? 'bg-[var(--nextprop-primary)] text-white' : 'bg-gray-100'}`}
               onClick={() => setFilter('all')}
             >
               All
             </button>
             <button 
-              className={`px-3 py-1 rounded-md ${filter === 'high' ? 'bg-primary text-white' : 'bg-gray-100'}`}
+              className={`px-3 py-1 rounded-md ${filter === 'high' ? 'bg-[var(--nextprop-primary)] text-white' : 'bg-gray-100'}`}
               onClick={() => setFilter(filter === 'high' ? 'all' : 'high')}
             >
               High Priority
             </button>
             <button 
-              className={`px-3 py-1 rounded-md ${filter === 'pending' ? 'bg-primary text-white' : 'bg-gray-100'}`}
+              className={`px-3 py-1 rounded-md ${filter === 'pending' ? 'bg-[var(--nextprop-primary)] text-white' : 'bg-gray-100'}`}
               onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
             >
               Pending
@@ -245,7 +245,7 @@ export default function TaskManagementView() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                    <button className="text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)] mr-3">
                       Edit
                     </button>
                     <button className="text-red-600 hover:text-red-900">

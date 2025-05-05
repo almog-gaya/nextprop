@@ -5,14 +5,14 @@ import React from 'react';
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   text?: string;
-  color?: 'purple' | 'blue' | 'gray';
+  color?: 'primary' | 'secondary' | 'gray';
   className?: string;
 }
 
 export default function LoadingSpinner({ 
   size = 'md', 
   text = '',
-  color = 'purple',
+  color = 'primary',
   className = ''
 }: LoadingSpinnerProps) {
   const sizeClasses = {
@@ -22,8 +22,8 @@ export default function LoadingSpinner({
   };
   
   const colorClasses = {
-    purple: 'border-purple-600',
-    blue: 'border-[#0057ff]',
+    primary: 'border-[var(--nextprop-primary)]',
+    secondary: 'border-[var(--nextprop-secondary)]',
     gray: 'border-gray-600'
   };
 

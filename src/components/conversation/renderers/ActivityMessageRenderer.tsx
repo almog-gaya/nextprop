@@ -46,7 +46,7 @@ const MessageFooter = ({ pipeline, date }: { pipeline?: string; date: string }) 
 const OpportunityButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors duration-150"
+    className="text-xs font-medium text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)] transition-colors duration-150"
   >
     View opportunity
   </button>
