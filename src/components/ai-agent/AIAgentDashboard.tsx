@@ -4,10 +4,12 @@ import React from 'react';
 import { 
   UserGroupIcon,
   BoltIcon, 
-  CalendarIcon, 
   ChatBubbleLeftIcon,
   InboxIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ClockIcon,
+  UserIcon,
+  XCircleIcon
 } from '@heroicons/react/24/outline';
 
 type MetricCardProps = {
@@ -44,9 +46,10 @@ const SuccessIndicator: React.FC<SuccessIndicatorProps> = ({ percentage }) => (
 export default function AIAgentDashboard() {
   // This would normally be fetched from an API
   const metrics = {
-    uniqueContacts: 0,
-    actionsTriggered: 0,
-    appointmentsBooked: 0,
+    uniqueContactsEngaged: 0,
+    dealsInProcess: 0,
+    leadsQualified: 0,
+    notInterested: 0,
     totalMessages: 0,
     avgMessagesPerContact: 0,
     successRate: 0
@@ -55,21 +58,26 @@ export default function AIAgentDashboard() {
   return (
     <div className="space-y-6">
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard 
-          title="Total Unique Contacts" 
-          value={metrics.uniqueContacts}
+          title="Total Unique Contacts Engaged" 
+          value={metrics.uniqueContactsEngaged}
           icon={<UserGroupIcon className="h-8 w-8" />}
         />
         <MetricCard 
-          title="Total Actions Triggered" 
-          value={metrics.actionsTriggered}
-          icon={<BoltIcon className="h-8 w-8" />}
+          title="Deals Still in Process" 
+          value={metrics.dealsInProcess}
+          icon={<ClockIcon className="h-8 w-8" />}
         />
         <MetricCard 
-          title="Total Appointment Booked" 
-          value={metrics.appointmentsBooked}
-          icon={<CalendarIcon className="h-8 w-8" />}
+          title="Total Leads Qualified" 
+          value={metrics.leadsQualified}
+          icon={<UserIcon className="h-8 w-8" />}
+        />
+        <MetricCard 
+          title="Not Interested" 
+          value={metrics.notInterested}
+          icon={<XCircleIcon className="h-8 w-8" />}
         />
       </div>
 
@@ -87,8 +95,7 @@ export default function AIAgentDashboard() {
           <div className="flex items-center justify-between">
             <h3 className="text-4xl font-bold text-[var(--nextprop-text-primary)]">{metrics.avgMessagesPerContact}</h3>
             <div className="flex items-center">
-              <InboxIcon className="h-8 w-8 text-[var(--nextprop-primary)] mr-2" />
-              <SuccessIndicator percentage={metrics.successRate} />
+              <InboxIcon className="h-8 w-8 text-[var(--nextprop-primary)]" />
             </div>
           </div>
         </div>
