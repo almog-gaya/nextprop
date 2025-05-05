@@ -661,7 +661,16 @@ export async function saveMultiAgentConfig(userId: string, config: MultiAgentCon
     const { doc, setDoc } = await import('firebase/firestore');
     
     const multiAgentRef = doc(db, 'multi-agent-configs', userId);
-    
+    const singleAgentRef = doc(db, 'ai-agent-configs', userId);
+    const activeAgentId = config?.activeAgentId;
+    if(activeAgentId){
+      try {
+        const activeAgent = config.agents[activeAgentId];
+        await setDoc(singleAgentRef, activeAgent);
+      } catch (error) {
+        console.error('Error saving active agent:', error);
+      }
+    }
     // Convert dates to ISO strings for Firestore
     const processedConfig = {
       ...config,
@@ -677,6 +686,7 @@ export async function saveMultiAgentConfig(userId: string, config: MultiAgentCon
         ])
       )
     };
+ 
     
     await setDoc(multiAgentRef, processedConfig);
     
@@ -849,6 +859,8 @@ export async function updateAgentConfig(
     
     // Save the updated config
     await saveMultiAgentConfig(userId, multiAgentConfig);
+
+
     
     return true;
   } catch (error) {
