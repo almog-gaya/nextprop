@@ -707,9 +707,9 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                 </div>
                 <button
                     onClick={() => setEditingField('tags')}
-                    className="text-purple-500 hover:text-purple-700 text-sm flex items-center pt-2"
+                    className="mt-2 w-20 h-6 text-white rounded-sm hover:text-purple-100 text-[12px] flex items-center justify-center bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] "
                 >
-                    <Plus size={16} className="mr-1" /> Add Tag
+                    <Plus size={14} className="mr-1" /> Add Tag
                 </button>
             </div>
 

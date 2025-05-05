@@ -268,9 +268,9 @@ export default function MessageThread({
             <div className="bg-[#F4F7F9] px-4 py-3">
                 <div className="flex items-center w-full">
                     {/* Attachment Icon */}
-                    <button className="text-gray-400 hover:text-gray-500 mr-3">
+                    {/* <button className="text-gray-400 hover:text-gray-500 mr-3">
                         <Paperclip className="w-5 h-5" />
-                    </button>
+                    </button> */}
                     {/* Input + icons */}
                     <div className="flex-1 relative">
                         <input
@@ -282,22 +282,22 @@ export default function MessageThread({
                             onKeyDown={handleKeyDown}
                         />
                         <div className="absolute inset-y-0 right-4 flex items-center space-x-3">
-                            <button className="text-gray-400 hover:text-gray-500">
+                            {/* <button className="text-gray-400 hover:text-gray-500">
                                 <MessageSquare className="w-5 h-5" />
                             </button>
                             <button className="text-gray-400 hover:text-gray-500">
                                 <Smile className="w-5 h-5" />
-                            </button>
+                            </button> */}
                         </div>
                     </div>
                     {/* Send Button OUTSIDE the input */}
                     <button
-                        className="ml-3 w-10 h-10 flex items-center justify-center rounded-full bg-purple-600 text-white hover:bg-purple-700 transition"
+                        className="ml-3 w-9 h-9 flex items-center justify-center rounded-full bg-purple-600 text-white hover:bg-purple-700 transition"
                         onClick={handleSend}
                         disabled={!newMessage.trim()}
                         type="button"
                     >
-                        <Send className="w-5 h-5" />
+                        <Send className="w-4.5 h-4.5" />
                     </button>
                 </div>
             </div>
