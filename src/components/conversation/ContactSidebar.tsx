@@ -1044,8 +1044,8 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
         <div className="h-full w-full max-w-md bg-white flex flex-col overflow-hidden font-sans px-2 relative">
             {/* Contact Header */}
             <div className="border-b border-gray-200 bg-white">
-                <div className="px-2 py-4">
-                    <div className="flex items-center gap-3">
+                <div className="px-1.5 py-3">
+                    <div className="flex items-center gap-2">
                         <div className="w-10 h-10 flex-shrink-0 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium text-base">
                             {contact?.firstName?.[0]}{contact?.lastName?.[0]}
                         </div>
@@ -1055,7 +1055,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 <a href={`mailto:${contact.email}`} className="text-[#2563eb] text-[12px] hover:underline truncate w-full">{contact.email}</a>
                             )}
                         </div>
-                        <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+                        <div className="ml-auto flex items-center flex-shrink-0">
                             <button 
                                 onClick={() => {
                                     setShowNotesSection(true);
@@ -1071,12 +1071,12 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
             </div>
 
             {error && (
-                <div className="bg-red-50 text-red-600 text-sm p-3 my-3 rounded-lg">
+                <div className="bg-red-50 text-red-600 text-sm p-3 my-2 rounded-lg">
                     {error}
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto py-4 space-y-5 px-4">
+            <div className="flex-1 overflow-y-auto py-2 space-y-5 px-2">
                 {isLoading && !contact ? (
                     <div className="flex justify-center py-4">
                         <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
@@ -1093,10 +1093,10 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 {collapsedSections.personal ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                             </button>
                             {!collapsedSections.personal && (
-                                <div className="mt-2 space-y-1">
+                                <div className="mt-0 space-y-0">
                                     {renderEmails()}
                                     {/* Divider with small horizontal padding */}
-                                    <div className="px-2 py-1">
+                                    <div className="px-2 py-0">
                                     </div>
                                     {renderPhones()}
                                 </div>
@@ -1109,13 +1109,13 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         <div>
                             <button
                                 onClick={() => toggleSection('address')}
-                                className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
+                                className="w-full flex items-center justify-between py-0 text-medium font-medium text-gray-700"
                             >
                                 <span className='text-[13px]'>Address</span>
                                 {collapsedSections.address ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                             </button>
                             {!collapsedSections.address && (
-                                <div className="mt-2 space-y-1">
+                                <div className="mt-1 space-y-0">
                                     {renderField('address1', 'Street')}
                                     {renderField('city', 'City')}
                                     {renderField('state', 'State')}
@@ -1131,7 +1131,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         <div>
                             <button
                                 onClick={() => toggleSection('tags')}
-                                className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
+                                className="w-full flex items-center justify-between py-0 text-medium font-medium text-gray-700"
                             >
                                 <span className='text-[13px]'>Tags ({contact.tags.length})</span>
                                 {collapsedSections.tags ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
@@ -1140,12 +1140,13 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 <div className="mt-2">{renderTags()}</div>
                             )}
                         </div>
+                        <hr className="border-gray-200" />
 
                         {/* DND Settings */}
                         <div>
                             <button
                                 onClick={() => toggleSection('dnd')}
-                                className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
+                                className="w-full flex items-center justify-between py-0 text-medium font-medium text-gray-700"
                             >
                                 <div className="flex items-center">
                                     <span className='text-[13px]'>DND Settings</span>
