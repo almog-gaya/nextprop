@@ -15,7 +15,17 @@ export default function SmsTemplateConfig({
   insertPlaceholder, 
   isJobRunning 
 }: SmsTemplateConfigProps) {
-  const placeholders = ['first_name', 'street_name', 'property_url', 'property_price'];
+  // These are the fields that exist in the contact_payload for each contact in automation collection
+  const contactPayloadFields = [
+    { key: 'firstName', placeholder: 'first_name', description: 'Contact\'s first name' },
+    { key: 'lastName', placeholder: 'last_name', description: 'Contact\'s last name' },
+    { key: 'email', placeholder: 'email', description: 'Contact\'s email address' },
+    { key: 'phone', placeholder: 'phone', description: 'Contact\'s phone number' },
+    { key: 'address1', placeholder: 'street_name', description: 'Property street address' },
+    { key: 'city', placeholder: 'city', description: 'Property city' },
+    { key: 'state', placeholder: 'state', description: 'Property state' },
+    { key: 'postalCode', placeholder: 'postal_code', description: 'Property postal code' }
+  ];
 
   return (
     <div className="p-4 bg-gray-50 rounded-lg">
@@ -28,26 +38,27 @@ export default function SmsTemplateConfig({
         value={message}
         onChange={onChange}
         className="w-full p-3 bg-white border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all h-32 font-mono text-sm"
-        placeholder="Enter your SMS template with placeholders like {{firstName}}, {{propertyAddress}}, etc."
+        placeholder="Enter your SMS template with contact fields like {{first_name}}, {{street_name}}, etc."
         disabled={isJobRunning}
       />
-      <div className="mt-3 flex flex-wrap gap-2">
-        <span className="text-sm text-gray-600 mr-1 self-center">Insert: </span>
-        {placeholders.map(placeholder => (
-          <button
-            key={placeholder}
-            type="button"
-            onClick={() => insertPlaceholder(placeholder)}
-            className="px-3 py-1.5 text-sm rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:shadow-sm transition-all flex items-center"
-            disabled={isJobRunning}
-          >
-            <TagIcon className="h-3 w-3 mr-1.5" />
-            {`{{${placeholder}}}`}
-          </button>
-        ))}
-        <p className="w-full mt-2 text-sm text-amber-600">
-          ⚠️ Important: Only use the placeholders provided above. Messages with custom placeholders will be skipped for contacts missing those fields.
-        </p>
+      
+      <div className="mt-3">
+        <p className="text-sm text-gray-600 mb-2">Insert contact fields:</p>
+        <div className="flex flex-wrap gap-2">
+          {contactPayloadFields.map(field => (
+            <button
+              key={field.key}
+              type="button"
+              onClick={() => insertPlaceholder(field.placeholder)}
+              className="px-3 py-1.5 text-sm rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:shadow-sm transition-all flex items-center"
+              disabled={isJobRunning}
+              title={field.description}
+            >
+              <TagIcon className="h-3 w-3 mr-1.5" />
+              {`{{${field.placeholder}}}`}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
