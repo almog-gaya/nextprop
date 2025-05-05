@@ -113,10 +113,10 @@ export default function Header({ title }: HeaderProps) {
             <BellIcon className="w-5 h-5 text-gray-600" />
           </button>
 
-          {/* Balance */}
+          {/* Balance
           <button className="h-10 px-4 rounded-lg bg-[#ECD0FFBF] hover:bg-[#e5c1ff] transition-colors duration-200 flex items-center">
             <span className="text-sm font-medium text-gray-700">Balance</span>
-          </button>
+          </button> */}
 
           {/* Profile Dropdown */}
           {user && <ProfileDropdown user={user} onLogout={logout} />}
