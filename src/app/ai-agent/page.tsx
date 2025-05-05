@@ -35,13 +35,19 @@ export default function AIAgentPage() {
     setIsSaving(true);
     try {
       await updateAgentConfig(user.id, selectedAgentId, currentConfig);
-      toast.success('Configuration saved successfully');
+      showToast('Configuration saved successfully');
     } catch (error) {
       console.error('Error saving configuration:', error);
       toast.error('Failed to save configuration');
     } finally {
       setIsSaving(false);
     }
+  };
+  const showToast = (message: string) => {
+    toast.success(message, {
+      duration: 3000,
+      position: 'top-right', 
+    });
   };
   
   return (
