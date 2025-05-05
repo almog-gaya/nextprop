@@ -10,6 +10,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConversationDisplay } from '@/types/messageThread';
+import { ArrowLeft } from 'lucide-react';
 
 export default function ContactConversationPage() {
   const { contactId } = useParams();
@@ -274,7 +275,7 @@ export default function ContactConversationPage() {
         {/* Message Thread Section */}
         <div className="md:col-span-9 flex flex-col overflow-hidden">
           <div className="flex-1 flex justify-center overflow-y-auto">
-            <div className="w-full max-w-2xl h-full">
+            <div className="w-full h-full">
               <MessageThread
                 activeConversation={state.activeConversation}
                 messages={state.messages}
