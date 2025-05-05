@@ -465,18 +465,8 @@ export default function PropertiesPage() {
   }
 
   return (
-    <DashboardLayout title="Properties">
-      <div className="py-6 px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg mb-8">
-          <div className="p-6 md:p-8 text-white">
-            <h2 className="text-xl md:text-2xl font-bold mb-3">Scrape Redfin Properties</h2>
-            <p className="mb-4">
-              Enter a search query and generate up to {DAILY_LIMIT} property listings at a time
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
+    <DashboardLayout title="Properties">        
+        <div className="bg-white shadow rounded-lg p-6 mb-6 ml-20 mr-20 mt-20">
           <h2 className="text-lg font-medium mb-4">Search Redfin Properties</h2>
 
           {/* Pipeline dropdown */}
@@ -570,7 +560,7 @@ export default function PropertiesPage() {
           currentStatus={currentStatus}
           setIsScraping={setIsScraping}
         />
-      </div>
+      
     </DashboardLayout>
   );
 }
