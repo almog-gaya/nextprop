@@ -85,11 +85,17 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
       // Trigger refresh
       triggerConfigRefresh();
       
-      toast.success('Agent switched successfully');
+      showToast('Agent switched successfully');
     } catch (error) {
       console.error('Error selecting agent:', error);
       toast.error('Failed to switch agent');
     }
+  };
+  const showToast = (message: string) => {
+    toast.success(message, {
+      duration: 3000,
+      position: 'top-right', 
+    });
   };
 
   const handleCreateAgent = async (templateId: string) => {
@@ -111,7 +117,7 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
       // Select the new agent
       await handleSelectAgent(newAgentId);
       
-      toast.success('New agent created successfully');
+      showToast('New agent created successfully');
       setShowTemplates(false);
     } catch (error) {
       console.error('Error creating agent:', error);
@@ -133,7 +139,7 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
       // Reload the configuration
       await loadConfig();
       
-      toast.success('Agent deleted successfully');
+      showToast('Agent deleted successfully');
     } catch (error) {
       console.error('Error deleting agent:', error);
       toast.error('Failed to delete agent');
