@@ -425,11 +425,11 @@ const ConversationList = memo(function ConversationList({
               <Avatar initials={conversation.avatar} />
               <div className="flex flex-col justify-center flex-1 min-w-0 ml-3">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold text-gray-900 text-base truncate">{conversation.name}</p>
-                  <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{convertTimeStampToDate(conversation.timestamp)}</span>
+                  <p className="font-medium text-[13px] text-gray-900 truncate">{conversation.name}</p>
+                  <span className="text-[11px] text-gray-400 ml-2 whitespace-nowrap">{convertTimeStampToDate(conversation.timestamp)}</span>
                 </div>
                 <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs text-gray-500 truncate">{truncateMessage(conversation.lastMessage)}</p>
+                  <p className="text-[11px] text-gray-500 truncate">{truncateMessage(conversation.lastMessage)}</p>
                   {(conversation.unreadCount ?? 0) > 0 && (
                     <span className="ml-2 flex items-center justify-center w-4 h-4 rounded-full bg-[#3244FF] text-white text-xs font-semibold leading-none">{conversation.unreadCount}</span>
                   )}
