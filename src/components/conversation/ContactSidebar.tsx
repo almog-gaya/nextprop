@@ -320,7 +320,11 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
             );
         }
         return (
-            <div key={key} className="flex items-center justify-between py-1">
+            <div 
+                key={key} 
+                className="flex items-center justify-between py-1 cursor-pointer hover:bg-gray-50 rounded px-1"
+                onClick={() => setEditingField(key)}
+            >
                 <span className="text-[12px] text-gray-500">{label}</span>
                 <span className="text-[12px] text-gray-900 truncate">{typeof value === 'string' ? value : 'N/A'}</span>
             </div>
@@ -1051,23 +1055,26 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                                 <a href={contact.email} target="_blank" rel="noopener noreferrer" className="text-[#2563eb] text-sm hover:underline">{contact.email}</a>
                             )}
                         </div>
+                        <div className="ml-auto">
+                            <button 
+                                onClick={() => {
+                                    setShowNotesSection(true);
+                                    fetchNotes();
+                                }}
+                                className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100"
+                            >
+                                <NotesIcon className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-8 ml-4">
-                        <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
+                    <div className="flex items-center gap-2 ml-4">
+                        {/* <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
                             <TrashIcon className="w-4 h-4" />
                         </button>
                         <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
                             <EditIcon className="w-4 h-4" />
-                        </button>
-                        <button 
-                            onClick={() => {
-                                setShowNotesSection(true);
-                                fetchNotes();
-                            }}
-                            className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100"
-                        >
-                            <NotesIcon className="w-4 h-4" />
-                        </button>
+                        </button> */}
+
                         {/* <button className="ml-2 px-6 h-8 rounded-md bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] text-white font-semibold text-sm shadow-none">
                             Unsubscribe
                         </button> */}
