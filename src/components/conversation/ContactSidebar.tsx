@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Mail, Phone, ChevronDown, ChevronUp, MoreVertical, Plus, X, Calendar, Trash as TrashIcon, Pencil as EditIcon } from 'lucide-react';
+import { Mail, Phone, ChevronDown, ChevronUp, MoreVertical, Plus, X, Calendar, Trash as TrashIcon, Pencil as EditIcon, FileText as NotesIcon, ArrowLeft, Edit2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { updateContactById, getContactById } from "@/lib/api";
+import { updateContactById, getContactById, getContactNotes, createContactNote, updateContactNote, deleteContactNote } from "@/lib/api";
 import toast, { Toaster } from 'react-hot-toast';
+import { ContactNote } from '@/types/notes';
+import { formatDistanceToNow } from 'date-fns';
+import NoteSidebar from './NoteSidebar';
 
 interface ContactSidebarProps {
     contactId: string;
@@ -32,6 +35,17 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
     const [showEmailMenu, setShowEmailMenu] = useState<number | null>(null);
     const [showPhoneMenu, setShowPhoneMenu] = useState<number | null>(null);
     const [dndLoading, setDndLoading] = useState<string | null>(null);
+    const [isNoteSidebarOpen, setIsNoteSidebarOpen] = useState(false);
+    
+    // Notes related state
+    const [notes, setNotes] = useState<ContactNote[]>([]);
+    const [notesLoading, setNotesLoading] = useState(false);
+    const [noteError, setNoteError] = useState<string | null>(null);
+    const [selectedNote, setSelectedNote] = useState<ContactNote | null>(null);
+    const [isEditingNote, setIsEditingNote] = useState(false);
+    const [noteBody, setNoteBody] = useState('');
+    const [showNotesSection, setShowNotesSection] = useState(false);
+    
     const { user: currentUser } = useAuth();
     useEffect(() => {
         if (contactId) {
@@ -716,9 +730,312 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
         );
     };
 
+    // Fetch notes
+    const fetchNotes = async () => {
+        if (!contactId) return;
+        
+        setNotesLoading(true);
+        setNoteError(null);
+        try {
+            const response = await getContactNotes(contactId);
+            setNotes(response.notes || []);
+        } catch (err) {
+            setNoteError('Failed to load notes');
+            console.error(err);
+        } finally {
+            setNotesLoading(false);
+        }
+    };
+
+    // Toggle notes section and fetch notes when opened
+    useEffect(() => {
+        if (showNotesSection) {
+            fetchNotes();
+        }
+    }, [showNotesSection, contactId]);
+
+    // Handle note creation
+    const handleCreateNote = async () => {
+        if (!noteBody.trim() || !contactId) return;
+
+        setNotesLoading(true);
+        setNoteError(null);
+        try {
+            const response = await createContactNote(contactId, {
+                body: noteBody,
+                userId: currentUser?.id,
+            });
+            
+            // Add the new note to the list
+            setNotes([response.note, ...notes]);
+            setNoteBody('');
+            setIsEditingNote(false);
+            toast.success('Note created successfully');
+        } catch (err) {
+            setNoteError('Failed to create note');
+            toast.error('Failed to create note');
+            console.error(err);
+        } finally {
+            setNotesLoading(false);
+        }
+    };
+
+    // Handle note update
+    const handleUpdateNote = async () => {
+        if (!selectedNote || !noteBody.trim() || !contactId) return;
+
+        setNotesLoading(true);
+        setNoteError(null);
+        try {
+            const response = await updateContactNote(contactId, selectedNote.id, {
+                body: noteBody,
+                userId: currentUser?.id,
+            });
+            
+            // Update the note in the list
+            setNotes(notes.map(note => 
+                note.id === selectedNote.id ? response.note : note
+            ));
+            setNoteBody('');
+            setSelectedNote(null);
+            setIsEditingNote(false);
+            toast.success('Note updated successfully');
+        } catch (err) {
+            setNoteError('Failed to update note');
+            toast.error('Failed to update note');
+            console.error(err);
+        } finally {
+            setNotesLoading(false);
+        }
+    };
+
+    // Handle note deletion
+    const handleDeleteNote = async (noteId: string) => {
+        if (!contactId) return;
+        
+        if (window.confirm('Are you sure you want to delete this note?')) {
+            setNotesLoading(true);
+            setNoteError(null);
+            try {
+                await deleteContactNote(contactId, noteId);
+                
+                // Remove the note from the list
+                setNotes(notes.filter(note => note.id !== noteId));
+                
+                // Reset state if the deleted note was selected
+                if (selectedNote?.id === noteId) {
+                    setSelectedNote(null);
+                    setNoteBody('');
+                    setIsEditingNote(false);
+                }
+                toast.success('Note deleted successfully');
+            } catch (err) {
+                setNoteError('Failed to delete note');
+                toast.error('Failed to delete note');
+                console.error(err);
+            } finally {
+                setNotesLoading(false);
+            }
+        }
+    };
+
+    // Edit note helper
+    const handleEditNote = (note: ContactNote) => {
+        setSelectedNote(note);
+        setNoteBody(note.body);
+        setIsEditingNote(true);
+    };
+
+    // New note helper
+    const handleNewNote = () => {
+        setSelectedNote(null);
+        setNoteBody('');
+        setIsEditingNote(true);
+    };
+
+    // Cancel editing helper
+    const handleCancelNote = () => {
+        setSelectedNote(null);
+        setNoteBody('');
+        setIsEditingNote(false);
+    };
+
+    // Format date helper for notes
+    const formatNoteDate = (dateString: string) => {
+        try {
+            return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+        } catch (e) {
+            return 'Unknown date';
+        }
+    };
+
+    // Render notes section
+    const renderNotesSection = () => {
+        if (!showNotesSection) return null;
+
+        return (
+            <div className="absolute inset-0 bg-white z-10 flex flex-col h-full">
+                {/* Notes Header */}
+                <div className="flex items-center justify-between border-b border-gray-200">
+                    <div className="flex items-center">
+                        <button
+                            onClick={() => setShowNotesSection(false)}
+                            className="ml-2 mr-3 p-1 rounded-full hover:bg-gray-100"
+                        >
+                            <ArrowLeft size={18} />
+                        </button>
+                        <h2 className="flex mt-6 text-lg font-medium">
+                            {isEditingNote
+                                ? selectedNote
+                                    ? 'Edit Note'
+                                    : 'New Note'
+                                : selectedNote
+                                    ? 'Note Details'
+                                    : `Notes (${notes.length})`
+                            }
+                        </h2>
+                    </div>
+                    <div className="flex">
+                        {!isEditingNote && !selectedNote && (
+                            <button
+                                onClick={handleNewNote}
+                                className="p-2 rounded-full hover:bg-gray-100 mr-2"
+                                aria-label="Add note"
+                            >
+                                <Plus size={18} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Note Error Message */}
+                {noteError && (
+                    <div className="bg-red-50 text-red-700 p-3 text-sm mx-4 mt-2 rounded">
+                        {noteError}
+                    </div>
+                )}
+                
+                {/* Notes Content */}
+                <div className="flex-1 overflow-y-auto p-4">
+                    {notesLoading && notes.length === 0 ? (
+                        <div className="flex justify-center py-6">
+                            <div className="animate-spin h-6 w-6 border-2 border-purple-600 border-t-transparent rounded-full"></div>
+                        </div>
+                    ) : isEditingNote ? (
+                        <div className="space-y-3">
+                            <textarea
+                                value={noteBody}
+                                onChange={(e) => setNoteBody(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none min-h-[180px]"
+                                placeholder="Write your note here..."
+                            />
+                            <div className="flex justify-end space-x-2">
+                                <button
+                                    onClick={handleCancelNote}
+                                    className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-100"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={selectedNote ? handleUpdateNote : handleCreateNote}
+                                    disabled={!noteBody.trim() || notesLoading}
+                                    className={`px-4 py-2 text-sm rounded-md ${
+                                        !noteBody.trim() || notesLoading
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] text-white hover:bg-purple-700'
+                                    }`}
+                                >
+                                    {notesLoading ? 'Saving...' : selectedNote ? 'Update' : 'Save'}
+                                </button>
+                            </div>
+                        </div>
+                    ) : selectedNote ? (
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => setSelectedNote(null)}
+                                className="flex items-center text-sm text-purple-600 mb-4"
+                            >
+                                <ArrowLeft size={16} className="mr-1" />
+                                <span>Back to all notes</span>
+                            </button>
+                            <div className="border border-gray-200 rounded-md p-4">
+                                <div className="flex justify-between items-start mb-3">
+                                    <span className="text-xs text-gray-500">
+                                        {formatNoteDate(selectedNote.dateAdded ?? "")}
+                                    </span>
+                                    <div className="flex space-x-2">
+                                        <button
+                                            onClick={() => handleEditNote(selectedNote)}
+                                            className="p-1 rounded hover:bg-gray-100 text-gray-600"
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteNote(selectedNote.id)}
+                                            className="p-1 rounded hover:bg-gray-100 text-gray-600"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-sm whitespace-pre-wrap">{selectedNote.body}</p>
+                            </div>
+                        </div>
+                    ) : notes.length > 0 ? (
+                        <div className="space-y-3">
+                            {notes.map((note) => (
+                                <div
+                                    key={note.id}
+                                    onClick={() => setSelectedNote(note)}
+                                    className="border border-gray-200 rounded-md p-3 cursor-pointer hover:border-purple-300 transition-colors"
+                                >
+                                    <div className="flex justify-between">
+                                        <span className="text-xs text-gray-500">
+                                            {formatNoteDate(note.dateAdded ?? "")}
+                                        </span>
+                                        <div className="flex space-x-1">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEditNote(note);
+                                                }}
+                                                className="p-1 rounded hover:bg-gray-100 text-gray-600"
+                                            >
+                                                <Edit2 size={14} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteNote(note.id);
+                                                }}
+                                                className="p-1 rounded hover:bg-gray-100 text-gray-600"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm truncate mt-1">{note.body}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+                            <p className="mb-4">No notes yet</p>
+                            <button
+                                onClick={handleNewNote}
+                                className="px-4 py-2 text-sm bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] text-white rounded-md hover:bg-purple-700"
+                            >
+                                Add a note
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
-        <div className="h-full w-full max-w-md bg-white flex flex-col overflow-hidden font-sans px-2">
+        <div className="h-full w-full max-w-md bg-white flex flex-col overflow-hidden font-sans px-2 relative">
             {/* Contact Header */}
             {contact && (
                 <div className="px-2 pt-4 pb-3">
@@ -740,9 +1057,18 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         <button className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100">
                             <EditIcon className="w-4 h-4" />
                         </button>
-                        <button className="ml-2 px-6 h-8 rounded-md bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] text-white font-semibold text-sm shadow-none">
-                            Unsubscribe
+                        <button 
+                            onClick={() => {
+                                setShowNotesSection(true);
+                                fetchNotes();
+                            }}
+                            className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-[#2563eb] border border-gray-200 hover:bg-gray-100"
+                        >
+                            <NotesIcon className="w-4 h-4" />
                         </button>
+                        {/* <button className="ml-2 px-6 h-8 rounded-md bg-gradient-to-r from-[#7B2FF2] to-[#4B8CFF] text-white font-semibold text-sm shadow-none">
+                            Unsubscribe
+                        </button> */}
                     </div>
                 </div>
             )}
@@ -901,6 +1227,9 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                 )}
             </div>
             <Toaster position="top-right" />
+            
+            {/* Notes Section */}
+            {renderNotesSection()}
         </div>
     );
 }
