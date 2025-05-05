@@ -46,14 +46,27 @@ export default function OpportunityCard({
 }: OpportunityCardProps) {
   const router = useRouter();
 
-  const handleNameClick = (e: React.MouseEvent) => {
+  const handleNameClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+  
     if (opportunity?.contact?.phone) {
       router.push(`/messaging-embed/${opportunity.contact.phone}`);
     } else {
-      router.push('/messaging-embed');
+      const contact = await loadContactById(opportunity!.contact!.id);
+      if (contact.phone) {
+        router.push(`/messaging-embed/${contact.phone}`);
+      } else {
+        router.push('/messaging-embed');
+      }
     }
+  };
+
+  const loadContactById = async (id: string) => {
+    const response = await fetch(`/api/contacts/${id}`);
+    const data = await response.json();
+    console.log(`data: ${JSON.stringify(data)}`);
+    return data;
   };
 
   return (
