@@ -417,6 +417,7 @@ export default function AIAgentConfig({
       }
 
       console.log(`region: ${agentConfig.region}`);
+      console.log(`QaEntries: ${agentConfig.qaEntries}`);
 
       // Set the region state from the loaded config
       // Always use the region from the config, even if it's empty
@@ -424,6 +425,25 @@ export default function AIAgentConfig({
 
       // Set the config after setting all the individual states
       setConfig(agentConfig);
+
+      if(!agentConfig.qaEntries || agentConfig.qaEntries.length === 0) {
+        console.log('No qa entries found, loading default');
+        // get default qa entries
+        const defaultConfig = await loadAIAgentConfig('default');
+        const config = {
+          ...agentConfig,
+          qaEntries: defaultConfig.qaEntries || []
+        }
+        const { updateAgentConfig } = await import('@/lib/ai-agent');
+        await updateAgentConfig(user.id, selectedAgentId, config);
+  
+        // Also save to local storage for backward compatibility
+        await saveAIAgentConfig(config, user.id);
+  
+        // Sync with server
+        await syncConfigWithServer(config);
+        setConfig(config);
+      }
     } catch (error) {
       console.error('Error loading config:', error);
 
