@@ -414,10 +414,7 @@ export default function AIAgentConfig({
       // Load additional property types if they exist
       if (agentConfig.additionalPropertyTypes) {
         setAdditionalPropertyTypes(agentConfig.additionalPropertyTypes);
-      }
-
-      console.log(`region: ${agentConfig.region}`);
-      console.log(`QaEntries: ${agentConfig.qaEntries}`);
+      } 
 
       // Set the region state from the loaded config
       // Always use the region from the config, even if it's empty
@@ -643,6 +640,7 @@ export default function AIAgentConfig({
   };
 
   const handleSave = async () => {
+    console.log('handleSave');
     if (!user?.id || !config || !selectedAgentId) {
       toast.error('User not authenticated or config not loaded');
       return;
@@ -658,6 +656,7 @@ export default function AIAgentConfig({
     try {
       /// check if already exists dont create 
       const exists = await isWorkflowExists();
+  
       if (!exists) {
         const uuidTemplateId = crypto.randomUUID();
         const workflowResponse = await createWorkFlow();

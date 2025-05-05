@@ -91,7 +91,7 @@ const getUserData = async () => {
     numbers = await loadPhoneNumbers(locationId!);
 
   } catch (_) {
-    console.log(`Error occured, catched at getUserData `, _);
+    console.log(`Error occured, catched at getUserData `, JSON.stringify(_));
   }
   return {
     ...userData,
@@ -124,6 +124,7 @@ const loadPhoneNumbers = async (locationId: string) => {
 
   const responseBody = await response.json();
   if (!response.ok) {
+    console.log(`Error occured, catched at loadPhoneNumbers `, responseBody);
     throw new Error(`${responseBody ?? 'Something went wrong on fetching numbers'}`);
   }
 

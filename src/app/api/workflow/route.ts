@@ -245,7 +245,7 @@ const createSMSReceiveTrigger = async (headers: any, locationId: string, workflo
 }
 
 const __buildHeaders = async () => {
-    const tokenId = (await refreshTokenIdBackend()).id_token;
+    const tokenId = await getTokenId();
     const myHeaders = new Headers();
 
     myHeaders.append("accept", "application/json, text/plain, */*");
@@ -265,4 +265,39 @@ const __buildHeaders = async () => {
     myHeaders.append("user-agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36");
 
     return myHeaders;
+}
+
+
+const getTokenId = async () => {
+    const myHeaders = new Headers();
+    myHeaders.append("accept", "*/*");
+    myHeaders.append("accept-language", "en-US,en;q=0.9");
+    myHeaders.append("content-type", "application/json");
+    myHeaders.append("origin", "https://app.gohighlevel.com");
+    myHeaders.append("priority", "u=1, i");
+    myHeaders.append("sec-ch-ua", "\"Google Chrome\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\"");
+    myHeaders.append("sec-ch-ua-mobile", "?1");
+    myHeaders.append("sec-ch-ua-platform", "\"Android\"");
+    myHeaders.append("sec-fetch-dest", "empty");
+    myHeaders.append("sec-fetch-mode", "cors");
+    myHeaders.append("sec-fetch-site", "cross-site");
+    myHeaders.append("user-agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36");
+    myHeaders.append("x-client-data", "CKK1yQEIhbbJAQiltskBCKmdygEIienKAQiSocsBCJGjywEIm/7MAQiGoM0B");
+    myHeaders.append("x-client-version", "Chrome/JsCore/9.23.0/FirebaseCore-web");
+    myHeaders.append("x-firebase-gmpid", "1:439472444885:android:c48022009a58ffc7");
+    
+    const raw = JSON.stringify({
+      "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbS9nb29nbGUuaWRlbnRpdHkuaWRlbnRpdHl0b29sa2l0LnYxLklkZW50aXR5VG9vbGtpdCIsImlhdCI6MTc0NjQ1OTkwNywiZXhwIjoxNzQ2NDYzNTA3LCJpc3MiOiJkZWZhdWx0LWNybS1tYXJrZXRwbGFjZUBoaWdobGV2ZWwtYmFja2VuZC5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsInN1YiI6ImRlZmF1bHQtY3JtLW1hcmtldHBsYWNlQGhpZ2hsZXZlbC1iYWNrZW5kLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwidWlkIjoiOWZRUXZCNkZkWXZ2YUFiazYxN24iLCJjbGFpbXMiOnsidXNlcl9pZCI6IjlmUVF2QjZGZFl2dmFBYms2MTduIiwiY29tcGFueV9pZCI6ImMxOXZYMXNwamxMSldRS01VV1ZEIiwicm9sZSI6ImFkbWluIiwidHlwZSI6ImFnZW5jeSIsImxvY2F0aW9ucyI6WyJKUGs5Vkl3VVFtQlNibUVIOEMyQSIsInMzbU5IckZ1RHlHaUk3b1VWaXNVIiwiQW5Dam9qc3phdHVzUzV5VWNJVmIiLCJyaEpiYTRxWkR4THphNjVXWXZuVyIsIjVqWXczRjFtemJqdHE3SDRpMm1JIl0sInZlcnNpb24iOjIsInBlcm1pc3Npb25zIjp7IndvcmtmbG93c19lbmFibGVkIjp0cnVlLCJ3b3JrZmxvd3NfcmVhZF9vbmx5IjpmYWxzZX19fQ.cA9fdfIbR1IesoHm5wlB5ZfmN8vg6lfpnIu9bPJjTH1aNxdum140LkzM2ALZzMid8454uUp7_iKqQnvXELfgHKSygfzaBKHTnglxh1cUGXTE8HbWzSDyEkvGhlUbP4b1r1OGRsS1S30dHoF5BBuLZnyK06dCemy-SwQVRCD_ZcKqWYzQaSIE6cYJpf4AWtTdLGVHXfp307PvxSDfl3eeo9q3EtjeW1URpqeIuuMuZbD4CDT8WU7bX6Ju2bOPm4U3yeaKfQ-wLWihF4ixkly-GVKxgzUrdsr4WS_5HGToz7y1TBJo-EEb1gypPbZZeV1G9bMrBcknpI611B5JNDq9kQ",
+      "returnSecureToken": true
+    });
+    
+    const requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: raw, 
+    };
+    
+    const response = await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyB_w3vXmsI7WeQtrIOkjR6xTRVN5uOieiE", requestOptions);
+    const data = await response.json();
+    return data.idToken;
 }
