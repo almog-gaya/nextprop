@@ -21,23 +21,19 @@ export default function StageSelector({
   handleStageChange,
   disabled = false,
 }: StageSelectorProps) {
-  const options = [ 
-    {value: 'all', label: 'All'},
-    ...stages.map(stage => ({
-      value: stage.id,
-      label: stage.name
-    }))
-  ];
+  const options = stages.map(stage => ({
+    value: stage.id,
+    label: stage.name
+  }));
 
   return (
     <div className="w-full max-w-md">
       <Dropdown
-        value={selectedStage?.id || 'all'}
+        value={selectedStage?.id || (stages.length > 0 ? stages[0].id : '')}
         onChange={(value) => {
           const selected = stages.find(stage => stage.id === value);
-          handleStageChange(selected ?? 'all');
-        }
-        }
+          handleStageChange(selected || null);
+        }}
         options={options}
         placeholder="Select Stage"
         width="full"

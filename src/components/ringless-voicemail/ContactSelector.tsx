@@ -105,10 +105,18 @@ function ContactSelector({
             </button>
           )}
         </div>
-        
+         
+
         <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto bg-white shadow-inner">
           <ul className="divide-y divide-gray-200">
-            {isSearching ? (
+            {isFetching ? (
+              <li className="px-4 py-8 flex justify-center">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></div>
+                  <span className="text-sm text-gray-500">Loading contacts...</span>
+                </div>
+              </li>
+            ) : isSearching ? (
               <li className="px-4 py-3 text-center text-sm text-gray-500">Searching contacts...</li>
             ) : contacts.length > 0 ? (
               contacts.map((contact) => {
@@ -148,15 +156,7 @@ function ContactSelector({
               })
             ) : (
               <li className="px-4 py-3 text-center text-sm text-gray-500">
-                {isFetching? 'Please wait...' : searchQuery ? 'No contacts matching your search' : 'No contacts available'}
-              </li>
-            )}
-            {isFetching && !isSearching && (
-              <li className="px-4 py-3 flex justify-center">
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
-                  <span className="text-sm text-gray-500">Loading contacts...</span>
-                </div>
+                {searchQuery ? 'No contacts matching your search' : 'No contacts available'}
               </li>
             )}
             <li ref={loaderRef} className="h-1" />

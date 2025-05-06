@@ -70,7 +70,7 @@ const getOpportunitiesById = async (id: string, pagination: PaginationParams): P
     "Version": "2021-07-28",
   };
 
-  const body = JSON.stringify({
+  const payload = {
     sort: [{ field: "name", direction: "desc" }],
     query: "",
     locationId: locationId,
@@ -87,7 +87,8 @@ const getOpportunitiesById = async (id: string, pagination: PaginationParams): P
     ],
     limit: 100,
     page: pagination.page,
-  });
+  };
+  const body = JSON.stringify(payload);
 
   const url = `https://services.leadconnectorhq.com/opportunities/search?locationId=${locationId}`;
   const response = await fetch(url, {
