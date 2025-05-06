@@ -19,13 +19,18 @@ type MetricCardProps = {
   title: string;
   value: string | number;
   icon: React.ReactNode;
+  isLoading?: boolean;
 };
 
-const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon }) => (
+const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, isLoading = false }) => (
   <div className="bg-white rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
     <p className="text-sm text-[var(--nextprop-text-secondary)] mb-2">{title}</p>
     <div className="flex items-center justify-between">
-      <h3 className="text-4xl font-bold text-[var(--nextprop-text-primary)]">{value}</h3>
+      {isLoading ? (
+        <div className="h-10 w-24 bg-gray-200 animate-pulse rounded" />
+      ) : (
+        <h3 className="text-4xl font-bold text-[var(--nextprop-text-primary)]">{value}</h3>
+      )}
       <div className="text-[var(--nextprop-primary)]">{icon}</div>
     </div>
   </div>
@@ -46,6 +51,7 @@ const SuccessIndicator: React.FC<SuccessIndicatorProps> = ({ percentage }) => (
 
 export default function AIAgentDashboard() {
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState({
     uniqueContactsEngaged: 0,
     dealsInProcess: 0,
@@ -59,6 +65,7 @@ export default function AIAgentDashboard() {
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
+        setIsLoading(true);
         const locationId = user?.locationId;
         console.log("[AIAgentDashboard] Fetching metrics for location:", locationId);
 
@@ -88,13 +95,12 @@ export default function AIAgentDashboard() {
           getCountFromServer(qualifiedQuery),
           getCountFromServer(notInterestedQuery),
         ]);
+
         console.log(`>>>${JSON.stringify(inProcessSnapshot.data())}`);
         const dealsInProcess = inProcessSnapshot.data().count;
         const leadsQualified = qualifiedSnapshot.data().count;
         const notInterested = notInterestedSnapshot.data().count;
-        console.log("[AIAgentDashboard] Opportunity counts:", {
-          
-        });
+        console.log("[AIAgentDashboard] Opportunity counts:", {});
 
         // Fetch total messages
         const messagesSnapshot = await getCountFromServer(collection(db, `multi-agent-configs/${locationId}/messages`));
@@ -121,6 +127,8 @@ export default function AIAgentDashboard() {
         console.log("[AIAgentDashboard] Metrics updated successfully");
       } catch (error) {
         console.error("[AIAgentDashboard] Error fetching metrics:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -129,6 +137,7 @@ export default function AIAgentDashboard() {
       fetchMetrics();
     } else {
       console.log("[AIAgentDashboard] No locationId available, skipping metrics fetch");
+      setIsLoading(false);
     }
   }, [user?.locationId]);
 
@@ -140,30 +149,42 @@ export default function AIAgentDashboard() {
           title="Total Unique Contacts Engaged"
           value={metrics.uniqueContactsEngaged}
           icon={<UserGroupIcon className="h-8 w-8" />}
+          isLoading={isLoading}
         />
-        <MetricCard title="Deals Still in Process" value={metrics.dealsInProcess} icon={<ClockIcon className="h-8 w-8" />} />
-        <MetricCard title="Total Leads Qualified" value={metrics.leadsQualified} icon={<UserIcon className="h-8 w-8" />} />
-        <MetricCard title="Not Interested" value={metrics.notInterested} icon={<XCircleIcon className="h-8 w-8" />} />
+        <MetricCard
+          title="Deals Still in Process"
+          value={metrics.dealsInProcess}
+          icon={<ClockIcon className="h-8 w-8" />}
+          isLoading={isLoading}
+        />
+        <MetricCard
+          title="Total Leads Qualified"
+          value={metrics.leadsQualified}
+          icon={<UserIcon className="h-8 w-8" />}
+          isLoading={isLoading}
+        />
+        <MetricCard
+          title="Not Interested"
+          value={metrics.notInterested}
+          icon={<XCircleIcon className="h-8 w-8" />}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Message Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <p className="text-sm text-[var(--nextprop-text-secondary)] mb-2">Total Messages</p>
-          <div className="flex items-center justify-between">
-            <h3 className="text-4xl font-bold text-[var(--nextprop-text-primary)]">{metrics.totalMessages}</h3>
-            <ChatBubbleLeftIcon className="h-8 w-8 text-[var(--nextprop-primary)]" />
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-          <p className="text-sm text-[var(--nextprop-text-secondary)] mb-2">Average Messages per Contact</p>
-          <div className="flex items-center justify-between">
-            <h3 className="text-4xl font-bold text-[var(--nextprop-text-primary)]">{metrics.avgMessagesPerContact}</h3>
-            <div className="flex items-center">
-              <InboxIcon className="h-8 w-8 text-[var(--nextprop-primary)]" />
-            </div>
-          </div>
-        </div>
+        <MetricCard
+          title="Total Messages"
+          value={metrics.totalMessages}
+          icon={<ChatBubbleLeftIcon className="h-8 w-8" />}
+          isLoading={isLoading}
+        />
+        <MetricCard
+          title="Average Messages per Contact"
+          value={metrics.avgMessagesPerContact}
+          icon={<InboxIcon className="h-8 w-8" />}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );
