@@ -2,18 +2,42 @@
 import DashboardLayout from '@/components/DashboardLayout';
 import { useEffect, useState } from 'react';
 import { CreditCardIcon, CurrencyDollarIcon, ChartBarIcon, EnvelopeIcon, PhoneIcon, MicrophoneIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '@/contexts/AuthContext';
+import { getStripe } from '@/lib/stripe';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseConfig';
+import toast from 'react-hot-toast';
+import { useSearchParams } from 'next/navigation';
 
-const BASE_SUBSCRIPTION = 1000;
-const SMS_USAGE = 2000;
-const SMS_UNIT_PRICE = 0.01;
-const RVM_USAGE = 500;
-const RVM_UNIT_PRICE = 0.05;
-const EMAIL_USAGE = 4000;
-const EMAIL_UNIT_PRICE = 0.002;
-const OTHER_INTEGRATIONS = 200;
-const PHONE_NUMBER_UNIT_PRICE = 7;
+// Stripe price IDs for one-time payments
+const PRICE_IDS = {
+  BASE_SUBSCRIPTION: 'price_1RLgbhRkvhtKflplpF4JvHLt',  // Keep this as recurring
+  PHONE_NUMBER: 'price_1RLi6XRkvhtKflplfY87xdsK',       // Keep this as recurring
+  SMS: 'price_1RLgdERkvhtKflplFXLn0RUI',               // Change to one-time
+  RVM: 'price_1RLh15RkvhtKflplFEgt3SgD',                // Change to one-time
+  EMAIL: 'price_1RLgkvRkvhtKflpl5XOwSvaq'              // Change to one-time
+}; 
+
+// Add a comment explaining the price types
+// Note: SMS, RVM, and EMAIL prices need to be one-time prices in your Stripe account
+// Please create new one-time prices in your Stripe dashboard and update these IDs
+
+const SMS_USAGE = 2000; 
+const RVM_USAGE = 500; 
+const EMAIL_USAGE = 4000; 
+
+// Pricing constants
+const PRICING = {
+  BASE_SUBSCRIPTION: 1000,
+  PHONE_NUMBER: 7,
+  SMS: 0.01,
+  RVM: 0.05,
+  EMAIL: 0.002
+};
 
 export default function BillingPage() {
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [phoneNumberCount, setPhoneNumberCount] = useState<number | null>(null);
   const [phoneNumberError, setPhoneNumberError] = useState<string | null>(null);
   const [currentBalance, setCurrentBalance] = useState<number>(125);
@@ -22,6 +46,135 @@ export default function BillingPage() {
   const [autoRechargeThreshold, setAutoRechargeThreshold] = useState<number>(50);
   const [autoRechargeAmount, setAutoRechargeAmount] = useState<number>(100);
   const [isRecharging, setIsRecharging] = useState<boolean>(false);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchSubscriptionData();
+    }
+  }, [user?.id]);
+
+  // Handle success/cancel URLs
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+
+    if (success) {
+      toast.success('Subscription activated successfully!');
+      fetchSubscriptionData(); // Refresh subscription data
+    } else if (canceled) {
+      toast.error('Subscription process was canceled');
+    }
+  }, [searchParams]);
+
+  const fetchSubscriptionData = async () => {
+    try {
+      setLoading(true);
+      const customerRef = doc(db, 'customers', user!.id);
+      const customerSnap = await getDoc(customerRef);
+      
+      if (customerSnap.exists()) {
+        const customerData = customerSnap.data();
+        setSubscription(customerData.stripeRole || null);
+      }
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+      toast.error('Failed to load subscription data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    try {
+      setCheckoutLoading('all');
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+          email: user?.email,
+          mode: 'subscription', // Specify subscription mode
+          lineItems: items.map(item => {
+            // For metered items (SMS, RVM, Email), don't specify quantity
+            if ([PRICE_IDS.SMS, PRICE_IDS.RVM, PRICE_IDS.EMAIL].includes(item.priceId)) {
+              return {
+                priceId: item.priceId
+              };
+            }
+            // For subscription items (Base Subscription, Phone Numbers), use subscription mode
+            return {
+              priceId: item.priceId,
+              quantity: getQuantityForPrice(item.priceId)
+            };
+          })
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { sessionId } = await response.json();
+      const stripe = await getStripe();
+      
+      if (stripe) {
+        const { error } = await stripe.redirectToCheckout({ sessionId });
+        if (error) {
+          throw error;
+        }
+      }
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(error.message || 'Failed to start checkout process');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const getQuantityForPrice = (priceId: string) => {
+    switch (priceId) {
+      case PRICE_IDS.SMS:
+        return SMS_USAGE;
+      case PRICE_IDS.RVM:
+        return RVM_USAGE;
+      case PRICE_IDS.EMAIL:
+        return EMAIL_USAGE;
+      case PRICE_IDS.PHONE_NUMBER:
+        return phoneNumberCount || 0;
+      default:
+        return 1;
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      toast.loading('Opening customer portal...');
+      const response = await fetch('/api/stripe/create-portal-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create portal session');
+      }
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(error.message || 'Failed to open customer portal');
+    }
+  };
 
   useEffect(() => {
     fetch('/api/voicemail/phone-numbers')
@@ -49,7 +202,7 @@ export default function BillingPage() {
   };
 
   // Calculate totals
-  const phoneNumbersSubtotal = (phoneNumberCount ?? 0) * PHONE_NUMBER_UNIT_PRICE;
+  const phoneNumbersSubtotal = (phoneNumberCount ?? 0) * PRICING.PHONE_NUMBER;
   const items = [
     {
       label: 'Base Subscription',
@@ -57,8 +210,9 @@ export default function BillingPage() {
       icon: CurrencyDollarIcon,
       usage: 1,
       unit: 'fixed',
-      unitPrice: BASE_SUBSCRIPTION,
-      subtotal: BASE_SUBSCRIPTION,
+      unitPrice: PRICING.BASE_SUBSCRIPTION,
+      subtotal: PRICING.BASE_SUBSCRIPTION,
+      priceId: PRICE_IDS.BASE_SUBSCRIPTION
     },
     {
       label: 'Phone Numbers',
@@ -66,10 +220,11 @@ export default function BillingPage() {
       icon: PhoneIcon,
       usage: phoneNumberCount ?? '—',
       unit: 'numbers',
-      unitPrice: PHONE_NUMBER_UNIT_PRICE,
+      unitPrice: PRICING.PHONE_NUMBER,
       subtotal: phoneNumbersSubtotal,
       loading: phoneNumberCount === null,
       error: phoneNumberError,
+      priceId: PRICE_IDS.PHONE_NUMBER
     },
     {
       label: 'SMS',
@@ -77,8 +232,9 @@ export default function BillingPage() {
       icon: PhoneIcon,
       usage: SMS_USAGE,
       unit: 'SMS',
-      unitPrice: SMS_UNIT_PRICE,
-      subtotal: SMS_USAGE * SMS_UNIT_PRICE,
+      unitPrice: PRICING.SMS,
+      subtotal: SMS_USAGE * PRICING.SMS,
+      priceId: PRICE_IDS.SMS
     },
     {
       label: 'RVM',
@@ -86,8 +242,9 @@ export default function BillingPage() {
       icon: MicrophoneIcon,
       usage: RVM_USAGE,
       unit: 'rvm units',
-      unitPrice: RVM_UNIT_PRICE,
-      subtotal: RVM_USAGE * RVM_UNIT_PRICE,
+      unitPrice: PRICING.RVM,
+      subtotal: RVM_USAGE * PRICING.RVM,
+      priceId: PRICE_IDS.RVM
     },
     {
       label: 'Emails',
@@ -95,18 +252,10 @@ export default function BillingPage() {
       icon: EnvelopeIcon,
       usage: EMAIL_USAGE,
       unit: 'emails',
-      unitPrice: EMAIL_UNIT_PRICE,
-      subtotal: EMAIL_USAGE * EMAIL_UNIT_PRICE,
-    },
-    {
-      label: 'Other Integrations',
-      description: 'External API usage',
-      icon: ChartBarIcon,
-      usage: 1,
-      unit: 'various',
-      unitPrice: OTHER_INTEGRATIONS,
-      subtotal: OTHER_INTEGRATIONS,
-    },
+      unitPrice: PRICING.EMAIL,
+      subtotal: EMAIL_USAGE * PRICING.EMAIL,
+      priceId: PRICE_IDS.EMAIL
+    }
   ];
 
   const total = items.reduce((sum, item) => sum + (typeof item.subtotal === 'number' ? item.subtotal : 0), 0);
@@ -114,61 +263,93 @@ export default function BillingPage() {
   return (
     <DashboardLayout title="Billing & Usage">
       <div className="max-w-4xl mx-auto p-6 space-y-10">
-        {/* Summary */}
-        <section className="nextprop-card bg-gradient-to-r from-purple-100 to-purple-50 border border-purple-200 shadow p-6 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-purple-900 mb-2">Current Bill</h2>
-              <div className="text-gray-500 text-sm">June 1 – June 30, 2024</div>
+        {/* Quick Actions */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Pay Now Card */}
+          <div className="nextprop-card bg-gradient-to-r from-purple-100 to-purple-50 border border-purple-200 shadow p-6 rounded-xl">
+            <h3 className="text-lg font-semibold text-purple-900 mb-2">Pay Usage</h3>
+            <p className="text-gray-600 text-sm mb-4">Pay for your current usage</p>
+            <div className="text-2xl font-bold text-purple-800 mb-4">
+              ${total.toLocaleString()}
             </div>
-            <div className="flex items-center space-x-3">
-              <CurrencyDollarIcon className="h-10 w-10 text-purple-500" />
-              <span className="text-4xl font-bold text-purple-800">${total.toLocaleString()}</span>
+            <button
+              onClick={handleCheckout}
+              className="w-full nextprop-primary-button py-2 px-4"
+              disabled={checkoutLoading === 'all' || total === 0}
+            >
+              {checkoutLoading === 'all' ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                'Pay Now'
+              )}
+            </button>
+          </div>
+
+          {/* Recharge Card */}
+          <div className="nextprop-card bg-gradient-to-r from-blue-100 to-blue-50 border border-blue-200 shadow p-6 rounded-xl">
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">Recharge Balance</h3>
+            <p className="text-gray-600 text-sm mb-4">Add funds to your account</p>
+            <div className="flex items-center mb-4">
+              <span className="text-gray-500 border border-r-0 rounded-l-md px-3 py-2 bg-white">$</span>
+              <input
+                type="number"
+                value={rechargeAmount}
+                onChange={(e) => setRechargeAmount(Number(e.target.value))}
+                className="border rounded-r-md px-3 py-2 w-full"
+                min="10"
+                step="10"
+              />
             </div>
+            <button 
+              className="w-full nextprop-primary-button py-2 px-4"
+              onClick={handleRecharge}
+              disabled={isRecharging}
+            >
+              {isRecharging ? 'Processing...' : 'Recharge Now'}
+            </button>
+          </div>
+
+          {/* Customer Portal Card */}
+          <div className="nextprop-card bg-gradient-to-r from-green-100 to-green-50 border border-green-200 shadow p-6 rounded-xl">
+            <h3 className="text-lg font-semibold text-green-900 mb-2">Manage Billing</h3>
+            <p className="text-gray-600 text-sm mb-4">View invoices and manage payment methods</p>
+            <button
+              onClick={handleManageSubscription}
+              className="w-full nextprop-outline-button py-2 px-4 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              Open Customer Portal
+            </button>
           </div>
         </section>
 
-        {/* Usage Balance */}
-        <section className="nextprop-card bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 shadow p-6 rounded-xl">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        {/* Current Balance */}
+        <section className="nextprop-card bg-gradient-to-r from-purple-100 to-purple-50 border border-purple-200 shadow p-6 rounded-xl">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-purple-900 mb-2">Usage Balance</h2>
-              <div className="text-gray-600 text-sm mb-3">For pay-as-you-go services</div>
-              <div className="flex items-baseline">
-                <span className="text-3xl font-bold text-purple-800">${currentBalance.toLocaleString()}</span>
-                <span className="ml-2 text-sm text-gray-500">available</span>
+              <h2 className="text-xl font-semibold text-purple-900 mb-2">Current Balance</h2>
+              <div className="text-gray-500 text-sm">
+                {loading ? (
+                  <span className="animate-pulse">Loading balance...</span>
+                ) : (
+                  `Available balance: $${currentBalance.toLocaleString()}`
+                )}
               </div>
-              {currentBalance < autoRechargeThreshold && autoRechargeEnabled && (
-                <div className="mt-2 text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-md inline-block">
-                  Auto-recharge will occur when balance falls below ${autoRechargeThreshold}
-                </div>
-              )}
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 bg-white bg-opacity-50 p-4 rounded-lg border border-purple-100">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Recharge Amount</label>
-                <div className="flex items-center">
-                  <span className="text-gray-500 border border-r-0 rounded-l-md px-3 py-2 bg-gray-50">$</span>
-                  <input
-                    type="number"
-                    value={rechargeAmount}
-                    onChange={(e) => setRechargeAmount(Number(e.target.value))}
-                    className="border rounded-r-md px-3 py-2 w-full"
-                    min="10"
-                    step="10"
-                  />
-                </div>
-              </div>
-              <div className="flex items-end">
-                <button 
-                  className="nextprop-primary-button flex-1 py-2 px-4"
-                  onClick={handleRecharge}
-                  disabled={isRecharging}
-                >
-                  {isRecharging ? 'Processing...' : 'Recharge Now'}
-                </button>
-              </div>
+            <div className="flex items-center space-x-3">
+              <CurrencyDollarIcon className="h-10 w-10 text-purple-500" />
+              <span className="text-4xl font-bold text-purple-800">
+                {loading ? (
+                  <span className="animate-pulse">...</span>
+                ) : (
+                  `$${currentBalance.toLocaleString()}`
+                )}
+              </span>
             </div>
           </div>
         </section>
@@ -241,7 +422,7 @@ export default function BillingPage() {
         <section className="nextprop-card border border-gray-200 shadow p-6 rounded-xl">
           <h2 className="text-xl font-semibold mb-5 text-gray-900">Price Breakdown</h2>
           <div className="divide-y divide-gray-100 bg-white bg-opacity-75 rounded-lg overflow-hidden border border-gray-100">
-            {items.map((item, idx) => (
+            {items.map((item) => (
               <div key={item.label} className="flex items-center py-4 px-4 hover:bg-gray-50">
                 <div className="flex-shrink-0 mr-4">
                   <div className="bg-purple-100 p-2 rounded-full">
@@ -268,37 +449,6 @@ export default function BillingPage() {
               <div className="flex-1 text-right pr-4">Total</div>
               <div className="w-28 text-right">${total.toLocaleString()}</div>
             </div>
-          </div>
-        </section>
-
-        {/* Payment Method (Mock) */}
-        <section className="nextprop-card border border-gray-200 shadow p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">Payment Method</h2>
-          <div className="flex flex-col sm:flex-row items-center justify-between bg-gray-50 p-4 rounded-lg">
-            <div className="flex items-center space-x-3 mb-4 sm:mb-0">
-              <div className="bg-white p-2 rounded-full shadow-sm border border-gray-200">
-                <CreditCardIcon className="h-6 w-6 text-gray-600" />
-              </div>
-              <div>
-                <span className="font-medium block">Visa ending in 1234</span>
-                <span className="text-gray-500 text-sm">Exp 08/26</span>
-              </div>
-            </div>
-            <button className="nextprop-outline-button py-2 px-4 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors">Update Payment Method</button>
-          </div>
-        </section>
-
-        {/* Billing Contact (Mock) */}
-        <section className="nextprop-card border border-gray-200 shadow p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">Billing Contact</h2>
-          <div className="flex flex-col sm:flex-row items-center justify-between bg-gray-50 p-4 rounded-lg">
-            <div className="flex items-center space-x-3 mb-4 sm:mb-0">
-              <div className="bg-white p-2 rounded-full shadow-sm border border-gray-200">
-                <EnvelopeIcon className="h-6 w-6 text-gray-600" />
-              </div>
-              <span className="font-medium">billing@yourcompany.com</span>
-            </div>
-            <button className="nextprop-outline-button py-2 px-4 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors">Update Email</button>
           </div>
         </section>
       </div>
