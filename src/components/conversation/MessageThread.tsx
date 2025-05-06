@@ -13,6 +13,7 @@ import MessageTemplates from './MessageTemplates';
 import { useAuth } from "@/contexts/AuthContext";
 import { IconButton } from '@/components/ui/iconButton';
 import { DNDMessageRenderer } from "./renderers/DNDMessageRenderer";
+import { usePathname } from "next/navigation";
 
 const getMessageRenderer = (message: Message, handleRetrySendMessage: any, activeConversation: ConversationDisplay) => {
     const isMe = message.direction
@@ -93,6 +94,8 @@ export default function MessageThread({
     const [isNoteSidebarOpen, setIsNoteSidebarOpen] = useState(false);
     const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
     const { user } = useAuth();
+    const pathname = usePathname();
+    const showBackButton = pathname !== '/messaging-embed' && !pathname.endsWith('/messaging-embed');
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -234,12 +237,14 @@ export default function MessageThread({
         <div className="flex flex-col h-full">
             <div className="sticky top-0 z-10" style={{ background: 'linear-gradient(90deg, #E6C2FF 0%, #B6BCFF 100%)', height: '56px' }}>
                 <div className="flex items-center h-full px-4">
-                    <button 
-                        onClick={() => window.history.back()}
-                        className="mr-2 p-1.5 rounded-full hover:bg-white/20 flex items-center justify-center"
-                    >
-                        <ArrowLeft size={20} className="text-gray-700" />
-                    </button>
+                    {showBackButton && (
+                        <button 
+                            onClick={() => window.history.back()}
+                            className="mr-2 p-1.5 rounded-full hover:bg-white/20 flex items-center justify-center"
+                        >
+                            <ArrowLeft size={20} className="text-gray-700" />
+                        </button>
+                    )}
                     <Avatar initials={getInitials(activeConversation.name)} />
                     <div className="ml-3 flex-grow">
                         <p 
