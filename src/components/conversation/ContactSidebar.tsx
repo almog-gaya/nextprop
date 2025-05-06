@@ -1076,7 +1076,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto py-2 space-y-5 px-2">
+            <div className="flex-1 overflow-y-auto py-2 space-y-3 px-2">
                 {isLoading && !contact ? (
                     <div className="flex justify-center py-4">
                         <div className="animate-spin h-5 w-5 border-2 border-purple-600 border-t-transparent rounded-full"></div>
@@ -1087,7 +1087,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         <div>
                             <button
                                 onClick={() => toggleSection('personal')}
-                                className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
+                                className="w-full flex items-center justify-between py-2 text-medium font-medium text-white bg-gradient-to-r from-[#E6C2FF] to-[#B5BCFF] rounded-md px-2"
                             >
                                 <span className='text-[13px]'>Personal Info</span>
                                 {collapsedSections.personal ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
@@ -1109,7 +1109,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         <div>
                             <button
                                 onClick={() => toggleSection('address')}
-                                className="w-full flex items-center justify-between py-0 text-medium font-medium text-gray-700"
+                                className="w-full flex items-center justify-between py-2 text-medium font-medium text-white bg-gradient-to-r from-[#E6C2FF] to-[#B5BCFF] rounded-md px-2"
                             >
                                 <span className='text-[13px]'>Address</span>
                                 {collapsedSections.address ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
@@ -1131,7 +1131,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         <div>
                             <button
                                 onClick={() => toggleSection('tags')}
-                                className="w-full flex items-center justify-between py-0 text-medium font-medium text-gray-700"
+                                className="w-full flex items-center justify-between py-2 text-medium font-medium text-white bg-gradient-to-r from-[#E6C2FF] to-[#B5BCFF] rounded-md px-2"
                             >
                                 <span className='text-[13px]'>Tags ({contact.tags.length})</span>
                                 {collapsedSections.tags ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
@@ -1146,7 +1146,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                         <div>
                             <button
                                 onClick={() => toggleSection('dnd')}
-                                className="w-full flex items-center justify-between py-0 text-medium font-medium text-gray-700"
+                                className="w-full flex items-center justify-between py-2 text-medium font-medium text-white bg-gradient-to-r from-[#E6C2FF] to-[#B5BCFF] rounded-md px-2"
                             >
                                 <div className="flex items-center">
                                     <span className='text-[13px]'>DND Settings</span>
@@ -1257,7 +1257,7 @@ export default function ContactSidebar({ contactId }: ContactSidebarProps) {
                             <div>
                                 <button
                                     onClick={() => toggleSection('additional')}
-                                    className="w-full flex items-center justify-between py-2 text-medium font-medium text-gray-700"
+                                    className="w-full flex items-center justify-between py-2 text-medium font-medium text-white bg-gradient-to-r from-[#E6C2FF] to-[#B5BCFF] rounded-md px-2"
                                 >
                                     <span className='text-[13px]'>Additional Info ({contact?.additionalPhones?.length ?? 0})</span>
                                     {collapsedSections.additional ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
