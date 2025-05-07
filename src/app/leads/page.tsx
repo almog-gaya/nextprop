@@ -510,7 +510,7 @@ export default function LeadsPage() {
     }
   };
 
-  const handleMoveOpportunity = async (opportunityId: string, targetStageId: string) => {
+  const handleMoveOpportunity = async (opportunityId: string, targetStageId: string, insertAtTop: boolean) => {
     setLoadingOperation({ id: opportunityId, type: 'move' });
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -535,11 +535,14 @@ export default function LeadsPage() {
             };
           }
           if (stage.id === targetStageId) {
+            const newOpportunities = insertAtTop
+              ? [{ ...opportunity, stage: targetStageId }, ...stage.opportunities]
+              : [...stage.opportunities, { ...opportunity, stage: targetStageId }];
             return {
               ...stage,
-              opportunities: [...stage.opportunities, { ...opportunity, stage: targetStageId }],
+              opportunities: newOpportunities,
               count: stage.count + 1,
-              total: `$${[...stage.opportunities, opportunity].reduce(
+              total: `$${newOpportunities.reduce(
                 (sum, opp) => sum + (parseFloat(opp.value.replace('$', '')) || 0),
                 0
               )}`,
@@ -683,7 +686,7 @@ export default function LeadsPage() {
                           getProcessedOpportunities={getProcessedOpportunities}
                           handleCommunication={handleCommunication}
                           handleEditOpportunity={handleEditOpportunity}
-                          handleMoveOpportunity={handleMoveOpportunity}
+                          handleMoveOpportunity={(opportunityId, targetStageId) => handleMoveOpportunity(opportunityId, targetStageId, true)}
                           loadingOpportunityId={loadingOperation.id}
                           pagination={pagination[selectedPipeline]}
                           loadingStates={loadingStates[selectedPipeline]}
@@ -694,7 +697,7 @@ export default function LeadsPage() {
                           getProcessedOpportunities={getProcessedOpportunities}
                           handleCommunication={handleCommunication}
                           handleEditOpportunity={handleEditOpportunity}
-                          handleMoveOpportunity={handleMoveOpportunity}
+                          handleMoveOpportunity={(opportunityId, targetStageId) => handleMoveOpportunity(opportunityId, targetStageId, false)}
                           loadingOpportunityId={loadingOperation.id}
                         />
                       )}
