@@ -7,15 +7,31 @@ import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { timezones } from '@/utils/timezones';
 import { ContactListSkeleton } from '@/components/SkeletonLoaders';
-import { ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, PhoneIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon, DocumentTextIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, PhoneIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon, DocumentTextIcon, PencilIcon, TrashIcon, TagIcon, StarIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, DocumentDuplicateIcon, PlusIcon
+} from '@heroicons/react/24/outline';
 import BulkAddToPipelineStage from '@/components/contacts/BulkAddToPipelineStage';
 import { Contact } from '@/types';
 import BulkUploadForm from '@/components/BulkUploadForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConversationDisplay } from '@/types/messageThread';
 import { IconButton } from '@/components/ui/iconButton';
-
-
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
+import { FaPlus, 
+  FaFilter, 
+  FaRobot, 
+  FaComment, 
+  FaEnvelope, 
+  FaPaperclip, 
+  FaEye, 
+  FaTrash, 
+  FaStar, 
+  FaUpload, 
+  FaDownload, 
+  FaTh, 
+  FaWhatsapp, 
+  FaCopy } from 'react-icons/fa';
 interface CustomField {
   id: string;
   key: string;
@@ -66,6 +82,8 @@ export default function ContactsPage() {
   const [phoneDetails, setPhoneDetails] = useState<any>(null);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [selectedMessageType, setSelectedMessageType] = useState<'sms' | 'email' | 'voicemail' | null>(null);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const [columns, setColumns] = useState<TableColumn[]>([
     { id: 'name', label: 'Name', key: 'name', visible: true },
@@ -882,9 +900,9 @@ export default function ContactsPage() {
     }
 
     return (
-      <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Filter by Tag</h3>
-        <div className="flex flex-wrap gap-2">
+      <div className="mb-8 mt-4">
+        <span className="text-[18px] font-bold text-gray-700 mb-2 ">Filter by Tag</span>
+        <div className="flex flex-wrap gap-2 mt-2">
           <button
             onClick={() => filterContactsByTag(null)}
             className={`px-3 py-1 rounded-full text-sm ${activeTagFilter === null ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
@@ -909,6 +927,7 @@ export default function ContactsPage() {
   };
 
   const PaginationControls = () => {
+    const [showPageSizeDropdown, setShowPageSizeDropdown] = useState(false);
     const pageNumbers = [];
     const maxVisiblePages = 5;
     let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
@@ -921,78 +940,69 @@ export default function ContactsPage() {
     }
 
     return (
-      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 mt-4">
-        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{(currentPage - 1) * contactsPerPage + 1}</span> to{' '}
-              <span className="font-medium">{Math.min(currentPage * contactsPerPage, totalContacts)}</span> of{' '}
-              <span className="font-medium">{totalContacts}</span> results
-            </p>
-          </div>
-          <div className="flex items-center">
-            <div className="mr-4">
-              <label htmlFor="perPage" className="mr-2 text-sm text-gray-700">Show</label>
-              <select
-                id="perPage"
-                value={contactsPerPage}
-                onChange={handleContactsPerPageChange}
-                className="rounded-md border-gray-300 focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-            <nav className="inline-flex -space-x-px rounded-md shadow-sm">
-              <button
-                onClick={() => changePage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className={`px-2 py-2 rounded-l-md ${currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-              >
-                <ChevronLeftIcon className="h-5 w-5" />
-              </button>
-              {startPage > 1 && (
-                <>
-                  <button
-                    onClick={() => changePage(1)}
-                    className={`px-4 py-2 text-sm font-semibold ${currentPage === 1 ? 'bg-purple-600 text-white' : 'text-gray-900 hover:bg-gray-50'}`}
-                  >
-                    1
-                  </button>
-                  {startPage > 2 && <span className="px-4 py-2 text-sm text-gray-700">...</span>}
-                </>
-              )}
-              {pageNumbers.map(number => (
+      <div className="flex items-center justify-end w-full text-[#2196f3] text-sm space-x-2 py-2 px-2 bg-[#f7fafd] border-t border-b border-[#e3eaf3]">
+        <span className="text-[#333]">
+          Total <strong>{totalContacts}</strong> records | <strong>{currentPage}</strong> of {totalPages} Pages
+        </span>
+        <button
+          className="ml-2 hover:underline focus:outline-none"
+          disabled={currentPage === 1}
+          onClick={() => changePage(1)}
+          style={{ color: currentPage === 1 ? '#b0b0b0' : '#2196f3' }}
+        >
+          Go To First
+        </button>
+        <button
+          className="px-1"
+          disabled={currentPage === 1}
+          onClick={() => changePage(currentPage - 1)}
+          style={{ color: currentPage === 1 ? '#b0b0b0' : '#2196f3' }}
+        >
+          &#60;
+        </button>
+        {pageNumbers.map((number) => (
+          <button
+            key={number}
+            onClick={() => changePage(number)}
+            className={`px-2 py-1 rounded ${currentPage === number ? 'bg-[#2196f3] text-white' : 'hover:bg-[#e3eaf3]'} font-semibold`}
+            style={{ minWidth: 28 }}
+          >
+            {number}
+          </button>
+        ))}
+        <button
+          className="px-1"
+          disabled={currentPage === totalPages}
+          onClick={() => changePage(currentPage + 1)}
+          style={{ color: currentPage === totalPages ? '#b0b0b0' : '#2196f3' }}
+        >
+          &#62;
+        </button>
+        <div className="relative ml-2">
+          <button
+            className="hover:underline focus:outline-none flex items-center"
+            onClick={() => setShowPageSizeDropdown((v) => !v)}
+          >
+            Page Size: {contactsPerPage}
+            <svg className="ml-1 w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          {showPageSizeDropdown && (
+            <div className="fixed transform -translate-y-full mt-[-8px] w-24 bg-white border border-gray-200 rounded shadow-lg z-[9999]">
+              {[10, 25, 50, 100].map((size) => (
                 <button
-                  key={number}
-                  onClick={() => changePage(number)}
-                  className={`px-4 py-2 text-sm font-semibold ${currentPage === number ? 'bg-purple-600 text-white' : 'text-gray-900 hover:bg-gray-50'}`}
+                  key={size}
+                  className={`block w-full text-left px-4 py-2 text-sm hover:bg-[#e3eaf3] ${contactsPerPage === size ? 'text-[#2196f3] font-bold' : 'text-[#333]'}`}
+                  onClick={() => {
+                    setContactsPerPage(size);
+                    setShowPageSizeDropdown(false);
+                    setCurrentPage(1);
+                  }}
                 >
-                  {number}
+                  {size}
                 </button>
               ))}
-              {endPage < totalPages && (
-                <>
-                  {endPage < totalPages - 1 && <span className="px-4 py-2 text-sm text-gray-700">...</span>}
-                  <button
-                    onClick={() => changePage(totalPages)}
-                    className={`px-4 py-2 text-sm font-semibold ${currentPage === totalPages ? 'bg-purple-600 text-white' : 'text-gray-900 hover:bg-gray-50'}`}
-                  >
-                    {totalPages}
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => changePage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className={`px-2 py-2 rounded-r-md ${currentPage === totalPages ? 'bg-gray-100 text-gray-400' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
-              >
-                <ChevronRightIcon className="h-5 w-5" />
-              </button>
-            </nav>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1027,15 +1037,17 @@ export default function ContactsPage() {
             e.stopPropagation();
             setIsColumnSelectorOpen(!isColumnSelectorOpen);
           }}
-          className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center"
+          className="px-4 py-2 bg-white border border-[#e3eaf3] rounded-lg text-base font-normal text-black flex items-center min-w-[110px] shadow-sm hover:bg-[#f7fafd] transition"
         >
-          <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
-          Manage Columns
+          Columns
+          <svg className="ml-2 w-4 h-4 text-[#2196f3]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
         </button>
         {isColumnSelectorOpen && (
-          <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+          <div className="absolute left-2  mt-2 w-50 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-[9999]">
             <div className="p-2 border-b border-gray-100">
-              <h3 className="text-xs font-medium text-gray-500 uppercase">Columns</h3>
+              <h6 className="text-xs font-medium text-gray-500 uppercase">Columns</h6>
             </div>
             <div className="py-1 max-h-64 overflow-y-auto">
               {columns.map(column => (
@@ -1466,13 +1478,184 @@ export default function ContactsPage() {
     };
   }, []);
 
+  // Add this component before the main ContactsPage component
+  const FilterModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+    if (!isOpen) return null;
+
+    // All filter fields as shown in the image
+    const filterFields = [
+      { key: 'businessName', label: 'Business Name' },
+      { key: 'companyName', label: 'Company Name' },
+      { key: 'email', label: 'Email' },
+      { key: 'firstName', label: 'First Name' },
+      { key: 'fullName', label: 'Full Name' },
+      { key: 'lastName', label: 'Last Name' },
+      { key: 'tag', label: 'Tag' },
+    ];
+
+    const [selectedOperator, setSelectedOperator] = useState('is');
+    const [filterValue, setFilterValue] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+      setSelectedOperator('is');
+      setFilterValue('');
+    }, [activeFilter]);
+
+    const handleApply = () => {
+      // Save the filter (you may want to lift this state up to ContactsPage)
+      // Example: setFilters({ ...filters, [activeFilter]: { operator: selectedOperator, value: filterValue } });
+      onClose();
+    };
+
+    const renderFilterDetails = (filterKey: string) => (
+      <div className="p-6">
+        <button onClick={() => setActiveFilter(null)} className="mb-4 text-blue-500 flex items-center">
+          <ChevronLeftIcon className="h-5 w-5 mr-1" /> Back
+        </button>
+        <h3 className="text-lg font-semibold mb-2">{filterFields.find(f => f.key === filterKey)?.label}</h3>
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="filterOperator"
+                checked={selectedOperator === 'is'}
+                onChange={() => setSelectedOperator('is')}
+              />
+              <span className='mb-0.5'>Is</span>
+            </div>
+            <div className="relative m-2">
+                <input
+                  type="search"
+                  className="w-full pl-10 pr-3 py-2  border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm"
+                  placeholder="Please Input"
+                  value={searchTerm}
+                  onChange={e => setFilterValue(e.target.value)}
+              disabled={selectedOperator !== 'is'}
+                />
+                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" strokeLinecap="round" /></svg>
+              </div>
+          
+            <p className="text-xs text-gray-500 m-2">
+              Matches entries based on the exact whole word or phrase specified. Example: If you want to search for 'Field Value', you can search by 'Field' or 'Value'
+            </p>
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="filterOperator"
+                checked={selectedOperator === 'is_not'}
+                onChange={() => setSelectedOperator('is_not')}
+              />
+              <span className='mb-0.5'>Is not</span>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="filterOperator"
+                checked={selectedOperator === 'is_empty'}
+                onChange={() => setSelectedOperator('is_empty')}
+              />
+              <span className='mb-0.5'>Is empty</span>
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="filterOperator"
+                checked={selectedOperator === 'is_not_empty'}
+                onChange={() => setSelectedOperator('is_not_empty')}
+              />
+              <span className='mb-0.5'>Is not empty</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end mt-6">
+          <button className="px-4 py-2 bg-gray-100 rounded mr-2" onClick={onClose}>Cancel</button>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleApply}>Apply</button>
+        </div>
+      </div>
+    );
+
+    // Filter fields by search term
+    const filteredFields = filterFields.filter(field =>
+      field.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+      <div className="fixed inset-0 z-50">
+        {/* Overlay */}
+        <div className="fixed inset-0 bg-black/30" onClick={onClose}></div>
+        {/* Drawer */}
+        <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-white shadow-2xl flex flex-col transition-transform duration-300" style={{ minWidth: 360 }}>
+          {/* Header */}
+          <div className="flex items-center px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-full mr-3">
+              <AdjustmentsHorizontalIcon className="h-6 w-6 text-blue-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-lg font-semibold text-gray-900 leading-tight">Filters</p>
+              <p className="text-xs text-gray-500">Apply filters to contacts</p>
+            </div>
+            <button onClick={onClose} className="ml-2 p-1 rounded hover:bg-gray-100">
+              <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          {/* Search Input */}
+          {!activeFilter && (
+            <div className="px-6 pt-4 pb-2">
+              <div className="relative">
+                <input
+                  type="search"
+                  className="w-full pl-10 pr-3 py-2  border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm"
+                  placeholder="Search Filters"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" strokeLinecap="round" /></svg>
+              </div>
+            </div>
+          )}
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto">
+            {activeFilter
+              ? renderFilterDetails(activeFilter)
+              : (
+                <div className="px-6 pb-4">
+                  <h4 className="text-xs font-semibold text-gray-500 mb-2 mt-2">Most Used</h4>
+                  <div className="space-y-2">
+                    {filteredFields.map((field) => (
+                      <button
+                        key={field.key}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 border border-transparent transition"
+                        onClick={() => setActiveFilter(field.key)}
+                      >
+                        <span>{field.label}</span>
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            }
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <DashboardLayout title="Contacts">
-      <div className="dashboard-card h-[calc(100vh-4rem)] flex flex-col">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="dashboard-card-title">All Contacts</h2>
+      <div className="dashboard-card h-[calc(150vh-2rem)] flex flex-col">
+        <div className="flex justify-between items-center">
+          <h4 className="dashboard-card-title">All</h4>
           <div className="flex space-x-3">
-            <ColumnManager />
+            {/* Remove ColumnManager from this row */}
             <button
               onClick={() => setIsVerifyModalOpen(true)}
               className="px-3 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 flex items-center"
@@ -1487,17 +1670,96 @@ export default function ContactsPage() {
               <DocumentTextIcon className="h-4 w-4 mr-2" />
               Bulk Upload
             </button>
-            <button onClick={() => setIsAddModalOpen(true)} className="btn-primary">
+            {/* <button onClick={() => setIsAddModalOpen(true)} className="btn-primary">
               Add Contact
-            </button>
+            </button> */}
           </div>
         </div>
-
-        {/* Search Input */}
-        <div className="mb-2">
-          <div className="relative border border-gray-300 rounded-md">
-            <input
-              type="search"
+        {/* Icon action row above the search/filter/column row */}
+        <div className="flex gap-2 mb-3 w-full">
+          <span data-tooltip="tooltip" data-placement="top" title="Add Contact">
+            <button onClick={() => setIsAddModalOpen(true)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <PlusIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Pipeline Change">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <FaFilter size={15} color="grey" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Add to Automation">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <FaRobot size={20} color="grey" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Send SMS">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <ChatBubbleLeftRightIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Send Email">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <svg width="18" height="18" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.667 3.833L8.47 8.596c.55.386.826.579 1.126.653.265.066.541.066.806 0 .3-.074.575-.267 1.126-.653l6.804-4.763M5.667 14.667h8.666c1.4 0 2.1 0 2.635-.273a2.5 2.5 0 001.093-1.092c.272-.535.272-1.235.272-2.635V5.333c0-1.4 0-2.1-.272-2.635a2.5 2.5 0 00-1.093-1.092c-.535-.273-1.235-.273-2.635-.273H5.667c-1.4 0-2.1 0-2.635.273a2.5 2.5 0 00-1.093 1.092c-.272.535-.272 1.235-.272 2.635v5.334c0 1.4 0 2.1.272 2.635a2.5 2.5 0 001.093 1.092c.534.273 1.234.273 2.635.273z" stroke="#344054" strokeWidth="1.667" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Add Tag">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <TagIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Remove Tag">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <TagIcon className="h-5 w-5 text-gray-400" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Delete Contacts">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <TrashIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Send Review Requests">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <FaStar size={20} color="grey" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Export Contacts">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <ArrowUpTrayIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Import Contacts">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+              <ArrowDownTrayIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Add/Edit to Company">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g clipPath="url(#clip0_471_4361)"><path d="M11 11H6.2c-1.12 0-1.68 0-2.108.218a2 2 0 00-.874.874C3 12.52 3 13.08 3 14.2V21m18 0V6.2c0-1.12 0-1.68-.218-2.108a2 2 0 00-.874-.874C19.48 3 18.92 3 17.8 3h-3.6c-1.12 0-1.68 0-2.108.218a2 2 0 00-.874.874C11 4.52 11 5.08 11 6.2V21m11 0H2M14.5 7h3m-3 4h3m-3 4h3" stroke="#4E5456" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path></g><defs><clipPath id="clip0_471_4361"><path fill="#fff" d="M0 0h24v24H0z"></path></clipPath></defs></svg>
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Bulk WhatsApp">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
+              <FaWhatsapp size={20} color="grey" />
+            </button>
+          </span>
+          <span data-tooltip="tooltip" data-placement="top" title="Merge up to 10 Contacts">
+            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
+              <DocumentDuplicateIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          </span>
+        </div>
+        {/* Existing search/filter/column row below */}
+        <div className="flex w-full max-w-3xl gap-3 items-center mt-4 mb-2">
+          {/* Columns Button */}
+          <div className="">
+            <ColumnManager />
+          </div>
+          {/* Search Bar */}
+          <div className="relative border  border-gray-300 rounded-md flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Quick search by name"
+              className="pl-10 px-3 py-0.0 h-10 border-transparent rounded-md focus:outline-none w-200"
               value={searchQuery}
               onChange={(e) => {
                 const value = e.target.value;
@@ -1509,26 +1771,21 @@ export default function ContactsPage() {
                   searchContactsByName(value);
                 }, 300);
               }}
-              placeholder="Search contacts by name..."
-              className="w-full px-4 py-2 pl-10 rounded-md focus:ring-purple-500 focus:border-purple-500"
-              disabled={isSearching}
             />
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              {isSearching ? (
-                <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              )}
-            </div>
           </div>
+
+          {/* More Filters Button */}
+          <button
+            className="flex items-center bg-white rounded-lg border border-[#e3eaf3] px-4 py-2 text-black text-[14px] font-medium hover:bg-[#f7fafd] transition"
+            onClick={() => setIsFilterModalOpen(true)}
+          >
+            More Filters
+            <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2 color-black ml-2" />
+          </button>
         </div>
 
         {contacts.length > 0 && <TagFilters />}
+        {contacts.length > 0 && <PaginationControls />}
 
         {isAddModalOpen && <ModalContent />}
         {isEditModalOpen && <ModalContent isEdit />}
@@ -1770,7 +2027,7 @@ export default function ContactsPage() {
               <table className="w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+                    <th className="pl-4 pr-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
                       <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
                     </th>
                     {columns.filter(col => col.visible).map(column => (
@@ -1902,6 +2159,7 @@ export default function ContactsPage() {
                 </table>
               </div>
             </div>
+            {/* Pagination Controls at the bottom */}
             <div className="mt-auto">
               <PaginationControls />
             </div>
@@ -1912,6 +2170,7 @@ export default function ContactsPage() {
           </p>
         )}
       </div>
+      {isFilterModalOpen && <FilterModal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} />}
     </DashboardLayout>
   );
 }
