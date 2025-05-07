@@ -52,7 +52,7 @@ interface OpportunityGridProps {
   getProcessedOpportunities: (stageId: string) => Opportunity[];
   handleCommunication: (opportunityId: string, type: 'voicemail' | 'sms' | 'call' | 'email' | 'optout') => void;
   handleEditOpportunity: (Opportunity: Opportunity) => void;
-  handleMoveOpportunity: (opportunityId: string, targetStageId: string) => Promise<void>;
+  handleMoveOpportunity: (opportunityId: string, targetStageId: string, insertAtTop: boolean) => Promise<void>;
   loadingOpportunityId: string | null;
   pagination: Record<string, PaginationState>;
   loadingStates: Record<string, boolean>;
@@ -171,7 +171,7 @@ export default function OpportunityGrid({
 
     if (currentStageId && currentStageId !== targetStageId) {
       setActiveOpportunity(null);
-      await handleMoveOpportunity(opportunityId, targetStageId);
+      await handleMoveOpportunity(opportunityId, targetStageId, true);
     } else {
       setActiveOpportunity(null);
     }
@@ -209,38 +209,39 @@ export default function OpportunityGrid({
                       <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>
                     </button>
                   </div>
-                  
-                  <div
-                    id={stage.id}
-                    className="overflow-y-auto max-h-[calc(100vh-200px)] mt-4" 
-                  >
-                    <SortableContext items={getProcessedOpportunities(stage.id).map(opp => opp.id)} strategy={rectSortingStrategy}>
-                      {getProcessedOpportunities(stage.id).map((opportunity) => (
-                        <SortableOpportunityCard
-                          key={opportunity.id}
-                          opportunity={opportunity}
-                          handleCommunication={handleCommunication}
-                          handleEditOpportunity={handleEditOpportunity}
-                          isLoading={loadingOpportunityId === opportunity.id}
-                        />
-                      ))}
-                    </SortableContext>
-                    {getProcessedOpportunities(stage.id).length === 0 && (
-                      <div className="bg-white rounded-lg border border-gray-200 mt-4 mx-2 flex items-center justify-center min-h-[80px] text-gray-500 font-semibold text-base">
-                        No Data.
-                      </div>
-                    )}
-                    <div id={`load-more-${stage.id}`} className="h-10">
-                      {loadingStates?.[stage.id] && pagination?.[stage.id]?.hasMore && (
-                        <div className="text-center text-gray-500 py-2">
-                          <div className="inline-flex items-center space-x-2">
-                            <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
-                            <span className="text-sm">Loading more...</span>
-                          </div>
+                  <DroppableStage id={stage.id} isEmpty={getProcessedOpportunities(stage.id).length === 0}>
+                    <div
+                      id={stage.id}
+                      className="overflow-y-auto max-h-[calc(100vh-200px)] mt-4"
+                    >
+                      <SortableContext items={getProcessedOpportunities(stage.id).map(opp => opp.id)} strategy={rectSortingStrategy}>
+                        {getProcessedOpportunities(stage.id).map((opportunity) => (
+                          <SortableOpportunityCard
+                            key={opportunity.id}
+                            opportunity={opportunity}
+                            handleCommunication={handleCommunication}
+                            handleEditOpportunity={handleEditOpportunity}
+                            isLoading={loadingOpportunityId === opportunity.id}
+                          />
+                        ))}
+                      </SortableContext>
+                      {getProcessedOpportunities(stage.id).length === 0 && (
+                        <div className="bg-white rounded-lg border border-gray-200 mt-4 mx-2 flex items-center justify-center min-h-[80px] text-gray-500 font-semibold text-base">
+                          No Data.
                         </div>
                       )}
+                      <div id={`load-more-${stage.id}`} className="h-10">
+                        {loadingStates?.[stage.id] && pagination?.[stage.id]?.hasMore && (
+                          <div className="text-center text-gray-500 py-2">
+                            <div className="inline-flex items-center space-x-2">
+                              <div className="w-4 h-4 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin"></div>
+                              <span className="text-sm">Loading more...</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </DroppableStage>
                 </div>
               ))}
             </div>
