@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -240,11 +239,33 @@ export default function AutomationsPage() {
 
     const convertTo24Hour = (time: string): string => {
       try {
-        const [timePart, period] = time.trim().split(' ');
+        if (!time || typeof time !== 'string') {
+          throw new Error('Invalid time input');
+        }
+        
+        // Check if already in 24-hour format (no AM/PM)
+        if (!/\s*(am|pm)\s*$/i.test(time)) {
+          // If it matches HH:MM format, return as is
+          if (/^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/.test(time)) {
+            return time.padStart(5, '0'); // Ensure 2-digit hours
+          }
+        }
+        
+        const parts = time.trim().split(' ');
+        if (parts.length !== 2) {
+          throw new Error(`Invalid time format: ${time}. Expected format "HH:MM AM/PM"`);
+        }
+        
+        const [timePart, period] = parts;
         let [hours, minutes] = timePart.split(':').map(Number);
-        if (isNaN(hours) || isNaN(minutes)) throw new Error('Invalid time format');
+        
+        if (isNaN(hours) || isNaN(minutes)) {
+          throw new Error('Invalid time format: hours or minutes are not numeric');
+        }
+        
         if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
         if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+        
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       } catch (error) {
         console.error('Error parsing time format:', error);
