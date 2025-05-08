@@ -167,6 +167,12 @@ const ApplicationDetailsModal = ({ isOpen, onClose, data }: {
                     <p className="text-sm text-gray-500">Message Flow</p>
                     <p className="text-sm font-medium">{data.messageFlow}</p>
                   </div>
+
+                  <div>
+                    <p className="text-sm text-gray-500">Opt-In Message</p>
+                    <p className="text-sm font-medium">{data.optInMessage}</p>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -203,11 +209,15 @@ export default function PhoneNumbersPage() {
     campaignDescription: '',
     sampleMessage1: '',
     sampleMessage2: '',
+    userConsentMethod: '',
+    optInMessage: '',
   });
   const [showExamples, setShowExamples] = useState<{ [key: string]: boolean }>({
     campaignDescription: false,
     sampleMessage1: false,
-    sampleMessage2: false
+    sampleMessage2: false,
+    userConsentMethod: false,
+    optInMessage: false
   });
 
   useEffect(() => {
@@ -330,8 +340,9 @@ export default function PhoneNumbersPage() {
         hasEmbeddedLinks: true,
         hasEmbeddedPhone: true,
         region: 'US',
-        optInMessage: 'You are receiving this message because you opted in on our website.',
+        optInMessage: formData.optInMessage,
         messageFlow: 'End users opt in by visiting our website and providing their phone number. They can opt out by replying STOP.',
+        userConsentMethod: formData.userConsentMethod,
       }
       // Create initial registration in Firestore
       const registration = await createA2PRegistration(user?.locationId, data);
@@ -683,7 +694,7 @@ export default function PhoneNumbersPage() {
                 placeholder='Example - "<Your Company Name> uses this campaign for follow up campaign to leads from incoming calls."'
                 value={formData.campaignDescription}
                 onChange={handleInputChange}
-                rows={3}
+                rows={6}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
               />
             </div>
@@ -697,7 +708,7 @@ export default function PhoneNumbersPage() {
                 placeholder='Example - "Hi @First_Name, my name is <Your Name> from <Your Company Name> and I am following up regarding the call we received from you. Please let us know a good time for us to connect. You can call or text on this number. Thanks!"'
                 value={formData.sampleMessage1}
                 onChange={handleInputChange}
-                rows={3}
+                rows={6}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
               />
             </div>
@@ -711,7 +722,64 @@ export default function PhoneNumbersPage() {
                 placeholder='Example - "Hi @First_Name, this is <Company Name>. You filled out a form on our website about a property that you are interested in selling. Please let us know a good time for us to connect. You can call or text on this number. Thanks!"'
                 value={formData.sampleMessage2}
                 onChange={handleInputChange}
-                rows={3}
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* User Consent Section */}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-3 p-4 border-b border-gray-200">
+            <ChatBubbleLeftRightIcon className="w-6 h-6 text-gray-600 mb-10" />
+            <div>
+              <h2 className="font-medium">User Consent</h2>
+              <p className="text-sm text-gray-500">Describe how users provide consent and the opt-in message they receive</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            {/* Consent Method Field */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm">
+                  How do lead/contacts consent to receive messages?
+                </label>
+                {renderMessageExamples(
+                  [
+                    "End users opt-in by visiting - https://www.mycompany.com/book and filling in their details. Users check a box to receive notifications & promotional messages to provide their consent. Additionally end users can also text START to +1 (213) 725-2867."
+                  ],
+                  'userConsentMethod'
+                )}
+              </div>
+              <textarea
+                name="userConsentMethod"
+                placeholder='Example: End users opt-in by visiting - https://www.mycompany.com/book and filling in their details. Users check a box to receive notifications & promotional messages to provide their consent. Additionally end users can also text START to +1 (213) 725-2867.'
+                value={formData.userConsentMethod || ''}
+                onChange={handleInputChange}
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
+              />
+            </div>
+            {/* Opt-in Message Field */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm">
+                  Opt-in Message <span className="text-red-500">*</span>
+                </label>
+                {renderMessageExamples(
+                  [
+                    "You have successfully opted-in to receive notification and promotional SMS from company_name. Please reply STOP if you need to Opt-out in the future."
+                  ],
+                  'optInMessage'
+                )}
+              </div>
+              <textarea
+                name="optInMessage"
+                placeholder='Example: You have successfully opted-in to receive notification and promotional SMS from company_name. Please reply STOP if you need to Opt-out in the future.'
+                value={formData.optInMessage || ''}
+                onChange={handleInputChange}
+                rows={6}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#0A855C] transition-colors"
               />
             </div>
