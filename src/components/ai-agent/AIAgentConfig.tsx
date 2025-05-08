@@ -901,6 +901,20 @@ export default function AIAgentConfig({
     companyWebsite: user?.website || 'www.yourcompany.com',
   };
 
+  const commonButtonStyles = {
+    width: '367px',
+    height: '46px',
+    borderRadius: '3px',
+    border: '1px solid #E5E7EB',
+    fontWeight: 400,
+    fontSize: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    textAlign: 'left',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    margin: 0,
+  };
   // Content to render with or without container
   const content = (
     <React.Fragment>
@@ -923,17 +937,32 @@ export default function AIAgentConfig({
           </div>
         )}
 
+
+
+
         {shouldRenderSection('pipeline') && (
-          <div className="mb-6">
-            <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-                <FunnelIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-5" />
-                <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)] leading-tight mt-0.5">
+          <div className="min-h-[60vh] flex items-center justify-center ">
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              className="bg-[var(--nextprop-surface)] rounded-lg  p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="flex items-center gap-2 mb-2 pb-3 border-b border-[var(--nextprop-border)]">
+                {/* <FunnelIcon className="h-5 w-5 text-[var(--nextprop-primary)] " /> */}
+                <span className="text-[20px] font-semibold text-gray-900">
                   Pipeline Configuration
-                </h3>
+                </span>
               </div>
 
-              <div className="mb-4">
+              <div >
                 <div className="flex justify-between items-center mb-3">
                   <div>
                     <p className="text-sm font-medium text-[var(--nextprop-text-secondary)]">
@@ -968,17 +997,32 @@ export default function AIAgentConfig({
                     No pipelines found. Please create pipelines in your CRM.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div
+
+                    className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {pipelines.map(pipeline => (
                       <div
                         key={pipeline.id}
-                        className={`border rounded-lg p-3 flex items-center justify-between cursor-pointer hover:bg-[var(--nextprop-surface-hover)] transition-colors ${config.enabledPipelines.some(p => p.id === pipeline.id)
-                          ? 'border-[var(--nextprop-primary)] bg-[var(--nextprop-primary-light)]/5'
-                          : 'border-[var(--nextprop-border)]'
-                          }`}
+                        style={{
+                          width: '370px',
+                          height: '46px',
+                          borderRadius: '3px',
+                          border: '1px solid #E5E7EB',
+                          background: config.enabledPipelines.some(p => p.id === pipeline.id) ? '#F3E8FF' : '#fff',
+                          color: config.enabledPipelines.some(p => p.id === pipeline.id) ? '#9C03FF' : '#111827',
+                          fontWeight: 400,
+                          fontSize: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left',
+                          paddingLeft: '16px',
+                          paddingRight: '16px',
+                          margin: 0,
+                        }}
                         onClick={() => handleTogglePipeline(pipeline)}
                       >
-                        <span className="text-sm font-medium text-[var(--nextprop-text-primary)] truncate">
+                        <span style={{ fontWeight: 400, fontSize: '14px' }}>
                           {pipeline.name}
                         </span>
                         <Switch
@@ -1006,35 +1050,48 @@ export default function AIAgentConfig({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {shouldRenderSection('identity') && (
-            <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+        {shouldRenderSection('identity') && (
+          <div className='min-h-[50vh] flex items-center justify-center '>
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              className="bg-[var(--nextprop-surface)] rounded-lg  p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-                <UserCircleIcon className="h-6 w-6 text-[var(--nextprop-primary)] mb-5" />
-                <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Agent Identity</h3>
+                {/* <UserCircleIcon className="h-6 w-6 text-[var(--nextprop-primary)]" /> */}
+                <span className="text-[20px] font-semibold text-[var(--nextprop-text-primary)]">Agent Identity</span>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="agentName" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  <label htmlFor="agentName" className="block text-[14px] font-medium text-[var(--nextprop-text-secondary)] mb-1">
                     Agent Name
                   </label>
-                  <div className='border border-[var(--nextprop-border)] rounded-lg'>
+                  <div className='border border-[var(--nextprop-border)] rounded-[3px]'>
                     <input
                       type="text"
                       id="agentName"
                       name="agentName"
                       value={config.agentName}
                       onChange={handleInputChange}
-                      className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                      style={{ borderRadius: '3px', height: '31px' }}
+                      className="nextprop-input w-full p-2.5 text-[14px] font-sm  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="companyName" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  <label htmlFor="companyName" className="block text-[14px] font-medium text-[var(--nextprop-text-secondary)] mb-1">
                     Your Name
                   </label>
-                  <div className='border border-[var(--nextprop-border)] rounded-lg'>
+                  <div className='border border-[var(--nextprop-border)] rounded-[3px]'>
                     <input
                       type="text"
                       id="companyName"
@@ -1042,7 +1099,8 @@ export default function AIAgentConfig({
                       value={config.companyName || ''}
                       onChange={handleInputChange}
                       placeholder={placeholders.companyName}
-                      className="nextprop-input w-full p-2.5 rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                      style={{ borderRadius: '3px', height: '31px' }}
+                      className="nextprop-input w-full p-2.5 text-[14px] font-sm rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                     />
                   </div>
 
@@ -1052,10 +1110,10 @@ export default function AIAgentConfig({
                 </div>
 
                 <div>
-                  <label htmlFor="speakingOnBehalfOf" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  <label htmlFor="speakingOnBehalfOf" className="block text-[14px] font-medium text-[var(--nextprop-text-secondary)] mb-1">
                     Company Name
                   </label>
-                  <div className='border border-[var(--nextprop-border)] rounded-lg '>
+                  <div className='border border-[var(--nextprop-border)] rounded-[3px]'>
                     <input
                       type="text"
                       id="speakingOnBehalfOf"
@@ -1063,30 +1121,52 @@ export default function AIAgentConfig({
                       value={config.speakingOnBehalfOf || ''}
                       onChange={handleInputChange}
                       placeholder={placeholders.speakingOnBehalfOf}
-                      className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                      style={{ borderRadius: '3px', height: '31px' }}
+                      className="nextprop-input w-full p-2.5 text-[14px] font-medium border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                     />
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {shouldRenderSection('company') && (
-            <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-                <EnvelopeIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
-                <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Company Information</h3>
+        )}
+
+        {shouldRenderSection('company') && (
+          <div className='min-h-[69vh] flex items-center justify-center '>
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className=" mb-2 pb-2 border-b border-[var(--nextprop-border)]">
+                <div className='flex items-center space-x-3'>
+                  {/* <EnvelopeIcon className="h-5 w-5 text-[var(--nextprop-primary)] " /> */}
+                  <span className="text-[20px] font-semibold text-[var(--nextprop-text-primary)]">Company Information</span>
+                </div>
+
+                <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                  This is the address the AI will provide to prospects who inquire about the business location.
+                </p>
               </div>
+
               <div className="space-y-4">
                 <div className="relative">
-                  <label htmlFor="contactPhone" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                  <label htmlFor="contactPhone" className="block text-[14px] font-medium text-[var(--nextprop-text-secondary)] mb-1">
                     Phone Number
                   </label>
                   <div className="flex">
-                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                    {/* <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
                       <PhoneIcon className="h-4 w-4" />
-                    </span>
-                    <div className='w-full rounded-r-lg border border-[var(--nextprop-border)]'>
+                    </span> */}
+                    <div className='w-full border border-[var(--nextprop-border)] rounded-[3px]'>
                       <input
                         type="tel"
                         id="contactPhone"
@@ -1094,32 +1174,32 @@ export default function AIAgentConfig({
                         value={config.contactPhone || ''}
                         onChange={handleInputChange}
                         placeholder={placeholders.contactPhone}
-                        className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                        style={{ borderRadius: '3px', backgroundColor: '#eaecef', border: 'none', outline: 'none', height: '31px' }}
+                        className="nextprop-input w-full p-2.5 rounded-r-lg"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-row gap-4">
                   <div className="relative">
-                    <label htmlFor="contactEmail" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                    <label htmlFor="contactEmail" className="block text-[14px] font-medium text-[var(--nextprop-text-secondary)] mb-1">
                       Email Address
                     </label>
-                    <div className="flex">
-                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                    <div className="border border-[var(--nextprop-border)] rounded-[3px]">
+                      {/* <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
                         <EnvelopeIcon className="h-4 w-4" />
-                      </span>
-                      <div className='rounded-r-lg border border-[var(--nextprop-border)]'>
-                        <input
-                          type="email"
-                          id="contactEmail"
-                          name="contactEmail"
-                          value={config.contactEmail || ''}
-                          onChange={handleInputChange}
-                          placeholder={placeholders.contactEmail}
-                          className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                        />
-                      </div>
+                      </span> */}
+                      <input
+                        type="email"
+                        id="contactEmail"
+                        name="contactEmail"
+                        value={config.contactEmail || ''}
+                        onChange={handleInputChange}
+                        placeholder={placeholders.contactEmail}
+                        style={{ borderRadius: '3px', width: '235px', backgroundColor: '#eaecef', border: 'none', outline: 'none', height: '31px' }}
+                        className="nextprop-input w-full p-2.5 rounded-r-lg"
+                      />
                     </div>
                   </div>
 
@@ -1127,23 +1207,22 @@ export default function AIAgentConfig({
                     <label htmlFor="companyWebsite" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
                       Company Website
                     </label>
-                    <div className="flex">
-                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
+                    <div className="border border-[var(--nextprop-border)] rounded-[3px]">
+                      {/* <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-[var(--nextprop-border)] bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-tertiary)]">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
                         </svg>
-                      </span>
-                      <div className='rounded-r-lg border border-[var(--nextprop-border)]'>
-                        <input
-                          type="url"
-                          id="companyWebsite"
-                          name="companyWebsite"
-                          value={config.companyWebsite || ''}
-                          onChange={handleInputChange}
-                          placeholder={placeholders.companyWebsite}
-                          className="nextprop-input w-full p-2.5 rounded-r-lg  border-[var(--nextprop-border)] focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                        />
-                      </div>
+                      </span> */}
+                      <input
+                        type="url"
+                        id="companyWebsite"
+                        name="companyWebsite"
+                        value={config.companyWebsite || ''}
+                        onChange={handleInputChange}
+                        placeholder={placeholders.companyWebsite}
+                        style={{ borderRadius: '3px', width: '235px', backgroundColor: '#eaecef', border: 'none', outline: 'none', height: '31px' }}
+                        className=" nextprop-input w-full p-2.5 rounded-r-lg"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1152,7 +1231,7 @@ export default function AIAgentConfig({
                   <label htmlFor="companyAbout" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
                     About Company <span className="text-xs text-[var(--nextprop-text-tertiary)]">(optional)</span>
                   </label>
-                  <div className='border border-[var(--nextprop-border)] rounded-lg'>
+                  <div className='border border-[var(--nextprop-border)] rounded-[3px]'>
                     <textarea
                       id="companyAbout"
                       name="companyAbout"
@@ -1160,21 +1239,108 @@ export default function AIAgentConfig({
                       onChange={handleInputChange}
                       placeholder="Briefly describe your company or services..."
                       rows={3}
-                      className="nextprop-input w-full p-2.5  border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                    />
+                      style={{ borderRadius: '3px', backgroundColor: '#eaecef' }}
+                      className="nextprop-input w-full p-2.5 rounded-r-lg" />
                   </div>
                   <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1 pt-2">
-                    This information helps the AI provide context about your company to potential clients.
+                    Once all relevant information has been received from the lead, the AI will send them a final message, move the lead to the HUMAN stage, and notify you.
                   </p>
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+
+        )}
+        {shouldRenderSection('agentStatus') && (
+          <div className=' flex items-center justify-center '>
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <span className="text-[18px] font-semibold text-[var(--nextprop-text-primary)]">Set Agent's status</span>
+              <span className="text-[14px] text-[var(--nextprop-text-tertiary)] mb-2">Choose the Bot's operating mode</span>
+              <div className="flex">
+                {/* Off Button */}
+                <button
+                  type="button"
+                  onClick={() => setConfig(prev => prev ? { ...prev, agentStatus: 'off' } : prev)}
+                  style={{
+                    width: '241px',
+                    height: '46px',
+                    borderRadius: '3px',
+                    border: '1px solid #E5E7EB',
+                    background: config.agentStatus === 'off' ? '#F3E8FF' : '#fff',
+                    color: config.agentStatus === 'off' ? '#9C03FF' : '#111827',
+                    fontWeight: 500,
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingLeft: '16px',
+                    paddingRight: '16px',
+                    position: 'relative',
+                  }}
+                  className="transition focus:outline-none"
+                >
+                  <span className="flex items-center justify-center mr-2">
+                    <img src="/purple_checkbox.svg" alt="Off" className="w-[30px] h-[30px]" />
+                  </span>
+                  Off
+
+                </button>
+                {/* Auto Pilot Button */}
+                <button
+                  type="button"
+                  onClick={() => setConfig(prev => prev ? { ...prev, agentStatus: 'auto' } : prev)}
+                  style={{
+                    width: '241px',
+                    height: '46px',
+                    borderRadius: '3px',
+                    border: '1px solid #E5E7EB',
+                    background: config.agentStatus === 'auto' ? '#F3E8FF' : '#fff',
+                    color: config.agentStatus === 'auto' ? '#9C03FF' : '#111827',
+                    fontWeight: 500,
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingLeft: '16px',
+                    paddingRight: '16px',
+                    marginLeft:'12px',
+                    position: 'relative',
+                  }}
+                  className="transition focus:outline-none"
+                >
+                  <span className="flex items-center justify-center mr-2 ">
+                    <img src="/audio_pilot.svg" alt="Auto Pilot" className="w-[30px] h-[30px]" />
+                  </span>
+                  Auto Pilot
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {shouldRenderSection('buyingCriteria') && (
-          <div className="mt-6">
-            <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
+          <div className='mt-6 flex items-center justify-center '>
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6">
               <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
                 <BuildingOfficeIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
                 <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Buying Criteria</h3>
@@ -1296,19 +1462,30 @@ export default function AIAgentConfig({
         )}
 
         {shouldRenderSection('dealObjective') && (
-          <div className="mt-6">
-            <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-[var(--nextprop-border)]">
-                <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" />
-                <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)]">Deal Objective</h3>
+          <div className=' flex items-center justify-center '>
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-4 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="flex items-center space-x-3 border-[var(--nextprop-border)]">
+                {/* <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" /> */}
+                <span className="text-[20px] font-semibold text-[var(--nextprop-text-primary)]">Deal Objective</span>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-1">
                 <div>
-                  <h4 className="text-base font-medium text-[var(--nextprop-text-primary)] mb-3 flex items-center">
-                    <UserCircleIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                  <span className="text-[18px] font-medium text-[var(--nextprop-text-primary)] mt-3 flex items-center">
+
                     For Realtors
-                  </h4>
+                  </span>
                   <div className="grid grid-cols-2 gap-4">
                     {([
                       { value: 'realtor-off-market', label: 'Off Market Deals' },
@@ -1318,12 +1495,60 @@ export default function AIAgentConfig({
                     ] as const).map((option) => (
                       <button
                         key={option.value}
+                        style={{
+                          width: '370px',
+                          height: '46px',
+                          borderRadius: '3px',
+                          border: '1px solid #E5E7EB',
+                          background: config.dealObjective === option.value ? '#F3E8FF' : '#fff',
+                          color: config.dealObjective === option.value ? '#9C03FF' : '#111827',
+                          fontWeight: 400,
+                          fontSize: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          textAlign: 'left',
+                          paddingLeft: '16px',
+                          paddingRight: '16px',
+                          margin: 0,
+                        }}
+                        className="transition focus:outline-none  mb-0"
                         onClick={() => handleDealObjectiveChange(option.value)}
-                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
-                          ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
-                          : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
-                          }`}
+
                       >
+                        {config.dealObjective === option.value && (
+                          <span
+                            className="mr-2 flex items-center justify-center"
+                            style={{ width: 30, height: 30, minWidth: 30, minHeight: 30 }}
+                          >
+                            <span
+                              style={{
+                                width: 30,
+                                height: 30,
+                                borderRadius: '50%',
+                                background: '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 16,
+                                  height: 16,
+                                  borderRadius: '50%',
+                                  background: '#A703FF',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M2 4.5L4.5 7L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </span>
+                            </span>
+                          </span>
+                        )}
                         {option.label}
                       </button>
                     ))}
@@ -1331,10 +1556,9 @@ export default function AIAgentConfig({
                 </div>
 
                 <div>
-                  <h4 className="text-base font-medium text-[var(--nextprop-text-primary)] mb-3 flex items-center">
-                    <HomeIcon className="h-4 w-4 text-[var(--nextprop-primary)] mr-2" />
+                  <span className="text-[18px] font-medium text-[var(--nextprop-text-primary)] mt-3 flex items-center">
                     For Home Owners
-                  </h4>
+                  </span>
                   <div className="grid grid-cols-2 gap-4">
                     {([
                       { value: 'homeowner-cash-offer', label: 'Cash Offer' },
@@ -1343,12 +1567,60 @@ export default function AIAgentConfig({
                     ] as const).map((option) => (
                       <button
                         key={option.value}
+                        style={{
+                          width: '370px',
+                          height: '46px',
+                          borderRadius: '3px',
+                          border: '1px solid #E5E7EB',
+                          background: config.dealObjective === option.value ? '#F3E8FF' : '#fff',
+                          color: config.dealObjective === option.value ? '#9C03FF' : '#111827',
+                          fontWeight: 400,
+                          fontSize: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          textAlign: 'left',
+                          paddingLeft: '16px',
+                          paddingRight: '16px',
+                          margin: 0,
+                        }}
+                        className="transition focus:outline-none  mb-0"
                         onClick={() => handleDealObjectiveChange(option.value)}
-                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${config.dealObjective === option.value
-                          ? 'bg-gradient-to-r from-[var(--nextprop-primary-light)]/10 to-[var(--nextprop-accent)]/20 border-[var(--nextprop-primary-light)] text-[var(--nextprop-primary-dark)] border shadow-sm'
-                          : 'border border-[var(--nextprop-border)] text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)]'
-                          }`}
+
                       >
+                        {config.dealObjective === option.value && (
+                          <span
+                            className="mr-2 flex items-center justify-center"
+                            style={{ width: 30, height: 30, minWidth: 30, minHeight: 30 }}
+                          >
+                            <span
+                              style={{
+                                width: 30,
+                                height: 30,
+                                borderRadius: '50%',
+                                background: '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 16,
+                                  height: 16,
+                                  borderRadius: '50%',
+                                  background: '#A703FF',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M2 4.5L4.5 7L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </span>
+                            </span>
+                          </span>
+                        )}
                         {option.label}
                       </button>
                     ))}
@@ -1512,8 +1784,8 @@ export default function AIAgentConfig({
                 borderRadius: '5px',
                 border: '1px solid #E5E7EB',
                 background: 'white',
-                paddingLeft: '16px', 
-                paddingRight: '16px', 
+                paddingLeft: '16px',
+                paddingRight: '16px',
                 paddingTop: '16px',
                 boxSizing: 'border-box',
                 display: 'flex',
@@ -1525,7 +1797,7 @@ export default function AIAgentConfig({
               {/* Questions Grid */}
               <div
                 className="grid grid-cols-1 md:grid-cols-2"
-                style={{gap: '10px' }}
+                style={{ gap: '10px' }}
               >
                 {EXAMPLE_MESSAGES.map((q, idx) => (
                   <button
@@ -1588,8 +1860,8 @@ export default function AIAgentConfig({
                   </button>
                 ))}
               </div>
-               {/* Conversation Component */}
-               {conversation.length > 0 && (
+              {/* Conversation Component */}
+              {conversation.length > 0 && (
                 <div
                   ref={conversationRef}
                   className="mt-4 p-4 border border-[var(--nextprop-border)] rounded-lg max-h-80 overflow-y-auto bg-[var(--nextprop-surface-hover)]/50"
@@ -1669,7 +1941,7 @@ export default function AIAgentConfig({
                   </button>
                 </form>
               </div>
-             
+
               {/* Show Full AI Prompt Button and Prompt Display */}
               {fullPrompt && !showFullPrompt && (
                 <div className=" mb-4">
@@ -1700,6 +1972,157 @@ export default function AIAgentConfig({
             </div>
           </div>
         )}
+
+        {shouldRenderSection('leadQualification') && (
+          <div className="flex items-center justify-center">
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                paddingTop: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-4 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="mb-0 pb-1 ">
+                <span className="text-[20px] font-semibold text-[var(--nextprop-text-primary)]">Lead Qualification Criteria</span>
+                <p className="text-[14px] text-[var(--nextprop-text-tertiary)]">Select single/multiple criteria you want to qualify lead</p>
+              </div>
+              {/* Criteria grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+                {[
+                  { key: 'interestedSelling', label: 'Interested in Selling', icon: <img src="/checkbox.svg" alt="Interested in Selling" className="w-[30px] h-[30px]" /> },
+                  { key: 'address', label: 'Address of the House', icon: <img src="/checkbox.svg" alt="Address of the House" className="w-[30px] h-[30px]" /> },
+                  { key: 'reasonSelling', label: 'Reason for Selling', icon: <img src="/person.svg" alt="Reason for Selling" className="w-[30px] h-[30px]" /> },
+                  { key: 'condition', label: 'Condition of the House', icon: <img src="/home.svg" alt="Condition of the House" className="w-[30px] h-[30px]" /> },
+                  { key: 'timeline', label: 'Timeline to Sell', icon: <img src="/clock.svg" alt="Timeline to Sell" className="w-[30px] h-[30px]" /> },
+                  { key: 'askingPrice', label: 'Asking Price', icon: <img src="/doller.svg" alt="Asking Price" className="w-[30px] h-[30px]" /> },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    style={{
+                      width: '241px',
+                      height: '46px',
+                      borderRadius: '3px',
+                      border: '1px solid #E5E7EB',
+                      background: config.leadQualification?.[item.key] ? '#95989A' : '#fff',
+                      color: config.leadQualification?.[item.key] ? '#111827' : '#111827',
+                      fontWeight: 400,
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textAlign: 'left',
+                      paddingLeft: '16px',
+                      paddingRight: '16px',
+                      margin: 0,
+                    }}
+                    className="transition focus:outline-none  mb-0"
+                    type="button"
+                    onClick={() => setConfig(prev => prev ? { ...prev, leadQualification: { ...(prev.leadQualification || {}), [item.key]: !prev.leadQualification?.[item.key] } } : prev)}
+                  >
+                    <span className="flex items-center justify-center  mr-2">
+                      {item.icon}
+                    </span>
+                    {item.label}
+
+                  </button>
+                ))}
+              </div>
+              {/* If Lead Qualifies section */}
+              <div className="mb-2">
+                {/* Section Title */}
+                <span className="text-[18px] font-semibold text-[var(--nextprop-text-primary)]">
+                  If Lead Qualifies
+                </span>
+
+                {/* Button Container */}
+                <div className="flex gap-4 items-center">
+                  {/* Send Last Message Button */}
+                  <button
+                    type="button"
+                    style={{
+                      ...commonButtonStyles,
+                      background: config.leadQualifiesAction === 'sendLastMessage' ? '#F3E8FF' : '#fff',
+                      color: config.leadQualifiesAction === 'sendLastMessage' ? '#9C03FF' : '#111827',
+                    }}
+                    className="transition focus:outline-none mb-0"
+                    onClick={() =>
+                      setConfig((prev) => (prev ? { ...prev, leadQualifiesAction: 'sendLastMessage' } : prev))
+                    }
+                  >
+                    <img
+                      src="/calendar.svg"
+                      alt="Interested in Selling"
+                      className="w-[30px] h-[30px] mr-2"
+                    />
+                    Send Last Message
+                  </button>
+
+                  {/* Pause AI, Move to Human Button */}
+                  <button
+                    type="button"
+                    style={{
+                      ...commonButtonStyles,
+                      background: config.leadQualifiesAction === 'pauseMoveHuman' ? '#F3E8FF' : '#fff',
+                      color: config.leadQualifiesAction === 'pauseMoveHuman' ? '#9C03FF' : '#111827',
+                      justifyContent: 'space-between',
+                    }}
+                    className="transition focus:outline-none mb-0"
+                    onClick={() =>
+                      setConfig((prev) => (prev ? { ...prev, leadQualifiesAction: 'pauseMoveHuman' } : prev))
+                    }
+                  >
+                    <img
+                      src="/checkbox.svg"
+                      alt="Interested in Selling"
+                      className="w-[30px] h-[30px] mr-2"
+                    />
+                    Pause AI, Move to Human
+                    <span>
+                      {config.leadQualifiesAction === 'pauseMoveHuman' && (
+                        <img
+                          src="/information.svg"
+                          alt="Interested in Selling"
+                          className="w-[30px] h-[30px]"
+                        />
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </div>
+              {/* Closing message preview */}
+              <div className="mt-2">
+                <span className="text-[18px] font-semibold text-[var(--nextprop-text-primary)]">The Assistant will close the conversation with:</span>
+                <div className="item-center justity-center h-[31px] bg-[var(--nextprop-surface-hover)] rounded-lg pt-1 pl-2 text-[var(--nextprop-text-secondary)] text-[14px]">
+                  Got it! Thanks for the information. I'll pass this to [Your Name] and get back to you soon.
+                </div>
+              </div>
+              {/* Action buttons at the bottom */}
+              <div className=" flex justify-center gap-4 mt-2">
+                <button
+                  type="button"
+                  className="h-[35px] px-6 py-1 text-[14px] border border-[var(--nextprop-border)] text-[var(--nextprop-text-primary)] bg-white rounded-lg hover:bg-[var(--nextprop-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 font-medium shadow-sm"
+                  onClick={() => {/* TODO: handle cancel */ }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="w-[153px] item-center h-[35px] text-[14px] bg-gradient-to-r from-[#9C03FF] to-[#A703FF] text-white rounded-[10px] hover:from-[#A703FF] hover:to-[#9C03FF] focus:outline-none focus:ring-2 focus:ring-[#9C03FF] focus:ring-offset-2 font-medium shadow-md transform transition-transform hover:scale-105"
+                  onClick={() => {/* TODO: handle add AI assistant */ }}
+                >
+                  Add AI Assistant
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+
 
         {/* Only show save button if not hiding container */}
         {!hideContainer && (
