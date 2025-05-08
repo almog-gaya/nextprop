@@ -19,6 +19,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Skip auth for Twilio webhook routes
+  const isTwilioWebhook = pathname.startsWith('/api/twilio/');
+  if (isTwilioWebhook) {
+    log('[Middleware] Twilio webhook route detected, skipping auth check');
+    return NextResponse.next();
+  }
+
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('ghl_access_token')?.value;
   const refreshToken = cookieStore.get('ghl_refresh_token')?.value;
