@@ -13,6 +13,13 @@ export interface A2PRegistration {
     campaignSid?: string;
     trustProductSid?: string;
     friendlyName?: string;
+    brandstatus?: string;
+    identityStatus?: string;
+    brandStatusErrors?: []; 
+    campaignStatus?: string; 
+    campaign?: any,
+    brand?: any,
+    messagingService?: any,
     status: 'pending' | 'approved' | 'rejected';
     steps: {
         customerProfile: { status: string; message: string };
@@ -48,6 +55,7 @@ export interface A2PRegistration {
         hasEmbeddedLinks: boolean;
         hasEmbeddedPhone: boolean;
         messageFlow: string;
+        optInMessage: string;
     };
 }
 
@@ -74,6 +82,12 @@ export const createA2PRegistration = async (userId: string, formData: A2PRegistr
 
 export const updateA2PRegistration = async (id: string, updates: Partial<A2PRegistration>) => {
     const registrationRef = doc(db, A2P_COLLECTION, id);
+    //  delete null and undefined values from updates
+    Object.keys(updates).forEach(key => {
+        if (updates[key] === null || updates[key] === undefined) {
+            delete updates[key];
+        }
+    });
     await setDoc(registrationRef, { ...updates, updatedAt: new Date() }, { merge: true });
 };
 

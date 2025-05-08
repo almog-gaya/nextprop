@@ -306,8 +306,7 @@ export default function PhoneNumbersPage() {
     }
 
     try {
-      // Create initial registration in Firestore
-      const registration = await createA2PRegistration(user?.locationId, {
+      const data = {
         legalCompanyName: formData.legalCompanyName,
         dbaName: formData.dbaName,
         ein: formData.ein,
@@ -331,11 +330,14 @@ export default function PhoneNumbersPage() {
         hasEmbeddedLinks: true,
         hasEmbeddedPhone: true,
         region: 'US',
+        optInMessage: 'You are receiving this message because you opted in on our website.',
         messageFlow: 'End users opt in by visiting our website and providing their phone number. They can opt out by replying STOP.',
+      }
+      // Create initial registration in Firestore
+      const registration = await createA2PRegistration(user?.locationId, data);
+      await fetch('/api/twilio/register', {
+        body: JSON.stringify(data),
       });
-
-      setRegistrationStatus(registration);
-      pollRegistrationStatus(registration.id);
     } catch (error) {
       console.error('Error submitting A2P registration:', error);
       // Don't set registration status on error since it wasn't created
@@ -344,21 +346,11 @@ export default function PhoneNumbersPage() {
 
   const pollRegistrationStatus = async (registrationId: string) => {
     try {
-      const response = await fetch('/api/twilio/mock/status');
+      const response = await fetch('/api/twilio/register');
       const result = await response.json();
 
       if (!response.ok) {
         throw new Error(result.message || 'Failed to check registration status');
-      }
-
-      // Update Firestore with new status
-      await updateA2PRegistration(registrationId, {
-        status: result.data.status,
-        steps: result.data.steps
-      });
-      
-      if (result.data.status === 'pending') {
-        setTimeout(() => pollRegistrationStatus(registrationId), 5000);
       }
     } catch (error) {
       console.error('Error checking registration status:', error);
@@ -766,49 +758,6 @@ export default function PhoneNumbersPage() {
             </div>
           </div>
         </div>
-
-        {/* Example Widget */}
-        {/* <div className="bg-gray-900 rounded-lg p-6 mt-6">
-          <h3 className="font-medium text-white mb-6">An Example</h3>
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm text-white/90 mb-2">Property address</label>
-              <input
-                type="text"
-                placeholder="123 Main St, City, State"
-                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50"
-                disabled
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-white/90 mb-2">Name</label>
-                <input
-                  type="text"
-                  placeholder="John Doe"
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50"
-                  disabled
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-white/90 mb-2">Phone</label>
-                <input
-                  type="text"
-                  placeholder="(123) 456-7890"
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50"
-                  disabled
-                />
-              </div>
-            </div>
-            <div className="flex items-start gap-3 mt-4">
-              <input type="checkbox" className="mt-1" disabled />
-              <p className="text-sm text-white/80">
-                I agree to <span className="text-[#0A855C] hover:underline cursor-pointer">Terms & Conditions</span> and{' '}
-                <span className="text-[#0A855C] hover:underline cursor-pointer">Privacy Policy</span>. By submitting this form, you consent to receive SMS messages and/or calls from COMPANY NAME. To unsubscribe, follow the instructions provided in our communications. Msg & data rates may apply for SMS. Your information is secure and will not be sold to third parties. Message frequency varies. Text HELP for Help. Text STOP to cancel.
-              </p>
-            </div>
-          </div>
-        </div> */}
       </div>
     </div>
   );
@@ -929,7 +878,7 @@ export default function PhoneNumbersPage() {
             ) : (
               <div className="flex gap-8">
                 <div className="flex-1 space-y-6">
-                  {registrationStatus ? (
+                  {false && registrationStatus ? (
                     renderRegistrationStatus()
                   ) : (
                     renderFormStep()
