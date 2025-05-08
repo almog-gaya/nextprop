@@ -348,6 +348,7 @@ export default function PhoneNumbersPage() {
       const registration = await createA2PRegistration(user?.locationId, data);
       await fetch('/api/twilio/register', {
         body: JSON.stringify(data),
+        method: 'POST',
       });
     } catch (error) {
       console.error('Error submitting A2P registration:', error);
