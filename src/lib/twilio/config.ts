@@ -9,9 +9,13 @@ if (!accountSid || !authToken) {
 
 const client = twilio(accountSid, authToken);
 
-export const getTwilioClient = (subaccountSid?: string) => {
-  if (subaccountSid) {
-    return twilio(accountSid, authToken, { accountSid: subaccountSid });
-  }
+export const getTwilioClient = () => {
   return client;
-}; 
+};
+
+export const getTwilioClientBySid = (sid: string) => {
+  if (!sid) {
+    throw new Error('Missing Twilio SID');
+  }
+  return twilio(accountSid, authToken, { accountSid: sid });
+}
