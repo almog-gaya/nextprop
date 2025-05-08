@@ -194,12 +194,12 @@ const EXAMPLE_MESSAGES = [
   "What kind of properties are you looking for?"
 ];
 
-export default function AIAgentConfig({ 
-  selectedAgentId, 
+export default function AIAgentConfig({
+  selectedAgentId,
   activeSection,
   hideContainer = false,
   onConfigChange
-}: { 
+}: {
   selectedAgentId: string | null;
   activeSection?: string;
   hideContainer?: boolean;
@@ -304,9 +304,9 @@ export default function AIAgentConfig({
           region: region,
           additionalPropertyTypes: additionalPropertyTypes,
         };
-        
+
         // Only update if there are actual changes and the region hasn't been manually set
-        const hasChanges = 
+        const hasChanges =
           currentConfig.buyingCriteria !== config.buyingCriteria ||
           currentConfig.propertyType !== config.propertyType ||
           currentConfig.maxPrice !== config.maxPrice ||
@@ -414,7 +414,7 @@ export default function AIAgentConfig({
       // Load additional property types if they exist
       if (agentConfig.additionalPropertyTypes) {
         setAdditionalPropertyTypes(agentConfig.additionalPropertyTypes);
-      } 
+      }
 
       // Set the region state from the loaded config
       // Always use the region from the config, even if it's empty
@@ -423,7 +423,7 @@ export default function AIAgentConfig({
       // Set the config after setting all the individual states
       setConfig(agentConfig);
 
-      if(!agentConfig.qaEntries || agentConfig.qaEntries.length === 0) {
+      if (!agentConfig.qaEntries || agentConfig.qaEntries.length === 0) {
         console.log('No qa entries found, loading default');
         // get default qa entries
         const defaultConfig = await loadAIAgentConfig('default');
@@ -433,10 +433,10 @@ export default function AIAgentConfig({
         }
         const { updateAgentConfig } = await import('@/lib/ai-agent');
         await updateAgentConfig(user.id, selectedAgentId, config);
-  
+
         // Also save to local storage for backward compatibility
         await saveAIAgentConfig(config, user.id);
-  
+
         // Sync with server
         await syncConfigWithServer(config);
         setConfig(config);
@@ -609,7 +609,7 @@ export default function AIAgentConfig({
   const handleRegionInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setRegion(value);
-    
+
     // Update config with new region value
     if (config) {
       const updatedConfig = {
@@ -617,7 +617,7 @@ export default function AIAgentConfig({
         region: value
       };
       setConfig(updatedConfig);
-      
+
       // Save to Firebase after a delay (debounce)
       if (user?.id) {
         const timer = setTimeout(() => {
@@ -656,7 +656,7 @@ export default function AIAgentConfig({
     try {
       /// check if already exists dont create 
       const exists = await isWorkflowExists();
-  
+
       if (!exists) {
         const uuidTemplateId = crypto.randomUUID();
         const workflowResponse = await createWorkFlow();
@@ -865,7 +865,7 @@ export default function AIAgentConfig({
     }
   }, [conversation]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (config && onConfigChange) {
       // Only call onConfigChange if the config has actually changed
       const hasChanges = JSON.stringify(config) !== JSON.stringify(prevConfigRef.current);
@@ -1505,126 +1505,199 @@ export default function AIAgentConfig({
         )}
 
         {shouldRenderSection('testing') && (
-          <div className="mt-6">
-            <div className="mb-6">
-              <h4 className="text-md font-medium mb-2 text-[var(--nextprop-text-secondary)]">Example Messages:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {EXAMPLE_MESSAGES.map((example, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleExampleClick(example)}
-                    className="text-left p-2 border border-[var(--nextprop-border)] rounded hover:bg-[var(--nextprop-primary-light)]/10 text-sm text-[var(--nextprop-text-primary)]"
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {conversation.length > 0 && (
+          <div className="flex items-center justify-center min-h-[70vh]">
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px', 
+                paddingRight: '16px', 
+                paddingTop: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <span className="text-[20px] font-semibold text-gray-900">Agent Testing Area</span>
+              <p className="text-[14px] text-gray-500 mb-1 ">Test your agent by customizing messages below.</p>
+              {/* Questions Grid */}
               <div
-                ref={conversationRef}
-                className="mb-6 p-4 border border-[var(--nextprop-border)] rounded-lg max-h-80 overflow-y-auto bg-[var(--nextprop-surface-hover)]/50"
+                className="grid grid-cols-1 md:grid-cols-2"
+                style={{gap: '10px' }}
               >
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-md font-medium text-[var(--nextprop-text-secondary)]">Conversation:</h4>
+                {EXAMPLE_MESSAGES.map((q, idx) => (
                   <button
-                    onClick={handleResetConversation}
-                    className="text-xs px-2 py-1 bg-[var(--nextprop-surface)] text-[var(--nextprop-text-tertiary)] rounded hover:bg-[var(--nextprop-surface-hover)] border border-[var(--nextprop-border)]"
+                    key={q}
+                    type="button"
+                    style={{
+                      width: '370px',
+                      height: '46px',
+                      borderRadius: '3px',
+                      border: '1px solid #E5E7EB',
+                      background: message === q ? '#F3E8FF' : '#fff',
+                      color: message === q ? '#9C03FF' : '#111827',
+                      fontWeight: 400,
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      textAlign: 'left',
+                      paddingLeft: '16px',
+                      paddingRight: '16px',
+                      margin: 0,
+                    }}
+                    className="transition focus:outline-none  mb-0"
+                    onClick={() => setMessage(q)}
                   >
-                    Clear Conversation
+                    {message === q && (
+                      <span
+                        className="mr-2 flex items-center justify-center"
+                        style={{ width: 30, height: 30, minWidth: 30, minHeight: 30 }}
+                      >
+                        <span
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: '50%',
+                            background: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 16,
+                              height: 16,
+                              borderRadius: '50%',
+                              background: '#A703FF',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M2 4.5L4.5 7L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                        </span>
+                      </span>
+                    )}
+                    <span className="truncate" style={{ fontWeight: 400, fontSize: '14px' }}>{q}</span>
                   </button>
-                </div>
-                {conversation.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`mb-4 ${msg.isUser ? 'text-right' : 'text-left'}`}
-                  >
-                    <div
-                      className={`inline-block rounded-lg p-3 max-w-[80%] ${msg.isUser
-                        ? 'bg-[var(--nextprop-primary)] text-white'
-                        : 'bg-[var(--nextprop-surface)] border border-[var(--nextprop-border)] text-[var(--nextprop-text-primary)]'
-                        }`}
-                    >
-                      {msg.isLoading ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                        </div>
-                      ) : (
-                        <div className="whitespace-pre-wrap">{msg.text}</div>
-                      )}
-                    </div>
-                  </div>
                 ))}
               </div>
-            )}
-
-            <form onSubmit={handleTestSubmit} className="mb-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="flex-1 border border-[var(--nextprop-border)] rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)]"
-                  placeholder="Type a message to test the AI agent..."
-                  disabled={isSending}
-                />
-                <button
-                  type="submit"
-                  className="bg-gradient-to-r from-[var(--nextprop-primary)] to-[var(--nextprop-primary-light)] text-white rounded-lg px-4 py-2 hover:from-[var(--nextprop-primary-dark)] hover:to-[var(--nextprop-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!message.trim() || isSending}
+               {/* Conversation Component */}
+               {conversation.length > 0 && (
+                <div
+                  ref={conversationRef}
+                  className="mt-4 p-4 border border-[var(--nextprop-border)] rounded-lg max-h-80 overflow-y-auto bg-[var(--nextprop-surface-hover)]/50"
                 >
-                  {isSending ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Sending...</span>
+                  <div className="flex justify-between items-center" >
+                    <h4 className="text-md font-medium text-[var(--nextprop-text-secondary)]">Conversation:</h4>
+                    <button
+                      onClick={handleResetConversation}
+                      className="text-xs px-2 py-1 bg-[var(--nextprop-surface)] text-[var(--nextprop-text-tertiary)] rounded hover:bg-[var(--nextprop-surface-hover)] border border-[var(--nextprop-border)]"
+                    >
+                      Clear Conversation
+                    </button>
+                  </div>
+                  {conversation.map((msg, index) => (
+                    <div
+                      key={index}
+                      className={`mb-4 ${msg.isUser ? 'text-right' : 'text-left'}`}
+                    >
+                      <div
+                        className={`inline-block rounded-lg p-3 max-w-[80%] ${msg.isUser
+                          ? 'bg-[var(--nextprop-primary)] text-white'
+                          : 'bg-[var(--nextprop-surface)] border border-[var(--nextprop-border)] text-[var(--nextprop-text-primary)]'
+                          }`}
+                        style={{ fontSize: '14px' }}
+                      >
+                        {msg.isLoading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap">{msg.text}</div>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <PaperAirplaneIcon className="h-4 w-4" />
-                      <span>Send</span>
-                    </div>
-                  )}
-                </button>
+                  ))}
+                </div>
+              )}
+              {/* Message Input */}
+              <div className="mt-4 mb-4">
+                <form onSubmit={handleTestSubmit}>
+                  <label className="block text-gray-500 mb-2" style={{ fontWeight: 500, fontSize: '14px' }}>Message</label>
+                  <textarea
+                    className="w-full min-h-[100px] rounded-lg border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#9C03FF] focus:border-[#9C03FF] resize-none bg-gray-50"
+                    placeholder="Ask a question to the agent..."
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    disabled={isSending}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      background: '#9C03FF',
+                      borderRadius: '10px',
+                      height: '35px',
+                      fontWeight: 500,
+                      fontSize: '14px',
+                      width: 'fit-content',
+                      marginTop: '8px',
+                      marginLeft: '0',
+                      paddingLeft: '24px',
+                      paddingRight: '24px',
+                      color: 'white',
+                      display: 'block',
+                    }}
+                    disabled={!message.trim() || isSending}
+                  >
+                    {isSending ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                        Sending...
+                      </span>
+                    ) : (
+                      'Send Message'
+                    )}
+                  </button>
+                </form>
               </div>
-            </form>
-
-            {testError && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
-                <div className="font-medium">Error</div>
-                <div>{testError}</div>
-              </div>
-            )}
-
-            {fullPrompt && showFullPrompt && (
-              <div className="mt-6 p-4 border border-[var(--nextprop-border)] rounded-lg bg-[var(--nextprop-surface-hover)]/50">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-md font-medium text-[var(--nextprop-text-secondary)]">Full AI Prompt:</h4>
+             
+              {/* Show Full AI Prompt Button and Prompt Display */}
+              {fullPrompt && !showFullPrompt && (
+                <div className=" mb-4">
                   <button
                     onClick={togglePromptVisibility}
-                    className="text-xs px-2 py-1 bg-[var(--nextprop-surface)] text-[var(--nextprop-text-tertiary)] rounded hover:bg-[var(--nextprop-surface-hover)] border border-[var(--nextprop-border)]"
+                    className="w-full py-2 px-4 border border-dashed border-[var(--nextprop-border)] rounded-lg text-sm text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)] transition-colors"
                   >
-                    Hide Prompt
+                    Show Full AI Prompt
                   </button>
                 </div>
-                <pre className="whitespace-pre-wrap text-xs overflow-auto max-h-96 bg-black text-green-400 p-4 rounded">
-                  {fullPrompt}
-                </pre>
-              </div>
-            )}
-
-            {fullPrompt && !showFullPrompt && (
-              <div className="mt-6">
-                <button
-                  onClick={togglePromptVisibility}
-                  className="w-full py-2 px-4 border border-dashed border-[var(--nextprop-border)] rounded-lg text-sm text-[var(--nextprop-text-secondary)] hover:bg-[var(--nextprop-surface-hover)] transition-colors"
-                >
-                  Show Full AI Prompt
-                </button>
-              </div>
-            )}
+              )}
+              {fullPrompt && showFullPrompt && (
+                <div className="mt-2 mb-2 p-4 border border-[var(--nextprop-border)] rounded-lg bg-black">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-md font-medium text-[var(--nextprop-text-secondary)]">Full AI Prompt:</h4>
+                    <button
+                      onClick={togglePromptVisibility}
+                      className="text-xs px-2 py-1 bg-[var(--nextprop-surface)] text-[var(--nextprop-text-tertiary)] rounded hover:bg-[var(--nextprop-surface-hover)] border border-[var(--nextprop-border)]"
+                    >
+                      Hide Prompt
+                    </button>
+                  </div>
+                  <pre className="whitespace-pre-wrap text-xs overflow-auto max-h-96 text-green-400 font-mono">
+                    {fullPrompt}
+                  </pre>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
