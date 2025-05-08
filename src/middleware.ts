@@ -7,11 +7,27 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   log(`[Middleware] Processing request for: ${pathname}`);
 
+  // Skip auth for specific paths
+  if (
+    pathname === '/api' || 
+    pathname.startsWith('/api/twilio/') || 
+    pathname.startsWith('/api/auth/')
+  ) {
+    log('[Middleware] Public route detected, skipping auth check');
+    return NextResponse.next();
+  }
+
   const isApiRoute = pathname.startsWith('/api/');
   if (!isApiRoute) {
     log('[Middleware] Not an API route, skipping');
     return NextResponse.next();
   }
+
+  // // Skip auth for health check route
+  // if (pathname === '/api') {
+  //   log('[Middleware] Health check route detected, skipping auth check');
+  //   return NextResponse.next();
+  // }
 
   const isAuthRoute = pathname.startsWith('/api/auth/');
   if (isAuthRoute) {
@@ -19,12 +35,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Skip auth for Twilio webhook routes
-  const isTwilioWebhook = pathname.startsWith('/api/twilio/');
-  if (isTwilioWebhook) {
-    log('[Middleware] Twilio webhook route detected, skipping auth check');
-    return NextResponse.next();
-  }
+  // // Skip auth for Twilio webhook routes
+  // const isTwilioWebhook = pathname.startsWith('/api/twilio/');
+  // if (isTwilioWebhook) {
+  //   log('[Middleware] Twilio webhook route detected, skipping auth check');
+  //   return NextResponse.next();
+  // }
 
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('ghl_access_token')?.value;
@@ -105,5 +121,11 @@ export const logError = (mesage: any) => {
   }
 }
 export const config = {
-  matcher: '/api/:path*',
+  matcher: [
+    // Match all API routes except specific ones
+    '/api/:path*',
+    '/api/twilio/:path*',
+    '/api/auth/:path*',
+    '/api'
+  ],
 };
