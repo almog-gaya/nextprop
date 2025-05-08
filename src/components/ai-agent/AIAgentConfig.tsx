@@ -1293,7 +1293,6 @@ export default function AIAgentConfig({
                     <img src="/purple_checkbox.svg" alt="Off" className="w-[30px] h-[30px]" />
                   </span>
                   Off
-
                 </button>
                 {/* Auto Pilot Button */}
                 <button
@@ -1312,7 +1311,7 @@ export default function AIAgentConfig({
                     alignItems: 'center',
                     paddingLeft: '16px',
                     paddingRight: '16px',
-                    marginLeft:'12px',
+                    marginLeft: '12px',
                     position: 'relative',
                   }}
                   className="transition focus:outline-none"
@@ -1322,6 +1321,42 @@ export default function AIAgentConfig({
                   </span>
                   Auto Pilot
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Supported Communication Channels Section */}
+        {shouldRenderSection('agentStatus') && (
+          <div className='mt-4 flex items-center justify-center '>
+            <div
+              style={{
+                width: '780px',
+                borderRadius: '5px',
+                border: '1px solid #E5E7EB',
+                background: 'white',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <span className="text-[20px] font-bold text-[var(--nextprop-text-primary)]">Supported Communication Channels</span>
+              <span className="text-[14px] text-[var(--nextprop-text-tertiary)] font-semibold">Select the Channels where you want the Bot to be Active On*</span>
+              <div className="mt-2 border border-[var(--nextprop-border)] rounded-3">
+                <select
+                  value={config.communicationChannel || 'SMS'}
+                  onChange={e => setConfig(prev => prev ? { ...prev, communicationChannel: e.target.value } : prev)}
+                  className="h-[31px] w-full text-[14px] font-semibold text-[#9C03FF] bg-white rounded-3"
+                  style={{ minHeight: '38px', borderRadius:'3px', fontSize:'14px'}}
+                >
+                  <option value="Instagram">Instagram</option>
+                  <option value="SMS">SMS</option>
+                  <option value="Facebook">Facebook</option>
+                  <option value="Email">Email</option>
+                  <option value="Whatsapp">Whatsapp</option>
+                  <option value="Emo">Emo</option>
+                  <option value="Discord">Discord</option>
+                </select>
               </div>
             </div>
           </div>
