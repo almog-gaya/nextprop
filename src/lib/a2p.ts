@@ -60,7 +60,7 @@ export interface A2PRegistration {
 }
 
 export const createA2PRegistration = async (userId: string, formData: A2PRegistration['formData']) => {
-    const registrationRef = doc(collection(db, A2P_COLLECTION));
+    const registrationRef = doc(collection(db, A2P_COLLECTION, userId));
     const registration: Omit<A2PRegistration, 'id'> = {
         userId,
         status: 'pending',
