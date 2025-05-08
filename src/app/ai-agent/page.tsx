@@ -23,7 +23,7 @@ export default function AIAgentPage() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [isSaving, setIsSaving] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<AIAgentConfigType | null>(null);
-  
+
   const handleAgentSelect = (agentId: string) => {
     setSelectedAgentId(agentId);
   };
@@ -45,7 +45,7 @@ export default function AIAgentPage() {
     try {
       /// check if already exists dont create 
       const exists = await isWorkflowExists();
-  
+
       if (!exists) {
         const uuidTemplateId = crypto.randomUUID();
         const workflowResponse = await createWorkFlow();
@@ -61,7 +61,7 @@ export default function AIAgentPage() {
         if (currentWorkFlowId) {
           await deleteWorkFlow(currentWorkFlowId);
         }
-      } 
+      }
 
       // Save to multi-agent config
       const { updateAgentConfig } = await import('@/lib/ai-agent');
@@ -81,85 +81,85 @@ export default function AIAgentPage() {
     } finally {
       setIsSaving(false);
     }
-  }; 
+  };
   const showToast = (message: string) => {
     toast.success(message, {
       duration: 3000,
-      position: 'top-right', 
+      position: 'top-right',
     });
   };
-  
-  // Function to sync config with server
-const syncConfigWithServer = async (config: AIAgentConfigType) => {
-  try {
-    const response = await fetch('/api/ai-agent/config', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(config),
-    });
 
-    if (!response.ok) {
-      throw new Error('Failed to sync config with server');
+  // Function to sync config with server
+  const syncConfigWithServer = async (config: AIAgentConfigType) => {
+    try {
+      const response = await fetch('/api/ai-agent/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync config with server');
+      }
+      return true;
+    } catch (error) {
+      console.error('Error syncing config with server:', error);
+      return false;
     }
-    return true;
-  } catch (error) {
-    console.error('Error syncing config with server:', error);
-    return false;
+  };
+  /**
+ * WORKFLOW Related API Calls
+*/
+  const isWorkflowExists = async (): Promise<boolean> => {
+    const result = await fetch(`/api/workflow`);
+    const data = await result.json();
+    return data.isExists;
   }
-};
-    /**
-   * WORKFLOW Related API Calls
-  */
-    const isWorkflowExists = async (): Promise<boolean> => {
+
+  const getCurrentWorkflowId = async () => {
+    try {
       const result = await fetch(`/api/workflow`);
       const data = await result.json();
-      return data.isExists;
-    }
-  
-    const getCurrentWorkflowId = async () => {
-      try {
-        const result = await fetch(`/api/workflow`);
-        const data = await result.json();
-        return data?.rows[0]?.id;
-      } catch (_) { }
-    }
-  
-    const createWorkFlow = async () => {
-      const result = await fetch(`/api/workflow`, {
-        method: 'POST',
-      });
-  
-      const data = await result.json();
-      return data;
-    }
-  
-    const updateWorkFlow = async (workflowId: string, triggerId: string, templateId: string) => {
-      const result = await fetch(`/api/workflow`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          workflowId,
-          triggerId,
-          templateId
-        })
-      });
-  
-      const data = await result.json();
-      return data;
-    }
-  
-    const deleteWorkFlow = async (workflowId: string) => {
-      const result = await fetch(`/api/workflow`, {
-        method: 'DELETE',
-        body: JSON.stringify({
-          workflowId
-        })
-      });
-      const data = await result.json();
-      return data;
-    }
-  
+      return data?.rows[0]?.id;
+    } catch (_) { }
+  }
+
+  const createWorkFlow = async () => {
+    const result = await fetch(`/api/workflow`, {
+      method: 'POST',
+    });
+
+    const data = await result.json();
+    return data;
+  }
+
+  const updateWorkFlow = async (workflowId: string, triggerId: string, templateId: string) => {
+    const result = await fetch(`/api/workflow`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        workflowId,
+        triggerId,
+        templateId
+      })
+    });
+
+    const data = await result.json();
+    return data;
+  }
+
+  const deleteWorkFlow = async (workflowId: string) => {
+    const result = await fetch(`/api/workflow`, {
+      method: 'DELETE',
+      body: JSON.stringify({
+        workflowId
+      })
+    });
+    const data = await result.json();
+    return data;
+  }
+
   return (
     <DashboardLayout title="AI Agent">
       <div className="container mx-auto px-4 py-8">
@@ -190,7 +190,7 @@ const syncConfigWithServer = async (config: AIAgentConfigType) => {
             ))}
           </nav>
         </div>
-        
+
         {/* Dashboard View */}
         {activeTab === 'dashboard' && (
           <>
@@ -208,21 +208,26 @@ const syncConfigWithServer = async (config: AIAgentConfigType) => {
         {/* Bot Goals View */}
         {activeTab === 'goals' && selectedAgentId && (
           <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
-            <AIAgentConfig 
-              selectedAgentId={selectedAgentId} 
-              activeSection="dealObjective" 
-              hideContainer={true} 
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="dealObjective"
+              hideContainer={true}
               onConfigChange={setCurrentConfig}
             />
-            <AIAgentConfig 
-              selectedAgentId={selectedAgentId} 
-              activeSection="buyingCriteria" 
-              hideContainer={true} 
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="buyingCriteria"
+              hideContainer={true}
               onConfigChange={setCurrentConfig}
             />
-            
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="leadQualification"
+              hideContainer={true}
+              onConfigChange={setCurrentConfig}
+            />
             <div className="flex justify-end mt-8">
-              <button 
+              <button
                 onClick={handleSave}
                 disabled={isSaving}
                 className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -236,15 +241,15 @@ const syncConfigWithServer = async (config: AIAgentConfigType) => {
         {/* Bot Testing View */}
         {activeTab === 'testing' && selectedAgentId && (
           <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
-            <AIAgentConfig 
-              selectedAgentId={selectedAgentId} 
-              activeSection="testing" 
-              hideContainer={true} 
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="testing"
+              hideContainer={true}
               onConfigChange={setCurrentConfig}
             />
-            
+
             <div className="flex justify-end mt-8">
-              <button 
+              <button
                 onClick={handleSave}
                 disabled={isSaving}
                 className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -258,21 +263,21 @@ const syncConfigWithServer = async (config: AIAgentConfigType) => {
         {/* Bot Training View */}
         {activeTab === 'training' && selectedAgentId && (
           <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
-            <AIAgentConfig 
-              selectedAgentId={selectedAgentId} 
-              activeSection="qa" 
-              hideContainer={true} 
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="qa"
+              hideContainer={true}
               onConfigChange={setCurrentConfig}
             />
-            <AIAgentConfig 
-              selectedAgentId={selectedAgentId} 
-              activeSection="rules" 
-              hideContainer={true} 
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="rules"
+              hideContainer={true}
               onConfigChange={setCurrentConfig}
             />
-            
+
             <div className="flex justify-end mt-8">
-              <button 
+              <button
                 onClick={handleSave}
                 disabled={isSaving}
                 className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -286,35 +291,35 @@ const syncConfigWithServer = async (config: AIAgentConfigType) => {
         {/* Bot Settings View */}
         {activeTab === 'settings' && selectedAgentId && (
           <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
-            <div className="mb-10">
-              <AIAgentConfig 
-                selectedAgentId={selectedAgentId} 
-                activeSection="identity" 
-                hideContainer={true} 
-                onConfigChange={setCurrentConfig}
-              />
-            </div>
-            
-            <div className="mb-10">
-              <AIAgentConfig 
-                selectedAgentId={selectedAgentId} 
-                activeSection="company" 
-                hideContainer={true} 
-                onConfigChange={setCurrentConfig}
-              />
-            </div>
-            
-            <div className="mb-10">
-              <AIAgentConfig 
-                selectedAgentId={selectedAgentId} 
-                activeSection="pipeline" 
-                hideContainer={true} 
-                onConfigChange={setCurrentConfig}
-              />
-            </div>
-            
+            {/* Agent Status Section */}
+
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="pipeline"
+              hideContainer={true}
+              onConfigChange={setCurrentConfig}
+            />
+
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="identity"
+              hideContainer={true}
+              onConfigChange={setCurrentConfig}
+            />
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="company"
+              hideContainer={true}
+              onConfigChange={setCurrentConfig}
+            />
+            <AIAgentConfig
+              selectedAgentId={selectedAgentId}
+              activeSection="agentStatus"
+              hideContainer={true}
+              onConfigChange={setCurrentConfig}
+            />
             <div className="flex justify-end mt-8">
-              <button 
+              <button
                 onClick={handleSave}
                 disabled={isSaving}
                 className="px-4 py-2 bg-[var(--nextprop-primary)] text-white rounded-lg hover:bg-[var(--nextprop-primary-dark)] transition disabled:opacity-50 disabled:cursor-not-allowed"
