@@ -941,7 +941,7 @@ export default function AIAgentConfig({
 
 
         {shouldRenderSection('pipeline') && (
-          <div className="min-h-[60vh] flex items-center justify-center ">
+          <div className="flex items-center justify-center ">
             <div
               style={{
                 width: '780px',
@@ -1051,7 +1051,7 @@ export default function AIAgentConfig({
         )}
 
         {shouldRenderSection('identity') && (
-          <div className='min-h-[50vh] flex items-center justify-center '>
+          <div className='mt-4  flex items-center justify-center '>
             <div
               style={{
                 width: '780px',
@@ -1133,7 +1133,7 @@ export default function AIAgentConfig({
         )}
 
         {shouldRenderSection('company') && (
-          <div className='min-h-[69vh] flex items-center justify-center '>
+          <div className='mt-4  flex items-center justify-center '>
             <div
               style={{
                 width: '780px',
@@ -1252,7 +1252,7 @@ export default function AIAgentConfig({
 
         )}
         {shouldRenderSection('agentStatus') && (
-          <div className=' flex items-center justify-center '>
+          <div className='mt-4  flex items-center justify-center '>
             <div
               style={{
                 width: '780px',
