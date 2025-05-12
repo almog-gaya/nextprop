@@ -54,11 +54,11 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user, onLogout }) => 
               {user?.firstName?.[0] || user?.name?.[0] || 'U'}
               {user?.lastName?.[0] || ''}
             </div>
-            <div>
-              <div className="text-lg font-semibold text-gray-900">
-                {user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
+            <div className='max-w-[180px] overflow-hidden'>
+              <div className="text-lg font-semibold text-gray-900 truncate">
+                { `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
               </div>
-              <div className="text-sm text-gray-500">{user?.email}</div>
+              <div className="text-sm text-gray-500 truncate">{user?.email}</div>
             </div>
           </div>
           <div className="space-y-2 mb-4">
