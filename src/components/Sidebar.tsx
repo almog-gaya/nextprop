@@ -43,7 +43,6 @@ const navigation = [
       { icon: <PhoneIcon className="w-4 h-4" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
     ]
   },
-  { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
   { icon: <BoltIcon className="w-5 h-5" />, text: 'AI Agent', href: '/ai-agent' },
   { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' }
 ];
