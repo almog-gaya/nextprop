@@ -416,9 +416,9 @@ const ConversationList = memo(function ConversationList({
         style={{ maxHeight: 'calc(100vh - 220px)' }}
       >
         {filteredConversations.length > 0 ? (
-          filteredConversations.map((conversation: Conversation) => (
+          filteredConversations.map((conversation: Conversation, index: number) => (
             <div
-              key={conversation.id}
+              key={`${conversation.id}-${conversation.timestamp}-${index}`}
               ref={(el) => (conversationRefs.current[conversation.id] = el)}
               className={`flex items-center h-20 px-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${activeId === conversation.id ? 'bg-gray-100' : ''}`}
               onClick={() => onSelect(conversation.id)}
