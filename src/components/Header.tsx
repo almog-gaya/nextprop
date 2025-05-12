@@ -119,7 +119,7 @@ export default function Header({ title }: HeaderProps) {
           </button> */}
 
           {/* Profile Dropdown */}
-          {user && <ProfileDropdown user={user} onLogout={logout} />}
+          <ProfileDropdown user={user} onLogout={logout} />
         </div>
       </div>
 
