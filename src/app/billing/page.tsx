@@ -174,7 +174,7 @@ export default function BillingPage() {
         </section>
 
         {/* Auto-Recharge Settings */}
-        <section className="nextprop-card border border-gray-200 shadow p-6 rounded-xl">
+        {/* <section className="nextprop-card border border-gray-200 shadow p-6 rounded-xl">
           <h2 className="text-xl font-semibold mb-5 text-gray-900">Auto-Recharge Settings</h2>
           
           <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
@@ -235,7 +235,7 @@ export default function BillingPage() {
               </p>
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* Price Breakdown */}
         <section className="nextprop-card border border-gray-200 shadow p-6 rounded-xl">
