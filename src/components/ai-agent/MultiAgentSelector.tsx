@@ -4,14 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { UserIcon, HomeIcon, ClipboardIcon, PlusIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
 import { MultiAgentConfig, AgentTemplate, AGENT_TEMPLATES } from '@/types/ai-agent';
-import { 
-  getMultiAgentConfig, 
-  setActiveAgent, 
-  createAgentFromTemplate, 
+import {
+  getMultiAgentConfig,
+  setActiveAgent,
+  createAgentFromTemplate,
   deleteAgent,
 } from '@/lib/ai-agent';
 import { triggerConfigRefresh } from './AIAgentConfig';
 import toast from 'react-hot-toast';
+import { CirclePlusIcon } from 'lucide-react';
 
 // Get icon component by name
 const getIconComponent = (iconName?: string) => {
@@ -48,12 +49,12 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
 
   const loadConfig = async () => {
     if (!user?.id) return;
-    
+
     try {
       setIsLoading(true);
       const multiAgentConfig = await getMultiAgentConfig(user.id);
       setConfig(multiAgentConfig);
-      
+
       // If an active agent is set, notify the parent component
       if (multiAgentConfig.activeAgentId) {
         onAgentSelect(multiAgentConfig.activeAgentId);
@@ -68,23 +69,23 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
 
   const handleSelectAgent = async (agentId: string) => {
     if (!user?.id) return;
-    
+
     try {
       // Update the active agent in the database
       await setActiveAgent(user.id, agentId);
-      
+
       // Update the local state
       setConfig(prev => prev ? {
         ...prev,
         activeAgentId: agentId
       } : null);
-      
+
       // Notify parent component
       onAgentSelect(agentId);
-      
+
       // Trigger refresh
       triggerConfigRefresh();
-      
+
       showToast('Agent switched successfully');
     } catch (error) {
       console.error('Error selecting agent:', error);
@@ -94,29 +95,29 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
   const showToast = (message: string) => {
     toast.success(message, {
       duration: 3000,
-      position: 'top-right', 
+      position: 'top-right',
     });
   };
 
   const handleCreateAgent = async (templateId: string) => {
     if (!user?.id) return;
-    
+
     try {
       setIsCreatingAgent(true);
-      
+
       // Create a new agent from the template
       const newAgentId = await createAgentFromTemplate(user.id, templateId);
-      
+
       if (!newAgentId) {
         throw new Error('Failed to create agent');
       }
-      
+
       // Reload the configuration
       await loadConfig();
-      
+
       // Select the new agent
       await handleSelectAgent(newAgentId);
-      
+
       showToast('New agent created successfully');
       setShowTemplates(false);
     } catch (error) {
@@ -129,16 +130,16 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
 
   const handleDeleteAgent = async (agentId: string) => {
     if (!user?.id) return;
-    
+
     try {
       setIsDeletingAgent(agentId);
-      
+
       // Delete the agent
       await deleteAgent(user.id, agentId);
-      
+
       // Reload the configuration
       await loadConfig();
-      
+
       showToast('Agent deleted successfully');
     } catch (error) {
       console.error('Error deleting agent:', error);
@@ -157,72 +158,76 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
   }
 
   return (
-    <div className="mb-8">
-      <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-4 shadow-sm">
-        <h3 className="text-lg font-semibold text-[var(--nextprop-text-primary)] mb-4">
-          AI Agents
-        </h3>
-        
-        <div className="flex flex-wrap gap-2">
-          {/* Existing agents */}
-          {config && Object.entries(config.agents).map(([agentId, agent]) => (
-            <div 
-              key={agentId}
-              className={`relative flex items-center gap-2 px-4 py-2 rounded-md cursor-pointer transition-colors ${
-                config.activeAgentId === agentId
+    <div className=" mb-0">
+      <div className="bg-[var(--nextprop-surface)] ">
+
+        <div className="flex flex-wrap gap-4 items-center justify-between">
+          <span
+          style={{fontSize:'20px',fontWeight:500}}
+            className=" text-[var(--nextprop-text-primary)]">
+            Your AI Agent
+          </span>
+          <div className="flex flex-wrap gap-4 items-center">
+            {/* Existing agents */}
+            {config && Object.entries(config.agents).map(([agentId, agent]) => (
+              <div
+                key={agentId}
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-md cursor-pointer transition-colors ${config.activeAgentId === agentId
                   ? 'bg-[var(--nextprop-primary)] text-white'
                   : 'bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-primary)] hover:bg-[var(--nextprop-primary-light)]/10'
-              }`}
-              onClick={() => handleSelectAgent(agentId)}
-            >
-              <div className="flex-shrink-0">
-                {getIconComponent(agent.template ? AGENT_TEMPLATES.find(t => t.id === agent.template)?.icon : undefined)}
+                  }`}
+                onClick={() => handleSelectAgent(agentId)}
+              >
+                <div className="flex-shrink-0">
+                  {getIconComponent(agent.template ? AGENT_TEMPLATES.find(t => t.id === agent.template)?.icon : undefined)}
+                </div>
+                <span style={{ fontSize: "14px", fontWeight: 500 }}>
+                  {agent.name || 'Unnamed Agent'}
+                </span>
+                {config.activeAgentId === agentId && (
+                  <CheckIcon className="w-4 h-4 ml-1" />
+                )}
+
+                {/* Delete button (only show if not active and we have more than one agent) */}
+                {Object.keys(config.agents).length > 1 && config.activeAgentId !== agentId && (
+                  <button
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center hover:bg-red-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteAgent(agentId);
+                    }}
+                  >
+                    {isDeletingAgent === agentId ? (
+                      <div className="animate-spin h-3 w-3 border-b border-white rounded-full" />
+                    ) : (
+                      <span className="text-xs">×</span>
+                    )}
+                  </button>
+                )}
               </div>
-              <span className="font-medium">
-                {agent.name || 'Unnamed Agent'}
-              </span>
-              {config.activeAgentId === agentId && (
-                <CheckIcon className="w-4 h-4 ml-1" />
-              )}
-              
-              {/* Delete button (only show if not active and we have more than one agent) */}
-              {Object.keys(config.agents).length > 1 && config.activeAgentId !== agentId && (
-                <button
-                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center hover:bg-red-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteAgent(agentId);
-                  }}
-                >
-                  {isDeletingAgent === agentId ? (
-                    <div className="animate-spin h-3 w-3 border-b border-white rounded-full" />
-                  ) : (
-                    <span className="text-xs">×</span>
-                  )}
-                </button>
-              )}
-            </div>
-          ))}
-          
-          {/* Add agent button */}
-          {(showAddAgent && (!config || Object.keys(config.agents).length < 3)) && (
-            <button
-              className="flex items-center gap-2 px-4 py-2 rounded-md bg-[var(--nextprop-surface-hover)] text-[var(--nextprop-text-primary)] hover:bg-[var(--nextprop-primary-light)]/10 border border-dashed border-[var(--nextprop-border)]"
-              onClick={() => setShowTemplates(true)}
-            >
-              <PlusIcon className="w-5 h-5" />
-              <span>Add Agent</span>
-            </button>
-          )}
+            ))}
+
+            {/* Add agent button */}
+            {(showAddAgent && (!config || Object.keys(config.agents).length < 3)) && (
+              <button
+                style={{ backgroundColor: '#9C03FF' }}
+                className="flex items-center gap-2 px-4 py-2 rounded-md  text-[var(--nextprop-text-primary)] hover:bg-purple"
+                onClick={() => setShowTemplates(true)}
+              >
+                <CirclePlusIcon className="w-5 h-5 text-white" />
+                <span style={{ fontSize: "14px", fontWeight: 500, color: "white" }}>Add Agent</span>
+              </button>
+            )}
+          </div>
         </div>
-        
+
         {/* Template selection when adding new agent */}
         {showTemplates && (
           <div className="mt-4 p-4 bg-[var(--nextprop-surface-hover)] rounded-lg border border-[var(--nextprop-border)]">
             <h4 className="font-medium text-[var(--nextprop-text-primary)] mb-3">
               Select Agent Template
             </h4>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {AGENT_TEMPLATES.map((template) => (
                 <div
@@ -239,7 +244,7 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
                   <p className="text-sm text-[var(--nextprop-text-tertiary)]">
                     {template.description}
                   </p>
-                  
+
                   {isCreatingAgent && (
                     <div className="mt-2 flex justify-center">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--nextprop-primary)]"></div>
@@ -248,7 +253,7 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
                 </div>
               ))}
             </div>
-            
+
             <div className="mt-3 flex justify-end">
               <button
                 className="px-3 py-1 text-sm text-[var(--nextprop-text-tertiary)] hover:text-[var(--nextprop-text-primary)]"

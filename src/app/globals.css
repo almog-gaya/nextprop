@@ -1031,3 +1031,16 @@ label {
 .sidebar ::-webkit-scrollbar-thumb {
   @apply bg-white/20 rounded-full hover:bg-white/30 transition-colors duration-200;
 }
+
+.table-header-row th {
+  @apply px-2 py-2 text-left uppercase;
+  font-weight: 500;
+  font-size: 12px;
+  color: #000000; /* Black */
+}
+
+.table-body-row td {
+  @apply px-2 py-2;
+  font-weight: 500;
+  font-size: 13px;
+}

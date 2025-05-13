@@ -10,6 +10,7 @@ import { saveAIAgentConfig, updateAgentConfig } from '@/lib/ai-agent';
 import { toast } from 'react-hot-toast';
 import type { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
 import { isWorkflowExists } from '@/lib/ghl-service';
+import AIAgentListTable from '@/components/ai-agent/AIAgentListTable';
 
 // Tab types for better type safety
 type TabType = 'dashboard' | 'goals' | 'testing' | 'training' | 'settings';
@@ -162,7 +163,13 @@ export default function AIAgentPage() {
 
   return (
     <DashboardLayout title="AI Agent">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4" style={{backgroundColor:"white"}}>
+        <div className="relative flex flex-col mb-8">
+          <span style={{ fontSize: '20px', fontWeight: 500 }}>Add AI Bot Assistant</span>
+          <span className="font-medium text-sm" style={{ color: '#95989A' }}>
+            Add AI assistant by providing basic details and outcome preferences.
+          </span>
+        </div>
         {/* Tab Navigation */}
         <div className="mb-6 border-b border-[var(--nextprop-border)]">
           <nav className="flex space-x-8" aria-label="Tabs">
@@ -194,9 +201,11 @@ export default function AIAgentPage() {
         {/* Dashboard View */}
         {activeTab === 'dashboard' && (
           <>
-            <div className="mb-6">
+            <div className="mb-5">
               <MultiAgentSelector onAgentSelect={handleAgentSelect} showAddAgent={true} />
             </div>
+            {/* New Agent List Table Section */}
+            <AIAgentListTable />
             {selectedAgentId && (
               <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
                 <AIAgentDashboard />
@@ -207,7 +216,7 @@ export default function AIAgentPage() {
 
         {/* Bot Goals View */}
         {activeTab === 'goals' && selectedAgentId && (
-          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
+          <div className="bg-[var(--nextprop-surface)] ">
             <AIAgentConfig
               selectedAgentId={selectedAgentId}
               activeSection="dealObjective"
@@ -240,7 +249,7 @@ export default function AIAgentPage() {
 
         {/* Bot Testing View */}
         {activeTab === 'testing' && selectedAgentId && (
-          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
+          <div className="bg-[var(--nextprop-surface)] ">
             <AIAgentConfig
               selectedAgentId={selectedAgentId}
               activeSection="testing"
@@ -262,7 +271,7 @@ export default function AIAgentPage() {
 
         {/* Bot Training View */}
         {activeTab === 'training' && selectedAgentId && (
-          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
+          <div className="bg-[var(--nextprop-surface)]">
             <AIAgentConfig
               selectedAgentId={selectedAgentId}
               activeSection="qa"
@@ -290,7 +299,7 @@ export default function AIAgentPage() {
 
         {/* Bot Settings View */}
         {activeTab === 'settings' && selectedAgentId && (
-          <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
+          <div className="bg-[var(--nextprop-surface)]">
             {/* Agent Status Section */}
 
             <AIAgentConfig
