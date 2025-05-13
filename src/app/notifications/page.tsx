@@ -162,7 +162,7 @@ export default function NotificationsPage() {
           pipelineName: '',
           stageId: '',
           stageName: '',
-          enabled: true
+          enabled: false
         }
       ]
     }));
@@ -175,9 +175,21 @@ export default function NotificationsPage() {
     }));
   };
 
+  const isValidConfiguration = (type: keyof NotificationPreferences, pref: NotificationPreference) => {
+    if (!pref.enabled) return false;
+    
+    // For newLeadAssigned, only check pipelineId
+    if (type === 'newLeadAssigned') {
+      return !!pref.pipelineId;
+    }
+    
+    // For other types, check both pipelineId and stageId
+    return !!(pref.pipelineId && pref.stageId);
+  };
+
   const toggleNotification = (type: keyof NotificationPreferences) => {
     if (preferences[type].length === 0) {
-      // If no preference exists, create a new one with enabled=true but no pipeline/stage
+      // If no preference exists, create a new one with enabled=false and no pipeline/stage
       setPreferences(prev => ({
         ...prev,
         [type]: [{
@@ -185,16 +197,16 @@ export default function NotificationsPage() {
           pipelineName: '',
           stageId: '',
           stageName: '',
-          enabled: true
+          enabled: false
         }]
       }));
     } else {
-      // Toggle all preferences of this type
+      // Toggle all preferences of this type, but only if they have valid configurations
       setPreferences(prev => ({
         ...prev,
         [type]: prev[type].map(pref => ({
           ...pref,
-          enabled: !pref.enabled
+          enabled: isValidConfiguration(type, pref) ? !pref.enabled : false
         }))
       }));
     }
@@ -205,11 +217,8 @@ export default function NotificationsPage() {
 
     // Validate all enabled notifications have pipeline and stage, except for newLeadAssigned
     const invalidPreferences = Object.entries(preferences).filter(([type, prefs]) => {
-      // Skip validation for newLeadAssigned
-      if (type === 'newLeadAssigned') return false;
-      
-      // For other types, check if any enabled preference is missing pipeline or stage
-      return prefs.some((pref: NotificationPreference) => pref.enabled && (!pref.pipelineId || !pref.stageId));
+      // Check if any enabled preference is missing required fields
+      return prefs.some((pref: NotificationPreference) => pref.enabled && !isValidConfiguration(type as keyof NotificationPreferences, pref));
     });
 
     if (invalidPreferences.length > 0) {
@@ -220,17 +229,28 @@ export default function NotificationsPage() {
 
     setIsUpdating(true);
     try {
+      // Clean up any invalid configurations before saving and filter out empty ones
+      const cleanedPreferences = Object.entries(preferences).reduce((acc, [type, prefs]) => ({
+        ...acc,
+        [type]: prefs
+          .filter((pref: NotificationPreference) => pref.pipelineId !== '') // Filter out empty pipeline configurations
+          .map((pref: NotificationPreference) => ({
+            ...pref,
+            enabled: isValidConfiguration(type as keyof NotificationPreferences, pref)
+          }))
+      }), {} as NotificationPreferences);
+
       const docRef = doc(db, 'app-notifications', user.locationId);
       await updateDoc(docRef, {
-        preferences,
+        preferences: cleanedPreferences,
         updatedAt: new Date()
       });
-      setInitialPreferences(preferences);
+      setInitialPreferences(cleanedPreferences);
       setHasChanges(false);
       
       // Update the workflow if lead assigned notification is enabled or disabled
       // Ensure dont create the workflow if it already exists
-      if(preferences.newLeadAssigned.some(pref => pref.enabled)) {
+      if(cleanedPreferences.newLeadAssigned.some((pref: NotificationPreference) => pref.enabled)) {
         const uuidTemplateId = crypto.randomUUID();
         const workflowResponse = await createWorkFlow(WORKFLOW_NAME);
         const workflowId = workflowResponse.workflowId;
