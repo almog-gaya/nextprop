@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     if (!profile) {
       return NextResponse.json({ success: false, error: 'Profile not found' }, { status: 404 });
     }
-    const client = getTwilioClient(profile.sid);
+    const client = getTwilioClientBySid(profile.sid ?? '');
 
     // Fetch Brand Registration status
     let brand;

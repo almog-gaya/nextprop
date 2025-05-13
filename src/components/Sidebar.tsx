@@ -43,7 +43,6 @@ const navigation = [
       { icon: <PhoneIcon className="w-4 h-4" />, text: 'Ringless Voicemails', href: '/ringless-voicemails' },
     ]
   },
-  { icon: <HomeModernIcon className="w-5 h-5" />, text: 'Properties', href: '/properties' },
   { icon: <BoltIcon className="w-5 h-5" />, text: 'AI Agent', href: '/ai-agent' },
   { icon: <ClockIcon className="w-5 h-5" />, text: 'Automations', href: '/automations' }
 ];
@@ -270,7 +269,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         href="/settings"
         onClick={(e) => handleNavigation('/settings', e)}
         className={classNames(
-          "w-full mx-4 mb-12 mt-auto h-10 flex items-center justify-start rounded-lg transition-all duration-200 cursor-pointer",
+          "w-full mx-6 mb-12 mt-auto max-w-46 h-10 flex items-center justify-start rounded-lg transition-all duration-200 cursor-pointer",
           pathname === "/settings"
             ? "bg-white text-black"
             : "text-[#1C1C1C] hover:text-[#1C1C1C] hover:bg-white/50"

@@ -10,7 +10,17 @@ import {
   MessageCircleIcon,
   MessageCircleDashedIcon,
   MessageCircleOffIcon
-} from 'lucide-react'; 
+} from 'lucide-react';
+import StatsCard from '../StatsCard';
+import { collection, getDocs, query, where, getFirestore } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
+  TrashIcon,
+  XIcon,
+  MessageCircleIcon,
+  MessageCircleDashedIcon,
+  MessageCircleOffIcon
+} from 'lucide-react';
 import StatsCard from '../StatsCard';
 import { collection, getDocs, query, where, getFirestore } from 'firebase/firestore';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -120,9 +130,13 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
   const isCampaignPaused = campaign.paused;
   const script =voicedropCampagin?.message || smsCampaign?.message;
   const fromPhone = voicedropCampagin?.from_number || smsCampaign?.from_number;
-  const maxCallsPerHour = voicedropCampagin?.max_calls_per_hour;
-  const intervalBetweenCalls = smsCampaign?.time_interval;
- 
+  const maxCallsPerHour = voicedropCampagin?.max_calls_per_hour || smsCampaign?.max_calls_per_hour;
+  const intervalBetweenCalls = smsCampaign?.time_interval || voicedropCampagin?.time_interval;
+  const dailyLimit = smsCampaign?.daily_limit || voicedropCampagin?.daily_limit;
+
+  const isSmsCampaign = smsCampaign ? true : false;
+
+
 
   const renderFirestoreTimeStamp = (timestamp: any) => {
     if (!timestamp) return 'N/A';
@@ -172,19 +186,19 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
   // Add this function to handle script updates
   const updateCampaignScript = async () => {
     if (!id) return;
-    
+
     try {
       const db = getFirestore();
       const campaignRef = doc(db, 'campaigns', id);
-      
+
       await updateDoc(campaignRef, {
         message: editedScript
       });
-      
+
       // Update local state
       campaign.message = editedScript;
       setIsEditingScript(false);
-      
+
       // Show success notification or feedback here if needed
     } catch (error) {
       console.error("Error updating campaign script:", error);
@@ -276,6 +290,102 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
     setEditValues({ firstName: '', lastName: '', phone: '' });
   };
 
+  // Add this helper function at the top level of the file
+  const calculateCallCapacity = (
+    maxCallsPerHour: number,
+    timeWindow: { start: string; end: string },
+    dailyLimit?: number
+  ) => {
+    if (!maxCallsPerHour || !timeWindow?.start || !timeWindow?.end) return null;
+
+    // Calculate hours in time window
+    const startTime = new Date(`2000-01-01T${timeWindow.start}`);
+    const endTime = new Date(`2000-01-01T${timeWindow.end}`);
+    const hoursInWindow = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
+    // Calculate total calls possible in time window
+    const totalCallsInWindow = Math.floor(maxCallsPerHour * hoursInWindow);
+
+    // If daily limit exists, use the smaller of the two
+    const maxCalls = dailyLimit ? Math.min(totalCallsInWindow, dailyLimit) : totalCallsInWindow;
+
+    return {
+      maxCallsInWindow: totalCallsInWindow,
+      maxCalls,
+      hoursInWindow
+    };
+  };
+
+  // In the CampaignCard component, add this before the return statement:
+  const callCapacity = calculateCallCapacity(
+    maxCallsPerHour,
+    campaign.time_window,
+    campaign.daily_limit
+  );
+
+  // Add these new state variables at the top of the component
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
+  const [editedSettings, setEditedSettings] = useState({
+    maxCallsPerHour: maxCallsPerHour || 30,
+    intervalBetweenCalls: intervalBetweenCalls || 60,
+    dailyLimit: campaign.daily_limit || '',
+    timeWindow: campaign.time_window || { start: '09:00', end: '17:00' }
+  });
+
+  // Add this function to handle schedule updates
+  const updateScheduleSettings = async () => {
+    if (!id) return;
+
+    try {
+      const db = getFirestore();
+      const campaignRef = doc(db, 'campaigns', id);
+
+      const updateData: any = {
+        daily_limit: editedSettings.dailyLimit ? Number(editedSettings.dailyLimit) : null,
+        time_window: editedSettings.timeWindow
+      };
+
+      // Update the appropriate channel settings
+      if (isSmsCampaign) {
+        updateData['channels.sms.time_interval'] = Number(editedSettings.intervalBetweenCalls);
+        updateData['channels.sms.max_calls_per_hour'] = Number(editedSettings.maxCallsPerHour);
+      } else {
+        updateData['channels.voicedrop.max_calls_per_hour'] = Number(editedSettings.maxCallsPerHour);
+      }
+
+      await updateDoc(campaignRef, updateData);
+
+      // Update local state
+      campaign.daily_limit = editedSettings.dailyLimit ? Number(editedSettings.dailyLimit) : null;
+      campaign.time_window = editedSettings.timeWindow;
+      if (isSmsCampaign) {
+        smsCampaign.time_interval = Number(editedSettings.intervalBetweenCalls);
+        smsCampaign.max_calls_per_hour = Number(editedSettings.maxCallsPerHour);
+      } else {
+        voicedropCampagin.max_calls_per_hour = Number(editedSettings.maxCallsPerHour);
+      }
+
+      setIsEditingSchedule(false);
+    } catch (error) {
+      console.error("Error updating schedule settings:", error);
+    }
+  };
+
+  // Add this function to calculate real-time capacity
+  const calculateRealTimeCapacity = () => {
+    const hoursInWindow = (new Date(`2000-01-01T${editedSettings.timeWindow.end}`).getTime() -
+                          new Date(`2000-01-01T${editedSettings.timeWindow.start}`).getTime()) / (1000 * 60 * 60);
+
+    const totalInWindow = Math.floor(editedSettings.maxCallsPerHour * hoursInWindow);
+    const maxCalls = editedSettings.dailyLimit ? Math.min(totalInWindow, Number(editedSettings.dailyLimit)) : totalInWindow;
+
+    return {
+      maxCallsInWindow: totalInWindow,
+      maxCalls,
+      hoursInWindow
+    };
+  };
+
   return (
     <>
       <li
@@ -287,10 +397,10 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-medium leading-6 text-gray-900">{name}</h3>
               <p className="mt-1 text-sm text-gray-500">
-              {campaign.created_at ? 
-                            (typeof campaign.created_at === 'object' && 'seconds' in campaign.created_at) ? 
-                              formatDate(new Date(campaign.created_at.seconds * 1000).toISOString()) : 
-                              formatDate(campaign.created_at) 
+              {campaign.created_at ?
+                            (typeof campaign.created_at === 'object' && 'seconds' in campaign.created_at) ?
+                              formatDate(new Date(campaign.created_at.seconds * 1000).toISOString()) :
+                              formatDate(campaign.created_at)
                             : 'N/A'}
               </p>
             </div>
@@ -359,7 +469,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
             />
             <StatsCard
               title="Delivered"
-              value={stats?.delivered ?? campaign.processed_contacts ?? 0} 
+              value={stats?.delivered ?? campaign.processed_contacts ?? 0}
               icon={isVoiceMailModule ? <PhoneIcon className="w-6 h-6" /> : <MessageCircleIcon className="w-6 h-6" />}
 
               iconBgColor="bg-green-100"
@@ -369,7 +479,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
               title="Pending"
               value={stats?.pending ??
                 ((stats?.totalContacts ?? campaign.total_contacts ?? 0) -
-                  (stats?.delivered ?? campaign.processed_contacts ?? 0))} 
+                  (stats?.delivered ?? campaign.processed_contacts ?? 0))}
               icon={isVoiceMailModule ? <PhoneIncomingIcon className="w-6 h-6" /> : <MessageCircleDashedIcon className="w-6 h-6" />}
 
               iconBgColor="bg-yellow-100"
@@ -404,7 +514,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                 <PhoneIcon className="h-3 w-3 mr-1" /> {fromPhone}
               </span>
             )}
- 
+
 
             {campaign["Voice Clone IDs"] && Array.isArray(campaign["Voice Clone IDs"]) && campaign["Voice Clone IDs"].length > 0 && (
               <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -488,10 +598,10 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                       <div>
                         <span className="text-xs font-medium text-gray-500 block">Created At:</span>
                         <span className="text-sm text-gray-900">
-                          {campaign.created_at ? 
-                            (typeof campaign.created_at === 'object' && 'seconds' in campaign.created_at) ? 
-                              formatDate(new Date(campaign.created_at.seconds * 1000).toISOString()) : 
-                              formatDate(campaign.created_at) 
+                          {campaign.created_at ?
+                            (typeof campaign.created_at === 'object' && 'seconds' in campaign.created_at) ?
+                              formatDate(new Date(campaign.created_at.seconds * 1000).toISOString()) :
+                              formatDate(campaign.created_at)
                             : 'N/A'}
                         </span>
                       </div>
@@ -506,13 +616,100 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                         <span className="text-sm text-gray-900">
                           {fromPhone || 'N/A'}
                         </span>
-                      </div> 
+                      </div>
+
+                      {/* Add Call Capacity Information */}
+                      {callCapacity && !isEditingSchedule && (
+                        <>
+                          <div className="pt-3 border-t border-gray-200">
+                            <span className="text-xs font-medium text-gray-500 block">{isSmsCampaign ? 'Message' : 'Call'} Capacity:</span>
+                            <div className="mt-2 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Time Window Capacity:</span>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {callCapacity.maxCallsInWindow} {isSmsCampaign ? 'messages' : 'calls'}
+                                </span>
+                              </div>
+                              {campaign.daily_limit && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-600">Daily Limit:</span>
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {campaign.daily_limit} {isSmsCampaign ? 'messages' : 'calls'}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Effective Maximum:</span>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {callCapacity.maxCalls} {isSmsCampaign ? 'messages' : 'calls'}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Based on {maxCallsPerHour} {isSmsCampaign ? 'messages' : 'calls'} per hour over {callCapacity.hoursInWindow.toFixed(1)} hours
+                                {campaign.daily_limit && ` (limited by ${callCapacity.maxCalls === campaign.daily_limit ? 'daily limit' : 'time window'})`}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
-                  
+
                   <div className="bg-gray-50 p-4 rounded-md">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Schedule Settings</h4>
-                    <div className="space-y-3">  
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">Schedule Settings</h4>
+                      {!isEditingSchedule ? (
+                        <button
+                          onClick={()=>{
+                            if(isCompleted) {
+                              toast.error('Campaign is completed, you cannot edit the settings', {
+                                position: 'top-right',
+                                duration: 5000,
+                              } );
+                              return;
+                            }
+                            setIsEditingSchedule(true);
+                          }}
+                          className="text-xs text-[var(--nextprop-primary)] hover:text-[var(--nextprop-primary-dark)] flex items-center"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit Settings
+                        </button>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={updateScheduleSettings}
+                            className="text-xs text-green-600 hover:text-green-800 flex items-center"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsEditingSchedule(false);
+                              setEditedSettings({
+                                maxCallsPerHour: maxCallsPerHour || 30,
+                                intervalBetweenCalls: intervalBetweenCalls || 60,
+                                dailyLimit: campaign.daily_limit || '',
+                                timeWindow: campaign.time_window || { start: '09:00', end: '17:00' }
+                              });
+                            }}
+                            className="text-xs text-red-600 hover:text-red-800 flex items-center"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
                       {campaign.timezone && (
                         <div>
                           <span className="text-xs font-medium text-gray-500 block">Timezone:</span>
@@ -521,51 +718,157 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                           </span>
                         </div>
                       )}
-                      {maxCallsPerHour && (
-                        <div>
-                          <span className="text-xs font-medium text-gray-500 block">Max Calls Per Hour:</span>
-                          <span className="text-sm text-gray-900">
-                            {maxCallsPerHour}
-                          </span>
-                        </div>
-                      )}
-                      {intervalBetweenCalls && (
-                        <div>
-                          <span className="text-xs font-medium text-gray-500 block">Interval(Minutes):</span>
-                          <span className="text-sm text-gray-900">
-                            {intervalBetweenCalls}
-                          </span>
-                        </div>
-                      )}
-                       {campaign.time_window && (
-                        <div>
-                          <span className="text-xs font-medium text-gray-500 block">Scheduled Days:</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {/* TIme window is having two keys end and start */}
-                            {campaign.time_window?.start && (
-                              <span className="px-2 py-1 text-xs bg-[var(--nextprop-primary)]/10 text-[var(--nextprop-primary)] rounded">
-                                {campaign.time_window?.start} - {campaign.time_window?.end}
-                              </span>
-                            )}
+
+                      {isEditingSchedule ? (
+                        <>
+                          <div>
+                            <label className="text-xs font-medium text-gray-500 block">Time Window:</label>
+                            <div className="flex space-x-2 mt-1">
+                              <input
+                                type="time"
+                                value={editedSettings.timeWindow.start}
+                                onChange={(e) => setEditedSettings({
+                                  ...editedSettings,
+                                  timeWindow: { ...editedSettings.timeWindow, start: e.target.value }
+                                })}
+                                className="border rounded px-2 py-1 text-sm w-32"
+                              />
+                              <span className="text-sm text-gray-500">to</span>
+                              <input
+                                type="time"
+                                value={editedSettings.timeWindow.end}
+                                onChange={(e) => setEditedSettings({
+                                  ...editedSettings,
+                                  timeWindow: { ...editedSettings.timeWindow, end: e.target.value }
+                                })}
+                                className="border rounded px-2 py-1 text-sm w-32"
+                              />
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {campaign.days && Array.isArray(campaign.days) && campaign.days.length > 0 && (
-                        <div>
-                          <span className="text-xs font-medium text-gray-500 block">Scheduled Days:</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {campaign.days.map((day, index) => (
-                              <span key={index} className="px-2 py-1 text-xs bg-[var(--nextprop-primary)]/10 text-[var(--nextprop-primary)] rounded">
-                                {day}
-                              </span>
-                            ))}
+
+                          <div>
+                            <label className="text-xs font-medium text-gray-500 block">
+                              Max {isSmsCampaign ? 'Messages' : 'Calls'} Per Hour:
+                            </label>
+                            <input
+                              type="number"
+                              value={editedSettings.maxCallsPerHour}
+                              onChange={(e) => setEditedSettings({
+                                ...editedSettings,
+                                maxCallsPerHour: Number(e.target.value)
+                              })}
+                              className="border rounded px-2 py-1 text-sm w-full mt-1"
+                              min="1"
+                            />
                           </div>
-                        </div>
+
+                          {isSmsCampaign && (
+                            <div>
+                              <label className="text-xs font-medium text-gray-500 block">Interval (in seconds):</label>
+                              <input
+                                type="number"
+                                value={editedSettings.intervalBetweenCalls}
+                                onChange={(e) => setEditedSettings({
+                                  ...editedSettings,
+                                  intervalBetweenCalls: Number(e.target.value)
+                                })}
+                                className="border rounded px-2 py-1 text-sm w-full mt-1"
+                                min="1"
+                              />
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="text-xs font-medium text-gray-500 block">Daily Limit (optional):</label>
+                            <input
+                              type="number"
+                              value={editedSettings.dailyLimit}
+                              onChange={(e) => setEditedSettings({
+                                ...editedSettings,
+                                dailyLimit: e.target.value
+                              })}
+                              className="border rounded px-2 py-1 text-sm w-full mt-1"
+                              min="1"
+                              placeholder="No limit"
+                            />
+                          </div>
+
+                          {/* Real-time capacity preview */}
+                          <div className="mt-4 pt-3 border-t border-gray-200">
+                            <span className="text-xs font-medium text-gray-500 block">Preview Capacity:</span>
+                            <div className="mt-2 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Time Window Capacity:</span>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {calculateRealTimeCapacity().maxCallsInWindow} {isSmsCampaign ? 'messages' : 'calls'}
+                                </span>
+                              </div>
+                              {editedSettings.dailyLimit && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-600">Daily Limit:</span>
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {editedSettings.dailyLimit} {isSmsCampaign ? 'messages' : 'calls'}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-600">Effective Maximum:</span>
+                                <span className="text-sm font-medium text-gray-900">
+                                  {calculateRealTimeCapacity().maxCalls} {isSmsCampaign ? 'messages' : 'calls'}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Based on {editedSettings.maxCallsPerHour} {isSmsCampaign ? 'messages' : 'calls'} per hour over {calculateRealTimeCapacity().hoursInWindow.toFixed(1)} hours
+                                {editedSettings.dailyLimit && ` (limited by ${calculateRealTimeCapacity().maxCalls === Number(editedSettings.dailyLimit) ? 'daily limit' : 'time window'})`}
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {maxCallsPerHour && (
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 block">
+                                Max {isSmsCampaign ? 'Messages' : 'Calls'} Per Hour:
+                              </span>
+                              <span className="text-sm text-gray-900">
+                                {maxCallsPerHour}
+                              </span>
+                            </div>
+                          )}
+
+                          {intervalBetweenCalls && isSmsCampaign && (
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 block">Interval (in seconds):</span>
+                              <span className="text-sm text-gray-900">
+                                {intervalBetweenCalls}
+                              </span>
+                            </div>
+                          )}
+
+                          {campaign.daily_limit && (
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 block">Daily Limit:</span>
+                              <span className="text-sm text-gray-900">
+                                {campaign.daily_limit} {isSmsCampaign ? 'messages' : 'calls'}
+                              </span>
+                            </div>
+                          )}
+
+                          {campaign.time_window && (
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 block">Time Window:</span>
+                              <span className="text-sm text-gray-900">
+                                {campaign.time_window.start} - {campaign.time_window.end}
+                              </span>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
-                
+
                 {script && (
                   <div className="mt-4 bg-gray-50 p-4 rounded-md">
                     <div className="flex justify-between items-center mb-2">
@@ -606,7 +909,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                         </div>
                       )}
                     </div>
-                    
+
                     {isEditingScript ? (
                       <div className="p-3 bg-white border border-gray-200 rounded-md">
                         <textarea
@@ -651,11 +954,11 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               ETA
                             </th>
-                    
+
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Actions
                             </th>
-                           
+
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -697,7 +1000,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPause, onResume
                                 )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                   ${contact.status === 'delivered' ? 'bg-green-100 text-green-800' :
                                     contact.status === 'failed' ? 'bg-red-100 text-red-800' :
                                       'bg-yellow-100 text-yellow-800'}`}>

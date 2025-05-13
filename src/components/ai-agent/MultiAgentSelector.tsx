@@ -73,7 +73,6 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
     try {
       // Update the active agent in the database
       await setActiveAgent(user.id, agentId);
-
       // Update the local state
       setConfig(prev => prev ? {
         ...prev,
@@ -85,7 +84,6 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
 
       // Trigger refresh
       triggerConfigRefresh();
-
       showToast('Agent switched successfully');
     } catch (error) {
       console.error('Error selecting agent:', error);
@@ -117,7 +115,6 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
 
       // Select the new agent
       await handleSelectAgent(newAgentId);
-
       showToast('New agent created successfully');
       setShowTemplates(false);
     } catch (error) {
@@ -139,7 +136,6 @@ export default function MultiAgentSelector({ onAgentSelect, showAddAgent }: Mult
 
       // Reload the configuration
       await loadConfig();
-
       showToast('Agent deleted successfully');
     } catch (error) {
       console.error('Error deleting agent:', error);
