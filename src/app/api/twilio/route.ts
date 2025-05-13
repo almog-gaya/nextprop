@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getTwilioClient, accountSid, authToken } from '@/lib/twilio/config';
+import { getTwilioClient, accountSid, authToken, getTwilioClientBySid } from '@/lib/twilio/config';
 import { getAuthHeaders } from '@/lib/enhancedApi';
 import { getA2PRegistrationByUserId } from '@/lib/a2p';
 import axios from 'axios'; 
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     if (!profile) {
       return NextResponse.json({ success: false, error: 'Profile not found' }, { status: 404 });
     }
-    const client = getTwilioClient(profile.sid);
+    const client = getTwilioClientBySid(profile.sid ?? '');
 
     // Fetch Brand Registration status
     let brand;
