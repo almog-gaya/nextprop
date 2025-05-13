@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tab, TabGroup, TabPanel, TabPanels } from '@headlessui/react';
 import classNames from 'classnames';
-import { BellIcon } from '@heroicons/react/24/outline';
+import { BellIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { Pipeline } from '@/types';
@@ -11,7 +11,7 @@ import { Stage } from '@/components/dashboard/StageSelector';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebaseConfig';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { NotificationSettings, NotificationPreferences } from '@/types/notifications';
+import { NotificationSettings, NotificationPreferences, NotificationPreference } from '@/types/notifications';
 import NotificationTray from '@/components/notification/NotificationTray';
 import { isWorkflowExists, getCurrentWorkflowId, createWorkFlow, updateWorkFlow, deleteWorkFlow } from '@/lib/ghl-service';
 
@@ -130,7 +130,8 @@ export default function NotificationsPage() {
     type: keyof NotificationPreferences,
     pipelineId: string,
     stageId: string,
-    enabled: boolean
+    enabled: boolean,
+    index: number
   ) => {
     // Find pipeline and stage names
     const pipeline = pipelines.find(p => p.id === pipelineId);
@@ -144,24 +145,38 @@ export default function NotificationsPage() {
       enabled 
     };
     
-    // Update the specific preference type, maintaining only one item in the array
+    // Update the specific preference type at the given index
     setPreferences(prev => ({
       ...prev,
-      [type]: [newPreference] // Always set as single item array
+      [type]: prev[type].map((pref, i) => i === index ? newPreference : pref)
+    }));
+  };
+
+  const addPreference = (type: keyof NotificationPreferences) => {
+    setPreferences(prev => ({
+      ...prev,
+      [type]: [
+        ...prev[type],
+        {
+          pipelineId: '',
+          pipelineName: '',
+          stageId: '',
+          stageName: '',
+          enabled: true
+        }
+      ]
+    }));
+  };
+
+  const removePreference = (type: keyof NotificationPreferences, index: number) => {
+    setPreferences(prev => ({
+      ...prev,
+      [type]: prev[type].filter((_, i) => i !== index)
     }));
   };
 
   const toggleNotification = (type: keyof NotificationPreferences) => {
-    const currentPreference = preferences[type][0];
-    if (currentPreference) {
-      // If we have a preference, toggle its enabled state
-      updateLocalPreference(
-        type,
-        currentPreference.pipelineId,
-        currentPreference.stageId,
-        !currentPreference.enabled
-      );
-    } else {
+    if (preferences[type].length === 0) {
       // If no preference exists, create a new one with enabled=true but no pipeline/stage
       setPreferences(prev => ({
         ...prev,
@@ -173,6 +188,15 @@ export default function NotificationsPage() {
           enabled: true
         }]
       }));
+    } else {
+      // Toggle all preferences of this type
+      setPreferences(prev => ({
+        ...prev,
+        [type]: prev[type].map(pref => ({
+          ...pref,
+          enabled: !pref.enabled
+        }))
+      }));
     }
   };
 
@@ -181,17 +205,16 @@ export default function NotificationsPage() {
 
     // Validate all enabled notifications have pipeline and stage, except for newLeadAssigned
     const invalidPreferences = Object.entries(preferences).filter(([type, prefs]) => {
-      const pref = prefs[0];
-      
       // Skip validation for newLeadAssigned
       if (type === 'newLeadAssigned') return false;
-      // For other types, check both pipeline and stage
-      return pref?.enabled && (!pref.pipelineId || !pref.stageId);
+      
+      // For other types, check if any enabled preference is missing pipeline or stage
+      return prefs.some((pref: NotificationPreference) => pref.enabled && (!pref.pipelineId || !pref.stageId));
     });
 
     if (invalidPreferences.length > 0) {
       console.log('invalidPreferences', invalidPreferences);
-      // toast.error('Please select both pipeline and stage for all enabled notifications');
+      toast.error('Please select both pipeline and stage for all enabled notifications');
       return;
     }
 
@@ -204,18 +227,16 @@ export default function NotificationsPage() {
       });
       setInitialPreferences(preferences);
       setHasChanges(false);
-      //
+      
       // Update the workflow if lead assigned notification is enabled or disabled
       // Ensure dont create the workflow if it already exists
-      //
-      if(preferences.newLeadAssigned[0]?.enabled) {
+      if(preferences.newLeadAssigned.some(pref => pref.enabled)) {
         const uuidTemplateId = crypto.randomUUID();
         const workflowResponse = await createWorkFlow(WORKFLOW_NAME);
         const workflowId = workflowResponse.workflowId;
         const triggerId = workflowResponse.triggerId;
         const updateWorkflow = await updateWorkFlow(workflowId, triggerId, uuidTemplateId, WORKFLOW_NAME);
         console.log('updateWorkflow', updateWorkflow);
-        
       } else {
         const workflowId = await getCurrentWorkflowId(WORKFLOW_NAME);
         if(workflowId) {
@@ -280,6 +301,37 @@ export default function NotificationsPage() {
       document.head.removeChild(styleSheet);
     };
   }, []);
+
+  // Add these helper functions after the state declarations
+  const getAvailablePipelines = (type: keyof NotificationPreferences, currentIndex: number) => {
+    // For newLeadAssigned, prevent pipeline repetition
+    if (type === 'newLeadAssigned') {
+      return pipelines.filter(pipeline => {
+        return !preferences[type].some((pref, index) => 
+          index !== currentIndex && pref.pipelineId === pipeline.id
+        );
+      });
+    }
+    // For newSMS and leadStatusChange, allow pipeline repetition
+    return pipelines;
+  };
+
+  const getAvailableStages = (type: keyof NotificationPreferences, currentIndex: number, pipelineId: string) => {
+    const pipeline = pipelines.find(p => p.id === pipelineId);
+    if (!pipeline?.stages) return [];
+    
+    // For newLeadAssigned, return all stages (since it doesn't use stages)
+    if (type === 'newLeadAssigned') return pipeline.stages;
+    
+    // For newSMS and leadStatusChange, prevent stage repetition within the same pipeline
+    return pipeline.stages.filter(stage => {
+      return !preferences[type].some((pref, index) => 
+        index !== currentIndex && 
+        pref.pipelineId === pipelineId && 
+        pref.stageId === stage.id
+      );
+    });
+  };
  
   return (
     <div className="p-8 max-w-3xl mx-auto">
@@ -377,62 +429,87 @@ export default function NotificationsPage() {
 
                     {/* Pipeline and Stage Selectors */}
                     <div className={classNames(
-                      "grid grid-cols-1 md:grid-cols-2 gap-6 transition-opacity duration-200",
+                      "space-y-4 transition-opacity duration-200",
                       preferences.newSMS[0]?.enabled ? "opacity-100" : "opacity-50 pointer-events-none"
                     )}>
-                      {/* Pipeline Selector */}
-                      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-                        <div className="mb-3">
-                          <h3 className="text-sm font-semibold text-gray-700">Pipeline</h3>
-                        </div>
-                        <div className="border border-gray-200 rounded-md">
-                          <select
-                            value={preferences.newSMS[0]?.pipelineId || ''}
-                            onChange={(e) => {
-                              const pipelineId = e.target.value;
-                              if (pipelineId) {
-                                updateLocalPreference('newSMS', pipelineId, '', true);
-                              }
-                            }}
-                            className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                          >
-                            <option value="">Select Pipeline</option>
-                            {pipelines.map((pipeline) => (
-                              <option key={pipeline.id} value={pipeline.id} className="text-gray-700">
-                                {pipeline.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div> 
-                      </div>
+                      {preferences.newSMS.map((pref, index) => (
+                        <div key={index} className="relative">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Pipeline Selector */}
+                            <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                              <div className="mb-3">
+                                <h3 className="text-sm font-semibold text-gray-700">Pipeline</h3>
+                              </div>
+                              <div className="border border-gray-200 rounded-md">
+                                <select
+                                  value={pref.pipelineId || ''}
+                                  onChange={(e) => {
+                                    const pipelineId = e.target.value;
+                                    if (pipelineId) {
+                                      updateLocalPreference('newSMS', pipelineId, '', true, index);
+                                    }
+                                  }}
+                                  className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                >
+                                  <option value="">Select Pipeline</option>
+                                  {getAvailablePipelines('newSMS', index).map((pipeline) => (
+                                    <option key={pipeline.id} value={pipeline.id} className="text-gray-700">
+                                      {pipeline.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div> 
+                            </div>
 
-                      {/* Stage Selector */}
-                      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-                        <div className="mb-3">
-                          <h3 className="text-sm font-semibold text-gray-700">Stage</h3>
+                            {/* Stage Selector */}
+                            <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                              <div className="mb-3">
+                                <h3 className="text-sm font-semibold text-gray-700">Stage</h3>
+                              </div>
+                              <div className="border border-gray-200 rounded-md">
+                                <select
+                                  value={pref.stageId || ''}
+                                  onChange={(e) => {
+                                    const stageId = e.target.value;
+                                    const pipelineId = pref.pipelineId;
+                                    if (pipelineId && stageId) {
+                                      updateLocalPreference('newSMS', pipelineId, stageId, true, index);
+                                    }
+                                  }}
+                                  disabled={!pref.pipelineId}
+                                  className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                >
+                                  <option value="">Select Stage</option>
+                                  {getAvailableStages('newSMS', index, pref.pipelineId).map((stage: Stage) => (
+                                    <option key={stage.id} value={stage.id} className="text-gray-700">
+                                      {stage.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div> 
+                            </div>
+                          </div>
+                          
+                          {/* Remove button */}
+                          {index > 0 && (
+                            <button
+                              onClick={() => removePreference('newSMS', index)}
+                              className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
+                            >
+                              <XMarkIcon className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
-                        <div className="border border-gray-200 rounded-md">
-                          <select
-                            value={preferences.newSMS[0]?.stageId || ''}
-                            onChange={(e) => {
-                              const stageId = e.target.value;
-                              const pipelineId = preferences.newSMS[0]?.pipelineId;
-                              if (pipelineId && stageId) {
-                                updateLocalPreference('newSMS', pipelineId, stageId, true);
-                              }
-                            }}
-                            disabled={!preferences.newSMS[0]?.pipelineId}
-                            className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                          >
-                            <option value="">Select Stage</option>
-                            {newSMSStages.map((stage: Stage) => (
-                              <option key={stage.id} value={stage.id} className="text-gray-700">
-                                {stage.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div> 
-                      </div>
+                      ))}
+                      
+                      {/* Add button */}
+                      <button
+                        onClick={() => addPreference('newSMS')}
+                        className="flex items-center gap-2 text-sm text-[#7c3aed] hover:text-[#6d28d9] transition-colors"
+                      >
+                        <PlusIcon className="h-4 w-4" />
+                        Add another configuration
+                      </button>
                     </div>
                   </div>
 
@@ -462,62 +539,87 @@ export default function NotificationsPage() {
 
                     {/* Pipeline and Stage Selectors */}
                     <div className={classNames(
-                      "grid grid-cols-1 md:grid-cols-2 gap-6 transition-opacity duration-200",
+                      "space-y-4 transition-opacity duration-200",
                       preferences.leadStatusChange[0]?.enabled ? "opacity-100" : "opacity-50 pointer-events-none"
                     )}>
-                      {/* Pipeline Selector */}
-                      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-                        <div className="mb-3">
-                          <h3 className="text-sm font-semibold text-gray-700">Pipeline</h3>
-                        </div>
-                        <div className="border border-gray-200 rounded-md">
-                          <select
-                            value={preferences.leadStatusChange[0]?.pipelineId || ''}
-                            onChange={(e) => {
-                              const pipelineId = e.target.value;
-                              if (pipelineId) {
-                                updateLocalPreference('leadStatusChange', pipelineId, '', true);
-                              }
-                            }}
-                            className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                          >
-                            <option value="">Select Pipeline</option>
-                            {pipelines.map((pipeline) => (
-                              <option key={pipeline.id} value={pipeline.id} className="text-gray-700">
-                                {pipeline.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div> 
-                      </div>
+                      {preferences.leadStatusChange.map((pref, index) => (
+                        <div key={index} className="relative">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Pipeline Selector */}
+                            <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                              <div className="mb-3">
+                                <h3 className="text-sm font-semibold text-gray-700">Pipeline</h3>
+                              </div>
+                              <div className="border border-gray-200 rounded-md">
+                                <select
+                                  value={pref.pipelineId || ''}
+                                  onChange={(e) => {
+                                    const pipelineId = e.target.value;
+                                    if (pipelineId) {
+                                      updateLocalPreference('leadStatusChange', pipelineId, '', true, index);
+                                    }
+                                  }}
+                                  className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                >
+                                  <option value="">Select Pipeline</option>
+                                  {getAvailablePipelines('leadStatusChange', index).map((pipeline) => (
+                                    <option key={pipeline.id} value={pipeline.id} className="text-gray-700">
+                                      {pipeline.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div> 
+                            </div>
 
-                      {/* Stage Selector */}
-                      <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
-                        <div className="mb-3">
-                          <h3 className="text-sm font-semibold text-gray-700">Stage</h3>
+                            {/* Stage Selector */}
+                            <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                              <div className="mb-3">
+                                <h3 className="text-sm font-semibold text-gray-700">Stage</h3>
+                              </div>
+                              <div className="border border-gray-200 rounded-md">
+                                <select
+                                  value={pref.stageId || ''}
+                                  onChange={(e) => {
+                                    const stageId = e.target.value;
+                                    const pipelineId = pref.pipelineId;
+                                    if (pipelineId && stageId) {
+                                      updateLocalPreference('leadStatusChange', pipelineId, stageId, true, index);
+                                    }
+                                  }}
+                                  disabled={!pref.pipelineId}
+                                  className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                >
+                                  <option value="">Select Stage</option>
+                                  {getAvailableStages('leadStatusChange', index, pref.pipelineId).map((stage: Stage) => (
+                                    <option key={stage.id} value={stage.id} className="text-gray-700">
+                                      {stage.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div> 
+                            </div>
+                          </div>
+                          
+                          {/* Remove button */}
+                          {index > 0 && (
+                            <button
+                              onClick={() => removePreference('leadStatusChange', index)}
+                              className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
+                            >
+                              <XMarkIcon className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
-                        <div className="border border-gray-200 rounded-md">
-                          <select
-                            value={preferences.leadStatusChange[0]?.stageId || ''}
-                            onChange={(e) => {
-                              const stageId = e.target.value;
-                              const pipelineId = preferences.leadStatusChange[0]?.pipelineId;
-                              if (pipelineId && stageId) {
-                                updateLocalPreference('leadStatusChange', pipelineId, stageId, true);
-                              }
-                            }}
-                            disabled={!preferences.leadStatusChange[0]?.pipelineId}
-                            className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                          >
-                            <option value="">Select Stage</option>
-                            {leadStatusStages.map((stage: Stage) => (
-                              <option key={stage.id} value={stage.id} className="text-gray-700">
-                                {stage.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div> 
-                      </div>
+                      ))}
+                      
+                      {/* Add button */}
+                      <button
+                        onClick={() => addPreference('leadStatusChange')}
+                        className="flex items-center gap-2 text-sm text-[#7c3aed] hover:text-[#6d28d9] transition-colors"
+                      >
+                        <PlusIcon className="h-4 w-4" />
+                        Add another configuration
+                      </button>
                     </div>
                   </div>
 
@@ -547,31 +649,56 @@ export default function NotificationsPage() {
 
                     {/* Pipeline Selector Only */}
                     <div className={classNames(
-                      "bg-gray-50 p-4 rounded-lg shadow-sm transition-opacity duration-200",
+                      "space-y-4 transition-opacity duration-200",
                       preferences.newLeadAssigned[0]?.enabled ? "opacity-100" : "opacity-50 pointer-events-none"
                     )}>
-                      <div className="mb-3">
-                        <h3 className="text-sm font-semibold text-gray-700">Pipeline</h3>
-                      </div>
-                      <div className="border border-gray-200 rounded-md">
-                        <select
-                          value={preferences.newLeadAssigned[0]?.pipelineId || ''}
-                          onChange={(e) => {
-                            const pipelineId = e.target.value;
-                            if (pipelineId) {
-                              updateLocalPreference('newLeadAssigned', pipelineId, '', true);
-                            }
-                          }}
-                          className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                        >
-                          <option value="">Select Pipeline</option>
-                          {pipelines.map((pipeline) => (
-                            <option key={pipeline.id} value={pipeline.id} className="text-gray-700">
-                              {pipeline.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div> 
+                      {preferences.newLeadAssigned.map((pref, index) => (
+                        <div key={index} className="relative">
+                          <div className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                            <div className="mb-3">
+                              <h3 className="text-sm font-semibold text-gray-700">Pipeline</h3>
+                            </div>
+                            <div className="border border-gray-200 rounded-md">
+                              <select
+                                value={pref.pipelineId || ''}
+                                onChange={(e) => {
+                                  const pipelineId = e.target.value;
+                                  if (pipelineId) {
+                                    updateLocalPreference('newLeadAssigned', pipelineId, '', true, index);
+                                  }
+                                }}
+                                className="w-full px-3 py-2 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                              >
+                                <option value="">Select Pipeline</option>
+                                {getAvailablePipelines('newLeadAssigned', index).map((pipeline) => (
+                                  <option key={pipeline.id} value={pipeline.id} className="text-gray-700">
+                                    {pipeline.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div> 
+                          </div>
+                          
+                          {/* Remove button */}
+                          {index > 0 && (
+                            <button
+                              onClick={() => removePreference('newLeadAssigned', index)}
+                              className="absolute -top-2 -right-2 p-1 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
+                            >
+                              <XMarkIcon className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {/* Add button */}
+                      <button
+                        onClick={() => addPreference('newLeadAssigned')}
+                        className="flex items-center gap-2 text-sm text-[#7c3aed] hover:text-[#6d28d9] transition-colors"
+                      >
+                        <PlusIcon className="h-4 w-4" />
+                        Add another configuration
+                      </button>
                     </div>
                   </div>
                 </div>
