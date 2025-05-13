@@ -15,15 +15,7 @@ import StatsCard from '../StatsCard';
 import { collection, getDocs, query, where, getFirestore } from 'firebase/firestore';
 import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
-  TrashIcon,
-  XIcon,
-  MessageCircleIcon,
-  MessageCircleDashedIcon,
-  MessageCircleOffIcon
-} from 'lucide-react';
-import StatsCard from '../StatsCard';
-import { collection, getDocs, query, where, getFirestore } from 'firebase/firestore';
-import { doc, updateDoc } from 'firebase/firestore';
+
 // Types for campaign progress tracking
 interface CampaignProgress {
   total: number;
