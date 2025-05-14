@@ -11,7 +11,8 @@ export async function middleware(request: NextRequest) {
   if (
     pathname === '/api' || 
     pathname.startsWith('/api/twilio/') || 
-    pathname.startsWith('/api/auth/')
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/onboarding')
   ) {
     log('[Middleware] Public route detected, skipping auth check');
     return NextResponse.next();
@@ -126,6 +127,8 @@ export const config = {
     '/api/:path*',
     '/api/twilio/:path*',
     '/api/auth/:path*',
-    '/api'
+    '/api',
+    // Add public routes
+    '/onboarding/:path*'
   ],
 };
