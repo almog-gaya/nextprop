@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/api' || 
     pathname.startsWith('/api/twilio/') || 
     pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/api/stripe/') ||
     pathname.startsWith('/onboarding')
   ) {
     log('[Middleware] Public route detected, skipping auth check');
