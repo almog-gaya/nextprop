@@ -71,7 +71,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isPublicRoute = (path: string) => {
     return path.startsWith('/onboarding') || 
            path.startsWith('/auth/login') || 
-           path.startsWith('/auth/register');
+           path.startsWith('/auth/register') ||
+           path.startsWith('/register');
   };
 
   const loadUser = async () => {

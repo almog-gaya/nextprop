@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function OnboardingPage() {
   const { user } = useAuth();
@@ -13,31 +14,10 @@ export default function OnboardingPage() {
   const searchParams = useSearchParams();
   const isSuccess = searchParams.get('success') === 'true';
   const email = searchParams.get('email');
+  const router = useRouter();
 
-  const handleGetStarted = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'stripe@test.com',
-          isOnboarding: true
-        }),
-      });
-
-      const { url } = await response.json();
-      
-      if (url) {
-        window.location.href = url;
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleGetStarted = () => {
+    router.push('/register');
   };
 
   if (isSuccess) {
