@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { flushAllAuthData } from '@/lib/authUtils';
 
 interface User {
@@ -63,9 +63,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isPublicRoute = (path: string) => {
+    return path.startsWith('/onboarding') || 
+           path.startsWith('/auth/login') || 
+           path.startsWith('/auth/register') ||
+           path.startsWith('/register');
+  };
+
   const loadUser = async () => {
     try {
       setLoading(true);
@@ -73,7 +82,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
 
       if (!data.authenticated) {
-        router.replace('/auth/login');
+        // Only redirect if not on a public route
+        if (!isPublicRoute(pathname)) {
+          router.replace('/auth/login');
+        }
         setLoading(false);
         return;
       }
@@ -99,14 +111,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error loading user data:', e);
       setError('Failed to load user data');
     } finally {
-      setLoading(false); // Always set loading to false when done
+      setLoading(false);
     }
   };
-  useEffect(() => {
-  
 
+  useEffect(() => {
     loadUser();
-  }, [router]); // Include router in dependencies
+  }, [router, pathname]); // Include pathname in dependencies
 
   const logout = () => {
     flushAllAuthData();
