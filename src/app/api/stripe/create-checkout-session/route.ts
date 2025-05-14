@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCheckoutSession, stripe } from '@/lib/stripe';
+import { createCheckoutSession } from '@/lib/stripe';
 import { db } from '@/lib/firebaseConfig';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
@@ -18,6 +18,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Import the getStripeInstance function dynamically to avoid build issues
+    const { getStripeInstance } = await import('@/lib/stripe');
+    const stripe = getStripeInstance();
 
     const normalizedEmail = email.toLowerCase();
 

@@ -4,11 +4,12 @@ import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 
-export default function OnboardingPage() {
+// Component to handle search params
+function OnboardingContent() {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
@@ -216,5 +217,26 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f8e1e7] via-[#e3e6fa] to-[#c7e6fa]">
+      <div className="p-8 text-center">
+        <h2 className="text-2xl font-semibold text-gray-700 mb-4">Loading...</h2>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto"></div>
+      </div>
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <OnboardingContent />
+    </Suspense>
   );
 } 
