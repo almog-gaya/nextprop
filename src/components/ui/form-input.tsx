@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -10,6 +10,8 @@ interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
   ({ label, error, hint, showHint, className, ...props }, ref) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+
     return (
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
@@ -33,7 +35,9 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
               <button
                 type="button"
                 className="text-gray-400 hover:text-gray-500"
-                title={hint}
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                onClick={() => setShowTooltip(!showTooltip)}
               >
                 <svg
                   className="h-5 w-5"
@@ -49,6 +53,11 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
                   />
                 </svg>
               </button>
+              {showTooltip && (
+                <div className="absolute right-0 mt-2 w-64 p-2 bg-gray-900 text-white text-sm rounded shadow-lg z-10">
+                  {hint}
+                </div>
+              )}
             </div>
           )}
         </div>

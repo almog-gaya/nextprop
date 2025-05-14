@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FormInput } from '@/components/ui/form-input';
-import { FormSelect } from '@/components/ui/form-select';
 import { FormCheckboxGroup } from '@/components/ui/form-checkbox-group';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { timezones } from '@/utils/timezones';
+import { Dropdown } from '@/components/ui/dropdown';
 
 const businessTypes = [
   { value: 'cooperative', label: 'Co-operative'},
@@ -211,6 +211,7 @@ export default function RegisterPage() {
               value={formData.businessName}
               onChange={(e) => handleInputChange('businessName', e.target.value)}
               error={errors.businessName}
+              placeholder="Enter your business name as you want it to appear"
             />
             <FormInput
               label="Legal Business Name"
@@ -219,6 +220,7 @@ export default function RegisterPage() {
               hint="Enter the exact legal business name, as registered with the EIN"
               showHint
               error={errors.legalName}
+              placeholder="Enter your official registered business name"
             />
             <FormInput
               label="Business Email"
@@ -226,6 +228,7 @@ export default function RegisterPage() {
               value={formData.businessEmail}
               onChange={(e) => handleInputChange('businessEmail', e.target.value)}
               error={errors.businessEmail}
+              placeholder="business@example.com"
             />
             <FormInput
               label="Business Phone"
@@ -233,6 +236,7 @@ export default function RegisterPage() {
               value={formData.businessPhone}
               onChange={(e) => handleInputChange('businessPhone', e.target.value)}
               error={errors.businessPhone}
+              placeholder="+1 (555) 123-4567"
             />
             <FormInput
               label="Business Website"
@@ -240,12 +244,14 @@ export default function RegisterPage() {
               value={formData.businessWebsite}
               onChange={(e) => handleInputChange('businessWebsite', e.target.value)}
               error={errors.businessWebsite}
+              placeholder="https://www.example.com"
             />
             <FormInput
               label="Business Niche"
               value={formData.businessNiche}
               onChange={(e) => handleInputChange('businessNiche', e.target.value)}
               error={errors.businessNiche}
+              placeholder="e.g., Residential Real Estate, Commercial Properties"
             />
           </div>
         );
@@ -253,22 +259,28 @@ export default function RegisterPage() {
         return (
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-gray-900">Business Information</h2>
-            <FormSelect
+            <Dropdown
               label="Business Type"
               options={businessTypes}
               value={formData.businessType}
-              onChange={(e) => handleInputChange('businessType', e.target.value)}
+              onChange={(value) => handleInputChange('businessType', value)}
+              error={errors.businessType}
+              placeholder="Select business type"
+              width="full"
             />
             <FormInput
               label="Business Registration Number (EIN)"
               value={formData.ein}
               onChange={(e) => handleInputChange('ein', e.target.value)}
+              error={errors.ein}
+              placeholder="XX-XXXXXXX"
             />
             <FormCheckboxGroup
               label="Regions"
               options={regions}
               value={formData.regions}
               onChange={(value) => handleInputChange('regions', value)}
+              error={errors.regions}
             />
           </div>
         );
@@ -282,27 +294,38 @@ export default function RegisterPage() {
               onChange={(e) => handleInputChange('streetAddress', e.target.value)}
               hint="Enter the exact business address as it appears in the EIN listing"
               showHint
+              error={errors.streetAddress}
+              placeholder="123 Business Street, Suite 100"
             />
             <FormInput
               label="City"
               value={formData.city}
               onChange={(e) => handleInputChange('city', e.target.value)}
+              error={errors.city}
+              placeholder="Enter your city"
             />
             <FormInput
               label="State/Prov/Region"
               value={formData.state}
               onChange={(e) => handleInputChange('state', e.target.value)}
+              error={errors.state}
+              placeholder="Enter your state or province"
             />
             <FormInput
               label="Country"
               value={formData.country}
               onChange={(e) => handleInputChange('country', e.target.value)}
+              error={errors.country}
+              placeholder="Enter your country"
             />
-            <FormSelect
+            <Dropdown
               label="Timezone"
               options={timezones}
               value={formData.timezone}
-              onChange={(e) => handleInputChange('timezone', e.target.value)}
+              onChange={(value) => handleInputChange('timezone', value)}
+              error={errors.timezone}
+              placeholder="Select timezone"
+              width="full"
             />
           </div>
         );
@@ -314,24 +337,33 @@ export default function RegisterPage() {
               label="First Name"
               value={formData.firstName}
               onChange={(e) => handleInputChange('firstName', e.target.value)}
+              error={errors.firstName}
+              placeholder="Enter your first name"
             />
             <FormInput
               label="Representative Email"
               type="email"
               value={formData.representativeEmail}
               onChange={(e) => handleInputChange('representativeEmail', e.target.value)}
+              error={errors.representativeEmail}
+              placeholder="representative@example.com"
             />
-            <FormSelect
+            <Dropdown
               label="Job Position"
               options={jobPositions}
               value={formData.jobPosition}
-              onChange={(e) => handleInputChange('jobPosition', e.target.value)}
+              onChange={(value) => handleInputChange('jobPosition', value)}
+              error={errors.jobPosition}
+              placeholder="Select job position"
+              width="full"
             />
             <FormInput
               label="Phone Number (With Country Code)"
               type="tel"
               value={formData.phoneNumber}
               onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+              error={errors.phoneNumber}
+              placeholder="+1 (555) 123-4567"
             />
           </div>
         );
@@ -357,7 +389,7 @@ export default function RegisterPage() {
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         currentStep >= step
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-[var(--nextprop-primary)] text-white'
                           : 'bg-gray-200 text-gray-600'
                       }`}
                     >
@@ -366,7 +398,7 @@ export default function RegisterPage() {
                     {step !== 4 && (
                       <div
                         className={`flex-1 h-1 mx-2 ${
-                          currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                          currentStep > step ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
                         }`}
                       />
                     )}
