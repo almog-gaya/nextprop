@@ -123,7 +123,8 @@ export const updateWorkFlow = async (workflowId: string, triggerId: string, temp
     body: JSON.stringify({
       workflowId,
       triggerId,
-      templateId
+      templateId,
+      workflowName
     })
   });
 

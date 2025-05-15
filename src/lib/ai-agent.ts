@@ -12,70 +12,70 @@ let serverConfigCache: { [userId: string]: AIAgentConfig } = {};
 let multiAgentCache: { [userId: string]: MultiAgentConfig } = {};
 
 // Function to cache config on server-side with a user ID
-export function cacheServerConfig(userId: string, config: AIAgentConfig): void {
-  if (typeof window !== 'undefined') return; // Only run on server
+// export function cacheServerConfig(userId: string, config: AIAgentConfig): void {
+//   // if (typeof window !== 'undefined') return; // Only run on server
   
-  serverConfigCache[userId] = { ...config };
-  console.log(`Cached config for user ${userId} on server`);
-}
+//   // serverConfigCache[userId] = { ...config };
+//   // console.log(`Cached config for user ${userId} on server`);
+// }
 
-// Function to get cached config from server
-export function getServerCachedConfig(userId: string): AIAgentConfig | null {
-  if (typeof window !== 'undefined') return null; // Only run on server
+// // Function to get cached config from server
+// export function getServerCachedConfig(userId: string): AIAgentConfig | null {
+//   // if (typeof window !== 'undefined') return null; // Only run on server
   
-  return serverConfigCache[userId] || null;
-}
+//   // return serverConfigCache[userId] || null;
+// }
 
 // Server-side cookie functions
-export async function getConfigFromServerCookie() {
-  // This is used by server components only
-  // Dynamic import to avoid client-side errors
-  try {
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    const configCookie = cookieStore.get(CONFIG_COOKIE_KEY);
+// export async function getConfigFromServerCookie() {
+//   // This is used by server components only
+//   // Dynamic import to avoid client-side errors
+//   try {
+//     const { cookies } = await import('next/headers');
+//     const cookieStore = await cookies();
+//     const configCookie = cookieStore.get(CONFIG_COOKIE_KEY);
     
-    if (configCookie?.value) {
-      try {
-        const parsedConfig = JSON.parse(decodeURIComponent(configCookie.value));
-        return {
-          ...parsedConfig,
-          isEnabled: Boolean(parsedConfig.isEnabled),
-          updatedAt: new Date(parsedConfig.updatedAt)
-        };
-      } catch (parseError) {
-        console.error('Error parsing config cookie on server:', parseError);
-      }
-    }
-  } catch (error) {
-    console.error('Error accessing server cookies:', error);
-  }
+//     if (configCookie?.value) {
+//       try {
+//         const parsedConfig = JSON.parse(decodeURIComponent(configCookie.value));
+//         return {
+//           ...parsedConfig,
+//           isEnabled: Boolean(parsedConfig.isEnabled),
+//           updatedAt: new Date(parsedConfig.updatedAt)
+//         };
+//       } catch (parseError) {
+//         console.error('Error parsing config cookie on server:', parseError);
+//       }
+//     }
+//   } catch (error) {
+//     console.error('Error accessing server cookies:', error);
+//   }
   
-  return null;
-}
+//   return null;
+// }
 
-export async function setConfigInServerCookie(config: AIAgentConfig) {
-  // This is used by server components only
-  // Dynamic import to avoid client-side errors
-  try {
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    const configJson = JSON.stringify(config);
+// export async function setConfigInServerCookie(config: AIAgentConfig) {
+//   // This is used by server components only
+//   // Dynamic import to avoid client-side errors
+//   try {
+//     const { cookies } = await import('next/headers');
+//     const cookieStore = await cookies();
+//     const configJson = JSON.stringify(config);
     
-    cookieStore.set({
-      name: CONFIG_COOKIE_KEY,
-      value: encodeURIComponent(configJson),
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      sameSite: 'strict',
-    });
+//     cookieStore.set({
+//       name: CONFIG_COOKIE_KEY,
+//       value: encodeURIComponent(configJson),
+//       path: '/',
+//       maxAge: 60 * 60 * 24 * 365, // 1 year
+//       sameSite: 'strict',
+//     });
     
-    return true;
-  } catch (error) {
-    console.error('Error setting server cookie:', error);
-    return false;
-  }
-}
+//     return true;
+//   } catch (error) {
+//     console.error('Error setting server cookie:', error);
+//     return false;
+//   }
+// }
 
 // Helper function to parse cookies on client
 function parseCookies(cookieString: string): { [key: string]: string } {

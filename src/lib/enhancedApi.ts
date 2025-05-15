@@ -1,6 +1,5 @@
 import { refreshAccessToken, setAuthCookies, shouldRefreshToken } from '@/utils/authUtils';
 import axios from 'axios';
-import { cookies } from 'next/headers';
 
 const API_BASE_URL = 'https://rest.gohighlevel.com/v1';
 
@@ -444,6 +443,8 @@ export async function deleteContact(contactId: string) {
 }
 
  const getAuthHeaders = async () => {
+  
+  const {cookies} = await import('next/headers');
   const cookieStore = await cookies();
   
   const token = cookieStore.get('ghl_access_token');
@@ -481,6 +482,8 @@ export async function deleteContact(contactId: string) {
 
 // Optional: Add a force refresh function
  const forceRefreshToken = async () => {
+
+  const {cookies} = await import('next/headers');
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get('ghl_refresh_token');
   

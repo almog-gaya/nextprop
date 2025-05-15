@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowPathIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
-import AIAgentConfig from '@/components/ai-agent/AIAgentConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
 import { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';

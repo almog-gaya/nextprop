@@ -1,6 +1,6 @@
 import { GHL_AUTH_CONFIG } from "@/lib/ghlAuth";
 import { CookieOptions, TokenResponse } from "@/types/auth";
-import { cookies } from "next/headers";
+
 const COOKIE_DEFAULTS: CookieOptions = {
     httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
@@ -154,6 +154,7 @@ export const clearAuthCookies = (cookieStore: any) => {
  */
 export const refreshTokenIdBackend = async () => {
     try {
+      const {cookies} = await import('next/headers');
       const cookieStore = await cookies();
       const currentToken = cookieStore.get('token_id')?.value;
       const refreshToken = cookieStore.get('token_id_refresh')?.value || 'AMf-vBwVv8zF2qFKjAxaeNX8hffkiGsLenYQQyzfaMCD5ZgldF0elrHBjwk_LPiJDSdEMRofwmR8l6FXjU2QpcZlPZqQXlzPpTbpFgqDcsKN_i17EwNGgqC3L0ZvVjHLjJ6CT-k5bdpqfrH3b0IilK1tXH0fjtHwpajPtc6bHPk5hXYBOWuX2fv3zUKRYV9pRjTeMEH8LPQuQ6776u8t1tJZ13Aj87xZfFF4kfUnmydUTWrt38Rmc5FFHzt79b_vNpX5fFOnRxGFIAWzbi-MPbksrFHANZx508VN0LYFrUYdKz_6siHJMIJgGBBgWDsBpTjnLZ7_9ueJ1KZDdR9rj7c05QKfvYESfp-5YUdXZy1nHLpWLKRbN-gjwXawLVE9nNKHxJsZKuOI2CH4C9a0F6ZnmFRrQ27jia55MDU4TuL7tW-VMn95gtIGfTIzqZVoxZGpFrEsGg9_JRcpcK-nyUUhCA1BPBuTQLJDoNXcJ0ouGzgU7Mh3x4uvkBiKsf81AZoKKl3XNA_i';

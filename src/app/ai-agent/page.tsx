@@ -9,8 +9,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { saveAIAgentConfig, updateAgentConfig } from '@/lib/ai-agent';
 import { toast } from 'react-hot-toast';
 import type { AIAgentConfig as AIAgentConfigType } from '@/types/ai-agent';
-import { isWorkflowExists } from '@/lib/ghl-service';
+import { createWorkFlow, deleteWorkFlow, getCurrentWorkflowId, isWorkflowExists, updateWorkFlow } from '@/lib/ghl-service';
 import AIAgentListTable from '@/components/ai-agent/AIAgentListTable';
+import { WORKFLOW_NAME_SMS_AI_AGENT } from '../api/workflow/trigger/route';
 
 // Tab types for better type safety
 type TabType = 'dashboard' | 'goals' | 'testing' | 'training' | 'settings';
@@ -36,31 +37,32 @@ export default function AIAgentPage() {
       return;
     }
 
-    // Safe check for phoneNumbers
-    if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
-      toast.error('Please add a phone number to your account');
-      return;
-    }
+    // // Safe check for phoneNumbers
+    // if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
+    //   toast.error('Please add a phone number to your account');
+    //   console.log(`Config,`, currentConfig)
+    //   return;
+    // }
 
     setIsSaving(true);
     try {
       /// check if already exists dont create 
-      const exists = await isWorkflowExists();
+      const exists = await isWorkflowExists(WORKFLOW_NAME_SMS_AI_AGENT)
 
       if (!exists) {
         const uuidTemplateId = crypto.randomUUID();
-        const workflowResponse = await createWorkFlow();
+        const workflowResponse = await createWorkFlow(WORKFLOW_NAME_SMS_AI_AGENT);
         const workflowId = workflowResponse.workflowId;
         const triggerId = workflowResponse.triggerId;
-        const updateWorkflow = await updateWorkFlow(workflowId, triggerId, uuidTemplateId);
+        const updateWorkflow = await updateWorkFlow(workflowId, triggerId, uuidTemplateId, WORKFLOW_NAME_SMS_AI_AGENT);
         console.log('updateWorkflow', updateWorkflow);
       }
       const isUnselectedAll = currentConfig.enabledPipelines.length === 0;
       // if all is unselected then delete the workflow
       if (isUnselectedAll) {
-        const currentWorkFlowId = await getCurrentWorkflowId();
+        const currentWorkFlowId = await getCurrentWorkflowId(WORKFLOW_NAME_SMS_AI_AGENT);
         if (currentWorkFlowId) {
-          await deleteWorkFlow(currentWorkFlowId);
+          await deleteWorkFlow(currentWorkFlowId, WORKFLOW_NAME_SMS_AI_AGENT);
         }
       }
 
@@ -68,11 +70,8 @@ export default function AIAgentPage() {
       const { updateAgentConfig } = await import('@/lib/ai-agent');
       await updateAgentConfig(user.id, selectedAgentId, currentConfig);
 
-      // Also save to local storage for backward compatibility
-      await saveAIAgentConfig(currentConfig);
-
       // Sync with server
-      await syncConfigWithServer(currentConfig);
+      // await syncConfigWithServer(currentConfig);
 
       toast.success('AI Agent configuration saved successfully');
       triggerConfigRefresh();
@@ -91,75 +90,75 @@ export default function AIAgentPage() {
   };
 
   // Function to sync config with server
-  const syncConfigWithServer = async (config: AIAgentConfigType) => {
-    try {
-      const response = await fetch('/api/ai-agent/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config),
-      });
+  // const syncConfigWithServer = async (config: AIAgentConfigType) => {
+  //   try {
+  //     const response = await fetch('/api/ai-agent/config', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify(config),
+  //     });
 
-      if (!response.ok) {
-        throw new Error('Failed to sync config with server');
-      }
-      return true;
-    } catch (error) {
-      console.error('Error syncing config with server:', error);
-      return false;
-    }
-  };
+  //     if (!response.ok) {
+  //       throw new Error('Failed to sync config with server');
+  //     }
+  //     return true;
+  //   } catch (error) {
+  //     console.error('Error syncing config with server:', error);
+  //     return false;
+  //   }
+  // };
   /**
  * WORKFLOW Related API Calls
 */
-  const isWorkflowExists = async (): Promise<boolean> => {
-    const result = await fetch(`/api/workflow`);
-    const data = await result.json();
-    return data.isExists;
-  }
+  // const isWorkflowExists = async (): Promise<boolean> => {
+  //   const result = await fetch(`/api/workflow`);
+  //   const data = await result.json();
+  //   return data.isExists;
+  // }
 
-  const getCurrentWorkflowId = async () => {
-    try {
-      const result = await fetch(`/api/workflow`);
-      const data = await result.json();
-      return data?.rows[0]?.id;
-    } catch (_) { }
-  }
+  // const getCurrentWorkflowId = async () => {
+  //   try {
+  //     const result = await fetch(`/api/workflow`);
+  //     const data = await result.json();
+  //     return data?.rows[0]?.id;
+  //   } catch (_) { }
+  // }
 
-  const createWorkFlow = async () => {
-    const result = await fetch(`/api/workflow`, {
-      method: 'POST',
-    });
+  // const createWorkFlow = async () => {
+  //   const result = await fetch(`/api/workflow`, {
+  //     method: 'POST',
+  //   });
 
-    const data = await result.json();
-    return data;
-  }
+  //   const data = await result.json();
+  //   return data;
+  // }
 
-  const updateWorkFlow = async (workflowId: string, triggerId: string, templateId: string) => {
-    const result = await fetch(`/api/workflow`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        workflowId,
-        triggerId,
-        templateId
-      })
-    });
+  // const updateWorkFlow = async (workflowId: string, triggerId: string, templateId: string) => {
+  //   const result = await fetch(`/api/workflow`, {
+  //     method: 'PUT',
+  //     body: JSON.stringify({
+  //       workflowId,
+  //       triggerId,
+  //       templateId
+  //     })
+  //   });
 
-    const data = await result.json();
-    return data;
-  }
+  //   const data = await result.json();
+  //   return data;
+  // }
 
-  const deleteWorkFlow = async (workflowId: string) => {
-    const result = await fetch(`/api/workflow`, {
-      method: 'DELETE',
-      body: JSON.stringify({
-        workflowId
-      })
-    });
-    const data = await result.json();
-    return data;
-  }
+  // const deleteWorkFlow = async (workflowId: string) => {
+  //   const result = await fetch(`/api/workflow`, {
+  //     method: 'DELETE',
+  //     body: JSON.stringify({
+  //       workflowId
+  //     })
+  //   });
+  //   const data = await result.json();
+  //   return data;
+  // }
 
   return (
     <DashboardLayout title="AI Agent">
@@ -205,7 +204,7 @@ export default function AIAgentPage() {
               <MultiAgentSelector onAgentSelect={handleAgentSelect} showAddAgent={true} />
             </div>
             {/* New Agent List Table Section */}
-            <AIAgentListTable />
+            {/* <AIAgentListTable /> */}
             {selectedAgentId && (
               <div className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-6 shadow-sm">
                 <AIAgentDashboard />

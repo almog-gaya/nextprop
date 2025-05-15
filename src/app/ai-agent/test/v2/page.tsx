@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { PaperAirplaneIcon, PlusIcon, TrashIcon, ArrowPathIcon, ClipboardIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, DocumentDuplicateIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, XMarkIcon, CloudArrowUpIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
-import { ref, uploadString } from 'firebase/storage';
+import { PaperAirplaneIcon, PlusIcon, TrashIcon, ArrowPathIcon, ClipboardIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, DocumentDuplicateIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, XMarkIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { storage, db } from '@/lib/firebaseConfig';
 import toast from 'react-hot-toast';
 import { doc, getDoc, setDoc, getDocs } from 'firebase/firestore';

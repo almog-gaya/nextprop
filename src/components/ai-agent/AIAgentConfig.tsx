@@ -18,25 +18,25 @@ export const triggerConfigRefresh = () => {
 };
 
 // Function to sync config with server
-const syncConfigWithServer = async (config: AIAgentConfigType) => {
-  try {
-    const response = await fetch('/api/ai-agent/config', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(config),
-    });
+// const syncConfigWithServer = async (config: AIAgentConfigType) => {
+//   try {
+//     const response = await fetch('/api/ai-agent/config', {
+//       method: 'POST',
+//       headers: {
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify(config),
+//     });
 
-    if (!response.ok) {
-      throw new Error('Failed to sync config with server');
-    }
-    return true;
-  } catch (error) {
-    console.error('Error syncing config with server:', error);
-    return false;
-  }
-};
+//     if (!response.ok) {
+//       throw new Error('Failed to sync config with server');
+//     }
+//     return true;
+//   } catch (error) {
+//     console.error('Error syncing config with server:', error);
+//     return false;
+//   }
+// };
 
 // Function to save config to Firestore
 const saveAIAgentConfig = async (config: AIAgentConfigType, userId: string) => {
@@ -438,7 +438,7 @@ export default function AIAgentConfig({
         await saveAIAgentConfig(config, user.id);
 
         // Sync with server
-        await syncConfigWithServer(config);
+        // await syncConfigWithServer(config);
         setConfig(config);
       }
     } catch (error) {
@@ -647,10 +647,10 @@ export default function AIAgentConfig({
     }
 
     // Safe check for phoneNumbers
-    if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
-      toast.error('Please add a phone number to your account');
-      return;
-    }
+    // if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
+    //   toast.error('Please add a phone number to your account');
+    //   return;
+    // }
 
     setIsSaving(true);
     try {
@@ -685,7 +685,7 @@ export default function AIAgentConfig({
       await saveAIAgentConfig(config, user.id);
 
       // Sync with server
-      await syncConfigWithServer(config);
+      // await syncConfigWithServer(config);
 
       toast.success('AI Agent configuration saved successfully');
       triggerConfigRefresh();
