@@ -1784,7 +1784,7 @@ export default function ContactsPage() {
           </button>
         </div>
 
-        {contacts.length > 0 && <TagFilters />}
+        {/* {contacts.length > 0 && <TagFilters />} */}
         {contacts.length > 0 && <PaginationControls />}
 
         {isAddModalOpen && <ModalContent />}
