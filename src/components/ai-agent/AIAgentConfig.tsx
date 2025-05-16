@@ -282,7 +282,7 @@ export default function AIAgentConfig({
         }
       }
     }
-  }, [user, config]);
+  }, [user]);
 
   // Parse buying criteria when config loads
   useEffect(() => {
