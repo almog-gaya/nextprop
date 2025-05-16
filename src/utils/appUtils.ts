@@ -7,6 +7,15 @@ export const dayMapping: { [key: string]: string } = {
     Sat: "Saturday",
     Sun: "Sunday",
 };
+export const dayMappingReverse: { [key: string]: string } = {
+    Monday: "Mon",
+    Tuesday: "Tue",
+    Wednesday: "Wed",
+    Thursday: "Thu",
+    Friday: "Fri",
+    Saturday: "Sat",
+    Sunday: "Sun",
+};
 
 export const convertTo24Hour = (time: string) => {
     if (/^\d{2}:\d{2}$/.test(time)) {

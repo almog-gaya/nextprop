@@ -397,6 +397,12 @@ export default function AutomationsPage() {
       propertyConfig.next_stage_id = nextStageId;
     }
     try {
+  
+      const scheduledDays = propertyConfig.campaign_payload.days.map(day => dayMapping[day] || day);
+      // validate if scheduledDays is an array of strings and no nulls 
+      if (!Array.isArray(scheduledDays) || scheduledDays.some(day => typeof day !== 'string' || day === null)) {
+        throw new Error('Invalid scheduled days');
+      }
       // calculating delay dynamiaclly with given time window and contact count 
       const delayMinutes = calculateDelayForXContacts(propertyConfig.campaign_payload.time_window.start, propertyConfig.campaign_payload.time_window.end, MAX_CONTACTS_PER_DAY);
       const delayInSeconds = delayMinutes * 60;
@@ -404,15 +410,16 @@ export default function AutomationsPage() {
         ...propertyConfig,
         campaign_payload: {
           ...propertyConfig.campaign_payload,
-          days: propertyConfig.campaign_payload.days.map(day => dayMapping[day]),
+          days: scheduledDays,
           time_window: { start: convertTo24Hour(propertyConfig.campaign_payload.time_window.start), end: convertTo24Hour(propertyConfig.campaign_payload.time_window.end) },
           channels: {
             sms: {
               ...propertyConfig.campaign_payload.channels.sms,
-              time_interval: delayInSeconds, 
+              time_interval: delayInSeconds > 14400 ? 14400 : delayInSeconds, 
 
             }
-          }
+          },
+          daily_limit: MAX_CONTACTS_PER_DAY,
         }
       };
 
@@ -426,18 +433,6 @@ export default function AutomationsPage() {
       console.error('Error starting automation:', error);
       toast.error(`Failed to start automation: ${error.message}`, { id: 'property-job' });
       setIsJobRunning(false);
-    }
-  };
-
-  const handleCancelJob = async () => {
-    if (!activeJobId) return;
-    try {
-      toast.success('Job cancelled successfully');
-      setIsJobRunning(false);
-      setActiveJobId(null);
-    } catch (error) {
-      console.error('Error cancelling job:', error);
-      toast.error('Failed to cancel job');
     }
   };
 
@@ -515,7 +510,7 @@ export default function AutomationsPage() {
               />
             </div>
 
-            <ActionButtons isJobRunning={isJobRunning} handleCancelJob={handleCancelJob} handleRunNow={handleRunNow} hasSearchQuery={!!propertyConfig.redfin_url} />
+            <ActionButtons isJobRunning={isJobRunning} handleRunNow={handleRunNow} hasSearchQuery={!!propertyConfig.redfin_url} />
           </div>
         </div>
 

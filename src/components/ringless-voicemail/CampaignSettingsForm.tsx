@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface CampaignSettings {
   delayMinutes: number;
@@ -23,6 +23,25 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
     daysOfWeek: [...settings.daysOfWeek]
   });
 
+  const prevSettingsRef = useRef<CampaignSettings>(settings);
+  const isInitialMount = useRef(true);
+
+  // Auto-save whenever formSettings changes
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // Check if settings have actually changed
+    const hasChanged = JSON.stringify(prevSettingsRef.current) !== JSON.stringify(formSettings);
+    
+    if (hasChanged) {
+      prevSettingsRef.current = formSettings;
+      onSave(formSettings);
+    }
+  }, [formSettings, onSave]);
+
   const timeOptions = [
     '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
     '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM',
@@ -40,11 +59,6 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formSettings);
-  };
-
   const handleInputChange = (field: keyof CampaignSettings, value: string | number | string[]) => {
     setFormSettings(prev => ({ ...prev, [field]: value }));
   };
@@ -60,7 +74,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="space-y-8">
         <div className="bg-white shadow-sm rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Campaign Schedule Settings</h3>
 
@@ -68,45 +82,45 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
-            <div className='border border-gray-300 rounded-md'>
-            <select
-                className="w-full p-2 rounded-md focus:ring-purple-500 focus:border-purple-500"
-                value={formSettings.startTime}
-                onChange={(e) => handleInputChange('startTime', e.target.value)}
-              >
-                {timeOptions.map(time => (
-                  <option key={time} value={time}>{time}</option>
-                ))}
-              </select>
-            </div>
+              <div className='border border-gray-300 rounded-md'>
+                <select
+                  className="w-full p-2 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                  value={formSettings.startTime}
+                  onChange={(e) => handleInputChange('startTime', e.target.value)}
+                >
+                  {timeOptions.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
               <div className='border border-gray-300 rounded-md'>
-              <select
-                className="w-full p-2 rounded-md focus:ring-purple-500 focus:border-purple-500"
-                value={formSettings.endTime}
-                onChange={(e) => handleInputChange('endTime', e.target.value)}
-              >
-                {timeOptions.map(time => (
-                  <option key={time} value={time}>{time}</option>
-                ))}
-              </select>
+                <select
+                  className="w-full p-2 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                  value={formSettings.endTime}
+                  onChange={(e) => handleInputChange('endTime', e.target.value)}
+                >
+                  {timeOptions.map(time => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
-             <div className='border border-gray-300 rounded-md '>
-             <select
-                className="w-full p-2  rounded-md focus:ring-purple-500 focus:border-purple-500"
-                value={formSettings.timezone}
-                onChange={(e) => handleInputChange('timezone', e.target.value)}
-              >
-                {timezoneOptions.map(tz => (
-                  <option key={tz.value} value={tz.value}>{tz.label}</option>
-                ))}
-              </select>
-             </div>
+              <div className='border border-gray-300 rounded-md '>
+                <select
+                  className="w-full p-2  rounded-md focus:ring-purple-500 focus:border-purple-500"
+                  value={formSettings.timezone}
+                  onChange={(e) => handleInputChange('timezone', e.target.value)}
+                >
+                  {timezoneOptions.map(tz => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -148,17 +162,16 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
                   value = Math.max(10, Math.min(400, value));
                   handleInputChange('maxPerHour', value);
                 }}
-                className="w-24   border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="w-24 border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
               />
               <span className="text-sm text-gray-600">voicemails/hour</span>
             </div>
           </div>}
 
           {/* Interval between SMS */}
-          {!isAutomationsModule &&!isVoiceMailModule && <div className="border-t border-gray-200 pt-6">
+          {!isAutomationsModule && !isVoiceMailModule && <div className="border-t border-gray-200 pt-6">
             <h4 className="text-sm font-medium text-gray-700 mb-4">Interval between each SMS</h4>
             <input
-
               type="range"
               min="1"
               max="59"
@@ -189,7 +202,6 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
                   value = Math.max(1, Math.min(59, value));
                   handleInputChange('delayMinutes', value);
                 }}
-
                 onBlur={(e) => {
                   let value = parseInt(e.target.value);
                   if (isNaN(value)) value = 1;
@@ -222,17 +234,7 @@ export default function CampaignSettingsForm({ settings, isVoiceMailModule, isAu
             </div>
           </div>
         </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
-          >
-            Save Settings
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

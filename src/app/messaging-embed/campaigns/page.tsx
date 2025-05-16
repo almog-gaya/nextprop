@@ -438,9 +438,8 @@ export default function RinglessVoicemailPage() {
     }
 
     async function handleUpdateSettings(newSettings: any) {
-        console.log('Updating settings:', newSettings);
         setSettings(newSettings);
-        toast.success('Settings saved');
+        // toast.success('Settings saved');
     }
 
     async function createCampaign() {
@@ -511,6 +510,7 @@ export default function RinglessVoicemailPage() {
                 }
             }
 
+            const minimumDelay = settings.delayMinutes * 60;
             const campaignPayload = {
                 'customer_id': user?.locationId,
                 'name': campaignName,
@@ -524,7 +524,7 @@ export default function RinglessVoicemailPage() {
                     "sms": {
                         "enabled": true,
                         "message": script,
-                        "time_interval": settings.delayMinutes * 60,
+                        "time_interval": minimumDelay > 14400 ? minimumDelay : 0,
                         "from_number": selectedPhoneNumber.number || selectedPhoneNumber,
                     }
                 },
