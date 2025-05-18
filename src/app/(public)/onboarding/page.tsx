@@ -16,10 +16,18 @@ function OnboardingContent() {
   const isSuccess = searchParams.get('success') === 'true';
   const email = searchParams.get('email');
   const router = useRouter();
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
-  const handleGetStarted = () => {
-    router.push('/register');
+  const handleSelectPlan = async (planType: 'basic' | 'pro' | 'enterprise') => {
+    setSelectedPlan(planType);
+    setIsLoading(true);
+    
+    // Instead of calling Stripe API, simply redirect to register with the plan type
+    setTimeout(() => {
+      router.push(`/register?plan=${planType}`);
+      setIsLoading(false);
+    }, 500); // Small delay for better UX
   };
 
   if (isSuccess) {
@@ -83,136 +91,120 @@ function OnboardingContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f8e1e7] via-[#e3e6fa] to-[#c7e6fa]">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-5xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-[#3b2fd6] mb-2">Welcome to NextProp</h1>
-          <p className="text-xl text-gray-700 mb-8">Your all-in-one solution for real estate property management and lead generation</p>
+    <div className="min-h-screen bg-white py-12">
+      <div className="container mx-auto px-4">
+        <div className="max-w-6xl mx-auto text-center">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">Pricing Plans</h1>
+          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
+            Nextprop handles it all—no extra tools required. All plans include
+            Live Zoom, Live Chat, Phone & SMS support.
+          </p>
 
-          <h2 className="text-3xl font-bold text-[#3b2fd6] mb-2">Pricing Plans</h2>
-          <p className="text-lg text-gray-700 mb-12">Choose the plan that fits your real estate business needs</p>
-          <div className="relative flex flex-col md:flex-row justify-center items-center mb-8">
-            {/* Basic Card Group */}
-            <div
-              className={`flex flex-col items-center relative md:-mr-6 transition-transform duration-300 cursor-pointer
-                ${hoveredCard === 'basic' ? 'z-30 -translate-y-4' : 'z-10'}
-              `}
-              style={{ width: '290px', minWidth: '220px', maxWidth: '100%' }}
+          <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 mb-12">
+            {/* Basic Plan */}
+            <Card 
+              className={`w-full md:w-80 shadow-lg border rounded-lg overflow-hidden flex flex-col h-auto transition-all duration-300 ${
+                hoveredCard === 'basic' ? 'transform -translate-y-2 shadow-xl' : ''
+              }`}
               onMouseEnter={() => setHoveredCard('basic')}
               onMouseLeave={() => setHoveredCard(null)}
             >
-              <Card
-                className="flex flex-col justify-between p-8 rounded-2xl shadow-xl bg-black border-2 border-black w-full h-[480px]"
-              >
-                <div>
-                  <span className="text-2xl font-bold text-white">Basic</span>
-                  <p className="text-sm font-semibold text-white mb-4 mt-6">Perfect for solo entrepreneurs</p>
-                  <ul className="text-white text-left mb-6 space-y-2">
-                    <li>1 AI Agent</li>
-                    <li>1 Pipeline/Campaign</li>
-                    <li>1 Phone number</li>
-                    <li>250 Free scraping Properties & Agents info</li>
-                  </ul>
+              <div className="p-6 flex-grow">
+                <h2 className="text-2xl font-bold text-purple-600 mb-4">Basic</h2>
+                <div className="mb-6">
+                  <span className="text-4xl font-bold">$149</span>
+                  <span className="text-gray-600">/mo</span>
                 </div>
-                <div>
-                  <div className="text-xl font-bold text-white mb-1">Free Trial - 7 Days Access</div>
-                </div>
-              </Card>
-              <div className="mt-2 mb-4 mx-8 text-xs text-black font-bold text-center w-auto transition-all duration-300">
-                <div>NO Setup Fee - Fully customized system in 3-5 days.</div>
-                <div>No long-term commitment. Cancel anytime.</div>
+                <p className="text-gray-600 mb-4">Perfect for solopreneurs</p>
+                <ul className="space-y-3 mb-6 text-left">
+                  <li>1 AI Agent</li>
+                  <li>1 Pipeline Configuration</li>
+                  <li>1 Phone Number</li>
+                </ul>
               </div>
-            </div>
-            {/* Pro Card Group */}
-            <div
-              className={`flex flex-col items-center relative transition-transform duration-300 cursor-pointer
-                ${hoveredCard === 'pro' ? 'z-30 -translate-y-4' : 'z-20'}
-              `}
-              style={{ width: '290px', minWidth: '220px', maxWidth: '100%' }}
+              <div className="p-6 bg-gray-50 flex flex-col items-center mt-auto">
+                <Button 
+                  onClick={() => handleSelectPlan('basic')}
+                  disabled={isLoading || selectedPlan === 'basic'}
+                  className="w-full bg-black text-white hover:bg-gray-800 mb-3"
+                >
+                  {isLoading && selectedPlan === 'basic' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
+                </Button>
+                <p className="text-xs text-gray-500 text-center">Fast and Free Setup. Cancel Anytime.</p>
+              </div>
+            </Card>
+
+            {/* Pro Plan */}
+            <Card 
+              className={`w-full md:w-80 shadow-lg border-2 border-[#3045FF] rounded-lg overflow-hidden flex flex-col relative z-10 h-auto transition-all duration-300 ${
+                hoveredCard === 'pro' ? 'transform -translate-y-2 shadow-xl' : ''
+              }`}
               onMouseEnter={() => setHoveredCard('pro')}
               onMouseLeave={() => setHoveredCard(null)}
             >
-              <Card
-                className="relative flex flex-col justify-between p-8 rounded-2xl shadow-2xl bg-gradient-to-br from-[#7b5cff] to-[#4f2ccf] border-4 border-[#b7aaff] text-white scale-105 w-full h-[480px]"
-              >
-                <span className="absolute top-4 right-4 bg-[#ffb800] text-xs font-bold px-3 py-1 rounded-full text-[#4f2ccf] shadow">Recommended</span>
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">Pro</h3>
-                  <p className="text-sm font-semibold mb-4">For teams of 2-5 members</p>
-                  <ul className="text-white/90 text-left mb-6 space-y-2">
-                    <li>3 AI Agents</li>
-                    <li>3 Pipelines/Campaigns</li>
-                    <li>Bulk Email Feature for Submitting Low Offers</li>
-                    <li>VIP Support - Done for You</li>
-                    <li>1,000 Free scraping Properties & Agents info</li>
-                  </ul>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold mb-1">$697</div>
-                  <div className="mb-2">Per Month</div>
-                </div>
-              </Card>
-              <div className="pt-4 mb-4 mx-8 text-xs text-[#3b2fd6] text-center w-auto transition-all duration-300">
-                <div>Scraping contacts, SMS, emails, calls, and phone numbers are billed separately based on usage.</div>
+              <div className="absolute top-4 right-4">
+                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full">Most Popular</span>
               </div>
-            </div>
-            {/* Enterprise Card Group */}
-            <div
-              className={`flex flex-col items-center relative md:-ml-6 transition-transform duration-300 cursor-pointer
-                ${hoveredCard === 'enterprise' ? 'z-30 -translate-y-4' : 'z-10'}
-              `}
-              style={{ width: '290px', minWidth: '220px', maxWidth: '100%' }}
+              <div className="p-6 flex-grow bg-gradient-to-r from-[#3045FF] to-[#9A04FF]">
+                <h2 className="text-2xl font-bold text-white mb-4">Pro</h2>
+                <div className="mb-6">
+                  <span className="text-4xl font-bold text-white">$299</span>
+                  <span className="text-blue-200">/mo</span>
+                </div>
+                <p className="text-blue-100 mb-4">For teams of 2-5 members</p>
+                <ul className="space-y-3 mb-6 text-left text-white">
+                  <li>1 AI Agent</li>
+                  <li>1 Pipeline Configuration</li>
+                  <li>1 Phone Number</li>
+                </ul>
+              </div>
+              <div className="p-6 bg-gradient-to-r from-[#3045FF] to-[#9A04FF] flex flex-col items-center mt-auto">
+                <Button 
+                  onClick={() => handleSelectPlan('pro')}
+                  disabled={isLoading || selectedPlan === 'pro'}
+                  className="w-full bg-[#ff4d4d] text-white hover:bg-red-500 mb-3"
+                >
+                  {isLoading && selectedPlan === 'pro' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
+                </Button>
+                <p className="text-xs text-white text-center">Fast and Free Setup. Cancel Anytime.</p>
+              </div>
+            </Card>
+
+            {/* Enterprise Plan */}
+            <Card 
+              className={`w-full md:w-80 shadow-lg border rounded-lg overflow-hidden flex flex-col relative h-auto transition-all duration-300 ${
+                hoveredCard === 'enterprise' ? 'transform -translate-y-2 shadow-xl' : ''
+              }`}
               onMouseEnter={() => setHoveredCard('enterprise')}
               onMouseLeave={() => setHoveredCard(null)}
             >
-              <Card
-                className="flex flex-col justify-between p-8 rounded-2xl shadow-xl bg-gradient-to-br from-[#ffe9b3] via-[#ffd700] to-[#ffb800] border-2 border-[#ffd700] w-full h-[480px]"
-              >
-                <div>
-                  <h3 className="text-2xl font-bold text-[#b48800] mb-2">Enterprise</h3>
-                  <p className="text-sm font-semibold text-[#b48800] mb-4">For larger teams of 5+ members</p>
-                  <ul className="text-[#b48800] text-left mb-6 space-y-2">
-                    <li>25 AI Agents</li>
-                    <li>25 Pipelines/Campaigns</li>
-                    <li>VIP Support &gt; DONE FOR YOU</li>
-                    <li>10,000 Free Scraping Deals & Contacts</li>
-                  </ul>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-[#b48800] mb-1">$1,499</div>
-                  <div className="text-[#b48800] mb-2">Per Month</div>
-                </div>
-              </Card>
-              <div className="mt-2 mb-4 mx-8 text-xs text-[#b48800] text-center w-auto transition-all duration-300">
-                <div>Add an additional AI agent for just $97/month</div>
+              <div className="absolute top-4 right-4">
+                <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-3 py-1 rounded-full">Most Value</span>
               </div>
-            </div>
-          </div>
-
-          <div className="space-x-4 mb-8">
-            {user ? (
-              <Link href="/">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
-                  View Dashboard
-                </Button>
-              </Link>
-            ) : (
-              <>
+              <div className="p-6 flex-grow bg-gradient-to-b from-[#ffd166] to-[#ffe699]">
+                <h2 className="text-2xl font-bold text-[#835c00] mb-4">Enterprise</h2>
+                <div className="mb-6">
+                  <span className="text-4xl font-bold text-[#835c00]">$599</span>
+                  <span className="text-[#835c00]">/mo</span>
+                </div>
+                <p className="text-[#835c00] mb-4">For larger teams of 5+ members</p>
+                <ul className="space-y-3 mb-6 text-left text-[#835c00]">
+                  <li>1 AI Agent</li>
+                  <li>1 Pipeline Configuration</li>
+                  <li>1 Phone Number</li>
+                </ul>
+              </div>
+              <div className="p-6 bg-gray-50 flex flex-col items-center mt-auto">
                 <Button 
-                  size="lg" 
-                  className="bg-blue-600 hover:bg-blue-700"
-                  onClick={handleGetStarted}
-                  disabled={isLoading}
+                  onClick={() => handleSelectPlan('enterprise')}
+                  disabled={isLoading || selectedPlan === 'enterprise'}
+                  className="w-full bg-black text-white hover:bg-gray-800 mb-3"
                 >
-                  {isLoading ? 'Loading...' : 'Get Started'}
+                  {isLoading && selectedPlan === 'enterprise' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
                 </Button>
-                <Link href="/auth/login">
-                  <Button size="lg" variant="outline">
-                    Sign In
-                  </Button>
-                </Link>
-              </>
-            )}
+                <p className="text-xs text-gray-500 text-center">Fast and Free Setup. Cancel Anytime.</p>
+              </div>
+            </Card>
           </div>
         </div>
       </div>
@@ -223,7 +215,7 @@ function OnboardingContent() {
 // Loading fallback
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f8e1e7] via-[#e3e6fa] to-[#c7e6fa]">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="p-8 text-center">
         <h2 className="text-2xl font-semibold text-gray-700 mb-4">Loading...</h2>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto"></div>
