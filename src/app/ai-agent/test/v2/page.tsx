@@ -185,6 +185,7 @@ export default function AIAgentTestV2() {
   const [jsError, setJsError] = useState<string | null>(null);
   const [jsContent, setJsContent] = useState<string>('');
   const [jsSaving, setJsSaving] = useState(false);
+  const [isPromptDebugMode, setIsPromptDebugMode] = useState(false); 
   const PROMPT_FILE_PATH = 'js/prompt.js';
 
   // Multi-agent config state (must be inside the component)
@@ -282,13 +283,14 @@ export default function AIAgentTestV2() {
   useEffect(() => {
     loadPromptFile();
     loadOpenAISettings(); // Load OpenAI settings when component mounts
-  }, []);
+  }, [isPromptDebugMode]);
 
   const loadPromptFile = async () => {
     try {
       setJsLoading(true);
       setJsError(null);
-      const response = await fetch(`/api/ai-agent/test/editor`);
+      const endpoint = isPromptDebugMode ? '/api/ai-agent/test/editor/debug' : '/api/ai-agent/test/editor';
+      const response = await fetch(endpoint);
       if (!response.ok) {
         throw new Error(`Failed to load prompt file: ${response.statusText}`);
       }
@@ -319,7 +321,8 @@ export default function AIAgentTestV2() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/ai-agent/test/editor', {
+      const endpoint = isPromptDebugMode ? '/api/ai-agent/test/editor/debug' : '/api/ai-agent/test/editor';
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       });
@@ -1556,7 +1559,7 @@ export default function AIAgentTestV2() {
                   <div className="flex gap-2">
                     <button
                       onClick={loadPromptFile}
-                      disabled={jsLoading}
+                      disabled={jsLoading || jsSaving}
                       className="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl hover:from-blue-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 shadow-sm transition-all duration-200"
                     >
                       {jsLoading ? (
@@ -1572,8 +1575,15 @@ export default function AIAgentTestV2() {
                       )}
                     </button>
                     <button
-                      onClick={() => savePromptFile(jsContent)}
-                      disabled={jsSaving}
+                      onClick={async () => {
+                        const success = await savePromptFile(jsContent);
+                        if (success) {
+                          toast.success('Prompt file saved successfully!');
+                        } else {
+                          toast.error('Failed to save prompt file.');
+                        }
+                      }}
+                      disabled={jsSaving || jsLoading}
                       className="inline-flex items-center px-6 py-3 text-lg font-medium text-white bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl hover:from-blue-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 shadow-sm transition-all duration-200"
                     >
                       {jsSaving ? (
@@ -1589,6 +1599,23 @@ export default function AIAgentTestV2() {
                       )}
                     </button>
                   </div>
+                </div>
+                <div className="my-4 flex items-center gap-4">
+                  <button
+                    onClick={() => {
+                      setIsPromptDebugMode(prevIsDebugMode => {
+                        const newIsDebugMode = !prevIsDebugMode;
+                        toast.success(`Prompt editor mode switched to: ${newIsDebugMode ? 'Debug' : 'Production'}`);
+                        return newIsDebugMode;
+                      });
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Switch to {isPromptDebugMode ? 'Production' : 'Debug'} Mode
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    Current Mode: {isPromptDebugMode ? 'Debug (using /debug endpoint)' : '⚠️ Production ⚠️ '}
+                  </span>
                 </div>
                 {jsError && (
                   <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -1611,4 +1638,4 @@ export default function AIAgentTestV2() {
       </div>
     </div>
   );
-} 
+}
