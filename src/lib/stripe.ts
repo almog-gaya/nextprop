@@ -19,6 +19,19 @@ if (typeof window !== 'undefined' || process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY) 
 
 const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
 
+const getPlanPriceId = (plan: string): string | undefined => {
+  const planKey = plan.toLowerCase();
+  switch (planKey) {
+    case 'basic':
+      return process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_BASIC;
+    case 'pro':
+      return process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO;
+    case 'enterprise':
+      return process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE;
+    default:
+      throw new Error(`Unknown plan: ${plan}`);
+  }
+};
 // Helper function to ensure Stripe is initialized
 export const getStripeInstance = () => {
   if (!stripe) {
@@ -54,7 +67,8 @@ export const getOrCreateCustomer = async (email: string, data: any) => {
     ...data,
     stripeCustomerId: customer.id,
     email: normalizedEmail,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    hasCompletedPayment: false,
   });
 
   return customer.id;
@@ -62,26 +76,35 @@ export const getOrCreateCustomer = async (email: string, data: any) => {
 
 // Create Stripe checkout session
 export const createCheckoutSession = async (email: string, data: any) => {
+  const priceId = getPlanPriceId(data.plan);
   const stripeInstance = getStripeInstance();
-  const customerId = await getOrCreateCustomer(email, data);
-  
+  const customerId = await getOrCreateCustomer(email, {
+    ...data,
+    priceId: priceId,
+  });
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  
+
   const session = await stripeInstance.checkout.sessions.create({
     customer: customerId,
     payment_method_types: ['card'],
     line_items: [
       {
-        price: priceId,
+        price: getPlanPriceId(data.plan),
         quantity: 1,
       },
     ],
     mode: 'subscription',
-    success_url: `${baseUrl}/onboarding?success=true&email=${encodeURIComponent(email)}`,
+    subscription_data: {
+      trial_period_days: 30,
+    },
+    success_url: `${baseUrl}/register?success=true&email=${encodeURIComponent(email)}&plan=${data.plan}&phone=${data.phone}&name=${data.name}`,
     cancel_url: `${baseUrl}/onboarding?canceled=true`,
   });
 
-  return session;
+  return {
+    session: session,
+    priceId: priceId,
+  };
 };
 
 // Create portal session
@@ -90,14 +113,14 @@ export const createPortalSession = async (email: string) => {
   const normalizedEmail = email.toLowerCase();
   const customerRef = doc(db, 'customers', normalizedEmail);
   const customerSnap = await getDoc(customerRef);
-  
+
   if (!customerSnap.exists()) {
     throw new Error('No customer found');
   }
 
   const { stripeCustomerId } = customerSnap.data();
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  
+
   const session = await stripeInstance.billingPortal.sessions.create({
     customer: stripeCustomerId,
     return_url: `${baseUrl}/billing`,

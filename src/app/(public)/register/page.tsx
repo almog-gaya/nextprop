@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { timezones } from '@/utils/timezones';
 import { Dropdown } from '@/components/ui/dropdown';
-
+import { useSearchParams } from 'next/navigation';
+import { db } from '@/lib/firebaseConfig';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 const businessTypes = [
-  { value: 'cooperative', label: 'Co-operative'},
+  { value: 'cooperative', label: 'Co-operative' },
   { value: 'corporation', label: 'Corporation' },
   { value: 'llc_and_sole_proprietorship', label: 'LLC and Sole Proprietorship' },
   { value: 'non_profit', label: 'Non-profit corporation' },
@@ -40,6 +42,7 @@ interface ValidationErrors {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -47,28 +50,28 @@ export default function RegisterPage() {
     // General Information
     businessName: '',
     legalName: '',
-    businessEmail: '',
-    businessPhone: '',
+    businessEmail: searchParams.get('email') || '',
+    businessPhone: searchParams.get('phone') || '',
     businessWebsite: '',
     businessNiche: '',
-    
+
     // Business Information
     businessType: '',
     ein: '',
     regions: [] as string[],
-    
+
     // Business Address
     streetAddress: '',
     city: '',
     state: '',
     country: '',
     timezone: '',
-    
+
     // Authorized Representative
-    firstName: '',
-    representativeEmail: '',
+    firstName: searchParams.get('name') || '',
+    representativeEmail: searchParams.get('email') || '',
     jobPosition: '',
-    phoneNumber: '',
+    phoneNumber: searchParams.get('phone') || '',
   });
 
   const handleInputChange = (field: string, value: string | string[]) => {
@@ -174,23 +177,17 @@ export default function RegisterPage() {
     if (validateStep(currentStep)) {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/stripe/create-checkout-session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.businessEmail,
-            isOnboarding: true,
-            data: formData
-          }),
-        });
-
-        const { url } = await response.json();
-        
-        if (url) {
-          window.location.href = url;
-        }
+        const normalizedEmail = (searchParams.get('email') || formData.representativeEmail || formData.businessEmail).toLowerCase();
+        console.log(`form`, formData)
+        const customerRef = doc(db, 'customers', normalizedEmail);
+        console.log(`customerRef:`, customerRef)
+        const data = await setDoc(customerRef, {
+          ...formData
+        }, { merge: true });
+        console.log(`data`, data)
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const url = `${baseUrl}/onboarding?success=true&email=${normalizedEmail}`;
+        window.location.href = `${url}`;
       } catch (error) {
         console.error('Error:', error);
         setErrors({ submit: 'Failed to process registration. Please try again.' });
@@ -382,24 +379,21 @@ export default function RegisterPage() {
                 {[1, 2, 3, 4].map((step) => (
                   <div
                     key={step}
-                    className={`flex items-center ${
-                      step !== 4 ? 'flex-1' : ''
-                    }`}
+                    className={`flex items-center ${step !== 4 ? 'flex-1' : ''
+                      }`}
                   >
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        currentStep >= step
-                          ? 'bg-[var(--nextprop-primary)] text-white'
-                          : 'bg-gray-200 text-gray-600'
-                      }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= step
+                        ? 'bg-[var(--nextprop-primary)] text-white'
+                        : 'bg-gray-200 text-gray-600'
+                        }`}
                     >
                       {step}
                     </div>
                     {step !== 4 && (
                       <div
-                        className={`flex-1 h-1 mx-2 ${
-                          currentStep > step ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
-                        }`}
+                        className={`flex-1 h-1 mx-2 ${currentStep > step ? 'bg-[var(--nextprop-primary)]' : 'bg-gray-200'
+                          }`}
                       />
                     )}
                   </div>

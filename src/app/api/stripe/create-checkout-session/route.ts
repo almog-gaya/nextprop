@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
 
     if(isOnboarding && email) {
         const result = await createCheckoutSession(email, data);
-        return NextResponse.json({ url: result.url });
+        return NextResponse.json({ url: result.session.url, sessionId: result.session.id, successURL: result.session.success_url, priceUSD: result.session.amount_total });
     }
 
     if (!email || !lineItems || !Array.isArray(lineItems)) {

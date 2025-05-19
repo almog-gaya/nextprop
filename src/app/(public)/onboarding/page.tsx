@@ -7,27 +7,126 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebaseConfig';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+// Modal Component
+function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
+  isOpen: boolean,
+  onClose: () => void,
+  plan: string,
+  onSubmit: (data: { name: string, phone: string, email: string, plan: string }) => void
+}) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({ name, phone, email, plan });
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-4">Register for {plan} Plan</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
+            <input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            />
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button type="button" onClick={onClose} className="bg-gray-300 hover:bg-gray-400">
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
+              Proceed to checkout
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 // Component to handle search params
 function OnboardingContent() {
-  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
   const isSuccess = searchParams.get('success') === 'true';
   const email = searchParams.get('email');
-  const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSelectPlan = async (planType: 'basic' | 'pro' | 'enterprise') => {
+  const handleSelectPlan = (planType: 'basic' | 'pro' | 'enterprise') => {
     setSelectedPlan(planType);
+    setIsModalOpen(true);
+  };
+
+  const handleModalSubmit = async (data: { name: string, phone: string, email: string, plan: string }) => {
     setIsLoading(true);
-    
-    // Instead of calling Stripe API, simply redirect to register with the plan type
-    setTimeout(() => {
-      router.push(`/register?plan=${planType}`);
-      setIsLoading(false);
-    }, 500); // Small delay for better UX
+    const response = await fetch('/api/stripe/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: data.email,
+        isOnboarding: true,
+        data: {
+          plan: data.plan,
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+        }
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.url) {
+      
+      // store session in firestore
+      const customerRef = doc(db, 'customers', data.email.toLowerCase());
+
+      await setDoc(customerRef, {
+        ...result,
+      }, { merge: true });
+      window.location.href = result.url;
+    }
+    setIsLoading(false);
   };
 
   if (isSuccess) {
@@ -102,10 +201,9 @@ function OnboardingContent() {
 
           <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 mb-12">
             {/* Basic Plan */}
-            <Card 
-              className={`w-full md:w-80 shadow-lg border rounded-lg overflow-hidden flex flex-col h-auto transition-all duration-300 ${
-                hoveredCard === 'basic' ? 'transform -translate-y-2 shadow-xl' : ''
-              }`}
+            <Card
+              className={`w-full md:w-80 shadow-lg border rounded-lg overflow-hidden flex flex-col h-auto transition-all duration-300 ${hoveredCard === 'basic' ? 'transform -translate-y-2 shadow-xl' : ''
+                }`}
               onMouseEnter={() => setHoveredCard('basic')}
               onMouseLeave={() => setHoveredCard(null)}
             >
@@ -123,7 +221,7 @@ function OnboardingContent() {
                 </ul>
               </div>
               <div className="p-6 bg-gray-50 flex flex-col items-center mt-auto">
-                <Button 
+                <Button
                   onClick={() => handleSelectPlan('basic')}
                   disabled={isLoading || selectedPlan === 'basic'}
                   className="w-full bg-black text-white hover:bg-gray-800 mb-3"
@@ -135,10 +233,9 @@ function OnboardingContent() {
             </Card>
 
             {/* Pro Plan */}
-            <Card 
-              className={`w-full md:w-80 shadow-lg border-2 border-[#3045FF] rounded-lg overflow-hidden flex flex-col relative z-10 h-auto transition-all duration-300 ${
-                hoveredCard === 'pro' ? 'transform -translate-y-2 shadow-xl' : ''
-              }`}
+            <Card
+              className={`w-full md:w-80 shadow-lg border-2 border-[#3045FF] rounded-lg overflow-hidden flex flex-col relative z-10 h-auto transition-all duration-300 ${hoveredCard === 'pro' ? 'transform -translate-y-2 shadow-xl' : ''
+                }`}
               onMouseEnter={() => setHoveredCard('pro')}
               onMouseLeave={() => setHoveredCard(null)}
             >
@@ -159,7 +256,7 @@ function OnboardingContent() {
                 </ul>
               </div>
               <div className="p-6 bg-gradient-to-r from-[#3045FF] to-[#9A04FF] flex flex-col items-center mt-auto">
-                <Button 
+                <Button
                   onClick={() => handleSelectPlan('pro')}
                   disabled={isLoading || selectedPlan === 'pro'}
                   className="w-full bg-[#ff4d4d] text-white hover:bg-red-500 mb-3"
@@ -171,10 +268,9 @@ function OnboardingContent() {
             </Card>
 
             {/* Enterprise Plan */}
-            <Card 
-              className={`w-full md:w-80 shadow-lg border rounded-lg overflow-hidden flex flex-col relative h-auto transition-all duration-300 ${
-                hoveredCard === 'enterprise' ? 'transform -translate-y-2 shadow-xl' : ''
-              }`}
+            <Card
+              className={`w-full md:w-80 shadow-lg border rounded-lg overflow-hidden flex flex-col relative h-auto transition-all duration-300 ${hoveredCard === 'enterprise' ? 'transform -translate-y-2 shadow-xl' : ''
+                }`}
               onMouseEnter={() => setHoveredCard('enterprise')}
               onMouseLeave={() => setHoveredCard(null)}
             >
@@ -195,7 +291,7 @@ function OnboardingContent() {
                 </ul>
               </div>
               <div className="p-6 bg-gray-50 flex flex-col items-center mt-auto">
-                <Button 
+                <Button
                   onClick={() => handleSelectPlan('enterprise')}
                   disabled={isLoading || selectedPlan === 'enterprise'}
                   className="w-full bg-black text-white hover:bg-gray-800 mb-3"
@@ -208,6 +304,14 @@ function OnboardingContent() {
           </div>
         </div>
       </div>
+      {selectedPlan && (
+        <RegisterModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          plan={selectedPlan}
+          onSubmit={handleModalSubmit}
+        />
+      )}
     </div>
   );
 }
@@ -231,4 +335,4 @@ export default function OnboardingPage() {
       <OnboardingContent />
     </Suspense>
   );
-} 
+}
