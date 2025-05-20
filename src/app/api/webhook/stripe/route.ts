@@ -2,7 +2,8 @@ import { getStripeInstance } from '@/lib/stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import * as handler from './eventHandler';
-
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseConfig';
 const endpointSecret = process.env.NEXT_PUBLIC_STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
         }
 
         let event;
-        try { 
+        try {
             const stripe = getStripeInstance();
             // Construct the event
             event = stripe!.webhooks.constructEvent(body, sig, endpointSecret);
@@ -32,6 +33,30 @@ export async function POST(req: NextRequest) {
 
         // Handle the event
         switch (event.type) {
+            // // Debug Events:
+            // case 'customer.created':
+            //     {
+
+            //         const customer = event.data.object as Stripe.Customer;
+            //         const normalizedEmail = customer.email?.toLowerCase() || '';
+            //         const customerRef = doc(db, `customers/${normalizedEmail}`);
+            //         const customerSnap = await getDoc(customerRef);
+            //         if (customerSnap.exists()) {
+            //             console.log('Customer already exists in Firestore:', normalizedEmail);
+            //             return NextResponse.json({ received: true });
+            //         }
+            //         const payload = {
+            //             name: customer.name || "bahadur-test-customer-created.",
+            //             stripeCustomerId: customer.id,
+            //             email: normalizedEmail,
+            //             createdAt: new Date().toISOString(),
+            //             hasCompletedPayment: false,
+            //         }
+            //         await setDoc(customerRef, payload, { merge: true });
+            //         console.log('Customer created in Firestore:', normalizedEmail);
+            //         return NextResponse.json({ received: true });
+
+            //     }
             case 'checkout.session.completed':
             case 'checkout.session.async_payment_succeeded':
             case 'checkout.session.async_payment_failed':
@@ -43,9 +68,12 @@ export async function POST(req: NextRequest) {
                 console.log('invoice.payment_succeeded', event);
                 handler.handleInvoicePaymentSucceeded(event);
                 break;
+            case 'invoice.upcoming':
+                console.log('invoice.upcoming', event);
+                handler.handleInvoiceUpcoming(event);
+                break;
             case 'invoice.deleted':
             case 'invoice.payment_failed':
-            case 'invoice.updated':
                 console.log('invoice.payment_failed', event);
                 handler.handleInvoicePaymentFailed(event);
                 break;
