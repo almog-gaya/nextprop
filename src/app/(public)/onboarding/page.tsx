@@ -176,7 +176,7 @@ function OnboardingContent() {
               </ul>
             </div>
             <p className="text-gray-600 mb-8">
-              If you have any questions, please don't hesitate to contact our support team.
+              If you have any questions, please don't hesitate to contact our support team. at support@nextprop.ai or +1 (929) 595-3158
             </p>
             <Link href="/">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
