@@ -13,6 +13,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/twilio/') || 
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/api/stripe/') ||
+    pathname.startsWith('/api/webhook') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/register') ||
     pathname === '/register'

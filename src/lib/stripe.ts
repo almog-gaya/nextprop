@@ -9,6 +9,7 @@ let stripe: Stripe | null = null;
 if (typeof window !== 'undefined' || process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY) {
   const stripeSecretKey = process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_build';
   try {
+
     stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2025-04-30.basil',
     });
@@ -17,7 +18,6 @@ if (typeof window !== 'undefined' || process.env.NEXT_PUBLIC_STRIPE_SECRET_KEY) 
   }
 }
 
-const priceId = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID;
 
 const getPlanPriceId = (plan: string): string | undefined => {
   const planKey = plan.toLowerCase();
