@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { flushAllAuthData } from '@/lib/authUtils';
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { flushAllAuthData } from "@/lib/authUtils";
 
 interface User {
   email: string;
@@ -47,8 +47,6 @@ export interface PhoneNumber {
   friendlyName?: string;
   inboundCallService?: InboundCallService;
 }
- 
- 
 
 interface AuthContextType {
   user: User | null;
@@ -69,22 +67,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const pathname = usePathname();
 
   const isPublicRoute = (path: string) => {
-    return path.startsWith('/onboarding') || 
-           path.startsWith('/auth/login') || 
-           path.startsWith('/auth/register') ||
-           path.startsWith('/register');
+    return (
+      path.startsWith("/onboarding") ||
+      path.startsWith("/auth/login") ||
+      path.startsWith("/auth/register") ||
+      path.startsWith("/register") ||
+      path.startsWith("/auth/signup") ||
+      path == '/signup'
+    );
   };
 
   const loadUser = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/auth/ghl/data');
+      const response = await fetch("/api/auth/ghl/data");
       const data = await response.json();
 
       if (!data.authenticated) {
         // Only redirect if not on a public route
         if (!isPublicRoute(pathname)) {
-          router.replace('/auth/login');
+          router.replace("/auth/login");
         }
         setLoading(false);
         return;
@@ -94,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData: User = {
         id: data.user.id,
         email: data.user.email,
-        name: data.user.name || `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim(),
+        name: data.user.name || `${data.user.firstName || ""} ${data.user.lastName || ""}`.trim(),
         firstName: data.user.firstName,
         lastName: data.user.lastName,
         locationId: data.locationData?.locationId,
@@ -105,11 +107,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         website: data.user.website,
       };
 
-      console.log('Setting User as:', userData);
+      console.log("Setting User as:", userData);
       setUser(userData);
     } catch (e) {
-      console.error('Error loading user data:', e);
-      setError('Failed to load user data');
+      console.error("Error loading user data:", e);
+      setError("Failed to load user data");
     } finally {
       setLoading(false);
     }
@@ -127,28 +129,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     flushAllAuthData();
 
     // Force a POST request to the logout API endpoint to clear server-side cookies
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include'
-    }).catch(err => {
-      console.error('Error calling logout API:', err);
+    fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    }).catch((err) => {
+      console.error("Error calling logout API:", err);
     });
 
-    // Navigate to login 
-    router.push('/auth/login');
+    // Navigate to login
+    router.push("/auth/login");
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, error, logout, setError, loadUser}}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ user, loading, error, logout, setError, loadUser }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

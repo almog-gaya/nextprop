@@ -16,6 +16,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/webhook') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/register') ||
+    pathname.startsWith('/auth/signup') ||
+    pathname == '/auth/signup' ||
     pathname === '/register'
   ) {
     log('[Middleware] Public route detected, skipping auth check');

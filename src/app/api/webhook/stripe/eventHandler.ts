@@ -8,6 +8,13 @@ export const handleCheckoutSessionCompleted = async (event: Stripe.Event) => {
 }
 
 // Subscription events
+/**
+ * 
+    Possible values for `status`:
+    [incomplete, incomplete_expired, trialing, active, past_due, canceled, unpaid, paused]
+    
+    url: https://docs.stripe.com/api/subscriptions/object#subscription_object-status
+ */
 export const handleSubscription = async (event: Stripe.Event) => {
     const subscription = event.data.object as Stripe.Subscription;
     return await db.updateSubscription(subscription);
