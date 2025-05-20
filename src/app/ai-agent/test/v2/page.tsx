@@ -374,12 +374,31 @@ export default function AIAgentTestV2() {
     const message = formData && formData.message ? formData.message : '';
     const history = formData && formData.history ? formData.history : [];
 
+    // Add the user's message to the conversation history if it's not empty
+    if (message.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        history: [...prev.history, {
+          id: Date.now().toString(),
+          isUser: true,
+          text: message,
+          timestamp: new Date().toISOString()
+        }]
+      }));
+    }
+
+    // Create request payload with or without the new user message
     const requestPayload = {
       locationId: formData ? formData.locationId : '',
       agentId: selectedAgentId,
       agentConfig,
       message,
-      history: history.map(({ id, timestamp, ...rest }) => rest)
+      history: message.trim() 
+        ? [...history, { 
+            isUser: true, 
+            text: message 
+          } as Message].map(({ id, timestamp, ...rest }) => rest)
+        : history.map(({ id, timestamp, ...rest }) => rest)
     };
 
     // Log the request payload for debugging
@@ -442,7 +461,8 @@ export default function AIAgentTestV2() {
           duration: 10000
         });
       }
-      // Add response to conversation
+      
+      // Add AI response to conversation
       setFormData(prev => ({
         ...prev,
         history: [...prev.history, {
