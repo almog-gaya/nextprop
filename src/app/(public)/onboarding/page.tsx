@@ -194,7 +194,7 @@ function OnboardingContent() {
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">Pricing Plans</h1>
-          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
             Nextprop handles it all—no extra tools required. All plans include
             Live Zoom, Live Chat, Phone & SMS support.
           </p>
@@ -210,14 +210,15 @@ function OnboardingContent() {
               <div className="p-6 flex-grow">
                 <h2 className="text-2xl font-bold text-purple-600 mb-4">Basic</h2>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">$149</span>
+                  <span className="text-4xl font-bold">$249</span>
                   <span className="text-gray-600">/mo</span>
                 </div>
-                <p className="text-gray-600 mb-4">Perfect for solopreneurs</p>
+                <p className="text-gray-600 mb-4">Perfect for solo entrepreneurs</p>
                 <ul className="space-y-3 mb-6 text-left">
-                  <li>1 AI Agent</li>
-                  <li>1 Pipeline Configuration</li>
-                  <li>1 Phone Number</li>
+                  <li className="text-sm">1 AI Agent</li>
+                  <li className="text-sm">1 Pipeline/Campaign</li>
+                  <li className="text-sm">1 Phone number</li>
+                  <li className="text-sm">250 Free scraping Properties & Agents info</li>
                 </ul>
               </div>
               <div className="p-6 bg-gray-50 flex flex-col items-center mt-auto">
@@ -226,9 +227,9 @@ function OnboardingContent() {
                   disabled={isLoading || selectedPlan === 'basic'}
                   className="w-full bg-black text-white hover:bg-gray-800 mb-3"
                 >
-                  {isLoading && selectedPlan === 'basic' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
+                  {isLoading && selectedPlan === 'basic' ? 'Loading...' : 'Select Plan'}
                 </Button>
-                <p className="text-xs text-gray-500 text-center">Fast and Free Setup. Cancel Anytime.</p>
+                <p className="text-xs text-gray-500 text-center">No Setup Fee. Cancel Anytime.</p>
               </div>
             </Card>
 
@@ -240,30 +241,32 @@ function OnboardingContent() {
               onMouseLeave={() => setHoveredCard(null)}
             >
               <div className="absolute top-4 right-4">
-                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full">Most Popular</span>
+                <span className="bg-blue-100 text-blue-800 text-[10px] font-medium px-2 py-0.5 rounded-full">Most Popular</span>
               </div>
               <div className="p-6 flex-grow bg-gradient-to-r from-[#3045FF] to-[#9A04FF]">
                 <h2 className="text-2xl font-bold text-white mb-4">Pro</h2>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold text-white">$299</span>
+                  <span className="text-4xl font-bold text-white">$697</span>
                   <span className="text-blue-200">/mo</span>
                 </div>
                 <p className="text-blue-100 mb-4">For teams of 2-5 members</p>
                 <ul className="space-y-3 mb-6 text-left text-white">
-                  <li>1 AI Agent</li>
-                  <li>1 Pipeline Configuration</li>
-                  <li>1 Phone Number</li>
+                  <li className="text-sm">3 AI Agents</li>
+                  <li className="text-sm">3 Pipelines/Campaigns</li>
+                  <li className="text-sm">Bulk Email Feature </li>
+                  <li className="text-sm">VIP Support - Done for You</li>
+                  <li className="text-sm">1,000 Free scraping Properties & Agents info</li>
                 </ul>
               </div>
-              <div className="p-6 bg-gradient-to-r from-[#3045FF] to-[#9A04FF] flex flex-col items-center mt-auto">
+              <div className="pr-6 pl-6 pb-6 bg-gradient-to-r from-[#3045FF] to-[#9A04FF] flex flex-col items-center mt-auto">
                 <Button
                   onClick={() => handleSelectPlan('pro')}
                   disabled={isLoading || selectedPlan === 'pro'}
                   className="w-full bg-[#ff4d4d] text-white hover:bg-red-500 mb-3"
                 >
-                  {isLoading && selectedPlan === 'pro' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
+                  {isLoading && selectedPlan === 'pro' ? 'Loading...' : 'Select Plan'}
                 </Button>
-                <p className="text-xs text-white text-center">Fast and Free Setup. Cancel Anytime.</p>
+                <p className="text-xs text-white text-center">No Setup Fee. Cancel Anytime.</p>
               </div>
             </Card>
 
@@ -275,19 +278,20 @@ function OnboardingContent() {
               onMouseLeave={() => setHoveredCard(null)}
             >
               <div className="absolute top-4 right-4">
-                <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-3 py-1 rounded-full">Most Value</span>
+                <span className="bg-yellow-100 text-yellow-800 text-[10px] font-medium px-2 py-0.5 rounded-full">Most Value</span>
               </div>
               <div className="p-6 flex-grow bg-gradient-to-b from-[#ffd166] to-[#ffe699]">
                 <h2 className="text-2xl font-bold text-[#835c00] mb-4">Enterprise</h2>
                 <div className="mb-6">
-                  <span className="text-4xl font-bold text-[#835c00]">$599</span>
+                  <span className="text-4xl font-bold text-[#835c00]">$1,499</span>
                   <span className="text-[#835c00]">/mo</span>
                 </div>
                 <p className="text-[#835c00] mb-4">For larger teams of 5+ members</p>
                 <ul className="space-y-3 mb-6 text-left text-[#835c00]">
-                  <li>1 AI Agent</li>
-                  <li>1 Pipeline Configuration</li>
-                  <li>1 Phone Number</li>
+                  <li className="text-sm">25 AI Agents</li>
+                  <li className="text-sm">25 Pipelines/Campaigns</li>
+                  <li className="text-sm">VIP Support {'>'}  DONE FOR YOU</li>
+                  <li className="text-sm">10,000 Free Scraping Deals&Contacts</li>
                 </ul>
               </div>
               <div className="p-6 bg-gray-50 flex flex-col items-center mt-auto">
@@ -296,11 +300,20 @@ function OnboardingContent() {
                   disabled={isLoading || selectedPlan === 'enterprise'}
                   className="w-full bg-black text-white hover:bg-gray-800 mb-3"
                 >
-                  {isLoading && selectedPlan === 'enterprise' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
+                  {isLoading && selectedPlan === 'enterprise' ? 'Loading...' : 'Select Plan'}
                 </Button>
-                <p className="text-xs text-gray-500 text-center">Fast and Free Setup. Cancel Anytime.</p>
+                <p className="text-xs text-gray-500 text-center">No Setup Fee. Cancel Anytime.</p>
               </div>
             </Card>
+          </div>
+
+          <div className="max-w-3xl mx-auto text-left text-gray-600 mb-12 bg-gray-50 p-6 rounded-lg">
+            <ul className="space-y-2">
+              <li className="text-sm">• NO Setup Fee – Fully customized system in 3-5 days.</li>
+              <li className="text-sm">• No long-term commitment. Cancel anytime.</li>
+              <li className="text-sm">• Scraping contacts, SMS, emails, calls, and phone numbers are billed separately based on usage.</li>
+              <li className="text-sm">• Add an additional AI agent for just $97/month</li>
+            </ul>
           </div>
         </div>
       </div>
