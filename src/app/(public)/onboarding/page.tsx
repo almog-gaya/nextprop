@@ -256,23 +256,15 @@ function OnboardingContent() {
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-violet-400 via-purple-300 to-blue-300 overflow-hidden">
-      {/* Top white bar with logo */}
-      <header className="bg-white/90 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center">
-          <Link href="/" className="flex items-center gap-2">
-            {/* Replace src as needed */}
-            <Image src="/logo.png" alt="NextpropAI" width={140} height={32} />
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#7c3aed] overflow-x-hidden">
+      
 
       {/* Main content */}
-      <main className="flex-1 overflow-x-hidden">
-        <div className="container mx-auto px-4 py-10 transform scale-[0.9] origin-top">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-[10rem] md:text-[14rem] font-extrabold leading-none text-black mb-4">Pricing Plans</h1>
-            <p className="text-md  text-gray-700">
+      <main className="w-full overflow-x-hidden">
+        <div className="container mx-auto px-4 py-10 transform origin-top">
+          <div className="text-center mx-auto ">
+            <h1 className="text-6xl md:text-8xl font-extrabold leading-none text-white mb-6">Pricing Plans</h1>
+            <p className="text-lg md:text-2xl ">
               Nextprop handles it all—no extra tools required.
               <br />
               All plans include Live Zoom, Live Chat, Phone &amp; SMS support.
@@ -320,7 +312,7 @@ function OnboardingContent() {
                   <Button
                     onClick={() => handleSelectPlan('basic')}
                     disabled={isLoading || selectedPlan === 'basic'}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-sm"
+                    className="w-full bg-[#7c3aed]  hover:bg-[#6d28d9] text-white py-3 text-sm"
                   >
                     {isLoading && selectedPlan === 'basic' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
                   </Button>
@@ -380,7 +372,7 @@ function OnboardingContent() {
                   <Button
                     onClick={() => handleSelectPlan('enterprise')}
                     disabled={isLoading || selectedPlan === 'enterprise'}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-sm"
+                    className="w-full bg-[#7c3aed]  hover:bg-[#6d28d9] text-white py-3 text-sm"
                   >
                     {isLoading && selectedPlan === 'enterprise' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
                   </Button>

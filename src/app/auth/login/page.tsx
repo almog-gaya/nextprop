@@ -121,7 +121,8 @@ function LoginForm() {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{' '}
-                <Link href="/auth/signup" className="font-medium text-[#7c3aed] hover:text-[#6d28d9]">
+                {/* <Link href="/auth/signup" className="font-medium text-[#7c3aed] hover:text-[#6d28d9]"> */}
+                <Link href="/onboarding" className="font-medium text-[#7c3aed] hover:text-[#6d28d9]">
                   Sign up here
                 </Link>
               </p>
