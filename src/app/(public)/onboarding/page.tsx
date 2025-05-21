@@ -28,52 +28,73 @@ function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Register for {plan} Plan</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
-            <input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
-            />
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button type="button" onClick={onClose} className="bg-gray-300 hover:bg-gray-400">
-              Cancel
-            </Button>
-            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
-              Proceed to checkout
-            </Button>
-          </div>
-        </form>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-6">
+      {/* Gradient border wrapper */}
+      <div className="relative w-full max-w-lg rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF] p-[1px] shadow-2xl">
+        {/* Actual white card */}
+        <div className="rounded-[inherit] bg-white py-8 px-6 sm:px-10">
+          <h2 className="mb-6 text-center text-3xl font-extrabold text-gray-900">
+            Register for <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3045FF] to-[#9A04FF]">{plan}</span> Plan
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Name */}
+            <div className="flex flex-col">
+              <label htmlFor="name" className="mb-1 text-sm font-medium text-gray-700">Name</label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+
+            {/* Phone */}
+            <div className="flex flex-col">
+              <label htmlFor="phone" className="mb-1 text-sm font-medium text-gray-700">Phone</label>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+
+            {/* Email */}
+            <div className="flex flex-col">
+              <label htmlFor="email" className="mb-1 text-sm font-medium text-gray-700">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                onClick={onClose}
+                className="h-10 rounded-lg bg-gray-100 px-6 text-sm font-semibold text-gray-700 shadow hover:bg-gray-200"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-10 rounded-lg bg-gradient-to-r from-[#3045FF] to-[#9A04FF] px-6 text-sm font-semibold text-white shadow hover:opacity-90 focus:ring-2 focus:ring-offset-2 focus:ring-[#9A04FF]"
+              >
+                Proceed to Checkout
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
