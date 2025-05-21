@@ -1,14 +1,13 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
+import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
-import { useAuth } from '@/contexts/AuthContext';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebaseConfig';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 // Modal Component
 function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
   isOpen: boolean,
@@ -189,134 +188,189 @@ function OnboardingContent() {
     );
   }
 
+  // --------------------------- ICON HELPERS ---------------------------
+  const CheckIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props.className}
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+
+  const InfoIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props.className}
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+
+  // --------------------------- DATA ---------------------------
+  const commonFeatures = [
+    'Free Skip Tracing',
+    'Free Cash Buyer Searches',
+    'Drip Campaign',
+    'Direct Mail',
+    'Call, Text and Email',
+    'List Stacking',
+    'Gmail Integration',
+    'KPI Dashboard',
+    'SEO Optimised Website',
+    'Driving For Dollars',
+    'E-signature',
+  ];
+
   return (
-    <div className="min-h-screen bg-white py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">Pricing Plans</h1>
-          <p className="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
-            Nextprop handles it all—no extra tools required. All plans include
-            Live Zoom, Live Chat, Phone & SMS support.
-          </p>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-violet-400 via-purple-300 to-blue-300 overflow-hidden">
+      {/* Top white bar with logo */}
+      <header className="bg-white/90 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-3 flex items-center">
+          <Link href="/" className="flex items-center gap-2">
+            {/* Replace src as needed */}
+            <Image src="/logo.png" alt="NextpropAI" width={140} height={32} />
+          </Link>
+        </div>
+      </header>
 
-          <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 mb-12">
-            {/* Basic Plan */}
-            <Card
-              className={`w-full md:w-80 shadow-lg border rounded-lg overflow-hidden flex flex-col h-auto transition-all duration-300 ${hoveredCard === 'basic' ? 'transform -translate-y-2 shadow-xl' : ''
-                }`}
-              onMouseEnter={() => setHoveredCard('basic')}
-              onMouseLeave={() => setHoveredCard(null)}
-            >
-              <div className="p-6 flex-grow">
-                <h2 className="text-2xl font-bold text-purple-600 mb-4">Basic</h2>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold">$249</span>
-                  <span className="text-gray-600">/mo</span>
-                </div>
-                <p className="text-gray-600 mb-4">Perfect for solo entrepreneurs</p>
-                <ul className="space-y-3 mb-6 text-left">
-                  <li className="text-sm">1 AI Agent</li>
-                  <li className="text-sm">1 Pipeline/Campaign</li>
-                  <li className="text-sm">1 Phone number</li>
-                  <li className="text-sm">250 Free scraping Properties & Agents info</li>
-                </ul>
-              </div>
-              <div className="p-6 bg-gray-50 flex flex-col items-center mt-auto">
-                <Button
-                  onClick={() => handleSelectPlan('basic')}
-                  disabled={isLoading || selectedPlan === 'basic'}
-                  className="w-full bg-black text-white hover:bg-gray-800 mb-3"
-                >
-                  {isLoading && selectedPlan === 'basic' ? 'Loading...' : 'Select Plan'}
-                </Button>
-                <p className="text-xs text-gray-500 text-center">No Setup Fee. Cancel Anytime.</p>
-              </div>
-            </Card>
-
-            {/* Pro Plan */}
-            <Card
-              className={`w-full md:w-80 shadow-lg border-2 border-[#3045FF] rounded-lg overflow-hidden flex flex-col relative z-10 h-auto transition-all duration-300 ${hoveredCard === 'pro' ? 'transform -translate-y-2 shadow-xl' : ''
-                }`}
-              onMouseEnter={() => setHoveredCard('pro')}
-              onMouseLeave={() => setHoveredCard(null)}
-            >
-              <div className="absolute top-4 right-4">
-                <span className="bg-blue-100 text-blue-800 text-[10px] font-medium px-2 py-0.5 rounded-full">Most Popular</span>
-              </div>
-              <div className="p-6 flex-grow bg-gradient-to-r from-[#3045FF] to-[#9A04FF]">
-                <h2 className="text-2xl font-bold text-white mb-4">Pro</h2>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-white">$697</span>
-                  <span className="text-blue-200">/mo</span>
-                </div>
-                <p className="text-blue-100 mb-4">For teams of 2-5 members</p>
-                <ul className="space-y-3 mb-6 text-left text-white">
-                  <li className="text-sm">3 AI Agents</li>
-                  <li className="text-sm">3 Pipelines/Campaigns</li>
-                  <li className="text-sm">Bulk Email Feature </li>
-                  <li className="text-sm">VIP Support - Done for You</li>
-                  <li className="text-sm">1,000 Free scraping Properties & Agents info</li>
-                </ul>
-              </div>
-              <div className="pr-6 pl-6 pb-6 bg-gradient-to-r from-[#3045FF] to-[#9A04FF] flex flex-col items-center mt-auto">
-                <Button
-                  onClick={() => handleSelectPlan('pro')}
-                  disabled={isLoading || selectedPlan === 'pro'}
-                  className="w-full bg-[#ff4d4d] text-white hover:bg-red-500 mb-3"
-                >
-                  {isLoading && selectedPlan === 'pro' ? 'Loading...' : 'Select Plan'}
-                </Button>
-                <p className="text-xs text-white text-center">No Setup Fee. Cancel Anytime.</p>
-              </div>
-            </Card>
-
-            {/* Enterprise Plan */}
-            <Card
-              className={`w-full md:w-80 shadow-lg border rounded-lg overflow-hidden flex flex-col relative h-auto transition-all duration-300 ${hoveredCard === 'enterprise' ? 'transform -translate-y-2 shadow-xl' : ''
-                }`}
-              onMouseEnter={() => setHoveredCard('enterprise')}
-              onMouseLeave={() => setHoveredCard(null)}
-            >
-              <div className="absolute top-4 right-4">
-                <span className="bg-yellow-100 text-yellow-800 text-[10px] font-medium px-2 py-0.5 rounded-full">Most Value</span>
-              </div>
-              <div className="p-6 flex-grow bg-gradient-to-b from-[#ffd166] to-[#ffe699]">
-                <h2 className="text-2xl font-bold text-[#835c00] mb-4">Enterprise</h2>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-[#835c00]">$1,499</span>
-                  <span className="text-[#835c00]">/mo</span>
-                </div>
-                <p className="text-[#835c00] mb-4">For larger teams of 5+ members</p>
-                <ul className="space-y-3 mb-6 text-left text-[#835c00]">
-                  <li className="text-sm">25 AI Agents</li>
-                  <li className="text-sm">25 Pipelines/Campaigns</li>
-                  <li className="text-sm">VIP Support {'>'}  DONE FOR YOU</li>
-                  <li className="text-sm">10,000 Free Scraping Deals&Contacts</li>
-                </ul>
-              </div>
-              <div className="p-6 bg-gray-50 flex flex-col items-center mt-auto">
-                <Button
-                  onClick={() => handleSelectPlan('enterprise')}
-                  disabled={isLoading || selectedPlan === 'enterprise'}
-                  className="w-full bg-black text-white hover:bg-gray-800 mb-3"
-                >
-                  {isLoading && selectedPlan === 'enterprise' ? 'Loading...' : 'Select Plan'}
-                </Button>
-                <p className="text-xs text-gray-500 text-center">No Setup Fee. Cancel Anytime.</p>
-              </div>
-            </Card>
+      {/* Main content */}
+      <main className="flex-1 overflow-x-hidden">
+        <div className="container mx-auto px-4 py-10 transform scale-[0.9] origin-top">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-[10rem] md:text-[14rem] font-extrabold leading-none text-black mb-4">Pricing Plans</h1>
+            <p className="text-md  text-gray-700">
+              Nextprop handles it all—no extra tools required.
+              <br />
+              All plans include Live Zoom, Live Chat, Phone &amp; SMS support.
+            </p>
           </div>
 
-          <div className="max-w-3xl mx-auto text-left text-gray-600 mb-12 bg-gray-50 p-6 rounded-lg">
-            <ul className="space-y-2">
-              <li className="text-sm">• NO Setup Fee – Fully customized system in 3-5 days.</li>
-              <li className="text-sm">• No long-term commitment. Cancel anytime.</li>
-              <li className="text-sm">• Scraping contacts, SMS, emails, calls, and phone numbers are billed separately based on usage.</li>
-              <li className="text-sm">• Add an additional AI agent for just $97/month</li>
-            </ul>
+          <div className="mt-12 flex flex-col lg:flex-row gap-10 lg:items-start">
+            {/* ---------------- Included in All Plans ---------------- */}
+            <div className="-mt-8 w-full lg:w-72 rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF] p-6 text-white shadow-xl">
+              <h3 className="text-2xl font-bold text-center mb-6">Included In All Plans</h3>
+              <ul className="space-y-4">
+                {commonFeatures.map((feature) => (
+                  <li key={feature} className="flex items-center justify-between text-sm">
+                    <span className="flex items-center">
+                      <CheckIcon className="w-5 h-5 mr-3" />
+                      {feature}
+                    </span>
+                    {/* Optional info icon */}
+                    <InfoIcon className="w-4 h-4 opacity-70" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* ---------------- Pricing Cards ---------------- */}
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Basic */}
+              <div
+                className="relative rounded-3xl bg-white p-6 shadow-lg flex flex-col hover:shadow-xl transition"
+                onMouseEnter={() => setHoveredCard('basic')}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <h3 className="text-purple-700 font-semibold text-lg mb-2">Basic</h3>
+                <div className="flex items-end mb-4">
+                  <span className="text-4xl font-extrabold text-gray-900">$149</span>
+                  <span className="text-gray-700 ml-1">/mo</span>
+                </div>
+                <p className="text-gray-600 mb-4">Perfect for solopreneurs</p>
+                <ul className="text-gray-600 space-y-2 mb-8">
+                  <li>1 AI Agent</li>
+                  <li>1 Pipeline Configuration</li>
+                  <li>1 Phone Number</li>
+                </ul>
+                <div className="mt-auto">
+                  <Button
+                    onClick={() => handleSelectPlan('basic')}
+                    disabled={isLoading || selectedPlan === 'basic'}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-sm"
+                  >
+                    {isLoading && selectedPlan === 'basic' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
+                  </Button>
+                  <p className="text-xs text-center text-gray-500 mt-3">Fast and Free Setup. Cancel Anytime.</p>
+                </div>
+              </div>
+
+              {/* Pro */}
+              <div
+                className="relative rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF] p-6 shadow-lg flex flex-col text-white hover:shadow-xl transition"
+                onMouseEnter={() => setHoveredCard('pro')}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <span className="absolute top-4 right-4 bg-white/90 text-gray-700 text-xs font-medium rounded-full px-3 py-1">Most Popular</span>
+                <h3 className="font-semibold text-lg mb-2">Pro</h3>
+                <div className="flex items-end mb-4">
+                  <span className="text-4xl font-extrabold">$299</span>
+                  <span className="ml-1">/mo</span>
+                </div>
+                <p className="mb-4">For teams of 2-5 members</p>
+                <ul className="space-y-2 mb-8">
+                  <li>1 AI Agent</li>
+                  <li>1 Pipeline Configuration</li>
+                  <li>1 Phone Number</li>
+                </ul>
+                <div className="mt-auto">
+                  <Button
+                    onClick={() => handleSelectPlan('pro')}
+                    disabled={isLoading || selectedPlan === 'pro'}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 text-sm"
+                  >
+                    {isLoading && selectedPlan === 'pro' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
+                  </Button>
+                  <p className="text-xs text-center text-white/90 mt-3">Fast and Free Setup. Cancel Anytime.</p>
+                </div>
+              </div>
+
+              {/* Enterprise */}
+              <div
+                className="relative rounded-3xl bg-white p-6 shadow-lg flex flex-col hover:shadow-xl transition"
+                onMouseEnter={() => setHoveredCard('enterprise')}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <span className="absolute top-4 right-4 bg-gray-200 text-gray-700 text-xs font-medium rounded-full px-3 py-1">Most Value</span>
+                <h3 className="text-purple-700 font-semibold text-lg mb-2">Enterprise</h3>
+                <div className="flex items-end mb-4">
+                  <span className="text-4xl font-extrabold text-gray-900">$599</span>
+                  <span className="text-gray-700 ml-1">/mo</span>
+                </div>
+                <p className="text-gray-600 mb-4">For larger teams of 5+ members</p>
+                <ul className="text-gray-600 space-y-2 mb-8">
+                  <li>1 AI Agent</li>
+                  <li>1 Pipeline Configuration</li>
+                  <li>1 Phone Number</li>
+                </ul>
+                <div className="mt-auto">
+                  <Button
+                    onClick={() => handleSelectPlan('enterprise')}
+                    disabled={isLoading || selectedPlan === 'enterprise'}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-sm"
+                  >
+                    {isLoading && selectedPlan === 'enterprise' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
+                  </Button>
+                  <p className="text-xs text-center text-gray-500 mt-3">Fast and Free Setup. Cancel Anytime.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+
       {selectedPlan && (
         <RegisterModal
           isOpen={isModalOpen}
