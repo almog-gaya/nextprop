@@ -4,7 +4,11 @@ import Stripe from 'stripe';
 
 12
 export const saveSession = async (session: Stripe.Checkout.Session) => {
-    const sessionRef = doc(db, `customers/${session.customer_email}`, 'checkout_sessions', session.id);
+    const customerId = session.customer!.toString();
+    const user = await getUserByStripeId(customerId);
+    const userId = user.id;
+
+    const sessionRef = doc(db, `customers/${customerId}`, 'checkout_sessions', session.id);
     return await setDoc(sessionRef, {
         ...session,
         hasCompletedPayment: true,
@@ -12,16 +16,22 @@ export const saveSession = async (session: Stripe.Checkout.Session) => {
 }
 
 export const saveInvoice = async (invoice: Stripe.Invoice) => {
-    const userRef = doc(db, `customers/${invoice.customer_email}`);
-    const invoiceRef = doc(db, `customers/${invoice.customer_email}/invoices/${invoice.id}`);
+    const customerId = invoice.customer!.toString();
+    const user = await getUserByStripeId(customerId);
+    const userId = user.id;
+    const userRef = doc(db, `customers/${userId}`);
+    const invoiceRef = doc(db, `customers/${userId}/invoices/${invoice.id}`);
 
-    await updateDoc(userRef, { 'hasCompletedPayment': true }); 
+    await updateDoc(userRef, { 'hasCompletedPayment': true });
     return await setDoc(invoiceRef, {
         ...invoice,
     }, { merge: true });
 }
 export const failedPaymentInvoice = async (invoice: Stripe.Invoice) => {
-    const invoiceRef = doc(db, `customers/${invoice.customer_email}/invoices/${invoice.id}`);
+    const customerId = invoice.customer!.toString();
+    const user = await getUserByStripeId(customerId);
+    const userId = user.id;
+    const invoiceRef = doc(db, `customers/${userId}/invoices/${invoice.id}`);
     return await setDoc(invoiceRef, {
         ...invoice,
     }, { merge: true });
@@ -42,3 +52,13 @@ export const updateSubscription = async (subscription: Stripe.Subscription) => {
         throw new Error(`No user found with customerId: ${customerId}`);
     }
 };
+
+
+export const getUserByStripeId = async (stripeCustomerId: string) => {
+    const userQuery = query(collection(db, 'customers'), where('stripeCustomerId', '==', stripeCustomerId));
+    const userSnapshot = await getDocs(userQuery);
+    if (userSnapshot.empty) {
+        throw new Error(`No user found with customerId: ${stripeCustomerId}`);
+    }
+    return userSnapshot.docs[0];
+}

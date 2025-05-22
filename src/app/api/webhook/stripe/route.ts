@@ -1,9 +1,10 @@
 import { getStripeInstance } from '@/lib/stripe';
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import * as handler from './eventHandler';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getDoc, setDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseConfig';
+import Stripe from 'stripe';
 const endpointSecret = process.env.NEXT_PUBLIC_STRIPE_WEBHOOK_SECRET;
 
 export async function POST(req: NextRequest) {
@@ -38,21 +39,26 @@ export async function POST(req: NextRequest) {
             //     {
 
             //         const customer = event.data.object as Stripe.Customer;
+            //         customer.metadata = customer.metadata || {};
+            //         const locationId = customer.metadata.locationId;
             //         const normalizedEmail = customer.email?.toLowerCase() || '';
-            //         const customerRef = doc(db, `customers/${normalizedEmail}`);
+            //         const customerRef = doc(db, `customers/${locationId}`);
             //         const customerSnap = await getDoc(customerRef);
-            //         if (customerSnap.exists()) {
-            //             console.log('Customer already exists in Firestore:', normalizedEmail);
-            //             return NextResponse.json({ received: true });
-            //         }
-            //         const payload = {
+            //         let payload = {
             //             name: customer.name || "bahadur-test-customer-created.",
             //             stripeCustomerId: customer.id,
-            //             email: normalizedEmail,
-            //             createdAt: new Date().toISOString(),
+            //             email: normalizedEmail, 
             //             hasCompletedPayment: false,
             //         }
-            //         await setDoc(customerRef, payload, { merge: true });
+            //         if (customerSnap.exists()) {
+            //             await setDoc(customerRef, payload, { merge: true });
+            //             return NextResponse.json({ received: true });
+            //         }
+
+            //         await setDoc(customerRef, {
+            //             ...payload,
+            //             createdAt: customer.created || new Date(),
+            //         }, { merge: true });
             //         console.log('Customer created in Firestore:', normalizedEmail);
             //         return NextResponse.json({ received: true });
 

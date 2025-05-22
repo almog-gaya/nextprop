@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const {locationId, payload} = body;
     
     // Validate request body
     if (!body || Object.keys(body).length === 0) {
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = await createSubAccount(body);
+    const data = await processCreate(locationId, payload);
     return NextResponse.json(data, { status: 200 });
 
   } catch (error: any) {
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
 
 
 
-const createSubAccount = async (data: any) => {
+const processCreate = async (locationId: string, data: any) => {
   try {
     const agencyToken = process.env.AGENCY_API_KEY;
     if (!agencyToken) {
@@ -39,41 +40,12 @@ const createSubAccount = async (data: any) => {
     console.log(`Agency Token: ${agencyToken}`);
     console.log(`[SubAccount] ${JSON.stringify(data)} [SubAccount]`);
 
-    const password = data.password;
-    if (!password) {
-      throw Object.assign(new Error("Password is required"), { status: 400 });
-    }
-    delete data.password;
-
-    const response = await fetch('https://rest.gohighlevel.com/v1/locations/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${agencyToken}`,
-        'Version': '2021-07-28',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-
-    const responseBody = await response.json();
-
-    if (!response.ok) {
-      throw Object.assign(new Error(responseBody.message || 'Failed to create subaccount'), {
-        status: response.status,
-        details: responseBody
-      });
-    }
-
-    const locationId = responseBody.id;
-    /// make a mock delay of 1 second
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const user = await createUser(locationId, password, data);
+    
+    const user = await createUser(locationId, data);
     await loadSnapshotIntoAccount(agencyToken, locationId);
     
     return {
       "user": user,
-      "location": responseBody,
       locationId,
     };
   } catch (error: any) {
@@ -82,7 +54,7 @@ const createSubAccount = async (data: any) => {
   }
 }
 
-const createUser = async (locationId: string, password: string, data: any, retries = 5, delay = 1000) => {
+const createUser = async (locationId: string, data: any, retries = 5, delay = 1000) => {
   try {
     const agencyToken = process.env.AGENCY_API_KEY;
     if (!agencyToken) {
@@ -94,12 +66,13 @@ const createUser = async (locationId: string, password: string, data: any, retri
       throw Object.assign(new Error(`Invalid locationId: ${locationId}`), { status: 400 });
     }
 
+    delete data.password;
     const url = `https://rest.gohighlevel.com/v1/users/`;
     const payload = {
       "firstName": data.firstName,
       "lastName": data.lastName,
       "email": data.email,
-      "password": password,
+    //   "password": data.password,
       "phone": data.phone || "",
       "type": "account",
       "role": "admin",
@@ -135,8 +108,7 @@ const createUser = async (locationId: string, password: string, data: any, retri
     if (!data.email || !data.firstName) {
       throw Object.assign(new Error("Email and firstName are required"), { status: 400 });
     }
-
-    console.log('[createUser] Token (first 10 chars):', agencyToken.substring(0, 10));
+ 
     console.log('[createUser] Location ID:', locationId);
     console.log('[createUser] Request Payload:', JSON.stringify(payload, null, 2));
 
@@ -160,7 +132,7 @@ const createUser = async (locationId: string, password: string, data: any, retri
       if (retries > 0 && (errorMsg.includes('cannot be created by API') || response.status === 400)) {
         console.log(`[createUser] Retrying... (${retries} attempts left, delay: ${delay}ms)`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return createUser(locationId, password, data, retries - 1, delay * 2); // Exponential backoff
+        return createUser(locationId, data, retries - 1, delay * 2); // Exponential backoff
       }
       throw Object.assign(new Error(errorMsg), {
         status: response.status,

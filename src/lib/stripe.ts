@@ -50,7 +50,8 @@ export const getStripeInstance = () => {
 export const getOrCreateCustomer = async (email: string, data: any) => {
   const stripeInstance = getStripeInstance();
   const normalizedEmail = email.toLowerCase();
-  const customerRef = doc(db, 'customers', normalizedEmail);
+  const locationId = data.locationId;
+  const customerRef = doc(db, 'customers', locationId);
   const customerSnap = await getDoc(customerRef);
 
   if (customerSnap.exists()) {
@@ -60,6 +61,9 @@ export const getOrCreateCustomer = async (email: string, data: any) => {
   // Create new customer
   const customer = await stripeInstance.customers.create({
     email: normalizedEmail,
+    metadata: {
+      locationId: data.locationId
+    }
   });
 
   // Save customer ID to Firestore
@@ -97,7 +101,7 @@ export const createCheckoutSession = async (email: string, data: any) => {
     subscription_data: {
       trial_period_days: 30,
     },
-    success_url: `${baseUrl}/register?success=true&email=${encodeURIComponent(email)}&plan=${data.plan}&phone=${data.phone}&name=${data.name}`,
+    success_url: `${baseUrl}/register?success=true&email=${encodeURIComponent(email)}&plan=${data.plan}&phone=${data.phone}&name=${data.name}&locationId=${data.locationId}&businessName=${data.businessName}`,
     cancel_url: `${baseUrl}/onboarding?canceled=true`,
   });
 
