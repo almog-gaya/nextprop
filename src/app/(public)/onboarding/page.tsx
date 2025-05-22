@@ -2,26 +2,27 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
+
 // Modal Component
 function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
   isOpen: boolean,
   onClose: () => void,
   plan: string,
-  onSubmit: (data: { name: string, phone: string, email: string, plan: string }) => void
+  onSubmit: (data: { name: string, phone: string, email: string, plan: string, businessName: string }) => void
 }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [businessName, setBusinessName] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ name, phone, email, plan });
+    onSubmit({ name, phone, email, plan, businessName });
     onClose();
   };
 
@@ -46,6 +47,19 @@ function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                required
+                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+
+            {/* Business Name */}
+            <div className="flex flex-col">
+              <label htmlFor="businessName" className="mb-1 text-sm font-medium text-gray-700">Business Name</label>
+              <input
+                id="businessName"
+                type="text"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
                 required
                 className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
               />
@@ -115,12 +129,26 @@ function OnboardingContent() {
     setIsModalOpen(true);
   };
 
-  const handleModalSubmit = async (data: { name: string, phone: string, email: string, plan: string }) => {
+  const handleModalSubmit = async (data: { name: string, businessName: string, phone: string, email: string, plan: string }) => {
     setIsLoading(true);
-    const response = await fetch('/api/stripe/create-checkout-session', {
-      method: 'POST',
+    const ghlResponse = await fetch('/api/auth/ghl/signup/location', {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        businessName: data.businessName,
+        firstName: data.name,
+        phone: data.phone,
+        email: data.email,
+      }),
+    });
+    const ghlResult = await ghlResponse.json();
+    const locationId = ghlResult.locationId;
+    const response = await fetch("/api/stripe/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         email: data.email,
@@ -130,20 +158,25 @@ function OnboardingContent() {
           name: data.name,
           phone: data.phone,
           email: data.email,
-        }
+          locationId: locationId,
+          businessName: data.businessName,
+        },
       }),
     });
 
     const result = await response.json();
 
     if (result.url) {
-      
-      // store session in firestore
-      const customerRef = doc(db, 'customers', data.email.toLowerCase());
+      // Store session in Firestore
+      const customerRef = doc(db, "customers", locationId);
 
-      await setDoc(customerRef, {
-        ...result,
-      }, { merge: true });
+      await setDoc(
+        customerRef,
+        {
+          ...result,
+        },
+        { merge: true }
+      );
       window.location.href = result.url;
     }
     setIsLoading(false);
@@ -196,7 +229,7 @@ function OnboardingContent() {
               </ul>
             </div>
             <p className="text-gray-600 mb-8">
-              If you have any questions, please don't hesitate to contact our support team. at support@nextprop.ai or +1 (929) 595-3158
+              If you have any questions, please don't hesitate to contact our support team at support@nextprop.ai or +1 (929) 595-3158
             </p>
             <Link href="/">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
@@ -257,17 +290,15 @@ function OnboardingContent() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#7c3aed] overflow-x-hidden">
-      
-
       {/* Main content */}
       <main className="w-full overflow-x-hidden">
         <div className="container mx-auto px-4 py-10 transform origin-top">
-          <div className="text-center mx-auto ">
+          <div className="text-center mx-auto">
             <h1 className="text-6xl md:text-8xl font-extrabold leading-none text-white mb-6">Pricing Plans</h1>
-            <p className="text-lg md:text-2xl ">
+            <p className="text-lg md:text-2xl">
               Nextprop handles it all—no extra tools required.
               <br />
-              All plans include Live Zoom, Live Chat, Phone &amp; SMS support.
+              All plans include Live Zoom, Live Chat, Phone & SMS support.
             </p>
           </div>
 
@@ -282,7 +313,6 @@ function OnboardingContent() {
                       <CheckIcon className="w-5 h-5 mr-3" />
                       {feature}
                     </span>
-                    {/* Optional info icon */}
                     <InfoIcon className="w-4 h-4 opacity-70" />
                   </li>
                 ))}
@@ -312,7 +342,7 @@ function OnboardingContent() {
                   <Button
                     onClick={() => handleSelectPlan('basic')}
                     disabled={isLoading || selectedPlan === 'basic'}
-                    className="w-full bg-[#7c3aed]  hover:bg-[#6d28d9] text-white py-3 text-sm"
+                    className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3 text-sm"
                   >
                     {isLoading && selectedPlan === 'basic' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
                   </Button>
@@ -372,7 +402,7 @@ function OnboardingContent() {
                   <Button
                     onClick={() => handleSelectPlan('enterprise')}
                     disabled={isLoading || selectedPlan === 'enterprise'}
-                    className="w-full bg-[#7c3aed]  hover:bg-[#6d28d9] text-white py-3 text-sm"
+                    className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3 text-sm"
                   >
                     {isLoading && selectedPlan === 'enterprise' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
                   </Button>
