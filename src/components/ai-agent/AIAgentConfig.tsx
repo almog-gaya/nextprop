@@ -2030,22 +2030,22 @@ export default function AIAgentConfig({
               {/* Criteria grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
                 {[
-                  { key: 'interestedSelling', label: 'Interested in Selling', icon: <img src="/checkbox.svg" alt="Interested in Selling" className="w-[30px] h-[30px]" /> },
-                  { key: 'address', label: 'Address of the House', icon: <img src="/checkbox.svg" alt="Address of the House" className="w-[30px] h-[30px]" /> },
-                  { key: 'reasonSelling', label: 'Reason for Selling', icon: <img src="/person.svg" alt="Reason for Selling" className="w-[30px] h-[30px]" /> },
-                  { key: 'condition', label: 'Condition of the House', icon: <img src="/home.svg" alt="Condition of the House" className="w-[30px] h-[30px]" /> },
-                  { key: 'timeline', label: 'Timeline to Sell', icon: <img src="/clock.svg" alt="Timeline to Sell" className="w-[30px] h-[30px]" /> },
-                  { key: 'askingPrice', label: 'Asking Price', icon: <img src="/doller.svg" alt="Asking Price" className="w-[30px] h-[30px]" /> },
+                  { label: 'Interested in Selling', icon: <img src="/checkbox.svg" alt="Interested in Selling" className="w-[30px] h-[30px]" /> },
+                  { label: 'Address of the House', icon: <img src="/checkbox.svg" alt="Address of the House" className="w-[30px] h-[30px]" /> },
+                  { label: 'Reason for Selling', icon: <img src="/person.svg" alt="Reason for Selling" className="w-[30px] h-[30px]" /> },
+                  { label: 'Condition of the House', icon: <img src="/home.svg" alt="Condition of the House" className="w-[30px] h-[30px]" /> },
+                  { label: 'Timeline to Sell', icon: <img src="/clock.svg" alt="Timeline to Sell" className="w-[30px] h-[30px]" /> },
+                  { label: 'Asking Price', icon: <img src="/doller.svg" alt="Asking Price" className="w-[30px] h-[30px]" /> },
                 ].map((item) => (
                   <button
-                    key={item.key}
+                    key={item.label}
                     style={{
                       width: '241px',
                       height: '46px',
                       borderRadius: '3px',
                       border: '1px solid #E5E7EB',
-                      background: config.leadQualification?.[item.key] ? '#95989A' : '#fff',
-                      color: config.leadQualification?.[item.key] ? '#111827' : '#111827',
+                      background: config.leadQualificationCriteria?.includes(item.label) ? '#95989A' : '#fff',
+                      color: config.leadQualificationCriteria?.includes(item.label) ? '#111827' : '#111827',
                       fontWeight: 400,
                       fontSize: '14px',
                       display: 'flex',
@@ -2055,15 +2055,23 @@ export default function AIAgentConfig({
                       paddingRight: '16px',
                       margin: 0,
                     }}
-                    className="transition focus:outline-none  mb-0"
+                    className="transition focus:outline-none mb-0"
                     type="button"
-                    onClick={() => setConfig(prev => prev ? { ...prev, leadQualification: { ...(prev.leadQualification || {}), [item.key]: !prev.leadQualification?.[item.key] } } : prev)}
+                    onClick={() => {
+                      setConfig(prev => {
+                        if (!prev) return prev;
+                        const currentCriteria = prev.leadQualificationCriteria || [];
+                        const newCriteria = currentCriteria.includes(item.label)
+                          ? currentCriteria.filter(c => c !== item.label)
+                          : [...currentCriteria, item.label];
+                        return { ...prev, leadQualificationCriteria: newCriteria };
+                      });
+                    }}
                   >
-                    <span className="flex items-center justify-center  mr-2">
+                    <span className="flex items-center justify-center mr-2">
                       {item.icon}
                     </span>
                     {item.label}
-
                   </button>
                 ))}
               </div>
