@@ -214,7 +214,7 @@ function RegisterPageContent() {
       firstName: formData.firstName,
       lastName: formData.firstName,
       email: formData.representativeEmail,
-      password: "password",
+      password: "",
       phone: formData.phoneNumber,
       website: formData.businessWebsite,
       streetAddress: formData.streetAddress,

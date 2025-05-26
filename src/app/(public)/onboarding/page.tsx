@@ -48,7 +48,7 @@ function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-purple-600 focus:ring-2 focus:ring-purple-200"
               />
             </div>
 
@@ -61,7 +61,7 @@ function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 required
-                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-purple-600 focus:ring-2 focus:ring-purple-200"
               />
             </div>
 
@@ -74,7 +74,7 @@ function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
-                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-purple-600 focus:ring-2 focus:ring-purple-200"
               />
             </div>
 
@@ -87,7 +87,7 @@ function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm shadow-sm transition placeholder-gray-400 focus:border-purple-600 focus:ring-2 focus:ring-purple-200"
               />
             </div>
 
@@ -209,8 +209,8 @@ function OnboardingContent() {
             <p className="text-xl text-gray-600 mb-8">
               We've received your registration for {email || 'your account'}.
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-blue-800 mb-4">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-8">
+              <h2 className="text-lg font-semibold text-purple-800 mb-4">
                 What's Next?
               </h2>
               <ul className="text-left text-gray-600 space-y-3">
@@ -232,7 +232,7 @@ function OnboardingContent() {
               If you have any questions, please don't hesitate to contact our support team at support@nextprop.ai or +1 (929) 595-3158
             </p>
             <Link href="/">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+              <Button size="lg" className="bg-purple-600 hover:bg-purple-700">
                 Return to Home
               </Button>
             </Link>
@@ -432,7 +432,7 @@ function LoadingFallback() {
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="p-8 text-center">
         <h2 className="text-2xl font-semibold text-gray-700 mb-4">Loading...</h2>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700 mx-auto"></div>
       </div>
     </div>
   );

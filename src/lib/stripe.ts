@@ -112,10 +112,9 @@ export const createCheckoutSession = async (email: string, data: any) => {
 };
 
 // Create portal session
-export const createPortalSession = async (email: string) => {
-  const stripeInstance = getStripeInstance();
-  const normalizedEmail = email.toLowerCase();
-  const customerRef = doc(db, 'customers', normalizedEmail);
+export const createPortalSession = async (id: string) => {
+  const stripeInstance = getStripeInstance(); 
+  const customerRef = doc(db, 'customers', id);
   const customerSnap = await getDoc(customerRef);
 
   if (!customerSnap.exists()) {

@@ -647,10 +647,10 @@ export default function AIAgentConfig({
     }
 
     // Safe check for phoneNumbers
-    // if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
-    //   toast.error('Please add a phone number to your account');
-    //   return;
-    // }
+    if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
+      toast.error('Please add a phone number to your account');
+      return;
+    }
 
     setIsSaving(true);
     try {
