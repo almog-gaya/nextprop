@@ -116,8 +116,11 @@ function LoginForm() {
                 <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0zm0 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z" />
                 <path d="M12 6c-3.309 0-6 2.691-6 6s2.691 6 6 6 6-2.691 6-6-2.691-6-6-6zm0 10c-2.206 0-4-1.794-4-4s1.794-4 4-4 4 1.794 4 4-1.794 4-4 4z" />
               </svg>
-              Connect with GoHighLevel
+              Continue
             </button>
+              <p className="text-xs text-gray-600 text-center">
+                We utilize GoHighLevel for some operations.
+              </p>
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{' '}

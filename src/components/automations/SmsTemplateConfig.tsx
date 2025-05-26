@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { ChatBubbleLeftRightIcon, TagIcon } from '@heroicons/react/24/outline';
+import SmsTemplateModal from './SmsTemplateModal';
 
 interface SmsTemplateConfigProps {
   message: string;
@@ -15,6 +17,8 @@ export default function SmsTemplateConfig({
   insertPlaceholder, 
   isJobRunning 
 }: SmsTemplateConfigProps) {
+  const [isModalOpen, setModalOpen] = useState(false);
+
   // These are the fields that exist in the contact_payload for each contact in automation collection
   const contactPayloadFields = [
     { key: 'firstName', placeholder: 'first_name', description: 'Contact\'s first name' },
@@ -27,11 +31,32 @@ export default function SmsTemplateConfig({
     { key: 'postalCode', placeholder: 'postal_code', description: 'Property postal code' }
   ];
 
+  const openModal = () => setModalOpen(true);
+  const closeModal = () => setModalOpen(false);
+
+  const handleTemplateSelect = (template: string) => {
+    const event = {
+      target: { value: template }
+    } as React.ChangeEvent<HTMLTextAreaElement>;
+    onChange(event);
+    closeModal();
+  };
+
   return (
     <div className="p-4 bg-gray-50 rounded-lg">
-      <div className="flex items-center mb-3">
-        <ChatBubbleLeftRightIcon className="h-5 w-5 text-emerald-600 mr-2 mb-6" />
-        <h3 className="text-md font-medium text-gray-900">SMS Template</h3>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center">
+          <ChatBubbleLeftRightIcon className="h-5 w-5 text-emerald-600 mr-2 mb-6" />
+          <h3 className="text-md font-medium text-gray-900">SMS Template</h3>
+        </div>
+        <button
+          type="button"
+          onClick={openModal}
+          className="px-3 py-1.5 text-sm rounded-md bg-indigo-500 text-white hover:bg-indigo-600 transition-all"
+          disabled={isJobRunning}
+        >
+          Choose Template
+        </button>
       </div>
       <textarea
         ref={textareaRef}
@@ -60,6 +85,12 @@ export default function SmsTemplateConfig({
           ))}
         </div>
       </div>
+
+      <SmsTemplateModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onSelectTemplate={handleTemplateSelect}
+      />
     </div>
   );
 }
