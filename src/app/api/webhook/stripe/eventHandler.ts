@@ -2,6 +2,7 @@
 import Stripe from 'stripe';
 import * as db from './stripeFirestore';
 import { getStripeInstance } from '@/lib/stripe';
+import { getBillingByStripeId } from '@/lib/billingService';
 
 export const handleCheckoutSessionCompleted = async (event: Stripe.Event) => {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -41,9 +42,8 @@ export async function handleInvoiceUpcoming(event: Stripe.Event) {
         const isSubscriptionCreatedNow = invoice.billing_reason !== 'subscription_create';
 
         if (isSubscriptionCreatedNow) {
-
-            // TODO: Load from Firebase (the USAGE) (MOCKED)
-            const usageBillingCharges = await _getUsageFromFirebase();
+            const stripeCustomerId = invoice.customer!.toString();
+            const usageBillingCharges = await _getUsageFromFirebase(stripeCustomerId);
 
             const stripe = getStripeInstance();
 
@@ -87,15 +87,14 @@ export async function handleInvoiceUpcoming(event: Stripe.Event) {
 
 }
 
-// TODO: replace it with real usage data from Firebase
-async function _getUsageFromFirebase() {
-    return {
-        phone: { total: 20, unitPrice: 50, totalPrice: 20 * 50 },
-        sms: { total: 20, unitPrice: 0.5, totalPrice: 20 * 0.5 },
-        rvm: { total: 500, unitPrice: 0.001, totalPrice: 500 * 0.001 },
-        email: { total: 9, unitPrice: 0.1, totalPrice: 9 * 0.1 },
-        otherIntegrations: 10,
-    };
+async function _getUsageFromFirebase(stripeId: string) {
+
+    const result = await getBillingByStripeId(stripeId);
+    if (!result) {
+        throw new Error(`No subscription found for Stripe ID: ${stripeId}`);
+    }
+    const usage = result.usage;
+    return usage;
 }
 
 

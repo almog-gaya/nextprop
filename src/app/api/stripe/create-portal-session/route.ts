@@ -3,16 +3,16 @@ import { createPortalSession } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { id } = await request.json();
 
-    if (!email) {
+    if (!id) {
       return NextResponse.json(
-        { error: 'Missing email' },
+        { error: 'Missing id' },
         { status: 400 }
       );
     }
 
-    const session = await createPortalSession(email);
+    const session = await createPortalSession(id);
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

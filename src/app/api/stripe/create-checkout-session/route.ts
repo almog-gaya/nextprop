@@ -21,26 +21,24 @@ export async function POST(request: NextRequest) {
 
     // Import the getStripeInstance function dynamically to avoid build issues
     const { getStripeInstance } = await import('@/lib/stripe');
-    const stripe = getStripeInstance();
-
-    const normalizedEmail = email.toLowerCase();
+    const stripe = getStripeInstance(); 
 
     // Create or get customer
-    const customerRef = doc(db, 'customers', normalizedEmail);
+    const customerRef = doc(db, 'customers', email);
     const customerSnap = await getDoc(customerRef);
     
     let customerId;
     if (!customerSnap.exists()) {
       // Create a new customer in Stripe
       const customer = await stripe.customers.create({
-        email: normalizedEmail
+        email: email
       });
       customerId = customer.id;
 
       // Create customer document in Firestore
       await setDoc(customerRef, {
         stripeCustomerId: customerId,
-        email: normalizedEmail,
+        email: email,
         createdAt: new Date().toISOString()
       });
     } else {
@@ -78,7 +76,7 @@ export async function POST(request: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing?canceled=true`,
       metadata: {
-        email: normalizedEmail,
+        email: email,
         lineItems: JSON.stringify(lineItems)
       }
     });
