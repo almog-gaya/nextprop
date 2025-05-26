@@ -10,28 +10,14 @@ interface SmsTemplateModalProps {
 
 // Strategy descriptions to provide context
 const strategyDescriptions: Record<string, string> = {
-  "For Realtors - Re-Engagement": "Re-engage realtors based on past sales data. AI engages realtors referencing previous conversations and inquiring about new off-market deals.",
-  "For Realtors - Distressed Listings": "Target listings over 90 days on MLS, then engage realtors to explore creative financing options.",
-  "Distressed Homeowners": "Reach out to distressed homeowners to offer solutions, whether it's a cash offer or creative financing.",
-  "Off Market Deals": "Connect with contacts about exclusive off-market property opportunities.",
-  "Short Sales": "Engage with contacts about potential short sale opportunities.",
-  "Creative Finance": "Discuss creative financing options for real estate investments.",
-  "Cash Buyers": "Reach out to potential cash buyers with investment opportunities.",
-  "For Home Owners": "Connect with homeowners about selling their properties.",
-  "Cash Offer": "Offer quick cash offers for properties.",
-  "Distressed Seller": "Provide solutions for sellers facing property challenges.",
-  "Relocation": "Assist homeowners who are relocating and need to sell their property."
+  "Re-Engaging Realtors": "Re-engage realtors based on past sales data. AI engages realtors based on their last sale, referencing previous conversations and inquiring about new off-market deals before they hit the MLS.",
+  "Targeting Distressed Listings": "Target listings over 90+ days on MLS, then engage realtors to explore creative financing options, positioning you as the solution to close the deal."
 };
 
 export default function SmsTemplateModal({ isOpen, onClose, onSelectTemplate }: SmsTemplateModalProps) {
   const [selectedObjective, setSelectedObjective] = useState<ObjectiveType | null>(null);
 
   if (!isOpen) return null;
-
-  // Get a truncated preview of the template (first 70 characters)
-  const getTemplatePreview = (template: string) => {
-    return template.length > 70 ? `${template.substring(0, 70)}...` : template;
-  };
 
   // Get templates safely
   const getTemplates = () => {
@@ -42,18 +28,18 @@ export default function SmsTemplateModal({ isOpen, onClose, onSelectTemplate }: 
   };
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0  bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <h2 className="text-xl font-semibold mb-6 text-gray-800">Select SMS Template</h2>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Deal Objective/Strategy:</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Realtor Strategy:</label>
           <select
             className="w-full border-gray-300 rounded-md p-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             value={selectedObjective || ''}
             onChange={(e) => setSelectedObjective(e.target.value as ObjectiveType)}
           >
-            <option value="" disabled>Select Objective</option>
+            <option value="" disabled>Select Strategy</option>
             {Object.keys(smsTemplatesByObjective).map((objective) => (
               <option key={objective} value={objective}>{objective}</option>
             ))}
