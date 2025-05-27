@@ -391,6 +391,7 @@ export default function AIAgentTestV2() {
     const requestPayload = {
       locationId: formData ? formData.locationId : '',
       agentId: selectedAgentId,
+      isDebug: isPromptDebugMode,
       agentConfig,
       message,
       history: message.trim() 
