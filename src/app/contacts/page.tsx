@@ -43,6 +43,7 @@ import DeleteContactsModal from '@/components/contacts/DeleteContactsModal';
 import ExportContactsModal from '@/components/contacts/ExportContactsModal';
 import ContactTasksTab from '@/components/contacts/ContactTasksTab';
 import { CloseButton } from '@headlessui/react';
+import ManageSmartListsTab from '@/components/contacts/ManageSmartListsTab';
 
 interface CustomField {
   id: string;
@@ -109,7 +110,7 @@ export default function ContactsPage() {
   const [appliedFilters, setAppliedFilters] = useState<any[]>([]);
   const [showFilterSummary, setShowFilterSummary] = useState(false);
   const [isImagePopupOpen, setIsImagePopupOpen] = useState(false);
-  const [activeMainTab, setActiveMainTab] = useState<'smartlists' | 'tasks'>('smartlists');
+  const [activeMainTab, setActiveMainTab] = useState<'smartlists' | 'tasks' | 'manage-smartlists'>('smartlists');
 
   const [columns, setColumns] = useState<TableColumn[]>([
     { id: 'name', label: 'Name', key: 'name', visible: true },
@@ -1923,12 +1924,18 @@ export default function ContactsPage() {
         >
           Tasks
         </button>
-        <span className="text-gray-600 font-medium pb-2 cursor-not-allowed">Manage Smart Lists</span>
+        <button
+           className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'manage-smartlists' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
+           onClick={() => setActiveMainTab('manage-smartlists')}
+        >
+          Manage Smart Lists
+        </button>
       </nav>}
       {/* Main Content */}
 
       {!isBulkUploadModalOpen && (
         activeMainTab === 'tasks' ? <ContactTasksTab /> :
+        activeMainTab === 'manage-smartlists' ? <ManageSmartListsTab /> : // Render new component here
           <>
             <div className="dashboard-card h-[calc(150vh-2rem)] flex flex-col">
               <div className="flex justify-between items-center">
