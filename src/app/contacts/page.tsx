@@ -44,6 +44,10 @@ import ExportContactsModal from '@/components/contacts/ExportContactsModal';
 import ContactTasksTab from '@/components/contacts/ContactTasksTab';
 import { CloseButton } from '@headlessui/react';
 import ManageSmartListsTab from '@/components/contacts/ManageSmartListsTab';
+import ContactModal from '@/components/contacts/ContactModal';
+import PhoneLookupModal from '@/components/contacts/PhoneLookupModal';
+import BulkMessagingModal from '@/components/contacts/BulkMessagingModal';
+import BulkDeleteModal from '@/components/contacts/BulkDeleteModal';
 
 interface CustomField {
   id: string;
@@ -635,279 +639,6 @@ export default function ContactsPage() {
     }
   };
 
-  const ModalContent = ({ isEdit = false }) => {
-    const [formData, setFormData] = useState<Contact>(isEdit ? editContact : newContact);
-
-    useEffect(() => {
-      setFormData(isEdit ? editContact : newContact);
-    }, [isEdit, editContact, newContact]);
-
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (isEdit) {
-        handleUpdate(formData);
-      } else {
-        handleAdd(formData);
-      }
-    };
-
-    const handleTagChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
-      setFormData(prev => ({ ...prev, tags }));
-    };
-
-    return (
-      <div
-        className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-        onClick={() => (isEdit ? setIsEditModalOpen(false) : setIsAddModalOpen(false))}
-      >
-        <div
-          className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-auto p-4"
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="flex justify-between items-center mb-3 ">
-            <div>
-              <p className="text-[24px] font-normal text-gray-900">{isEdit ? 'Edit Contact' : 'Add New Contact'}</p>
-              <p className="text-xs text-gray-600">{isEdit ? 'Update contact details below' : 'Create a new contact'}</p>
-            </div>
-            <button
-              onClick={() => {
-                if (isEdit) {
-                  setIsEditModalOpen(false);
-                } else {
-                  setIsAddModalOpen(false);
-                  setNewContact({
-                    id: '',
-                    name: '',
-                    firstName: '',
-                    lastName: '',
-                    locationId: user?.locationId || '',
-                    email: '',
-                    phone: '',
-                    tags: [],
-                    timezone: '',
-                    dnd: false,
-                    customFields: {},
-                    source: '',
-                    postalCode: '',
-                    city: '',
-                    state: '',
-                    country: 'US',
-                    address1: '',
-                  });
-                }
-              }}
-              className="w-[30px] h-[30px] flex items-center justify-center p-0 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
-            >
-              <XMarkIcon className='w-[20px] h-[20px]' />
-            </button>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Name Fields */}
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">First Name</p>
-                <input
-                  type="text"
-                  placeholder='Your First Name'
-                  value={formData.firstName || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">Last Name</p>
-                <input
-                  type="text"
-                  placeholder='Your Last Name '
-                  value={formData.lastName || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {/* Contact Info */}
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">Email</p>
-                <input
-                  type="email"
-                  placeholder='Your Email'
-                  value={formData.email || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">Phone</p>
-                <input
-                  type="tel"
-                  placeholder='Your Phone Number'
-                  value={formData.phone || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {/* Address Fields */}
-              <div className="sm:col-span-2">
-                <div className='border border-gray-200 rounded-md'>
-                  <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">Address Line 1</p>
-                  <input
-                    type="text"
-                    placeholder='Your Address'
-                    value={formData.address1 || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, address1: e.target.value }))}
-                    className="w-full bg-white text-sm"
-                    style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">City</p>
-                <input
-                  type="text"
-                  placeholder='Your City'
-                  value={formData.city || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">State</p>
-                <input
-                  type="text"
-                  placeholder='Your State'
-                  value={formData.state || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">Postal Code</p>
-                <input
-                  type="text"
-                  placeholder='Your City Code'
-                  value={formData.postalCode || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">Country</p>
-                <input
-                  type="text"
-                  value={formData.country || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                />
-              </div>
-              {/* Timezone and DND */}
-              <div className='border border-gray-200 rounded-md'>
-                <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">Timezone</p>
-                <select
-                  value={formData.timezone || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                  className="w-full bg-white text-sm"
-                  style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                  disabled={isSubmitting}
-                >
-                  <option value="">Select Timezone</option>
-                  {timezones.map(timezone => (
-                    <option key={timezone.value} value={timezone.value}>
-                      {timezone.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {/* Custom Fields */}
-              {customFields.map(field => {
-                const customFieldValue =
-                  formData.customFields && typeof formData.customFields === 'object'
-                    ? formData.customFields[field.fieldKey] || (field.dataType === 'CHECKBOX' ? [] : '')
-                    : field.dataType === 'CHECKBOX' ? [] : '';
-                return (
-                  <div className='border border-gray-200 rounded-md'>
-                    <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">{field.name}</p>
-                    {renderCustomFieldInput(field, customFieldValue, value => {
-                      const updatedCustomFields = {
-                        ...(formData.customFields || {}),
-                        [field.fieldKey]: value.value,
-                      };
-                      setFormData(prev => ({ ...prev, customFields: updatedCustomFields }));
-                    })}
-                  </div>
-                );
-              })}
-              <div className="sm:col-span-2">
-                <label className="flex items-center text-[12px] font-normal text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={formData.dnd}
-                    onChange={e => setFormData(prev => ({ ...prev, dnd: e.target.checked }))}
-                    className="mr-2"
-                    disabled={isSubmitting}
-                  />
-                  Do Not Disturb
-                </label>
-              </div>
-
-              {/* Source */}
-              <div className="sm:col-span-2">
-                <div className='border border-gray-200 rounded-md'>
-                  <p className="block text-[12px] font-normal text-gray-700 ml-3 mt-1 mb-1">Source</p>
-                  <input
-                    type="text"
-                    value={formData.source || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, source: e.target.value }))}
-                    className="w-full bg-white text-sm"
-                    style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-                    disabled={isSubmitting}
-                  />
-                </div>
-              </div>
-
-
-            </div>
-            <div className="flex justify-end space-x-2 pt-3 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => (isEdit ? setIsEditModalOpen(false) : setIsAddModalOpen(false))}
-                className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-3 py-1.5 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm disabled:opacity-50"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Saving...' : isEdit ? 'Update Contact' : 'Add Contact'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
   const filterContactsByTag = (tag: string | null) => {
     setActiveTagFilter(tag);
     setCurrentPage(1);
@@ -1245,112 +976,6 @@ export default function ContactsPage() {
     setVerificationStatus('idle');
     setVerificationMessage('');
     setPhoneDetails(null);
-  };
-
-  const PhoneLookupModal = () => {
-    return (
-      <div
-        className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-        onClick={() => {
-          setIsVerifyModalOpen(false);
-          resetVerificationModal();
-        }}
-      >
-        <div
-          className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
-          onClick={e => e.stopPropagation()}
-        >
-          <h3 className="text-xl font-semibold mb-4 text-gray-900">Phone Number Lookup</h3>
-          <div className="mb-5">
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number
-            </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <input
-                type="tel"
-                id="phone"
-                className="block w-full pr-10 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="+1 (123) 456-7890"
-                value={verifyPhoneNumber}
-                onChange={e => setVerifyPhoneNumber(e.target.value)}
-                onBlur={e => {
-                  const phone = e.target.value.trim();
-                  if (phone && !phone.startsWith('+')) setVerifyPhoneNumber(`+${phone}`);
-                }}
-                autoFocus
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <PhoneIcon className="h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-          </div>
-          {verificationStatus !== 'idle' && (
-            <div
-              className={`mb-4 p-3 rounded-md ${verificationStatus === 'loading' ? 'bg-blue-50 text-blue-800' : verificationStatus === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}
-            >
-              <div className="flex items-start">
-                {verificationStatus === 'loading' && (
-                  <svg className="animate-spin h-5 w-5 mr-2 mt-0.5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                  </svg>
-                )}
-                {verificationStatus === 'success' && <CheckCircleIcon className="h-5 w-5 mr-2 mt-0.5" />}
-                {verificationStatus === 'error' && <XCircleIcon className="h-5 w-5 mr-2 mt-0.5" />}
-                <div>
-                  <p>{verificationStatus === 'loading' ? 'Validating phone number...' : verificationMessage}</p>
-                  {phoneDetails && (
-                    <div className="mt-2 text-sm">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="font-semibold">Country Code:</div>
-                        <div>{phoneDetails.country_code || 'N/A'}</div>
-                        <div className="font-semibold">Carrier:</div>
-                        <div>{phoneDetails.carrier?.name || 'N/A'}</div>
-                        <div className="font-semibold">Type:</div>
-                        <div>{phoneDetails.line_type_intelligence?.type || 'N/A'}</div>
-                        <div className="font-semibold">Valid:</div>
-                        <div>{phoneDetails.valid ? 'Yes' : 'No'}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => {
-                setIsVerifyModalOpen(false);
-                resetVerificationModal();
-              }}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-            >
-              Close
-            </button>
-            <button
-              onClick={() => lookupPhoneNumber(verifyPhoneNumber)}
-              disabled={verificationStatus === 'loading' || !verifyPhoneNumber}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm disabled:opacity-50 flex items-center"
-            >
-              {verificationStatus === 'loading' ? (
-                <>
-                  <svg className="animate-spin h-5 w-5 mr-2 text-white" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                  </svg>
-                  Validating...
-                </>
-              ) : (
-                <>
-                  <InformationCircleIcon className="h-4 w-4 mr-2" />
-                  Lookup Phone
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   const handleBulkUpload = async (contacts: { firstName: string; lastName: string; phone: string; street: string; city: string; state: string; pipelineId: any; email?: string; notes?: string; zipCode?: string; stageId?: string }[]) => {
@@ -1907,529 +1532,384 @@ export default function ContactsPage() {
   };
 
   return (
-    <DashboardLayout title="Contacts">
-      {isBulkUploadModalOpen && <BulkUploadForm onContactsSelect={handleBulkUpload} isLoading={isSubmitting} onClose={() => setIsBulkUploadModalOpen(false)} />}
+    <>
+      <DashboardLayout title="Contacts">
+        {isBulkUploadModalOpen && <BulkUploadForm onContactsSelect={handleBulkUpload} isLoading={isSubmitting} onClose={() => setIsBulkUploadModalOpen(false)} />}
 
-      {/* Tabs Navigation */}
-      {!isBulkUploadModalOpen && <nav className="flex space-x-8 border-b border-gray-200 bg-white px-8 pt-4" aria-label="Tabs">
-        <button
-          className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'smartlists' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
-          onClick={() => setActiveMainTab('smartlists')}
-        >
-          Smart Lists
-        </button>
-        <button
-          className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'tasks' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
-          onClick={() => setActiveMainTab('tasks')}
-        >
-          Tasks
-        </button>
-        <button
-           className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'manage-smartlists' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
-           onClick={() => setActiveMainTab('manage-smartlists')}
-        >
-          Manage Smart Lists
-        </button>
-      </nav>}
-      {/* Main Content */}
+        {/* Tabs Navigation */}
+        {!isBulkUploadModalOpen && <nav className="flex space-x-8 border-b border-gray-200 bg-white px-8 pt-4" aria-label="Tabs">
+          <button
+            className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'smartlists' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
+            onClick={() => setActiveMainTab('smartlists')}
+          >
+            Smart Lists
+          </button>
+          <button
+            className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'tasks' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
+            onClick={() => setActiveMainTab('tasks')}
+          >
+            Tasks
+          </button>
+          <button
+             className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'manage-smartlists' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
+             onClick={() => setActiveMainTab('manage-smartlists')}
+          >
+            Manage Smart Lists
+          </button>
+        </nav>}
+        {/* Main Content */}
 
-      {!isBulkUploadModalOpen && (
-        activeMainTab === 'tasks' ? <ContactTasksTab /> :
-        activeMainTab === 'manage-smartlists' ? <ManageSmartListsTab /> : // Render new component here
-          <>
-            <div className="dashboard-card h-[calc(150vh-2rem)] flex flex-col">
-              <div className="flex justify-between items-center">
-                <h4 className="dashboard-card-title">All</h4>
-                <div className="flex space-x-3">
-                  {/* Remove ColumnManager from this row */}
-                  <button
-                    onClick={() => setIsVerifyModalOpen(true)}
-                    className="px-3 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 flex items-center"
-                  >
-                    <InformationCircleIcon className="h-4 w-4 mr-2" />
-                    Verify Phone
-                  </button>
-                  <button
-                    onClick={() => setIsBulkUploadModalOpen(true)}
-                    className="px-3 py-2 bg-purple-500 text-white rounded-md text-sm font-medium hover:bg-purple-600 flex items-center"
-                  >
-                    <DocumentTextIcon className="h-4 w-4 mr-2" />
-                    Bulk Upload
-                  </button>
-                  {/* <button onClick={() => setIsAddModalOpen(true)} className="btn-primary">
-          Add Contact
-        </button> */}
-                </div>
-              </div>
-              {/* Icon action row above the search/filter/column row */}
-              <div className="flex gap-2 mb-3 w-full">
-                <span data-tooltip="tooltip" data-placement="top" title="Add Contact">
-                  <button onClick={() => setIsAddModalOpen(true)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
-                    <PlusIcon className="h-5 w-5 text-gray-700" />
-                  </button>
-                </span>
-                {/* <span data-tooltip="tooltip" data-placement="top" title="Pipeline Change">
-                  <button
-                    onClick={() => {
-                      if (selectedContacts.length === 0) {
-                        setIsInfoModalOpen(true);
-                      } else {
-                        setIsPipelineChangeModalOpen(true);
-                      }
-                    }}
-                    className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
-                  >
-                    <FaFilter size={15} color="grey" />
-                  </button>
-                </span> */}
-                {/* <span data-tooltip="tooltip" data-placement="top" title="Add to Automation">
-        <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
-          <FaRobot size={20} color="grey" />
-        </button>
-      </span>
-      <span data-tooltip="tooltip" data-placement="top" title="Send SMS">
-        <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
-          <ChatBubbleLeftRightIcon className="h-5 w-5 text-gray-700" />
-        </button>
-      </span>
-      <span data-tooltip="tooltip" data-placement="top" title="Send Email">
-        <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
-          <svg width="18" height="18" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.667 3.833L8.47 8.596c.55.386.826.579 1.126.653.265.066.541.066.806 0 .3-.074.575-.267 1.126-.653l6.804-4.763M5.667 14.667h8.666c1.4 0 2.1 0 2.635-.273a2.5 2.5 0 001.093-1.092c.272-.535.272-1.235.272-2.635V5.333c0-1.4 0-2.1-.272-2.635a2.5 2.5 0 00-1.093-1.092c-.535-.273-1.235-.273-2.635-.273H5.667c-1.4 0-2.1 0-2.635.273a2.5 2.5 0 00-1.093 1.092c-.272.535-.272 1.235-.272 2.635v5.334c0 1.4 0 2.1.272 2.635a2.5 2.5 0 001.093 1.092c.534.273 1.234.273 2.635.273z" stroke="#344054" strokeWidth="1.667" strokeLinecap="round" strokeLinejoin="round"></path></svg>
-        </button>
-      </span> */}
-                <span data-tooltip="tooltip" data-placement="top" title="Add Tag" className="relative">
-                  <button
-                    onClick={() => {
-                      if (selectedContacts.length === 0) {
-                        setShowAddTagTooltip(true);
-                        setTimeout(() => setShowAddTagTooltip(false), 1500);
-                      } else {
-                        setIsAddTagsModalOpen(true);
-                      }
-                    }}
-                    className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
-                  >
-                    <TagIcon className="h-5 w-5 text-gray-700" />
-                  </button>
-                  {showAddTagTooltip && (
-                    <div className="absolute left-1/2 -translate-x-1/2 mt-2 px-3 py-1 bg-black text-white text-xs rounded shadow z-50 whitespace-nowrap">
-                      Please select contacts to add tags
-                    </div>
-                  )}
-                </span>
-                <span data-tooltip="tooltip" data-placement="top" title="Remove Tag" className="relative">
-                  <button
-                    onClick={() => {
-                      if (selectedContacts.length === 0) {
-                        setShowRemoveTagTooltip(true);
-                        setTimeout(() => setShowRemoveTagTooltip(false), 1500);
-                      } else {
-                        setIsRemoveTagsModalOpen(true);
-                      }
-                    }}
-                    className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
-                  >
-                    <TagIcon className="h-5 w-5 text-gray-400" />
-                  </button>
-                  {showRemoveTagTooltip && (
-                    <div className="absolute left-1/2 -translate-x-1/2 mt-2 px-3 py-1 bg-black text-white text-xs rounded shadow z-50 whitespace-nowrap">
-                      Please select contacts to remove tags
-                    </div>
-                  )}
-                </span>
-                <span data-tooltip="tooltip" data-placement="top" title="Delete Contacts" className="relative">
-                  <button
-                    onClick={() => {
-                      if (selectedContacts.length === 0) {
-                        setShowDeleteTooltip(true);
-                        setTimeout(() => setShowDeleteTooltip(false), 1500);
-                      } else {
-                        setIsDeleteContactsModalOpen(true);
-                      }
-                    }}
-                    className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
-                  >
-                    <TrashIcon className="h-5 w-5 text-gray-700" />
-                  </button>
-                  {showDeleteTooltip && (
-                    <div className="absolute left-1/2 -translate-x-1/2 mt-2 px-3 py-1 bg-black text-white text-xs rounded shadow z-50 whitespace-nowrap">
-                      Please select contacts to delete
-                    </div>
-                  )}
-                </span>
-                {/* <span data-tooltip="tooltip" data-placement="top" title="Send Review Requests">
-        <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
-          <FaStar size={20} color="grey" />
-        </button>
-      </span> */}
-                <span data-tooltip="tooltip" data-placement="top" title="Export Contacts">
-                  <button
-                    className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
-                    onClick={handleExportIconClick}
-                  >
-                    <ArrowUpTrayIcon className="h-5 w-5 text-gray-700" />
-                  </button>
-                </span>
-                <span data-tooltip="tooltip" data-placement="top" title="Import Contacts">
-                  <button
-                    className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
-                    onClick={() => setIsBulkUploadModalOpen(true)}
-                  >
-                    <ArrowDownTrayIcon className="h-5 w-5 text-gray-700" />
-                  </button>
-                </span>
-                {/* <span data-tooltip="tooltip" data-placement="top" title="Add/Edit to Company">
-        <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g clipPath="url(#clip0_471_4361)"><path d="M11 11H6.2c-1.12 0-1.68 0-2.108.218a2 2 0 00-.874.874C3 12.52 3 13.08 3 14.2V21m18 0V6.2c0-1.12 0-1.68-.218-2.108a2 2 0 00-.874-.874C19.48 3 18.92 3 17.8 3h-3.6c-1.12 0-1.68 0-2.108.218a2 2 0 00-.874.874C11 4.52 11 5.08 11 6.2V21m11 0H2M14.5 7h3m-3 4h3m-3 4h3" stroke="#4E5456" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path></g><defs><clipPath id="clip0_471_4361"><path fill="#fff" d="M0 0h24v24H0z"></path></clipPath></defs></svg>
-        </button>
-      </span>
-      <span data-tooltip="tooltip" data-placement="top" title="Bulk WhatsApp">
-        <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
-          <FaWhatsapp size={20} color="grey" />
-        </button>
-      </span> */}
-                <span data-tooltip="tooltip" data-placement="top" title="Merge up to 10 Contacts">
-                  <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
-                    <DocumentDuplicateIcon className="h-5 w-5 text-gray-700" />
-                  </button>
-                </span>
-              </div>
-              {/* Existing search/filter/column row below */}
-              <div className="flex w-full max-w-3xl gap-3 items-center mt-4 mb-2">
-                {/* Columns Button */}
-                <div className="">
-                  <ColumnManager />
-                </div>
-                {/* Search Bar */}
-                <div className="relative border  border-gray-300 rounded-md flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    placeholder="Quick search by name"
-                    className="pl-10 px-3 py-0.0 h-10 border-transparent rounded-md focus:outline-none w-200"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setSearchQuery(value);
-                      if (searchTimeoutRef.current) {
-                        clearTimeout(searchTimeoutRef.current);
-                      }
-                      searchTimeoutRef.current = setTimeout(() => {
-                        searchContactsByName(value);
-                      }, 300);
-                    }}
-                  />
-                </div>
-
-                {/* More Filters Button */}
-                <button
-                  className="flex items-center bg-white rounded-lg border border-[#e3eaf3] px-4 py-2 text-black text-[14px] font-medium hover:bg-[#f7fafd] transition"
-                  onClick={() => setIsFilterModalOpen(true)}
-                >
-                  More Filters
-                  <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2 color-black ml-2" />
-                </button>
-              </div>
-
-              {/* {contacts.length > 0 && <TagFilters />} */}
-              {contacts.length > 0 && <PaginationControls />}
-
-              {isAddModalOpen && <ModalContent />}
-              {isEditModalOpen && <ModalContent isEdit />}
-              {isDeleteModalOpen && selectedContact && (
-                <div
-                  className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-                  onClick={() => setIsDeleteModalOpen(false)}
-                >
-                  <div
-                    className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <h3 className="text-xl font-semibold mb-2 text-gray-900">Delete Contact</h3>
-                    <p className="text-sm text-gray-600 mb-6">
-                      Are you sure you want to delete "{selectedContact.name}"? This action cannot be undone.
-                    </p>
-                    <div className="flex justify-end space-x-3">
-                      <button
-                        onClick={() => setIsDeleteModalOpen(false)}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-                        disabled={isSubmitting}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={confirmDelete}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm disabled:opacity-50"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </div>
+        {!isBulkUploadModalOpen && (
+          activeMainTab === 'tasks' ? <ContactTasksTab /> :
+          activeMainTab === 'manage-smartlists' ? <ManageSmartListsTab /> : // Render new component here
+            <>
+              <div className="dashboard-card h-[calc(150vh-2rem)] flex flex-col">
+                <div className="flex justify-between items-center">
+                  <h4 className="dashboard-card-title">All</h4>
+                  <div className="flex space-x-3">
+                    {/* Remove ColumnManager from this row */}
+                    <button
+                      onClick={() => setIsVerifyModalOpen(true)}
+                      className="px-3 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 flex items-center"
+                    >
+                      <InformationCircleIcon className="h-4 w-4 mr-2" />
+                      Verify Phone
+                    </button>
+                    <button
+                      onClick={() => setIsBulkUploadModalOpen(true)}
+                      className="px-3 py-2 bg-purple-500 text-white rounded-md text-sm font-medium hover:bg-purple-600 flex items-center"
+                    >
+                      <DocumentTextIcon className="h-4 w-4 mr-2" />
+                      Bulk Upload
+                    </button>
+                    {/* <button onClick={() => setIsAddModalOpen(true)} className="btn-primary">
+            Add Contact
+          </button> */}
                   </div>
                 </div>
-              )}
-
-              {isBulkDeleteModalOpen && (
-                <div
-                  className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-                  onClick={() => setIsBulkDeleteModalOpen(false)}
-                >
-                  <div
-                    className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <h3 className="text-xl font-semibold mb-2 text-gray-900">Delete Selected Contacts</h3>
-                    <p className="text-sm text-gray-600 mb-6">
-                      Are you sure you want to delete {selectedContacts.length} selected contacts? This action cannot be undone.
-                    </p>
-                    <div className="flex justify-end space-x-3">
-                      <button
-                        onClick={() => setIsBulkDeleteModalOpen(false)}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-                        disabled={isSubmitting}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={confirmBulkDelete}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm disabled:opacity-50"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Deleting...' : 'Delete Selected'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <BulkAddToPipelineStage
-                contacts={selectedContacts}
-                isOpen={isBulkAddOpportunities}
-                setIsOpen={setIsBulkAddOpportunities}
-                onComplete={() => setIsLoading(false)}
-                onError={error => {
-                  setError(error);
-                  setIsLoading(false);
-                }}
-                isSubmitting={isSubmitting}
-              />
-
-              {isVerifyModalOpen && <PhoneLookupModal />}
-
-
-              {isBulkMessagingModalOpen && (
-                <div
-                  className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-                  onClick={() => setIsBulkMessagingModalOpen(false)}
-                >
-                  <div
-                    className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <h3 className="text-xl font-semibold mb-2 text-gray-900">Send Bulk Message</h3>
-                    <p className="text-sm text-gray-600 mb-6">
-                      Send a message to {selectedContacts.length} selected contacts.
-                    </p>
-
-                    {selectedMessageType ? (
-                      <div>
-                        {selectedMessageType === 'sms' && (
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">SMS Message</label>
-                            <textarea
-                              value={smsText}
-                              onChange={(e) => setSmsText(e.target.value)}
-                              className="w-full border border-gray-300 rounded-md p-2 h-32"
-                              placeholder="Enter your SMS message here..."
-                            />
-                          </div>
-                        )}
-
-                        {selectedMessageType === 'email' && (
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                              <input
-                                type="text"
-                                value={emailSubject}
-                                onChange={(e) => setEmailSubject(e.target.value)}
-                                className="w-full border border-gray-300 rounded-md p-2"
-                                placeholder="Email subject..."
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Email Content</label>
-                              <textarea
-                                value={emailBody}
-                                onChange={(e) => setEmailBody(e.target.value)}
-                                className="w-full border border-gray-300 rounded-md p-2 h-32"
-                                placeholder="Enter your email content here..."
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="mt-6 flex justify-between">
-                          <button
-                            onClick={() => setSelectedMessageType(null)}
-                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-                          >
-                            Back to Options
-                          </button>
-                          <button
-                            onClick={bulkSendEmailOrSMS}
-                            disabled={isBulkInProcess}
-                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center justify-center"
-                          >
-                            {isBulkInProcess ? (
-                              <>
-                                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-16 0z" />
-                                </svg>
-                                Sending...
-                              </>
-                            ) : (
-                              `Send to ${selectedContacts.length} Contacts`
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-4">
-                        <button
-                          onClick={() => setSelectedMessageType('sms')}
-                          className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
-                        >
-                          <ChatBubbleLeftRightIcon className="h-6 w-6 text-blue-500 mr-3" />
-                          <div className="text-left">
-                            <h4 className="font-medium text-gray-900">SMS Message</h4>
-                            <p className="text-sm text-gray-500">Send a text message to selected contacts</p>
-                          </div>
-                        </button>
-
-                        <button
-                          onClick={() => setSelectedMessageType('email')}
-                          className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
-                        >
-                          <DocumentTextIcon className="h-6 w-6 text-green-500 mr-3" />
-                          <div className="text-left">
-                            <h4 className="font-medium text-gray-900">Email</h4>
-                            <p className="text-sm text-gray-500">Send an email to selected contacts</p>
-                          </div>
-                        </button>
-
-                        <button
-                          onClick={() => router.push('ringless-voicemails')}
-                          className="flex items-center p-4 border border-gray-200 rounded-md hover:bg-gray-50"
-                        >
-                          <PhoneIcon className="h-6 w-6 text-purple-500 mr-3" />
-                          <div className="text-left">
-                            <h4 className="font-medium text-gray-900">Ringless Voicemail</h4>
-                            <p className="text-sm text-gray-500">Send a voicemail without ringing their phone</p>
-                          </div>
-                        </button>
-                      </div>
-                    )}
-
+                {/* Icon action row above the search/filter/column row */}
+                <div className="flex gap-2 mb-3 w-full">
+                  <span data-tooltip="tooltip" data-placement="top" title="Add Contact">
+                    <button onClick={() => setIsAddModalOpen(true)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+                      <PlusIcon className="h-5 w-5 text-gray-700" />
+                    </button>
+                  </span>
+                  {/* <span data-tooltip="tooltip" data-placement="top" title="Pipeline Change">
                     <button
                       onClick={() => {
-                        setIsBulkMessagingModalOpen(false);
-                        setSelectedMessageType(null);
+                        if (selectedContacts.length === 0) {
+                          setIsInfoModalOpen(true);
+                        } else {
+                          setIsPipelineChangeModalOpen(true);
+                        }
                       }}
-                      className="absolute top-4 right-4 w-6 h-6 text-gray-600 hover:text-gray-800 rounded-full hover:bg-gray-200"
+                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
                     >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <FaFilter size={15} color="grey" />
                     </button>
-                  </div>
+                  </span> */}
+                  {/* <span data-tooltip="tooltip" data-placement="top" title="Add to Automation">
+          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+            <FaRobot size={20} color="grey" />
+          </button>
+        </span>
+        <span data-tooltip="tooltip" data-placement="top" title="Send SMS">
+          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+            <ChatBubbleLeftRightIcon className="h-5 w-5 text-gray-700" />
+          </button>
+        </span>
+        <span data-tooltip="tooltip" data-placement="top" title="Send Email">
+          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+            <svg width="18" height="18" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.667 3.833L8.47 8.596c.55.386.826.579 1.126.653.265.066.541.066.806 0 .3-.074.575-.267 1.126-.653l6.804-4.763M5.667 14.667h8.666c1.4 0 2.1 0 2.635-.273a2.5 2.5 0 001.093-1.092c.272-.535.272-1.235.272-2.635V5.333c0-1.4 0-2.1-.272-2.635a2.5 2.5 0 00-1.093-1.092c-.535-.273-1.235-.273-2.635-.273H5.667c-1.4 0-2.1 0-2.635.273a2.5 2.5 0 00-1.093 1.092c-.272.535-.272 1.235-.272 2.635v5.334c0 1.4 0 2.1.272 2.635a2.5 2.5 0 001.093 1.092c.534.273 1.234.273 2.635.273z" stroke="#344054" strokeWidth="1.667" strokeLinecap="round" strokeLinejoin="round"></path></svg>
+          </button>
+        </span> */}
+                  <span data-tooltip="tooltip" data-placement="top" title="Add Tag" className="relative">
+                    <button
+                      onClick={() => {
+                        if (selectedContacts.length === 0) {
+                          setShowAddTagTooltip(true);
+                          setTimeout(() => setShowAddTagTooltip(false), 1500);
+                        } else {
+                          setIsAddTagsModalOpen(true);
+                        }
+                      }}
+                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
+                    >
+                      <TagIcon className="h-5 w-5 text-gray-700" />
+                    </button>
+                    {showAddTagTooltip && (
+                      <div className="absolute left-1/2 -translate-x-1/2 mt-2 px-3 py-1 bg-black text-white text-xs rounded shadow z-50 whitespace-nowrap">
+                        Please select contacts to add tags
+                      </div>
+                    )}
+                  </span>
+                  <span data-tooltip="tooltip" data-placement="top" title="Remove Tag" className="relative">
+                    <button
+                      onClick={() => {
+                        if (selectedContacts.length === 0) {
+                          setShowRemoveTagTooltip(true);
+                          setTimeout(() => setShowRemoveTagTooltip(false), 1500);
+                        } else {
+                          setIsRemoveTagsModalOpen(true);
+                        }
+                      }}
+                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
+                    >
+                      <TagIcon className="h-5 w-5 text-gray-400" />
+                    </button>
+                    {showRemoveTagTooltip && (
+                      <div className="absolute left-1/2 -translate-x-1/2 mt-2 px-3 py-1 bg-black text-white text-xs rounded shadow z-50 whitespace-nowrap">
+                        Please select contacts to remove tags
+                      </div>
+                    )}
+                  </span>
+                  <span data-tooltip="tooltip" data-placement="top" title="Delete Contacts" className="relative">
+                    <button
+                      onClick={() => {
+                        if (selectedContacts.length === 0) {
+                          setShowDeleteTooltip(true);
+                          setTimeout(() => setShowDeleteTooltip(false), 1500);
+                        } else {
+                          setIsDeleteContactsModalOpen(true);
+                        }
+                      }}
+                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
+                    >
+                      <TrashIcon className="h-5 w-5 text-gray-700" />
+                    </button>
+                    {showDeleteTooltip && (
+                      <div className="absolute left-1/2 -translate-x-1/2 mt-2 px-3 py-1 bg-black text-white text-xs rounded shadow z-50 whitespace-nowrap">
+                        Please select contacts to delete
+                      </div>
+                    )}
+                  </span>
+                  {/* <span data-tooltip="tooltip" data-placement="top" title="Send Review Requests">
+          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
+            <FaStar size={20} color="grey" />
+          </button>
+        </span> */}
+                  <span data-tooltip="tooltip" data-placement="top" title="Export Contacts">
+                    <button
+                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
+                      onClick={handleExportIconClick}
+                    >
+                      <ArrowUpTrayIcon className="h-5 w-5 text-gray-700" />
+                    </button>
+                  </span>
+                  <span data-tooltip="tooltip" data-placement="top" title="Import Contacts">
+                    <button
+                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
+                      onClick={() => setIsBulkUploadModalOpen(true)}
+                    >
+                      <ArrowDownTrayIcon className="h-5 w-5 text-gray-700" />
+                    </button>
+                  </span>
+                  {/* <span data-tooltip="tooltip" data-placement="top" title="Add/Edit to Company">
+          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g clipPath="url(#clip0_471_4361)"><path d="M11 11H6.2c-1.12 0-1.68 0-2.108.218a2 2 0 00-.874.874C3 12.52 3 13.08 3 14.2V21m18 0V6.2c0-1.12 0-1.68-.218-2.108a2 2 0 00-.874-.874C19.48 3 18.92 3 17.8 3h-3.6c-1.12 0-1.68 0-2.108.218a2 2 0 00-.874.874C11 4.52 11 5.08 11 6.2V21m11 0H2M14.5 7h3m-3 4h3m-3 4h3" stroke="#4E5456" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path></g><defs><clipPath id="clip0_471_4361"><path fill="#fff" d="M0 0h24v24H0z"></path></clipPath></defs></svg>
+          </button>
+        </span>
+        <span data-tooltip="tooltip" data-placement="top" title="Bulk WhatsApp">
+          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
+            <FaWhatsapp size={20} color="grey" />
+          </button>
+        </span> */}
+                  <span data-tooltip="tooltip" data-placement="top" title="Merge up to 10 Contacts">
+                    <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
+                      <DocumentDuplicateIcon className="h-5 w-5 text-gray-700" />
+                    </button>
+                  </span>
                 </div>
-              )}
+                {/* Existing search/filter/column row below */}
+                <div className="flex w-full max-w-3xl gap-3 items-center mt-4 mb-2">
+                  {/* Columns Button */}
+                  <div className="">
+                    <ColumnManager />
+                  </div>
+                  {/* Search Bar */}
+                  <div className="relative border  border-gray-300 rounded-md flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input
+                      placeholder="Quick search by name"
+                      className="pl-10 px-3 py-0.0 h-10 border-transparent rounded-md focus:outline-none w-200"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setSearchQuery(value);
+                        if (searchTimeoutRef.current) {
+                          clearTimeout(searchTimeoutRef.current);
+                        }
+                        searchTimeoutRef.current = setTimeout(() => {
+                          searchContactsByName(value);
+                        }, 300);
+                      }}
+                    />
+                  </div>
 
-              {isLoading ? (
-                <div className="flex-1 overflow-hidden">
-                  <div className="relative h-full overflow-x-auto">
-                    <table className="w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50 sticky top-0 z-10">
-                        <tr>
-                          <th className="pl-4 pr-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
-                            <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-                          </th>
-                          {columns.filter(col => col.visible).map(column => (
-                            <th
-                              key={column.id}
-                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                            >
-                              {column.label}
-                            </th>
-                          ))}
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {Array(5).fill(0).map((_, idx) => (
-                          <tr key={idx}>
-                            <td className="pl-4 pr-3 py-4 whitespace-nowrap">
-                              <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-                            </td>
-                            {columns.filter(col => col.visible).map(column => (
-                              <td key={column.id} className="px-4 py-4">
-                                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                              </td>
-                            ))}
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  {/* More Filters Button */}
+                  <button
+                    className="flex items-center bg-white rounded-lg border border-[#e3eaf3] px-4 py-2 text-black text-[14px] font-medium hover:bg-[#f7fafd] transition"
+                    onClick={() => setIsFilterModalOpen(true)}
+                  >
+                    More Filters
+                    <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2 color-black ml-2" />
+                  </button>
                 </div>
-              ) : error ? (
-                <div className="bg-red-50 p-4 rounded-md text-red-800">{error}</div>
-              ) : contacts.length > 0 ? (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  {selectedContacts.length > 0 && (
-                    <div className="mb-2 flex items-center justify-between bg-purple-50 p-3 rounded-md border border-purple-100">
-                      <span className="text-sm text-purple-800">
-                        <span className="font-semibold">{selectedContacts.length}</span> contacts selected
-                      </span>
-                      <div className="flex gap-2">
+
+                {/* {contacts.length > 0 && <TagFilters />} */}
+                {contacts.length > 0 && <PaginationControls />}
+
+                {isAddModalOpen && (
+                  <ContactModal
+                    isEdit={false}
+                    isSubmitting={isSubmitting}
+                    editContact={editContact}
+                    newContact={newContact}
+                    customFields={customFields}
+                    user={user}
+                    setIsEditModalOpen={setIsEditModalOpen}
+                    setIsAddModalOpen={setIsAddModalOpen}
+                    handleUpdate={handleUpdate}
+                    handleAdd={handleAdd}
+                    renderCustomFieldInput={renderCustomFieldInput}
+                  />
+                )}
+                {isEditModalOpen && (
+                  <ContactModal
+                    isEdit={true}
+                    isSubmitting={isSubmitting}
+                    editContact={editContact}
+                    newContact={newContact}
+                    customFields={customFields}
+                    user={user}
+                    setIsEditModalOpen={setIsEditModalOpen}
+                    setIsAddModalOpen={setIsAddModalOpen}
+                    handleUpdate={handleUpdate}
+                    handleAdd={handleAdd}
+                    renderCustomFieldInput={renderCustomFieldInput}
+                  />
+                )}
+                {isDeleteModalOpen && selectedContact && (
+                  <div
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                  >
+                    <div
+                      className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <h3 className="text-xl font-semibold mb-2 text-gray-900">Delete Contact</h3>
+                      <p className="text-sm text-gray-600 mb-6">
+                        Are you sure you want to delete "{selectedContact.name}"? This action cannot be undone.
+                      </p>
+                      <div className="flex justify-end space-x-3">
                         <button
-                          onClick={() => setIsBulkAddOpportunities(true)}
-                          className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                          onClick={() => setIsDeleteModalOpen(false)}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                          disabled={isSubmitting}
                         >
-                          Add to Opportunities
+                          Cancel
                         </button>
                         <button
-                          onClick={() => setIsBulkMessagingModalOpen(true)}
-                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 flex items-center"
+                          onClick={confirmDelete}
+                          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm disabled:opacity-50"
+                          disabled={isSubmitting}
                         >
-                          <ChatBubbleLeftRightIcon className="h-4 w-4 mr-1" />
-                          Send Message
-                        </button>
-                        <button
-                          onClick={() => setIsBulkDeleteModalOpen(true)}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
-                        >
-                          Delete Selected
+                          {isSubmitting ? 'Deleting...' : 'Delete'}
                         </button>
                       </div>
                     </div>
-                  )}
+                  </div>
+                )}
+
+                {isBulkDeleteModalOpen && (
+                  <div
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+                    onClick={() => setIsBulkDeleteModalOpen(false)}
+                  >
+                    <div
+                      className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <h3 className="text-xl font-semibold mb-2 text-gray-900">Delete Selected Contacts</h3>
+                      <p className="text-sm text-gray-600 mb-6">
+                        Are you sure you want to delete {selectedContacts.length} selected contacts? This action cannot be undone.
+                      </p>
+                      <div className="flex justify-end space-x-3">
+                        <button
+                          onClick={() => setIsBulkDeleteModalOpen(false)}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                          disabled={isSubmitting}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={confirmBulkDelete}
+                          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm disabled:opacity-50"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? 'Deleting...' : 'Delete Selected'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <BulkAddToPipelineStage
+                  contacts={selectedContacts}
+                  isOpen={isBulkAddOpportunities}
+                  setIsOpen={setIsBulkAddOpportunities}
+                  onComplete={() => setIsLoading(false)}
+                  onError={error => {
+                    setError(error);
+                    setIsLoading(false);
+                  }}
+                  isSubmitting={isSubmitting}
+                />
+
+                {isVerifyModalOpen && (
+                  <PhoneLookupModal
+                    isOpen={isVerifyModalOpen}
+                    onClose={() => setIsVerifyModalOpen(false)}
+                    verifyPhoneNumber={verifyPhoneNumber}
+                    setVerifyPhoneNumber={setVerifyPhoneNumber}
+                    verificationStatus={verificationStatus}
+                    verificationMessage={verificationMessage}
+                    phoneDetails={phoneDetails}
+                    onLookup={lookupPhoneNumber}
+                    resetVerificationModal={resetVerificationModal}
+                  />
+                )}
+
+                {isBulkMessagingModalOpen && (
+                  <BulkMessagingModal
+                    isOpen={isBulkMessagingModalOpen}
+                    onClose={() => {
+                      setIsBulkMessagingModalOpen(false);
+                      setSelectedMessageType(null);
+                    }}
+                    selectedContacts={selectedContacts}
+                    selectedMessageType={selectedMessageType}
+                    setSelectedMessageType={setSelectedMessageType}
+                    smsText={smsText}
+                    setSmsText={setSmsText}
+                    emailSubject={emailSubject}
+                    setEmailSubject={setEmailSubject}
+                    emailBody={emailBody}
+                    setEmailBody={setEmailBody}
+                    isBulkInProcess={isBulkInProcess}
+                    onSend={bulkSendEmailOrSMS}
+                  />
+                )}
+
+                {isLoading ? (
                   <div className="flex-1 overflow-hidden">
                     <div className="relative h-full overflow-x-auto">
                       <table className="w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50 sticky top-0 z-10">
                           <tr>
-                            <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
-                              <input
-                                type="checkbox"
-                                checked={isAllSelected}
-                                onChange={toggleSelectAll}
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                              />
+                            <th className="pl-4 pr-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+                              <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
                             </th>
                             {columns.filter(col => col.visible).map(column => (
                               <th
@@ -2443,40 +1923,18 @@ export default function ContactsPage() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {contacts.map((contact: Contact) => (
-                            <tr key={contact.id} className="hover:bg-gray-50">
+                          {Array(5).fill(0).map((_, idx) => (
+                            <tr key={idx}>
                               <td className="pl-4 pr-3 py-4 whitespace-nowrap">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedContacts.includes(contact)}
-                                  onChange={() => toggleSelectContact(contact)}
-                                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                />
+                                <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
                               </td>
                               {columns.filter(col => col.visible).map(column => (
-                                <td key={column.id} className="px-4 py-4 truncate max-w-[200px]">
-                                  {renderCell(column, contact)}
+                                <td key={column.id} className="px-4 py-4">
+                                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
                                 </td>
                               ))}
-                              <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex items-center space-x-3">
-                                  <IconButton
-                                    icon={<ChatBubbleLeftRightIcon className="h-5 w-5" />}
-                                    onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
-                                    tooltip="Message this contact"
-                                  />
-                                  <IconButton
-                                    icon={<PencilIcon className="h-5 w-5" />}
-                                    onClick={() => handleEdit(contact)}
-                                    tooltip="Edit contact"
-                                  />
-                                  <IconButton
-                                    icon={<TrashIcon className="h-5 w-5" />}
-                                    onClick={() => handleDelete(contact)}
-                                    tooltip="Delete contact"
-                                    variant="destructive"
-                                  />
-                                </div>
+                              <td className="px-4 py-4 whitespace-nowrap">
+                                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
                               </td>
                             </tr>
                           ))}
@@ -2484,58 +1942,189 @@ export default function ContactsPage() {
                       </table>
                     </div>
                   </div>
-                  {/* Pagination Controls at the bottom */}
-                  <div className="mt-auto">
-                    <PaginationControls />
+                ) : error ? (
+                  <div className="bg-red-50 p-4 rounded-md text-red-800">{error}</div>
+                ) : contacts.length > 0 ? (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    {selectedContacts.length > 0 && (
+                      <div className="mb-2 flex items-center justify-between bg-purple-50 p-3 rounded-md border border-purple-100">
+                        <span className="text-sm text-purple-800">
+                          <span className="font-semibold">{selectedContacts.length}</span> contacts selected
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setIsBulkAddOpportunities(true)}
+                            className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                          >
+                            Add to Opportunities
+                          </button>
+                          <button
+                            onClick={() => setIsBulkMessagingModalOpen(true)}
+                            className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 flex items-center"
+                          >
+                            <ChatBubbleLeftRightIcon className="h-4 w-4 mr-1" />
+                            Send Message
+                          </button>
+                          <button
+                            onClick={() => setIsBulkDeleteModalOpen(true)}
+                            className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+                          >
+                            Delete Selected
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex-1 overflow-hidden">
+                      <div className="relative h-full overflow-x-auto">
+                        <table className="w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50 sticky top-0 z-10">
+                            <tr>
+                              <th className="pl-4 pr-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">
+                                <input
+                                  type="checkbox"
+                                  checked={isAllSelected}
+                                  onChange={toggleSelectAll}
+                                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                />
+                              </th>
+                              {columns.filter(col => col.visible).map(column => (
+                                <th
+                                  key={column.id}
+                                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                  {column.label}
+                                </th>
+                              ))}
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {contacts.map((contact: Contact) => (
+                              <tr key={contact.id} className="hover:bg-gray-50">
+                                <td className="pl-4 pr-3 py-4 whitespace-nowrap">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedContacts.includes(contact)}
+                                    onChange={() => toggleSelectContact(contact)}
+                                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                  />
+                                </td>
+                                {columns.filter(col => col.visible).map(column => (
+                                  <td key={column.id} className="px-4 py-4 truncate max-w-[200px]">
+                                    {renderCell(column, contact)}
+                                  </td>
+                                ))}
+                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                                  <div className="flex items-center space-x-3">
+                                    <IconButton
+                                      icon={<ChatBubbleLeftRightIcon className="h-5 w-5" />}
+                                      onClick={() => router.push(`/messaging?contactId=${contact.id}`)}
+                                      tooltip="Message this contact"
+                                    />
+                                    <IconButton
+                                      icon={<PencilIcon className="h-5 w-5" />}
+                                      onClick={() => handleEdit(contact)}
+                                      tooltip="Edit contact"
+                                    />
+                                    <IconButton
+                                      icon={<TrashIcon className="h-5 w-5" />}
+                                      onClick={() => handleDelete(contact)}
+                                      tooltip="Delete contact"
+                                      variant="destructive"
+                                    />
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    {/* Pagination Controls at the bottom */}
+                    <div className="mt-auto">
+                      <PaginationControls />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <p className="text-gray-500">
-                  No contacts found{searchQuery ? ` matching "${searchQuery}"` : activeTagFilter ? ` with the tag '${activeTagFilter}'` : ''}.
-                </p>
+                ) : (
+                  <p className="text-gray-500">
+                    No contacts found{searchQuery ? ` matching "${searchQuery}"` : activeTagFilter ? ` with the tag '${activeTagFilter}'` : ''}.
+                  </p>
+                )}
+              </div>
+              {isFilterModalOpen && <FilterModal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} />}
+              {isPipelineChangeModalOpen && (
+                <PipelineChangeModal
+                  isOpen={isPipelineChangeModalOpen}
+                  onClose={() => setIsPipelineChangeModalOpen(false)}
+                  selectedCount={selectedContacts.length}
+                />
               )}
-            </div>
-            {isFilterModalOpen && <FilterModal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} />}
-            {isPipelineChangeModalOpen && (
-              <PipelineChangeModal
-                isOpen={isPipelineChangeModalOpen}
-                onClose={() => setIsPipelineChangeModalOpen(false)}
-                selectedCount={selectedContacts.length}
-              />
-            )}
-            {isInfoModalOpen && <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} />}
-            {isAddTagsModalOpen && (
-              <AddTagsModal
-                isOpen={isAddTagsModalOpen}
-                onClose={() => setIsAddTagsModalOpen(false)}
-                selectedContacts={selectedContacts}
-              />
-            )}
-            {isRemoveTagsModalOpen && (
-              <RemoveTagsModal
-                isOpen={isRemoveTagsModalOpen}
-                onClose={() => setIsRemoveTagsModalOpen(false)}
-                selectedContacts={selectedContacts}
-              />
-            )}
-            {isDeleteContactsModalOpen && (
-              <DeleteContactsModal
-                isOpen={isDeleteContactsModalOpen}
-                onClose={() => setIsDeleteContactsModalOpen(false)}
-                selectedContacts={selectedContacts}
-                onDelete={handleDeleteContacts}
-              />
-            )}
-            {isExportContactsModalOpen && (
-              <ExportContactsModal
-                isOpen={isExportContactsModalOpen}
-                onClose={() => setIsExportContactsModalOpen(false)}
-                selectedContacts={selectedContacts}
-                onExport={handleExportContacts}
-              />
-            )}
-          </>
+              {isInfoModalOpen && <InfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} />}
+              {isAddTagsModalOpen && (
+                <AddTagsModal
+                  isOpen={isAddTagsModalOpen}
+                  onClose={() => setIsAddTagsModalOpen(false)}
+                  selectedContacts={selectedContacts}
+                />
+              )}
+              {isRemoveTagsModalOpen && (
+                <RemoveTagsModal
+                  isOpen={isRemoveTagsModalOpen}
+                  onClose={() => setIsRemoveTagsModalOpen(false)}
+                  selectedContacts={selectedContacts}
+                />
+              )}
+              {isDeleteContactsModalOpen && (
+                <DeleteContactsModal
+                  isOpen={isDeleteContactsModalOpen}
+                  onClose={() => setIsDeleteContactsModalOpen(false)}
+                  selectedContacts={selectedContacts}
+                  onDelete={handleDeleteContacts}
+                />
+              )}
+              {isExportContactsModalOpen && (
+                <ExportContactsModal
+                  isOpen={isExportContactsModalOpen}
+                  onClose={() => setIsExportContactsModalOpen(false)}
+                  selectedContacts={selectedContacts}
+                  onExport={handleExportContacts}
+                />
+              )}
+            </>
+        )}
+      </DashboardLayout>
+
+      {/* Move modals outside DashboardLayout */}
+      {isBulkMessagingModalOpen && (
+        <BulkMessagingModal
+          isOpen={isBulkMessagingModalOpen}
+          onClose={() => {
+            setIsBulkMessagingModalOpen(false);
+            setSelectedMessageType(null);
+          }}
+          selectedContacts={selectedContacts}
+          selectedMessageType={selectedMessageType}
+          setSelectedMessageType={setSelectedMessageType}
+          smsText={smsText}
+          setSmsText={setSmsText}
+          emailSubject={emailSubject}
+          setEmailSubject={setEmailSubject}
+          emailBody={emailBody}
+          setEmailBody={setEmailBody}
+          isBulkInProcess={isBulkInProcess}
+          onSend={bulkSendEmailOrSMS}
+        />
       )}
-    </DashboardLayout>
+
+      {isBulkDeleteModalOpen && (
+        <BulkDeleteModal
+          isOpen={isBulkDeleteModalOpen}
+          onClose={() => setIsBulkDeleteModalOpen(false)}
+          selectedCount={selectedContacts.length}
+          isSubmitting={isSubmitting}
+          onConfirm={confirmBulkDelete}
+        />
+      )}
+    </>
   );
 }
