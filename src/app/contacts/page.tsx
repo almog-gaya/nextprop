@@ -1822,38 +1822,7 @@ export default function ContactsPage() {
                   </div>
                 )}
 
-                {isBulkDeleteModalOpen && (
-                  <div
-                    className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-                    onClick={() => setIsBulkDeleteModalOpen(false)}
-                  >
-                    <div
-                      className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <h3 className="text-xl font-semibold mb-2 text-gray-900">Delete Selected Contacts</h3>
-                      <p className="text-sm text-gray-600 mb-6">
-                        Are you sure you want to delete {selectedContacts.length} selected contacts? This action cannot be undone.
-                      </p>
-                      <div className="flex justify-end space-x-3">
-                        <button
-                          onClick={() => setIsBulkDeleteModalOpen(false)}
-                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-                          disabled={isSubmitting}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={confirmBulkDelete}
-                          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm disabled:opacity-50"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? 'Deleting...' : 'Delete Selected'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+            
 
                 <BulkAddToPipelineStage
                   contacts={selectedContacts}

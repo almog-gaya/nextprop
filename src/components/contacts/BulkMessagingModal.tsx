@@ -38,7 +38,7 @@ const BulkMessagingModal: React.FC<BulkMessagingModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]">
+    <div className="fixed inset-0 bg-black/50  z-[9999]">
       <div className="fixed inset-0 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
           <div 
