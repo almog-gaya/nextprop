@@ -3,13 +3,20 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
     
-    const response = await fetch('https://us-central1-nextprop-ai.cloudfunctions.net/chatai/', {
+   const payload = {
+      "message": body.message,
+      "locationId": body.locationId,
+      "history": body.history,
+      "isDebug": body.isDebug,
+  }
+    const response = await fetch('https://chatai-vhkdzfr2sq-uc.a.run.app', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {

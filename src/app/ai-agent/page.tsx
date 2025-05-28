@@ -37,12 +37,12 @@ export default function AIAgentPage() {
       return;
     }
 
-    // // Safe check for phoneNumbers
-    // if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
-    //   toast.error('Please add a phone number to your account');
-    //   console.log(`Config,`, currentConfig)
-    //   return;
-    // }
+    // Safe check for phoneNumbers
+    if (!user.phoneNumbers || user.phoneNumbers.length === 0) {
+      toast.error('Please add a phone number to your account');
+      console.log(`Config,`, currentConfig)
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -176,7 +176,7 @@ export default function AIAgentPage() {
               { key: 'dashboard', label: 'Dashboard' },
               { key: 'goals', label: 'Bot Goals' },
               { key: 'testing', label: 'Bot Testing' },
-              { key: 'training', label: 'Bot Training' },
+              // { key: 'training', label: 'Bot Training' },
               { key: 'settings', label: 'Bot Settings' },
             ].map((tab) => (
               <button
@@ -268,7 +268,7 @@ export default function AIAgentPage() {
           </div>
         )}
 
-        {/* Bot Training View */}
+        {/* Bot Training View
         {activeTab === 'training' && selectedAgentId && (
           <div className="bg-[var(--nextprop-surface)]">
             <AIAgentConfig
@@ -294,7 +294,7 @@ export default function AIAgentPage() {
               </button>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Bot Settings View */}
         {activeTab === 'settings' && selectedAgentId && (

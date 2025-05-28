@@ -69,7 +69,7 @@ export default function AIAgentTestPage() {
           contactPhone: '',
           contactEmail: '',
           buyingCriteria: DEFAULT_BUYING_CRITERIA,
-          dealObjective: 'creative-finance',
+          audienceType: 'realtor',
         };
 
         setAgentConfig(docSnap.exists() ? { ...defaultConfig, ...docSnap.data() } : defaultConfig);
@@ -112,7 +112,7 @@ export default function AIAgentTestPage() {
         contactPhone: '',
         contactEmail: '',
         buyingCriteria: DEFAULT_BUYING_CRITERIA,
-        dealObjective: 'creative-finance',
+        audienceType: 'realtor',
       };
 
       setAgentConfig(docSnap.exists() ? { ...defaultConfig, ...docSnap.data() } : defaultConfig);

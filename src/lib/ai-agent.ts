@@ -231,7 +231,8 @@ export async function loadAIAgentConfig(userId?: string): Promise<AIAgentConfig>
         companyWebsite: '',
         companyAbout: '',
         buyingCriteria: '',
-        dealObjective: 'realtor-creative-finance',
+        audienceType: 'realtor',
+        propertyType: 'Single-family',
         rules: defaultRules,
         qaEntries: defaultQA,
         enabledRules: defaultRules.map(rule => rule.id) // All rules enabled by default
@@ -271,7 +272,8 @@ export async function loadAIAgentConfig(userId?: string): Promise<AIAgentConfig>
         companyWebsite: '',
         companyAbout: '',
         buyingCriteria: '',
-        dealObjective: 'realtor-creative-finance',
+        audienceType: 'realtor',
+        propertyType: 'Single-family',
         rules: defaultRules,
         qaEntries: defaultQA,
         enabledRules: defaultRules.map(rule => rule.id)
@@ -293,7 +295,8 @@ export async function loadAIAgentConfig(userId?: string): Promise<AIAgentConfig>
       companyWebsite: '',
       companyAbout: '',
       buyingCriteria: '',
-      dealObjective: 'realtor-creative-finance',
+      audienceType: 'realtor',
+      propertyType: 'Single-family',
       rules: [
         {
           id: 'rule_concise',
@@ -397,7 +400,7 @@ export function generateAgentInstructions(config: AIAgentConfig): string {
     speakingOnBehalfOf: config.speakingOnBehalfOf || '(empty)',
     hasContactInfo: !!(config.contactPhone || config.contactEmail),
     hasBuyingCriteria: !!config.buyingCriteria,
-    dealObjective: config.dealObjective,
+    audienceType: config.audienceType,
     hasRules: !!(config.rules && config.rules.length > 0),
     hasQA: !!(config.qaEntries && config.qaEntries.length > 0),
   });
@@ -440,17 +443,15 @@ export function generateAgentInstructions(config: AIAgentConfig): string {
   }
   
   // Add deal objective if provided, with enhanced descriptions
-  if (config.dealObjective) {
-    const dealObjectiveMap: {[key: string]: string} = {
-      'creative-finance': 'Creative Financing Options (seller financing, subject-to, lease options, etc.)',
-      'cash-offer': 'Quick Cash Offers with minimal contingencies',
-      'off-market': 'Off-Market Deals not listed on the MLS',
-      'short-sale': 'Short Sales where the lender agrees to accept less than owed'
+  if (config.audienceType) {
+    const audienceTypeMap: {[key: string]: string} = {
+      'realtor': 'Working with Realtors and Real Estate Professionals',
+      'homeowner': 'Working with Homeowners and Property Owners'
     };
     
-    const dealObjectiveText = dealObjectiveMap[config.dealObjective] || config.dealObjective;
+    const audienceTypeText = audienceTypeMap[config.audienceType] || config.audienceType;
     instructions += `\n\nPRIMARY FOCUS:
-- Your specialty is ${dealObjectiveText}
+- Your specialty is ${audienceTypeText}
 - Emphasize this focus area in your discussions about property acquisitions
 - This is a key part of your approach to real estate transactions`;
   }

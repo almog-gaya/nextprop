@@ -18,10 +18,7 @@ export type AIAgentConfig = {
   companyWebsite?: string; // Company website URL
   companyAbout?: string; // About the company (optional)
   buyingCriteria?: string; // Purchase price, preferences, etc.
-  dealObjective?: 
-    | 'creative-finance' | 'cash-offer' | 'off-market' | 'short-sale' | 'home-owner' | 'distressed-seller' // Legacy options
-    | 'realtor-off-market' | 'realtor-short-sale' | 'realtor-creative-finance' | 'realtor-cash-buyers' // For realtors
-    | 'homeowner-cash-offer' | 'homeowner-distressed' | 'homeowner-quick-sale' | 'homeowner-relocation'; // For home owners
+  audienceType?: 'realtor' | 'homeowner'; // Only two options: Realtor or Homeowner
 
   propertyType?: string;
   region?: string;
@@ -80,7 +77,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
       agentName: 'Taylor',
       tone: 'professional',
       length: 'medium',
-      dealObjective: 'cash-offer',
+      audienceType: 'realtor',
       customInstructions: 'Focuses on qualifying potential property buyers and building relationships with investor clients.',
       rules: [
         {
@@ -102,7 +99,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
       agentName: 'Morgan',
       tone: 'friendly',
       length: 'medium',
-      dealObjective: 'off-market',
+      audienceType: 'realtor',
       customInstructions: 'Focuses on acquiring property information from potential sellers and explaining the selling process.',
       rules: [
         {

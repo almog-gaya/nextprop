@@ -67,7 +67,7 @@ const DEFAULT_CONFIG = {
   contactPhone: '555-123-4567',
   contactEmail: 'contact@nextprop.com',
   companyWebsite: 'www.nextprop.com',
-  dealObjective: 'realtor-creative-finance',
+  dealObjective: 'realtor',
   buyingCriteria: DEFAULT_BUYING_CRITERIA,
   customInstructions: ''
 };
@@ -100,7 +100,7 @@ const SAMPLE_CONVERSATIONS: Record<ConversationTemplate, Omit<TestForm, 'config'
     ],
     config: {
       ...DEFAULT_CONFIG,
-      dealObjective: 'realtor-creative-finance',
+      dealObjective: 'realtor',
       tone: 'professional' as 'friendly' | 'professional' | 'casual',
       buyingCriteria: "Properties between $300,000 and $1.5 million in any location, looking for seller financing options, flexible on property condition and type"
     }
@@ -573,24 +573,7 @@ export default function AIAgentTestV2() {
     const updatedConversations = savedConversations.filter((_, i) => i !== index);
     setSavedConversations(updatedConversations);
     localStorage.setItem('savedConversations', JSON.stringify(updatedConversations));
-  };
-
-  const updateConfig = (key: 'temperature' | 'maxTokens' | 'model' | 'topP' | 'frequencyPenalty' | 'presencePenalty' |
-    'tone' | 'length' | 'agentName' | 'companyName' | 'speakingOnBehalfOf' |
-    'contactPhone' | 'contactEmail' | 'companyWebsite' | 'dealObjective' | 'buyingCriteria' | 'customInstructions', value: number | string) => {
-    setFormData(prev => {
-      if (!prev) return prev;
-      return {
-        locationId: prev.locationId,
-        message: prev.message,
-        history: prev.history,
-        config: {
-          ...prev.config,
-          [key]: value
-        }
-      };
-    });
-  };
+  }; 
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

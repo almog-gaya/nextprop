@@ -117,8 +117,7 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
         contactEmail: data.contactEmail || '',
         companyWebsite: data.companyWebsite || '',
         companyAbout: data.companyAbout || '',
-        buyingCriteria: data.buyingCriteria || DEFAULT_BUYING_CRITERIA,
-        dealObjective: data.dealObjective || 'realtor-creative-finance',
+        buyingCriteria: data.buyingCriteria || DEFAULT_BUYING_CRITERIA, 
 
         propertyType: data.propertyType,
         maxPrice: data.maxPrice || 2000000,
@@ -144,8 +143,7 @@ const loadAIAgentConfig = async (userId: string): Promise<AIAgentConfigType> => 
       contactEmail: '',
       companyWebsite: '',
       companyAbout: '',
-      buyingCriteria: DEFAULT_BUYING_CRITERIA,
-      dealObjective: 'realtor-creative-finance',
+      buyingCriteria: DEFAULT_BUYING_CRITERIA, 
       propertyType: 'Single-family',
       maxPrice: 2000000,
       minPrice: 0,
@@ -465,7 +463,7 @@ export default function AIAgentConfig({
         companyWebsite: '',
         companyAbout: '',
         buyingCriteria: DEFAULT_BUYING_CRITERIA,
-        dealObjective: 'realtor-creative-finance',
+        audienceType: 'realtor',
         propertyType: 'Single-family',
         maxPrice: 2000000,
         minPrice: 0,
@@ -595,9 +593,9 @@ export default function AIAgentConfig({
     } : prev);
   };
 
-  const handleDealObjectiveChange = (dealObjective: AIAgentConfigType['dealObjective']) => {
+  const handleDealObjectiveChange = (audienceType: AIAgentConfigType['audienceType']) => {
     if (!config) return;
-    setConfig(prev => prev ? { ...prev, dealObjective } : prev);
+    setConfig(prev => prev ? { ...prev, audienceType } : prev);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -800,15 +798,14 @@ export default function AIAgentConfig({
 
     try {
       console.log('Sending test request with includePrompt=true');
-      const res = await fetch('/api/ai-agent/test', {
+      const res = await fetch('/api/chatai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message,
           history: [...conversation, newUserMessage],
           locationId: user?.id,
-          agentConfig: config,
-          includePrompt: true, // Request the full prompt to be returned
+          agentConfig: config
         }),
       });
 
@@ -1225,142 +1222,12 @@ export default function AIAgentConfig({
                       />
                     </div>
                   </div>
-                </div>
-
-                <div>
-                  <label htmlFor="companyAbout" className="block text-sm font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                    About Company <span className="text-xs text-[var(--nextprop-text-tertiary)]">(optional)</span>
-                  </label>
-                  <div className='border border-[var(--nextprop-border)] rounded-[3px]'>
-                    <textarea
-                      id="companyAbout"
-                      name="companyAbout"
-                      value={config.companyAbout || ''}
-                      onChange={handleInputChange}
-                      placeholder="Briefly describe your company or services..."
-                      rows={3}
-                      style={{ borderRadius: '3px', backgroundColor: '#eaecef' }}
-                      className="nextprop-input w-full p-2.5 rounded-r-lg" />
-                  </div>
-                  <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1 pt-2">
-                    Once all relevant information has been received from the lead, the AI will send them a final message, move the lead to the HUMAN stage, and notify you.
-                  </p>
-                </div>
+                </div> 
               </div>
             </div>
           </div>
 
-        )}
-        {shouldRenderSection('agentStatus') && (
-          <div className='mt-4  flex items-center justify-center '>
-            <div
-              style={{
-                width: '780px',
-                borderRadius: '5px',
-                border: '1px solid #E5E7EB',
-                background: 'white',
-                paddingLeft: '16px',
-                paddingRight: '16px',
-                boxSizing: 'border-box',
-                display: 'flex',
-                flexDirection: 'column',
-              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <span className="text-[18px] font-semibold text-[var(--nextprop-text-primary)]">Set Agent's status</span>
-              <span className="text-[14px] text-[var(--nextprop-text-tertiary)] mb-2">Choose the Bot's operating mode</span>
-              <div className="flex">
-                {/* Off Button */}
-                <button
-                  type="button"
-                  onClick={() => setConfig(prev => prev ? { ...prev, agentStatus: 'off' } : prev)}
-                  style={{
-                    width: '241px',
-                    height: '46px',
-                    borderRadius: '3px',
-                    border: '1px solid #E5E7EB',
-                    background: config.agentStatus === 'off' ? '#F3E8FF' : '#fff',
-                    color: config.agentStatus === 'off' ? '#9C03FF' : '#111827',
-                    fontWeight: 500,
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    paddingLeft: '16px',
-                    paddingRight: '16px',
-                    position: 'relative',
-                  }}
-                  className="transition focus:outline-none"
-                >
-                  <span className="flex items-center justify-center mr-2">
-                    <img src="/purple_checkbox.svg" alt="Off" className="w-[30px] h-[30px]" />
-                  </span>
-                  Off
-                </button>
-                {/* Auto Pilot Button */}
-                <button
-                  type="button"
-                  onClick={() => setConfig(prev => prev ? { ...prev, agentStatus: 'auto' } : prev)}
-                  style={{
-                    width: '241px',
-                    height: '46px',
-                    borderRadius: '3px',
-                    border: '1px solid #E5E7EB',
-                    background: config.agentStatus === 'auto' ? '#F3E8FF' : '#fff',
-                    color: config.agentStatus === 'auto' ? '#9C03FF' : '#111827',
-                    fontWeight: 500,
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    paddingLeft: '16px',
-                    paddingRight: '16px',
-                    marginLeft: '12px',
-                    position: 'relative',
-                  }}
-                  className="transition focus:outline-none"
-                >
-                  <span className="flex items-center justify-center mr-2 ">
-                    <img src="/audio_pilot.svg" alt="Auto Pilot" className="w-[30px] h-[30px]" />
-                  </span>
-                  Auto Pilot
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Supported Communication Channels Section */}
-        {shouldRenderSection('agentStatus') && (
-          <div className='mt-4 flex items-center justify-center '>
-            <div
-              style={{
-                width: '780px',
-                borderRadius: '5px',
-                border: '1px solid #E5E7EB',
-                background: 'white',
-                paddingLeft: '16px',
-                paddingRight: '16px',
-                boxSizing: 'border-box',
-                display: 'flex',
-                flexDirection: 'column',
-              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <span className="text-[20px] font-bold text-[var(--nextprop-text-primary)]">Supported Communication Channels</span>
-              <span className="text-[14px] text-[var(--nextprop-text-tertiary)] font-semibold">Select the Channels where you want the Bot to be Active On*</span>
-              <div className="mt-2 border border-[var(--nextprop-border)] rounded-3">
-                <select
-                  value={config.communicationChannel || 'SMS'}
-                  onChange={e => setConfig(prev => prev ? { ...prev, communicationChannel: e.target.value } : prev)}
-                  className="h-[31px] w-full text-[14px] font-semibold text-[#9C03FF] bg-white rounded-3"
-                  style={{ minHeight: '38px', borderRadius:'3px', fontSize:'14px'}}
-                >
-                  <option value="Instagram">Instagram</option>
-                  <option value="SMS">SMS</option>
-                  <option value="Facebook">Facebook</option>
-                  <option value="Email">Email</option>
-                  <option value="Whatsapp">Whatsapp</option>
-                  <option value="Emo">Emo</option>
-                  <option value="Discord">Discord</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        )}
+        )}  
 
         {shouldRenderSection('buyingCriteria') && (
           <div className='mt-6 flex items-center justify-center '>
@@ -1512,154 +1379,74 @@ export default function AIAgentConfig({
               }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-4 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center space-x-3 border-[var(--nextprop-border)]">
                 {/* <DocumentTextIcon className="h-5 w-5 text-[var(--nextprop-primary)] mb-6" /> */}
-                <span className="text-[20px] font-semibold text-[var(--nextprop-text-primary)]">Deal Objective</span>
+                <span className="text-[20px] font-semibold text-[var(--nextprop-text-primary)]">Audience Type</span>
               </div>
 
               <div className="space-y-1">
-                <div>
-                  <span className="text-[18px] font-medium text-[var(--nextprop-text-primary)] mt-3 flex items-center">
+                <div className="grid grid-cols-2 gap-4">
+                  {([
+                    { value: 'realtor', label: 'Realtor' },
+                    { value: 'homeowner', label: 'Homeowner' },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      style={{
+                        width: '370px',
+                        height: '46px',
+                        borderRadius: '3px',
+                        border: '1px solid #E5E7EB',
+                        background: config.audienceType === option.value ? '#F3E8FF' : '#fff',
+                        color: config.audienceType === option.value ? '#9C03FF' : '#111827',
+                        fontWeight: 400,
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        textAlign: 'left',
+                        paddingLeft: '16px',
+                        paddingRight: '16px',
+                        margin: 0,
+                      }}
+                      className="transition focus:outline-none  mb-0"
+                      onClick={() => handleDealObjectiveChange(option.value)}
 
-                    For Realtors
-                  </span>
-                  <div className="grid grid-cols-2 gap-4">
-                    {([
-                      { value: 'realtor-off-market', label: 'Off Market Deals' },
-                      { value: 'realtor-short-sale', label: 'Short Sales' },
-                      { value: 'realtor-creative-finance', label: 'Creative Finance' },
-                      { value: 'realtor-cash-buyers', label: 'Cash Buyers' },
-                    ] as const).map((option) => (
-                      <button
-                        key={option.value}
-                        style={{
-                          width: '370px',
-                          height: '46px',
-                          borderRadius: '3px',
-                          border: '1px solid #E5E7EB',
-                          background: config.dealObjective === option.value ? '#F3E8FF' : '#fff',
-                          color: config.dealObjective === option.value ? '#9C03FF' : '#111827',
-                          fontWeight: 400,
-                          fontSize: '14px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          textAlign: 'left',
-                          paddingLeft: '16px',
-                          paddingRight: '16px',
-                          margin: 0,
-                        }}
-                        className="transition focus:outline-none  mb-0"
-                        onClick={() => handleDealObjectiveChange(option.value)}
-
-                      >
-                        {config.dealObjective === option.value && (
+                    >
+                      {config.audienceType === option.value && (
+                        <span
+                          className="mr-2 flex items-center justify-center"
+                          style={{ width: 30, height: 30, minWidth: 30, minHeight: 30 }}
+                        >
                           <span
-                            className="mr-2 flex items-center justify-center"
-                            style={{ width: 30, height: 30, minWidth: 30, minHeight: 30 }}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: '50%',
+                              background: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
                           >
                             <span
                               style={{
-                                width: 30,
-                                height: 30,
+                                width: 16,
+                                height: 16,
                                 borderRadius: '50%',
-                                background: '#fff',
+                                background: '#A703FF',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                               }}
                             >
-                              <span
-                                style={{
-                                  width: 16,
-                                  height: 16,
-                                  borderRadius: '50%',
-                                  background: '#A703FF',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                              >
-                                <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M2 4.5L4.5 7L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              </span>
+                              <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2 4.5L4.5 7L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
                             </span>
                           </span>
-                        )}
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-[18px] font-medium text-[var(--nextprop-text-primary)] mt-3 flex items-center">
-                    For Home Owners
-                  </span>
-                  <div className="grid grid-cols-2 gap-4">
-                    {([
-                      { value: 'homeowner-cash-offer', label: 'Cash Offer' },
-                      { value: 'homeowner-distressed', label: 'Distressed Seller' },
-                      { value: 'homeowner-relocation', label: 'Relocation' },
-                    ] as const).map((option) => (
-                      <button
-                        key={option.value}
-                        style={{
-                          width: '370px',
-                          height: '46px',
-                          borderRadius: '3px',
-                          border: '1px solid #E5E7EB',
-                          background: config.dealObjective === option.value ? '#F3E8FF' : '#fff',
-                          color: config.dealObjective === option.value ? '#9C03FF' : '#111827',
-                          fontWeight: 400,
-                          fontSize: '14px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          textAlign: 'left',
-                          paddingLeft: '16px',
-                          paddingRight: '16px',
-                          margin: 0,
-                        }}
-                        className="transition focus:outline-none  mb-0"
-                        onClick={() => handleDealObjectiveChange(option.value)}
-
-                      >
-                        {config.dealObjective === option.value && (
-                          <span
-                            className="mr-2 flex items-center justify-center"
-                            style={{ width: 30, height: 30, minWidth: 30, minHeight: 30 }}
-                          >
-                            <span
-                              style={{
-                                width: 30,
-                                height: 30,
-                                borderRadius: '50%',
-                                background: '#fff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 16,
-                                  height: 16,
-                                  borderRadius: '50%',
-                                  background: '#A703FF',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                              >
-                                <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M2 4.5L4.5 7L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              </span>
-                            </span>
-                          </span>
-                        )}
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
+                        </span>
+                      )}
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -2006,164 +1793,7 @@ export default function AIAgentConfig({
               )}
             </div>
           </div>
-        )}
-
-        {shouldRenderSection('leadQualification') && (
-          <div className="flex items-center justify-center">
-            <div
-              style={{
-                width: '780px',
-                borderRadius: '5px',
-                border: '1px solid #E5E7EB',
-                background: 'white',
-                paddingLeft: '16px',
-                paddingRight: '16px',
-                paddingTop: '16px',
-                boxSizing: 'border-box',
-                display: 'flex',
-                flexDirection: 'column',
-              }} className="bg-[var(--nextprop-surface)] rounded-lg border border-[var(--nextprop-border)] p-4 shadow-sm hover:shadow-md transition-shadow duration-300">
-              <div className="mb-0 pb-1 ">
-                <span className="text-[20px] font-semibold text-[var(--nextprop-text-primary)]">Lead Qualification Criteria</span>
-                <p className="text-[14px] text-[var(--nextprop-text-tertiary)]">Select single/multiple criteria you want to qualify lead</p>
-              </div>
-              {/* Criteria grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-                {[
-                  { label: 'Interested in Selling', icon: <img src="/checkbox.svg" alt="Interested in Selling" className="w-[30px] h-[30px]" /> },
-                  { label: 'Address of the House', icon: <img src="/checkbox.svg" alt="Address of the House" className="w-[30px] h-[30px]" /> },
-                  { label: 'Reason for Selling', icon: <img src="/person.svg" alt="Reason for Selling" className="w-[30px] h-[30px]" /> },
-                  { label: 'Condition of the House', icon: <img src="/home.svg" alt="Condition of the House" className="w-[30px] h-[30px]" /> },
-                  { label: 'Timeline to Sell', icon: <img src="/clock.svg" alt="Timeline to Sell" className="w-[30px] h-[30px]" /> },
-                  { label: 'Asking Price', icon: <img src="/doller.svg" alt="Asking Price" className="w-[30px] h-[30px]" /> },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    style={{
-                      width: '241px',
-                      height: '46px',
-                      borderRadius: '3px',
-                      border: '1px solid #E5E7EB',
-                      background: config.leadQualificationCriteria?.includes(item.label) ? '#95989A' : '#fff',
-                      color: config.leadQualificationCriteria?.includes(item.label) ? '#111827' : '#111827',
-                      fontWeight: 400,
-                      fontSize: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      textAlign: 'left',
-                      paddingLeft: '16px',
-                      paddingRight: '16px',
-                      margin: 0,
-                    }}
-                    className="transition focus:outline-none mb-0"
-                    type="button"
-                    onClick={() => {
-                      setConfig(prev => {
-                        if (!prev) return prev;
-                        const currentCriteria = prev.leadQualificationCriteria || [];
-                        const newCriteria = currentCriteria.includes(item.label)
-                          ? currentCriteria.filter(c => c !== item.label)
-                          : [...currentCriteria, item.label];
-                        return { ...prev, leadQualificationCriteria: newCriteria };
-                      });
-                    }}
-                  >
-                    <span className="flex items-center justify-center mr-2">
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              {/* If Lead Qualifies section */}
-              <div className="mb-2">
-                {/* Section Title */}
-                <span className="text-[18px] font-semibold text-[var(--nextprop-text-primary)]">
-                  If Lead Qualifies
-                </span>
-
-                {/* Button Container */}
-                <div className="flex gap-4 items-center">
-                  {/* Send Last Message Button */}
-                  <button
-                    type="button"
-                    style={{
-                      ...commonButtonStyles,
-                      background: config.leadQualifiesAction === 'sendLastMessage' ? '#F3E8FF' : '#fff',
-                      color: config.leadQualifiesAction === 'sendLastMessage' ? '#9C03FF' : '#111827',
-                    }}
-                    className="transition focus:outline-none mb-0"
-                    onClick={() =>
-                      setConfig((prev) => (prev ? { ...prev, leadQualifiesAction: 'sendLastMessage' } : prev))
-                    }
-                  >
-                    <img
-                      src="/calendar.svg"
-                      alt="Interested in Selling"
-                      className="w-[30px] h-[30px] mr-2"
-                    />
-                    Send Last Message
-                  </button>
-
-                  {/* Pause AI, Move to Human Button */}
-                  <button
-                    type="button"
-                    style={{
-                      ...commonButtonStyles,
-                      background: config.leadQualifiesAction === 'pauseMoveHuman' ? '#F3E8FF' : '#fff',
-                      color: config.leadQualifiesAction === 'pauseMoveHuman' ? '#9C03FF' : '#111827',
-                      justifyContent: 'space-between',
-                    }}
-                    className="transition focus:outline-none mb-0"
-                    onClick={() =>
-                      setConfig((prev) => (prev ? { ...prev, leadQualifiesAction: 'pauseMoveHuman' } : prev))
-                    }
-                  >
-                    <img
-                      src="/checkbox.svg"
-                      alt="Interested in Selling"
-                      className="w-[30px] h-[30px] mr-2"
-                    />
-                    Pause AI, Move to Human
-                    <span>
-                      {config.leadQualifiesAction === 'pauseMoveHuman' && (
-                        <img
-                          src="/information.svg"
-                          alt="Interested in Selling"
-                          className="w-[30px] h-[30px]"
-                        />
-                      )}
-                    </span>
-                  </button>
-                </div>
-              </div>
-              {/* Closing message preview */}
-              <div className="mt-2">
-                <span className="text-[18px] font-semibold text-[var(--nextprop-text-primary)]">The Assistant will close the conversation with:</span>
-                <div className="item-center justity-center h-[31px] bg-[var(--nextprop-surface-hover)] rounded-lg pt-1 pl-2 text-[var(--nextprop-text-secondary)] text-[14px]">
-                  Got it! Thanks for the information. I'll pass this to [Your Name] and get back to you soon.
-                </div>
-              </div>
-              {/* Action buttons at the bottom */}
-              <div className=" flex justify-center gap-4 mt-2">
-                <button
-                  type="button"
-                  className="h-[35px] px-6 py-1 text-[14px] border border-[var(--nextprop-border)] text-[var(--nextprop-text-primary)] bg-white rounded-lg hover:bg-[var(--nextprop-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:ring-offset-2 font-medium shadow-sm"
-                  onClick={() => {/* TODO: handle cancel */ }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="w-[153px] item-center h-[35px] text-[14px] bg-gradient-to-r from-[#9C03FF] to-[#A703FF] text-white rounded-[10px] hover:from-[#A703FF] hover:to-[#9C03FF] focus:outline-none focus:ring-2 focus:ring-[#9C03FF] focus:ring-offset-2 font-medium shadow-md transform transition-transform hover:scale-105"
-                  onClick={() => {/* TODO: handle add AI assistant */ }}
-                >
-                  Add AI Assistant
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        )} 
 
 
 
