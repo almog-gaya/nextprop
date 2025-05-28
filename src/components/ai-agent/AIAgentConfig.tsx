@@ -1083,32 +1083,9 @@ export default function AIAgentConfig({
                     />
                   </div>
                 </div>
-
-                <div>
-                  <label htmlFor="companyName" className="block text-[14px] font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                    Your Name
-                  </label>
-                  <div className='border border-[var(--nextprop-border)] rounded-[3px]'>
-                    <input
-                      type="text"
-                      id="companyName"
-                      name="companyName"
-                      value={config.companyName || ''}
-                      onChange={handleInputChange}
-                      placeholder={placeholders.companyName}
-                      style={{ borderRadius: '3px', height: '31px' }}
-                      className="nextprop-input w-full p-2.5 text-[14px] font-sm rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
-                    />
-                  </div>
-
-                  <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
-                    This is your name that will be used when the AI agent refers to you
-                  </p>
-                </div>
-
                 <div>
                   <label htmlFor="speakingOnBehalfOf" className="block text-[14px] font-medium text-[var(--nextprop-text-secondary)] mb-1">
-                    Company Name
+                  Your Name
                   </label>
                   <div className='border border-[var(--nextprop-border)] rounded-[3px]'>
                     <input
@@ -1120,6 +1097,26 @@ export default function AIAgentConfig({
                       placeholder={placeholders.speakingOnBehalfOf}
                       style={{ borderRadius: '3px', height: '31px' }}
                       className="nextprop-input w-full p-2.5 text-[14px] font-medium border-[var(--nextprop-border)] rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
+                    />
+                  </div>
+                  <p className="text-xs text-[var(--nextprop-text-tertiary)] mt-1">
+                    This is your name that will be used when the AI agent refers to you
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="companyName" className="block text-[14px] font-medium text-[var(--nextprop-text-secondary)] mb-1">
+                    Company Name
+                  </label>
+                  <div className='border border-[var(--nextprop-border)] rounded-[3px]'>
+                    <input
+                      type="text"
+                      id="companyName"
+                      name="companyName"
+                      value={config.companyName || ''}
+                      onChange={handleInputChange}
+                      placeholder={placeholders.companyName}
+                      style={{ borderRadius: '3px', height: '31px' }}
+                      className="nextprop-input w-full p-2.5 text-[14px] font-sm rounded-lg focus:ring-2 focus:ring-[var(--nextprop-primary)] focus:border-[var(--nextprop-primary)] shadow-sm"
                     />
                   </div>
                 </div>
