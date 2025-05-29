@@ -48,6 +48,7 @@ import ContactModal from '@/components/contacts/ContactModal';
 import PhoneLookupModal from '@/components/contacts/PhoneLookupModal';
 import BulkMessagingModal from '@/components/contacts/BulkMessagingModal';
 import BulkDeleteModal from '@/components/contacts/BulkDeleteModal';
+import { showInfo } from '@/lib/toast';
 
 interface CustomField {
   id: string;
@@ -1531,6 +1532,22 @@ export default function ContactsPage() {
     );
   };
 
+  const onAddTags = (updatedContacts: Contact[]) => {
+    setContacts(prevContacts => {
+      const updatedContactsMap = new Map(updatedContacts.map(c => [c.id, c]));
+      return prevContacts.map(contact => updatedContactsMap.get(contact.id) || contact);
+    });
+    setSelectedContacts([]);
+  };
+
+  const onRemoveTags = (updatedContacts: Contact[]) => {
+    setContacts(prevContacts => {
+      const updatedContactsMap = new Map(updatedContacts.map(c => [c.id, c]));
+      return prevContacts.map(contact => updatedContactsMap.get(contact.id) || contact);
+    });
+    setSelectedContacts([]);
+  };
+
   return (
     <>
       <DashboardLayout title="Contacts">
@@ -1594,39 +1611,12 @@ export default function ContactsPage() {
                       <PlusIcon className="h-5 w-5 text-gray-700" />
                     </button>
                   </span>
-                  {/* <span data-tooltip="tooltip" data-placement="top" title="Pipeline Change">
-                    <button
-                      onClick={() => {
-                        if (selectedContacts.length === 0) {
-                          setIsInfoModalOpen(true);
-                        } else {
-                          setIsPipelineChangeModalOpen(true);
-                        }
-                      }}
-                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition"
-                    >
-                      <FaFilter size={15} color="grey" />
-                    </button>
-                  </span> */}
-                  {/* <span data-tooltip="tooltip" data-placement="top" title="Add to Automation">
-          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
-            <FaRobot size={20} color="grey" />
-          </button>
-        </span>
-        <span data-tooltip="tooltip" data-placement="top" title="Send SMS">
-          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
-            <ChatBubbleLeftRightIcon className="h-5 w-5 text-gray-700" />
-          </button>
-        </span>
-        <span data-tooltip="tooltip" data-placement="top" title="Send Email">
-          <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition">
-            <svg width="18" height="18" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.667 3.833L8.47 8.596c.55.386.826.579 1.126.653.265.066.541.066.806 0 .3-.074.575-.267 1.126-.653l6.804-4.763M5.667 14.667h8.666c1.4 0 2.1 0 2.635-.273a2.5 2.5 0 001.093-1.092c.272-.535.272-1.235.272-2.635V5.333c0-1.4 0-2.1-.272-2.635a2.5 2.5 0 00-1.093-1.092c-.535-.273-1.235-.273-2.635-.273H5.667c-1.4 0-2.1 0-2.635.273a2.5 2.5 0 00-1.093 1.092c-.272.535-.272 1.235-.272 2.635v5.334c0 1.4 0 2.1.272 2.635a2.5 2.5 0 001.093 1.092c.534.273 1.234.273 2.635.273z" stroke="#344054" strokeWidth="1.667" strokeLinecap="round" strokeLinejoin="round"></path></svg>
-          </button>
-        </span> */}
+                  
                   <span data-tooltip="tooltip" data-placement="top" title="Add Tag" className="relative">
                     <button
                       onClick={() => {
                         if (selectedContacts.length === 0) {
+                          showInfo('Please select contacts to add tags');
                           setShowAddTagTooltip(true);
                           setTimeout(() => setShowAddTagTooltip(false), 1500);
                         } else {
@@ -1639,7 +1629,7 @@ export default function ContactsPage() {
                     </button>
                     {showAddTagTooltip && (
                       <div className="absolute left-1/2 -translate-x-1/2 mt-2 px-3 py-1 bg-black text-white text-xs rounded shadow z-50 whitespace-nowrap">
-                        Please select contacts to add tags
+                        you must select contacts
                       </div>
                     )}
                   </span>
@@ -1647,6 +1637,7 @@ export default function ContactsPage() {
                     <button
                       onClick={() => {
                         if (selectedContacts.length === 0) {
+                          showInfo('Please select contacts to remove tags');
                           setShowRemoveTagTooltip(true);
                           setTimeout(() => setShowRemoveTagTooltip(false), 1500);
                         } else {
@@ -1659,7 +1650,7 @@ export default function ContactsPage() {
                     </button>
                     {showRemoveTagTooltip && (
                       <div className="absolute left-1/2 -translate-x-1/2 mt-2 px-3 py-1 bg-black text-white text-xs rounded shadow z-50 whitespace-nowrap">
-                        Please select contacts to remove tags
+                        you must select contacts
                       </div>
                     )}
                   </span>
@@ -2034,6 +2025,7 @@ export default function ContactsPage() {
                   isOpen={isAddTagsModalOpen}
                   onClose={() => setIsAddTagsModalOpen(false)}
                   selectedContacts={selectedContacts}
+                  onContactsUpdate={onAddTags}
                 />
               )}
               {isRemoveTagsModalOpen && (
@@ -2041,6 +2033,7 @@ export default function ContactsPage() {
                   isOpen={isRemoveTagsModalOpen}
                   onClose={() => setIsRemoveTagsModalOpen(false)}
                   selectedContacts={selectedContacts}
+                  onContactsUpdate={onRemoveTags}
                 />
               )}
               {isDeleteContactsModalOpen && (

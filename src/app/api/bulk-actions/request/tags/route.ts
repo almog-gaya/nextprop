@@ -1,27 +1,29 @@
 import { getAuthHeaders } from "@/lib/enhancedApi";
 import { refreshTokenIdBackend } from "@/utils/authUtils";
- 
+
 export enum ActionType {
   ADD_TAG = 'bulk-tag-add-v2',
   REMOVE_TAG = 'bulk-tag-remove-v2',
-} 
+}
 interface BulkActionRequest {
   actionType: ActionType;
+  actionName: string;
   ids: string[];
-  tags: string[]; 
+  tags: string[];
+  removeAllTags?: boolean;
 }
 
 export async function POST(request: Request) {
   const url = 'https://services.leadconnectorhq.com/bulk-actions/request';
   const tokenId = (await refreshTokenIdBackend()).id_token;
   const { locationId } = await getAuthHeaders();
-  const { actionType, ids, tags } = await request.json() as BulkActionRequest;
+  const { actionType, ids, tags, actionName, removeAllTags } = await request.json() as BulkActionRequest;
 
   // Validate required parameters
-  if (!locationId || !actionType || !ids || !tags) {
+  if (!locationId || !actionType || !ids || !tags || !actionName || ids.length === 0 || (tags.length === 0 && actionType === ActionType.ADD_TAG)) {
     return Response.json({
       error: 'Missing required parameters',
-      current: { locationId, actionType, ids, tags },
+      current: { locationId, actionType, ids, tags, actionName },
     }, { status: 400 });
   }
 
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
     }, { status: 400 });
   }
 
-  const payload = buildPayload(locationId, actionType, ids, tags);
+  const payload = buildPayload(locationId, actionName, actionType, ids, tags, removeAllTags);
   const headers = buildHeaders(tokenId);
 
   const response = await fetch(url, {
@@ -65,14 +67,16 @@ const buildHeaders = (tokenId: string) => ({
   'Version': '2021-04-15',
 });
 
-const buildPayload = (locationId: string, actionType: ActionType, contactIds: string[], tags: string[], documentSource?: string) => ({
-  title: actionType,
+const buildPayload = (locationId: string, title: string, actionType: ActionType, contactIds: string[], tags: string[], removeAllTags: boolean = false, documentSource?: string) => ({
+  title: title,
   locationId,
   documentIds: contactIds,
   opSpecs: {
     note: actionType,
     tags,
     opType: actionType,
+    /// If removeAllTags is true, then add otherwise skip adding this field.
+    ...(removeAllTags && { removeAllTags }),
   },
   bulkActionType: actionType,
   scheduleType: 'NOW',

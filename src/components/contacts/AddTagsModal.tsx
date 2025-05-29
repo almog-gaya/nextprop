@@ -1,40 +1,52 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { ActionType } from '@/app/api/bulk-actions/request/tags/route';
+import { showSuccess, showError } from '@/lib/toast';
+import { Contact } from '@/types';
 
-interface Contact {
-  id: string;
-  name?: string;
-  firstName?: string;
-  lastName?: string;
+interface Tag {
+  value: string;
+  label: string;
 }
 
 interface AddTagsModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedContacts: Contact[];
+  onContactsUpdate?: (updatedContacts: Contact[]) => void;
 }
 
-const availableTags = [
-  { value: 'accounting', label: 'accounting' },
-  { value: 'automation', label: 'automation' },
-  { value: 'autopilot sabrina tag', label: 'autopilot sabrina tag' },
-  { value: 'autopilot sms', label: 'autopilot sms' },
-  { value: 'autopilot whatsapp', label: 'autopilot whatsapp' },
-  { value: 'bookeeper', label: 'bookeeper' },
-  { value: 'business', label: 'business' },
-  { value: 'call', label: 'call' },
-  { value: 'client', label: 'client' },
-];
-
-export default function AddTagsModal({ isOpen, onClose, selectedContacts }: AddTagsModalProps) {
+export default function AddTagsModal({ isOpen, onClose, selectedContacts, onContactsUpdate }: AddTagsModalProps) {
   const [actionName, setActionName] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [touched, setTouched] = useState<{ action?: boolean; tags?: boolean }>({});
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
+  // Fetch available tags
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        setLoadingTags(true);
+        const response = await fetch('/api/tags');
+        if (!response.ok) throw new Error('Failed to fetch tags');
+        const data = await response.json();
+        const tags = data.tags.map((tag: any) => ({ value: tag.name, label: tag.name }));
+        setAvailableTags(tags);
+      } catch (err) {
+        console.error('Error fetching tags:', err);
+        setError('Failed to load tags. Please try again.'); 
+      } finally {
+        setLoadingTags(false);
+      }
+    }
+    fetchTags();
+  }, []);
   // Close dropdown on outside click
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -69,14 +81,53 @@ export default function AddTagsModal({ isOpen, onClose, selectedContacts }: AddT
     setSelectedTags(selectedTags.filter(t => t !== tag));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ action: true, tags: true });
     if (!actionName || selectedTags.length === 0) return;
-    // Handle add tags logic here
-    onClose();
+    try {
+       await addTagAPI(); 
+      
+      // Update contacts locally
+      if (onContactsUpdate) {
+        const updatedContacts = selectedContacts.map(contact => ({
+          ...contact,
+          tags: [...(contact.tags || []), ...selectedTags]
+        }));
+        onContactsUpdate(updatedContacts);
+      }
+      
+      setActionName('');
+      setSelectedTags([]);
+      setTouched({});
+      setDropdownOpen(false);
+      onClose();
+    } catch (error) {
+      console.error('Error adding tags:', error);
+      showError('Failed to add tags');
+    }
   };
 
+  const addTagAPI = async ()=> {
+    const payload = {
+      actionType: ActionType.ADD_TAG,
+      actionName,
+      ids: selectedContacts.map(c => c.id),
+      tags: selectedTags, 
+    };
+    const result = await fetch('/api/bulk-actions/request/tags', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await result.json();
+    if (!result.ok) {
+      throw new Error(data.message || 'Failed to add tags');
+    }
+    return data;
+  }
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
