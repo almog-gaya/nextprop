@@ -1705,11 +1705,11 @@ export default function ContactsPage() {
             <FaWhatsapp size={20} color="grey" />
           </button>
         </span> */}
-                  <span data-tooltip="tooltip" data-placement="top" title="Merge up to 10 Contacts">
+                  {/* <span data-tooltip="tooltip" data-placement="top" title="Merge up to 10 Contacts">
                     <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
                       <DocumentDuplicateIcon className="h-5 w-5 text-gray-700" />
                     </button>
-                  </span>
+                  </span> */}
                 </div>
                 {/* Existing search/filter/column row below */}
                 <div className="flex w-full max-w-3xl gap-3 items-center mt-4 mb-2">
