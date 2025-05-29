@@ -451,6 +451,7 @@ export async function deleteContact(contactId: string) {
   const refreshToken = cookieStore.get('ghl_refresh_token');
   const timestamp = cookieStore.get('ghl_token_timestamp');
   const locationId = cookieStore.get('ghl_location_id');
+  const userId = cookieStore.get('ghl_user_id');
 
   // Check if we have all required values
   if (!token?.value || !timestamp?.value) {
@@ -465,7 +466,8 @@ export async function deleteContact(contactId: string) {
           setAuthCookies(cookieStore, newTokens);
           return {
               token: newTokens.access_token,
-              locationId: locationId?.value
+              locationId: locationId?.value,
+              userId: userId?.value,
           };
       } catch (error) {
           console.error('Failed to refresh token:', error);
@@ -476,7 +478,8 @@ export async function deleteContact(contactId: string) {
   // Return existing values if no refresh needed or refresh failed
   return {
       token: token.value,
-      locationId: locationId?.value
+      locationId: locationId?.value,
+      userId: userId?.value,
   };
 };
 

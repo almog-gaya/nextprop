@@ -4,45 +4,25 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
-import { timezones } from '@/utils/timezones';
-import { ContactListSkeleton } from '@/components/SkeletonLoaders';
+import { useRouter } from 'next/navigation'; 
 import {
-  ChevronLeftIcon, ChevronRightIcon, AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, PhoneIcon, CheckCircleIcon, XCircleIcon, InformationCircleIcon, DocumentTextIcon, PencilIcon, TrashIcon, TagIcon, StarIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, DocumentDuplicateIcon, PlusIcon,
-  XMarkIcon
+   AdjustmentsHorizontalIcon, ChatBubbleLeftRightIcon, InformationCircleIcon, DocumentTextIcon, PencilIcon, TrashIcon, TagIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, PlusIcon,
+  
 } from '@heroicons/react/24/outline';
 import BulkAddToPipelineStage from '@/components/contacts/BulkAddToPipelineStage';
 import { Contact } from '@/types';
 import BulkUploadForm from '@/components/BulkUploadForm';
 import { useAuth } from '@/contexts/AuthContext';
-import { ConversationDisplay } from '@/types/messageThread';
 import { IconButton } from '@/components/ui/iconButton';
 import { Input } from '@/components/ui/input';
-import { CrossIcon, Search } from 'lucide-react';
-import {
-  FaPlus,
-  FaFilter,
-  FaRobot,
-  FaComment,
-  FaEnvelope,
-  FaPaperclip,
-  FaEye,
-  FaTrash,
-  FaStar,
-  FaUpload,
-  FaDownload,
-  FaTh,
-  FaWhatsapp,
-  FaCopy,
-  FaIcons
-} from 'react-icons/fa';
+import { Search } from 'lucide-react';
+
 import PipelineChangeModal from '@/components/contacts/PipelineChangeModal';
 import AddTagsModal from '@/components/contacts/AddTagsModal';
 import RemoveTagsModal from '@/components/contacts/RemoveTagsModal';
 import DeleteContactsModal from '@/components/contacts/DeleteContactsModal';
 import ExportContactsModal from '@/components/contacts/ExportContactsModal';
 import ContactTasksTab from '@/components/contacts/ContactTasksTab';
-import { CloseButton } from '@headlessui/react';
 import ManageSmartListsTab from '@/components/contacts/ManageSmartListsTab';
 import ContactModal from '@/components/contacts/ContactModal';
 import PhoneLookupModal from '@/components/contacts/PhoneLookupModal';
@@ -77,6 +57,14 @@ interface TableColumn {
   visible: boolean;
 }
 
+interface SearchFilter {"page":number,"pageLimit":number,"sort":any[],"filters": any[]}
+
+interface SmartList {
+  id: string;
+  listName: string;
+  filterSpecs: any;
+}
+
 export default function ContactsPage() {
   const router = useRouter();
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -102,7 +90,6 @@ export default function ContactsPage() {
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [selectedMessageType, setSelectedMessageType] = useState<'sms' | 'email' | 'voicemail' | null>(null);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [isPipelineChangeModalOpen, setIsPipelineChangeModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isAddTagsModalOpen, setIsAddTagsModalOpen] = useState(false);
@@ -111,12 +98,11 @@ export default function ContactsPage() {
   const [showRemoveTagTooltip, setShowRemoveTagTooltip] = useState(false);
   const [isDeleteContactsModalOpen, setIsDeleteContactsModalOpen] = useState(false);
   const [showDeleteTooltip, setShowDeleteTooltip] = useState(false);
-  const [isExportContactsModalOpen, setIsExportContactsModalOpen] = useState(false);
-  // State for applied filters
-  const [appliedFilters, setAppliedFilters] = useState<any[]>([]);
-  const [showFilterSummary, setShowFilterSummary] = useState(false);
-  const [isImagePopupOpen, setIsImagePopupOpen] = useState(false);
+  const [isExportContactsModalOpen, setIsExportContactsModalOpen] = useState(false); 
   const [activeMainTab, setActiveMainTab] = useState<'smartlists' | 'tasks' | 'manage-smartlists'>('smartlists');
+
+  const [currentSelectedList, setCurrentSelectedList] = useState<string>('all');
+  const [smartLists, setSmartLists] =  useState<SmartList[]>([]);
 
   const [columns, setColumns] = useState<TableColumn[]>([
     { id: 'name', label: 'Name', key: 'name', visible: true },
@@ -201,7 +187,6 @@ export default function ContactsPage() {
   const [smsText, setSmsText] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
-  const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isBulkInProcess, setIsBulkInProcess] = useState(false);
   useEffect(() => {
     if (hasPhoneNumbers) {
@@ -311,6 +296,10 @@ export default function ContactsPage() {
     }
   };
 
+  const buildDefaultSearchFilter = ():SearchFilter => { 
+    return {"page":1,"pageLimit": contactsPerPage,"sort":[],"filters":[{"group":"OR","filters":[]}]};
+  }
+
   // Load columns from localStorage
   useEffect(() => {
     const savedColumns = localStorage.getItem('contactColumns');
@@ -360,7 +349,7 @@ export default function ContactsPage() {
   useEffect(() => {
     const validateAndFetch = async () => {
       try {
-        await Promise.all([fetchContacts(), fetchCustomFields()]);
+        await Promise.all([fetchContacts(), fetchCustomFields(), fetchSmartLists()]);
       } catch (error) {
         console.error('Initial fetch failed:', error);
         router.push('/auth/login?error=validation_failed');
@@ -373,17 +362,26 @@ export default function ContactsPage() {
     fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
 
-  const fetchContacts = async () => {
+  const fetchContacts = async (newFilter?: any) => {
     try {
+    setError(null);
+      let payload  = {
+        ...newFilter,
+        page: currentPage,
+        pageLimit: contactsPerPage, 
+      }
+      if(!newFilter || newFilter.filters.length === 0) {
+        newFilter = buildDefaultSearchFilter();
+        payload  = {
+          ...newFilter,
+          page: currentPage,
+          pageLimit: contactsPerPage, 
+        }
+        console.log(`Setting default!!!`);
+      }
       console.log(`Fetching contacts for page ${currentPage}... limit: ${contactsPerPage}`);
-      setIsLoading(true);
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: contactsPerPage.toString(),
-        ...(activeTagFilter && { tag: activeTagFilter }),
-        ...(currentPage > 1 && lastContactId && { startAfter: lastContactId }), // Pass last contact ID
-      });
-      const response = await axios.get(`/api/contacts?${params.toString()}`);
+      setIsLoading(true); 
+      const response = await axios.post(`/api/contacts/dynamic-search`, payload);
       const processedContacts = response.data.contacts.map((contact: Contact) => ({
         ...contact,
         name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
@@ -406,6 +404,38 @@ export default function ContactsPage() {
     fetchContacts();
   }, [currentPage, contactsPerPage, activeTagFilter]);
 
+  const handleSelectSmartListSelection = (newListString: string) => {
+    console.log('Selecting list:', newListString);
+    if (newListString === "All" || newListString === "all") {
+      fetchContacts();
+    } else {
+      const selectedList = smartLists.find(list => list.id === newListString);
+      if (selectedList) {
+        fetchContacts(selectedList.filterSpecs);
+      }
+    }
+    setCurrentSelectedList(newListString);
+    console.log('Current selected list after update:', newListString);
+  };
+
+  const fetchSmartLists = async () => {
+    try {  
+      setError(null);
+      const result = await axios.get(`/api/contacts/smartlist`);
+      const smartLists = result.data.smartLists.map((smartList: SmartList) => ({
+        id: smartList.id,
+        listName: smartList.listName,
+        filterSpecs: smartList.filterSpecs
+      }));
+  
+      setSmartLists(smartLists);
+      return smartLists;
+    } catch (err) {
+      console.error('Error fetching smart lists:', err);
+      setSmartLists([]);
+      return [];
+    }
+  };
 
   const fetchCustomFields = async () => {
     try {
@@ -1312,20 +1342,24 @@ export default function ContactsPage() {
     setSelectedContacts([]);
   };
 
+  
   const handleFilterSuccess = async (payload: any) => {
     try {
-      // Make API call with filters
-      const response = await axios.post('/api/contacts/dynamic-search',  payload);
 
-      // Update contacts with filtered results
-      const processedContacts = response.data.contacts.map((contact: Contact) => ({
-        ...contact,
-        name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
-      }));
+      setCurrentPage(1);
+      await fetchContacts(payload);
+      // // Make API call with filters
+      // const response = await axios.post('/api/contacts/dynamic-search',  payload);
+
+      // // Update contacts with filtered results
+      // const processedContacts = response.data.contacts.map((contact: Contact) => ({
+      //   ...contact,
+      //   name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+      // }));
       
-      setContacts(processedContacts);
-      setTotalContacts(response.data.total);
-      setTotalPages(Math.ceil(response.data.total / contactsPerPage));
+      // setContacts(processedContacts);
+      // setTotalContacts(response.data.total);
+      // setTotalPages(Math.ceil(response.data.total / contactsPerPage));
       
     } catch (error) {
       console.error('Error applying filters:', error);
@@ -1353,8 +1387,8 @@ export default function ContactsPage() {
             Tasks
           </button>
           <button
-             className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'manage-smartlists' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
-             onClick={() => setActiveMainTab('manage-smartlists')}
+            className={`font-medium pb-2 border-b-2 focus:outline-none ${activeMainTab === 'manage-smartlists' ? 'text-blue-600 border-blue-500' : 'text-gray-600 border-transparent'}`}
+            onClick={() => setActiveMainTab('manage-smartlists')}
           >
             Manage Smart Lists
           </button>
@@ -1363,13 +1397,36 @@ export default function ContactsPage() {
 
         {!isBulkUploadModalOpen && (
           activeMainTab === 'tasks' ? <ContactTasksTab /> :
-          activeMainTab === 'manage-smartlists' ? <ManageSmartListsTab /> : // Render new component here
+          activeMainTab === 'manage-smartlists' ? <ManageSmartListsTab /> :
             <>
               <div className="dashboard-card h-[calc(150vh-2rem)] flex flex-col">
-                <div className="flex justify-between items-center">
-                  <h4 className="dashboard-card-title">All</h4>
+                <div className="flex justify-between items-center pb-4">
+                  <div className="flex items-center space-x-4">
+                    <button 
+                      className={`text-lg font-medium cursor-pointer transition-colors px-2 py-1 rounded ${
+                        currentSelectedList === 'all' 
+                          ? 'text-blue-600 font-semibold bg-blue-50' 
+                          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                      }`}
+                      onClick={() => handleSelectSmartListSelection('all')}
+                    >
+                      All
+                    </button>
+                    {smartLists && smartLists.map((list) => (
+                      <button
+                        key={list.id}
+                        className={`text-lg font-medium cursor-pointer transition-colors px-2 py-1 rounded ${
+                          currentSelectedList === list.id 
+                            ? 'text-blue-600 font-semibold bg-blue-50' 
+                            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                        }`}
+                        onClick={() => handleSelectSmartListSelection(list.id)}
+                      >
+                        {list.listName}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex space-x-3">
-                    {/* Remove ColumnManager from this row */}
                     <button
                       onClick={() => setIsVerifyModalOpen(true)}
                       className="px-3 py-2 bg-blue-500 text-white rounded-md text-sm font-medium hover:bg-blue-600 flex items-center"
@@ -1384,9 +1441,6 @@ export default function ContactsPage() {
                       <DocumentTextIcon className="h-4 w-4 mr-2" />
                       Bulk Upload
                     </button>
-                    {/* <button onClick={() => setIsAddModalOpen(true)} className="btn-primary">
-            Add Contact
-          </button> */}
                   </div>
                 </div>
                 {/* Icon action row above the search/filter/column row */}

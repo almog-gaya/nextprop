@@ -10,13 +10,20 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    
+    body.locationId = locationId;
 
     const result = await searchDynamically(body);
     return NextResponse.json(result);
 }
 
 const searchDynamically = async (payload: any) => {
-    try {
+    try { 
+        payload.page = parseInt(payload.page) || 1;
+        payload.pageLimit = parseInt(payload.pageLimit) || 10;
+
+        console.log(`Request: ${JSON.stringify(payload)}`);
+        delete payload.limit; 
         const tokenId = (await refreshTokenIdBackend()).id_token;
         const URL = `https://backend.leadconnectorhq.com/contacts/search/2`;
         const headers = buildHeaders(tokenId);
@@ -27,8 +34,8 @@ const searchDynamically = async (payload: any) => {
         });
 
         if (!response.ok) {
-            console.error('Failed to fetch contacts:', response.statusText);
-            return { error: 'Failed to fetch contacts' };
+            console.error('Failed to fetch dynamic contacts:', response.statusText);
+            return { error: 'Failed to fetch dynamic contacts' };
         }
         const data = await response.json();
         return data;
