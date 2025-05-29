@@ -175,31 +175,21 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onSuccess, o
       return;
     }
 
-    const filterSpec = {
-      filters: [
-        {
-          group: "OR",
-          filters: filterGroups.map((group) => ({
-            group: group.operator,
-            filters: group.filters,
-          })),
-        },
-      ],
-    };
+    const filterSpec = filterGroups.map((group) => ({
+      group: group.operator,
+      filters: group.filters.map((filter) => ({
+        filterName: filter.filterName,
+        filterName_lc: filter.filterName_lc,
+        selectedOption: filter.selectedOption,
+      })),
+    }));
 
     try {
-      const result = await onSaveSmartList({
+      await onSaveSmartList({
         listName,
         filterSpec,
       });
-      
-      // Check if we got a valid response with an id
-      if (result && result.id) {
-        setIsImagePopupOpen(false);
-        onClose(); // Close the filter modal after successful save
-      } else {
-        throw new Error('Invalid response from server');
-      }
+      setIsImagePopupOpen(false);
     } catch (error) {
       console.error("Failed to save smart list:", error);
       alert("Failed to save smart list. Please try again.");
@@ -587,7 +577,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onSuccess, o
           <div className="fixed inset-0 bg-black/30" onClick={() => setIsImagePopupOpen(false)}></div>
           <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-lg shadow-xl p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Save Smart List</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Edit Smart List</h3>
               <button onClick={() => setIsImagePopupOpen(false)} className="text-gray-400 hover:text-gray-500">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -604,12 +594,6 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onSuccess, o
                   id="smartListName"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter name"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const input = e.target as HTMLInputElement;
-                      handleSaveSmartList(input.value);
-                    }
-                  }}
                 />
               </div>
             </div>
@@ -620,15 +604,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ isOpen, onClose, onSuccess, o
               >
                 Cancel
               </button>
-              <button 
-                onClick={() => {
-                  const input = document.getElementById('smartListName') as HTMLInputElement;
-                  handleSaveSmartList(input.value);
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-              >
-                Save
-              </button>
+              <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Save</button>
             </div>
           </div>
         </div>

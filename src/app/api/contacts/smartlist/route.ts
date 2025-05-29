@@ -90,6 +90,38 @@ export async function POST(request: Request) {
 }
 
 
+export async function PUT(request: Request) {
+    const body = await request.json();
+    try {
+        const { locationId, userId } = await getAuthHeaders(); 
+        body.locationId = locationId;
+        body.userId = userId;
+        
+        const tokenId = (await refreshTokenIdBackend()).id_token;
+        const headers = buildHeaders(tokenId);
+        const url = `https://backend.leadconnectorhq.com/contacts/smartlist/${body.id}`;
+        delete body.id;  
+        delete body.userId;
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(body),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error('Update smart list error:', data);
+            return NextResponse.json({ error: 'Failed to update smart list' }, { status: 500 });
+        }
+        return NextResponse.json(data);
+    } catch (error: any) {
+        console.error('Error in PUT request:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
+
+
 
 const __buildCreateSmartListPayload = (locationId: string, body: any) => {
     const listName = body.listName || 'New List';
