@@ -28,17 +28,25 @@ export async function GET() {
   const accessToken = cookieStore.get('ghl_access_token')?.value;
   const refreshToken = cookieStore.get('ghl_refresh_token')?.value;
   const tokenTimestamp = cookieStore.get('ghl_token_timestamp')?.value;
-  const locationId = cookieStore.get('ghl_location_id');
+  const locationId = cookieStore.get('ghl_location_id')?.value;
+  const userId = cookieStore.get('ghl_user_id')?.value;
+  const cookieOptions = {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 60 * 60 * 12,
+  };
 
   if (!accessToken) {
     log('No access token found');
-    return NextResponse.json({ authenticated: false, user: null, locationData: null });
+    return NextResponse.json({ authenticated: false, user: null, locationData: null, userId: null });
   }
 
   if (!tokenTimestamp || isTokenExpired(tokenTimestamp)) {
     if (!refreshToken) {
       log('Token expired/missing timestamp and no refresh token');
-      return NextResponse.json({ authenticated: false, user: null, locationData: null });
+      return NextResponse.json({ authenticated: false, user: null, locationData: null, userId: null });
     }
 
     try {
@@ -47,22 +55,15 @@ export async function GET() {
       log('Token refresh successful');
       setAuthCookies(cookieStore, newTokens);
 
-      const cookieOptions = {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const,
-        path: '/',
-        maxAge: 60 * 60 * 12,
-      };
-
       const userData = await getUserData();
       const response = NextResponse.json({
         authenticated: true,
-        user: userData
+        user: userData,
       });
 
       response.cookies.set('ghl_access_token', newTokens.access_token, cookieOptions);
       response.cookies.set('ghl_token_timestamp', Date.now().toString(), cookieOptions);
+      response.cookies.set('ghl_user_id', userData.id || userId, cookieOptions); // Store userId
       if (newTokens.refresh_token) {
         response.cookies.set('ghl_refresh_token', newTokens.refresh_token, cookieOptions);
       }
@@ -70,22 +71,27 @@ export async function GET() {
       return response;
     } catch (error) {
       logError(`Token refresh failed: ${error instanceof Error ? error.message : String(error)}`);
-      return NextResponse.json({ authenticated: false, user: null, locationData: null });
+      return NextResponse.json({ authenticated: false, user: null, locationData: null, userId: null });
     }
   }
 
-  const userData = await getUserData();
-  return NextResponse.json({
+  const userData = await getUserData(); 
+  const response = NextResponse.json({
     authenticated: true,
     user: userData,
-    locationData: { locationId: locationId?.value },
+    locationData: { locationId: locationId },
   });
-}
+  if (!userId) {
+    response.cookies.set('ghl_user_id', userData.id || userId, cookieOptions); // Store userId
+  }
 
+
+  return response;
+}
 
 const getUserData = async () => {
   const { locationId } = await getAuthHeaders();
-  const userData = await getUserDataAPI(); 
+  const userData = await getUserDataAPI();
   let numbers = [];
   try {
     numbers = await loadPhoneNumbers(locationId!);
@@ -130,4 +136,4 @@ const loadPhoneNumbers = async (locationId: string) => {
 
   return responseBody.numbers;
 }
- 
+

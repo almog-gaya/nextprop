@@ -1,45 +1,34 @@
-import { getAuthHeaders } from "@/lib/enhancedApi";
-import { refreshTokenIdBackend } from "@/utils/authUtils";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'; 
+import { refreshTokenIdBackend } from '@/utils/authUtils';
 
-export async function POST(request: Request) {
-    const { locationId } = await getAuthHeaders();
-    if (!locationId) {
-        console.error('Failed to get location ID');
-        return NextResponse.json({ error: 'Location ID not found' }, { status: 400 });
-    }
+export async function POST(request: Request) { 
 
-    const body = await request.json();
-    
-    body.locationId = locationId;
+    try {
+        const body = await request.json();
 
-    const result = await searchDynamically(body);
-    return NextResponse.json(result);
-}
-
-const searchDynamically = async (payload: any) => {
-    try { 
-        payload.page = parseInt(payload.page) || 1;
-        payload.pageLimit = parseInt(payload.pageLimit) || 10;
-
-        console.log(`Request: ${JSON.stringify(payload)}`);
-        delete payload.limit; 
         const tokenId = (await refreshTokenIdBackend()).id_token;
-        const URL = `https://backend.leadconnectorhq.com/contacts/search/2`;
         const headers = buildHeaders(tokenId);
-        const response = await fetch(URL, {
-            method: "POST",
+        const url = `https://api.leadconnectorhq.com/smartlist/delete`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
             headers,
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+                smartlist_id: body.id,
+            }),
         });
 
         if (!response.ok) {
-            console.error('Failed to fetch dynamic contacts:', response.statusText);
-            return { error: 'Failed to fetch dynamic contacts' };
+            const errorData = await response.json();
+            console.error('Delete smart list error:', errorData);
+            return NextResponse.json({ error: 'Failed to delete smart list' }, { status: 500 });
         }
-        const data = await response.json();
-        return data;
-    } catch (e) { }
+        
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        console.error('Error in DELETE request:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 }
 
 const buildHeaders = (tokenId: string) => {
