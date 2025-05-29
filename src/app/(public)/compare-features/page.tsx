@@ -41,7 +41,7 @@ export default function CompareFeaturesPage() {
               <button
                 className="text-sm font-semibold"
                 style={{
-                 backgroundColor: '#FFFFFF',
+                  backgroundColor: '#FFFFFF',
                   color: 'black',
                   padding: '7px 21px',
                   borderRadius: '10px',
@@ -54,7 +54,7 @@ export default function CompareFeaturesPage() {
               <button
                 className="text-sm font-semibold"
                 style={{
-                   backgroundColor: '#9C03FF',
+                  backgroundColor: '#9C03FF',
                   color: 'white',
                   padding: '7px 21px',
                   borderRadius: '10px',
@@ -82,7 +82,7 @@ export default function CompareFeaturesPage() {
 
 
         {/* Trial and Features and Plans Container */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-center ">
+        <div className="pt-8 flex ">
           <div className="text-[16.73px]  text-[#8a2be2]  border-r border-white/30 font-[600px] space-y-2"
             style={{
               width: '444px',
@@ -90,8 +90,8 @@ export default function CompareFeaturesPage() {
               justifyContent: 'center',
               alignItems: 'center',
               textAlign: 'start',
-              paddingTop:'22px',
-              paddingBottom:'22px'
+              paddingTop: '22px',
+              paddingBottom: '22px'
 
             }}>
             <p>30 DAY FREE TRIAL</p>
@@ -136,10 +136,10 @@ export default function CompareFeaturesPage() {
                   </div>
                 )}
 
-                <div className="text-3xl font-bold mb-4">{plan.price}</div>
+                <div style={{ fontSize: '33px', fontWeight: 600, }}>{plan.price}</div>
                 <Button
-                  className={`w-full rounded-xl py-2 mb-2 ${plan.btnColor}`}
-                  style={{fontSize:'12px',fontWeight:600,width:'231px', height:'39px'}}
+                  className={` rounded-xl  mb-2 ${plan.btnColor}`}
+                  style={{ fontSize: '12px', fontWeight: 600, width: '231px', height: '39px' }}
                 >
                   Start Your 30 Day Free Trial
                 </Button>
@@ -149,6 +149,59 @@ export default function CompareFeaturesPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Pricing Table */}
+        <div className="w-full mx-auto mt-8 ">
+          <table className="  divide-y divide-gray-200">
+
+            <tbody className=" divide-y divide-gray-200">
+              {/* Users Row */}
+              <tr>
+                <td className="text-sm font-medium text-gray-900 border"
+                  style={{
+                    width: '444px',
+                    height: '50px',
+                    textAlign: 'start',
+                  }}>Users</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center border"
+                  style={{
+                    width: '291px',
+                    height: '50px',
+                  }}>1</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center border" style={{
+                  width: '291px',
+                  height: '50px',
+                }}>5</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center border" style={{
+                  width: '291px',
+                  height: '50px',
+                }}>15</td>
+              </tr>
+              {/* Phone Numbers Row */}
+              <tr>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border"
+                  style={{
+                    width: '444px',
+                    height: '50px',
+                    textAlign: 'start',
+                  }}>Phone Numbers</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center border" style={{
+                  width: '291px',
+                  height: '50px',
+                }}>1</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center border" style={{
+                  width: '291px',
+                  height: '50px',
+                }}>5</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center border" style={{
+                  width: '291px',
+                  height: '50px',
+                }}>15</td>
+              </tr>
+              {/* Table rows will be added here based on subsequent images */}
+            </tbody>
+          </table>
         </div>
       </div>
     </div >

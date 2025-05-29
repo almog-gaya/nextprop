@@ -163,7 +163,7 @@ function OnboardingContent() {
   };
 
   const handleCompareFeaturesClick = () => {
-    router.push('/compare-features');
+    // router.push('/compare-features');
   };
 
   const handlePlansAndPricingClick = () => {
