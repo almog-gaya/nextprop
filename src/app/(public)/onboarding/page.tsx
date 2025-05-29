@@ -7,6 +7,8 @@ import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // Modal Component
 function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
@@ -116,6 +118,8 @@ function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
 
 // Component to handle search params
 function OnboardingContent() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
   const isSuccess = searchParams.get('success') === 'true';
@@ -124,62 +128,47 @@ function OnboardingContent() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSelectPlan = (planType: 'basic' | 'pro' | 'enterprise') => {
-    setSelectedPlan(planType);
-    setIsModalOpen(true);
+  const handleSelectPlan = async (planId: string) => {
+    setIsLoading(true);
+    setSelectedPlan(planId);
+
+    try {
+      // Simulate API call to create a checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ planId, userId: user?.id }),
+      });
+
+      if (response.ok) {
+        const { url } = await response.json();
+        // Redirect to Stripe checkout
+        window.location.href = url;
+      } else {
+        const { error } = await response.json();
+        console.error('Failed to create checkout session:', error);
+        // Handle error (e.g., show a toast message)
+        alert(error || 'Failed to initiate checkout. Please try again.');
+      }
+    } catch (error) {
+      console.error('An error occurred during checkout initiation:', error);
+      // Handle network or other errors
+      alert('An unexpected error occurred. Please try again later.');
+    } finally {
+      setIsLoading(false);
+      setSelectedPlan(null); // Reset selected plan after attempt
+    }
   };
 
-  const handleModalSubmit = async (data: { name: string, businessName: string, phone: string, email: string, plan: string }) => {
-    setIsLoading(true);
-    const ghlResponse = await fetch('/api/auth/ghl/signup/location', {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        businessName: data.businessName,
-        firstName: data.name,
-        phone: data.phone,
-        email: data.email,
-      }),
-    });
-    const ghlResult = await ghlResponse.json();
-    const locationId = ghlResult.locationId;
-    const response = await fetch("/api/stripe/create-checkout-session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: data.email,
-        isOnboarding: true,
-        data: {
-          plan: data.plan,
-          name: data.name,
-          phone: data.phone,
-          email: data.email,
-          locationId: locationId,
-          businessName: data.businessName,
-        },
-      }),
-    });
+  const handleCompareFeaturesClick = () => {
+    // router.push('/compare-features');
+  };
 
-    const result = await response.json();
-
-    if (result.url) {
-      // Store session in Firestore
-      const customerRef = doc(db, "customers", locationId);
-
-      await setDoc(
-        customerRef,
-        {
-          ...result,
-        },
-        { merge: true }
-      );
-      window.location.href = result.url;
-    }
-    setIsLoading(false);
+  const handlePlansAndPricingClick = () => {
+    // Stay on the current page, or scroll to the pricing section if needed
+    // For now, it just stays on the page.
   };
 
   if (isSuccess) {
@@ -289,124 +278,184 @@ function OnboardingContent() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#7c3aed] overflow-x-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#7c3aed] overflow-x-hidden" style={{ backgroundImage: 'linear-gradient(90deg, #E6C2FF 0%, #B6BCFF 100%)' }}>
       {/* Main content */}
       <main className="w-full overflow-x-hidden">
         <div className="container mx-auto px-4 py-10 transform origin-top">
           <div className="text-center mx-auto">
-            <h1 className="text-6xl md:text-8xl font-extrabold leading-none text-white mb-6">Pricing Plans</h1>
-            <p className="text-lg md:text-2xl">
+            <p style={{ fontSize: '54px', fontWeight: 900, color: 'black' }}>Pricing Plans</p>
+            <p style={{ fontSize: '18px', fontWeight: 500, color: '#59595C' }}>
               Nextprop handles it all—no extra tools required.
               <br />
               All plans include Live Zoom, Live Chat, Phone & SMS support.
             </p>
+            {/* Added buttons container */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-4">
+              {/* Button group */}
+              <div className="flex items-center gap-4" style={{ padding: '10px' }}>
+                <button
+                  className="text-sm font-semibold"
+                  style={{
+                    backgroundColor: '#9C03FF',
+                    color: 'white',
+                    padding: '7px 21px',
+                    borderRadius: '10px',
+                    border: '1px solid #D1D1D1',
+                  }}
+                  onClick={handlePlansAndPricingClick}
+                >
+                  Plans & Pricing
+                </button>
+                <button
+                  className="text-sm font-semibold"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    color: 'black',
+                    padding: '7px 21px',
+                    borderRadius: '10px',
+                    border: '1px solid #D1D1D1',
+                  }}
+                    onClick={handleCompareFeaturesClick}
+                >
+                  Compare Features
+                </button>
+              </div>
+        
+            </div>
           </div>
 
-          <div className="mt-12 flex flex-col lg:flex-row gap-10 lg:items-start">
+          {/* Switch group placed above pricing cards and aligned right */}
+          <div className="w-full flex justify-center lg:justify-end mt-6 px-4 lg:px-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold" style={{ color: 'black' }}>Save up to 29%</span>
+              <span style={{ color: '#9C03FF' }}>Yearly</span>
+              {/* Basic switch placeholder */}
+              <div className="w-10 h-6 bg-purple-600 rounded-full flex items-center p-1 cursor-pointer">
+                <div className="w-4 h-4 bg-white rounded-full transform translate-x-0"></div>
+              </div>
+              <span style={{ color: '#59595C' }}>Monthly</span>
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-col lg:flex-row gap-10 lg:items-start lg:gap-16">
             {/* ---------------- Included in All Plans ---------------- */}
-            <div className="-mt-8 w-full lg:w-72 rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF] p-6 text-white shadow-xl">
-              <h3 className="text-2xl font-bold text-center mb-6">Included In All Plans</h3>
+            <div className="-mt-15 w-full lg:w-72 rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF]  text-white shadow-xl" style={{ backgroundImage: 'linear-gradient(89.63deg, #3045FF 0.28%, #9A04FF 99.64%)', width: '285.5px', borderRadius: '15px', padding: '24px', gap: '8px' }}>
+              <p className="text-2xl font-bold text-start mb-2" style={{ fontSize: '20.8px', lineHeight: '30px', color: 'white' }}>Included In All Plans</p>
               <ul className="space-y-4">
                 {commonFeatures.map((feature) => (
                   <li key={feature} className="flex items-center justify-between text-sm">
-                    <span className="flex items-center">
-                      <CheckIcon className="w-5 h-5 mr-3" />
+                    <span className="flex items-center" style={{ fontWeight: 500, fontSize: '14.61px', lineHeight: '16px', color: 'white' }}>
+                      <CheckIcon className="w-[14px] h-[14px] mr-3" />
                       {feature}
                     </span>
-                    <InfoIcon className="w-4 h-4 opacity-70" />
+                    <InfoIcon className="w-[17px] h-[17px] opacity-70" />
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* ---------------- Pricing Cards ---------------- */}
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className=" flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {/* Basic */}
               <div
-                className="relative rounded-3xl bg-white p-6 shadow-lg flex flex-col hover:shadow-xl transition"
+                className="relative rounded-3xl bg-white p-6 shadow-lg flex flex-col hover:shadow-xl transition hover:scale-105 hover:z-10"
                 onMouseEnter={() => setHoveredCard('basic')}
                 onMouseLeave={() => setHoveredCard(null)}
+                style={{ width: '282.95px', height: '336.96px', borderRadius: '12.17px', }}
               >
-                <h3 className="text-purple-700 font-semibold text-lg mb-2">Basic</h3>
+                <h3 className="text-purple-700 font-semibold text-lg mb-2" style={{ fontWeight: 700, fontSize: '15.56px', lineHeight: '15.21px', color: '#9C03FF' }}>Basic</h3>
                 <div className="flex items-end mb-4">
-                  <span className="text-4xl font-extrabold text-gray-900">$149</span>
-                  <span className="text-gray-700 ml-1">/mo</span>
+                  <span className="text-4xl font-extrabold text-gray-900" style={{ fontWeight: 700, fontSize: '23.94px', lineHeight: '31.19px' }}>$149</span>
+                  <span className="text-black ml-1">/mo</span>
                 </div>
-                <p className="text-gray-600 mb-4">Perfect for solopreneurs</p>
+                <p className="text-gray-600 mb-4" style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>Perfect for solopreneurs</p>
                 <ul className="text-gray-600 space-y-2 mb-8">
-                  <li>1 AI Agent</li>
-                  <li>1 Pipeline Configuration</li>
-                  <li>1 Phone Number</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 AI Agent</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 Pipeline Configuration</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 Phone Number</li>
                 </ul>
                 <div className="mt-auto">
                   <Button
                     onClick={() => handleSelectPlan('basic')}
                     disabled={isLoading || selectedPlan === 'basic'}
                     className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3 text-sm"
+                    style={{ backgroundColor: '#3244FF', fontWeight: 700, fontSize: '10.7px', lineHeight: '100%', textAlign: 'center' }}
                   >
                     {isLoading && selectedPlan === 'basic' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
                   </Button>
-                  <p className="text-xs text-center text-gray-500 mt-3">Fast and Free Setup. Cancel Anytime.</p>
+                  <p className="text-xs text-center text-gray-500 mt-3" style={{ fontWeight: 400, fontSize: '10.65px', lineHeight: '100%', textAlign: 'center' }}>Fast and Free Setup. Cancel Anytime.</p>
                 </div>
               </div>
 
               {/* Pro */}
               <div
-                className="relative rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF] p-6 shadow-lg flex flex-col text-white hover:shadow-xl transition"
+                className="relative rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF] p-6 shadow-lg flex flex-col text-white hover:shadow-xl transition hover:scale-105 hover:z-10"
                 onMouseEnter={() => setHoveredCard('pro')}
                 onMouseLeave={() => setHoveredCard(null)}
+                style={{ backgroundImage: 'linear-gradient(89.63deg, #3045FF 0.28%, #9A04FF 99.64%)', width: '282.95px', height: '336.96px', borderRadius: '12.17px' }}
               >
-                <span className="absolute top-4 right-4 bg-white/90 text-gray-700 text-xs font-medium rounded-full px-3 py-1">Most Popular</span>
-                <h3 className="font-semibold text-lg mb-2">Pro</h3>
+                <span className="absolute top-4 border ml-[35px] border-[#D1D1D1] bg-transparent text-white text-[10px] font-[600px] rounded-full px-3 py-1">Most Popular</span>
+                <h3 className="font-semibold text-lg mb-2" style={{ fontWeight: 700, fontSize: '15.56px', lineHeight: '15.21px', color: '#ffffff' }}>Pro</h3>
                 <div className="flex items-end mb-4">
-                  <span className="text-4xl font-extrabold">$299</span>
+                  <span className="text-4xl font-extrabold" style={{ fontWeight: 700, fontSize: '23.94px', lineHeight: '31.19px' }}>$299</span>
                   <span className="ml-1">/mo</span>
                 </div>
-                <p className="mb-4">For teams of 2-5 members</p>
+                <p className="mb-4" style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>For teams of 2-5 members</p>
                 <ul className="space-y-2 mb-8">
-                  <li>1 AI Agent</li>
-                  <li>1 Pipeline Configuration</li>
-                  <li>1 Phone Number</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 AI Agent</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 Pipeline Configuration</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 Phone Number</li>
                 </ul>
                 <div className="mt-auto">
                   <Button
                     onClick={() => handleSelectPlan('pro')}
                     disabled={isLoading || selectedPlan === 'pro'}
                     className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 text-sm"
+                    style={{ backgroundColor: '#FF3B2A', fontWeight: 700, fontSize: '10.7px', lineHeight: '100%', textAlign: 'center' }}
                   >
                     {isLoading && selectedPlan === 'pro' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
                   </Button>
-                  <p className="text-xs text-center text-white/90 mt-3">Fast and Free Setup. Cancel Anytime.</p>
+                  <p className="text-xs text-center text-white/90 mt-3" style={{ fontWeight: 400, fontSize: '10.65px', lineHeight: '100%', textAlign: 'center' }}>Fast and Free Setup. Cancel Anytime.</p>
                 </div>
               </div>
 
               {/* Enterprise */}
               <div
-                className="relative rounded-3xl bg-white p-6 shadow-lg flex flex-col hover:shadow-xl transition"
+                className="relative rounded-3xl bg-white p-6 shadow-lg flex flex-col hover:shadow-xl transition hover:scale-105 hover:z-10"
                 onMouseEnter={() => setHoveredCard('enterprise')}
                 onMouseLeave={() => setHoveredCard(null)}
+                style={{ width: '282.95px', height: '336.96px', borderRadius: '12.17px', }}
               >
-                <span className="absolute top-4 right-4 bg-gray-200 text-gray-700 text-xs font-medium rounded-full px-3 py-1">Most Value</span>
-                <h3 className="text-purple-700 font-semibold text-lg mb-2">Enterprise</h3>
+                <span
+                  className="absolute top-4.5 ml-[85px] bg-[#D1D1D1] rounded-full text-black text-[10px] font-[600] px-3 py-1"
+                  style={{
+                    border: '2px solid #D1D1D1',
+
+                  }}
+                >
+                  Most Value
+                </span>
+                <h3 className="text-purple-700 font-semibold text-lg mb-2" style={{ fontWeight: 700, fontSize: '15.56px', lineHeight: '15.21px', color: '#9C03FF' }}>Enterprise</h3>
                 <div className="flex items-end mb-4">
-                  <span className="text-4xl font-extrabold text-gray-900">$599</span>
-                  <span className="text-gray-700 ml-1">/mo</span>
+                  <span className="text-4xl font-extrabold text-gray-900" style={{ fontWeight: 700, fontSize: '23.94px', lineHeight: '31.19px' }}>$599</span>
+                  <span className="text-black-700 ml-1">/mo</span>
                 </div>
-                <p className="text-gray-600 mb-4">For larger teams of 5+ members</p>
+                <p className="text-gray-600 mb-4" style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>For larger teams of 5+ members</p>
                 <ul className="text-gray-600 space-y-2 mb-8">
-                  <li>1 AI Agent</li>
-                  <li>1 Pipeline Configuration</li>
-                  <li>1 Phone Number</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 AI Agent</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 Pipeline Configuration</li>
+                  <li style={{ fontWeight: 600, fontSize: '11.22px', lineHeight: '15.21px' }}>1 Phone Number</li>
                 </ul>
                 <div className="mt-auto">
                   <Button
                     onClick={() => handleSelectPlan('enterprise')}
                     disabled={isLoading || selectedPlan === 'enterprise'}
                     className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3 text-sm"
+                    style={{ backgroundColor: '#3244FF', fontWeight: 700, fontSize: '10.7px', lineHeight: '100%', textAlign: 'center' }}
                   >
                     {isLoading && selectedPlan === 'enterprise' ? 'Loading...' : 'Start Your 30 Day Free Trial'}
                   </Button>
-                  <p className="text-xs text-center text-gray-500 mt-3">Fast and Free Setup. Cancel Anytime.</p>
+                  <p className="text-xs text-center text-gray-500 mt-3" style={{ fontWeight: 400, fontSize: '10.65px', lineHeight: '100%', textAlign: 'center' }}>Fast and Free Setup. Cancel Anytime.</p>
                 </div>
               </div>
             </div>
@@ -419,7 +468,7 @@ function OnboardingContent() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           plan={selectedPlan}
-          onSubmit={handleModalSubmit}
+          onSubmit={handleSelectPlan}
         />
       )}
     </div>
