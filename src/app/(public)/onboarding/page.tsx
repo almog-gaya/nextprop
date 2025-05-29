@@ -294,17 +294,60 @@ function OnboardingContent() {
       <main className="w-full overflow-x-hidden">
         <div className="container mx-auto px-4 py-10 transform origin-top">
           <div className="text-center mx-auto">
-            <p  style={{fontSize:'54px',fontWeight:900,color:'black'}}>Pricing Plans</p>
-            <p style={{fontSize:'18px',fontWeight:500,color:'#59595C'}}>
+            <p style={{ fontSize: '54px', fontWeight: 900, color: 'black' }}>Pricing Plans</p>
+            <p style={{ fontSize: '18px', fontWeight: 500, color: '#59595C' }}>
               Nextprop handles it all—no extra tools required.
               <br />
               All plans include Live Zoom, Live Chat, Phone & SMS support.
             </p>
+            {/* Added buttons container */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-4">
+              {/* Button group */}
+              <div className="flex items-center gap-4" style={{  padding: '10px' }}>
+                <button
+                  className="text-sm font-semibold"
+                  style={{
+                    backgroundColor: '#9C03FF',
+                    color: 'white',
+                    padding: '7px 21px',
+                    borderRadius: '10px',
+                    border: '1px solid #D1D1D1',
+                  }}
+                >
+                  Plans & Pricing
+                </button>
+                <button
+                  className="text-sm font-semibold"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    color: 'black',
+                    padding: '7px 21px',
+                    borderRadius: '10px',
+                    border: '1px solid #D1D1D1',
+                  }}
+                >
+                  Compare Features
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Switch group placed above pricing cards and aligned right */}
+          <div className="w-full flex justify-center lg:justify-end mt-6 px-4 lg:px-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold" style={{ color: 'black' }}>Save up to 29%</span>
+              <span style={{ color: '#9C03FF' }}>Yearly</span>
+              {/* Basic switch placeholder */}
+              <div className="w-10 h-6 bg-purple-600 rounded-full flex items-center p-1 cursor-pointer">
+                <div className="w-4 h-4 bg-white rounded-full transform translate-x-0"></div>
+              </div>
+              <span style={{ color: '#59595C' }}>Monthly</span>
+            </div>
           </div>
 
           <div className="mt-12 flex flex-col lg:flex-row gap-10 lg:items-start lg:gap-16">
             {/* ---------------- Included in All Plans ---------------- */}
-            <div className="-mt-8 w-full lg:w-72 rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF]  text-white shadow-xl" style={{ backgroundImage: 'linear-gradient(89.63deg, #3045FF 0.28%, #9A04FF 99.64%)', width: '285.5px', borderRadius: '15px', padding: '24px', gap: '8px' }}>
+            <div className="-mt-15 w-full lg:w-72 rounded-3xl bg-gradient-to-br from-[#3045FF] to-[#9A04FF]  text-white shadow-xl" style={{ backgroundImage: 'linear-gradient(89.63deg, #3045FF 0.28%, #9A04FF 99.64%)', width: '285.5px', borderRadius: '15px', padding: '24px', gap: '8px' }}>
               <p className="text-2xl font-bold text-start mb-2" style={{ fontSize: '20.8px', lineHeight: '30px', color: 'white' }}>Included In All Plans</p>
               <ul className="space-y-4">
                 {commonFeatures.map((feature) => (
@@ -395,7 +438,7 @@ function OnboardingContent() {
                   className="absolute top-4.5 ml-[85px] bg-[#D1D1D1] rounded-full text-black text-[10px] font-[600] px-3 py-1"
                   style={{
                     border: '2px solid #D1D1D1',
-                  
+
                   }}
                 >
                   Most Value
