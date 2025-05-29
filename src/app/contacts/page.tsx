@@ -28,7 +28,7 @@ import ContactModal from '@/components/contacts/ContactModal';
 import PhoneLookupModal from '@/components/contacts/PhoneLookupModal';
 import BulkMessagingModal from '@/components/contacts/BulkMessagingModal';
 import BulkDeleteModal from '@/components/contacts/BulkDeleteModal';
-import { showInfo } from '@/lib/toast';
+import { showError, showInfo, showSuccess } from '@/lib/toast';
 import FilterModal from '@/components/contacts/FilterModal';
 
 interface CustomField {
@@ -436,6 +436,30 @@ export default function ContactsPage() {
       return [];
     }
   };
+
+  const createSmartList = async (smartList: { listName: string; filterSpec: any }) => {
+    try {
+      const response = await axios.post('/api/contacts/smartlist', {
+        listName: smartList.listName,
+        filterSpecs: smartList.filterSpec,
+      });
+      if (response.data && response.data.smartList) {
+        const newSmartList: SmartList = {
+          id: response.data.smartList.id,
+          listName: response.data.smartList.listName,
+          filterSpecs: response.data.smartList.filterSpecs,
+        };
+        setSmartLists(prev => [...prev, newSmartList]);
+        showSuccess('Smart list created successfully');
+        fetchSmartLists();
+        return newSmartList;
+      }
+    } catch (err: any) {
+      console.error('Error creating smart list:', err);
+      showError(err.response?.data?.error || 'Failed to create smart list');
+    }
+    return null;
+  }
 
   const fetchCustomFields = async () => {
     try {
@@ -1855,6 +1879,7 @@ export default function ContactsPage() {
                   isOpen={isFilterModalOpen} 
                   onClose={() => setIsFilterModalOpen(false)}
                   onSuccess={handleFilterSuccess}
+                  onSaveSmartList={createSmartList}
                 />
               )}
               {isPipelineChangeModalOpen && (

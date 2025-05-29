@@ -76,7 +76,13 @@ export async function POST(request: Request) {
             headers,
             body: JSON.stringify(payload),
         });
-        return NextResponse.json(response);
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error('Create smart list error:', data);
+            return NextResponse.json({ error: 'Failed to create smart list' }, { status: 500 });
+        }
+        return NextResponse.json(data);
     } catch (error: any) {
         console.error('Error in POST request:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
