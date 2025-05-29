@@ -7,6 +7,8 @@ import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // Modal Component
 function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
@@ -116,6 +118,8 @@ function RegisterModal({ isOpen, onClose, plan, onSubmit }: {
 
 // Component to handle search params
 function OnboardingContent() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
   const isSuccess = searchParams.get('success') === 'true';
@@ -124,62 +128,47 @@ function OnboardingContent() {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSelectPlan = (planType: 'basic' | 'pro' | 'enterprise') => {
-    setSelectedPlan(planType);
-    setIsModalOpen(true);
+  const handleSelectPlan = async (planId: string) => {
+    setIsLoading(true);
+    setSelectedPlan(planId);
+
+    try {
+      // Simulate API call to create a checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ planId, userId: user?.id }),
+      });
+
+      if (response.ok) {
+        const { url } = await response.json();
+        // Redirect to Stripe checkout
+        window.location.href = url;
+      } else {
+        const { error } = await response.json();
+        console.error('Failed to create checkout session:', error);
+        // Handle error (e.g., show a toast message)
+        alert(error || 'Failed to initiate checkout. Please try again.');
+      }
+    } catch (error) {
+      console.error('An error occurred during checkout initiation:', error);
+      // Handle network or other errors
+      alert('An unexpected error occurred. Please try again later.');
+    } finally {
+      setIsLoading(false);
+      setSelectedPlan(null); // Reset selected plan after attempt
+    }
   };
 
-  const handleModalSubmit = async (data: { name: string, businessName: string, phone: string, email: string, plan: string }) => {
-    setIsLoading(true);
-    const ghlResponse = await fetch('/api/auth/ghl/signup/location', {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        businessName: data.businessName,
-        firstName: data.name,
-        phone: data.phone,
-        email: data.email,
-      }),
-    });
-    const ghlResult = await ghlResponse.json();
-    const locationId = ghlResult.locationId;
-    const response = await fetch("/api/stripe/create-checkout-session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: data.email,
-        isOnboarding: true,
-        data: {
-          plan: data.plan,
-          name: data.name,
-          phone: data.phone,
-          email: data.email,
-          locationId: locationId,
-          businessName: data.businessName,
-        },
-      }),
-    });
+  const handleCompareFeaturesClick = () => {
+    router.push('/compare-features');
+  };
 
-    const result = await response.json();
-
-    if (result.url) {
-      // Store session in Firestore
-      const customerRef = doc(db, "customers", locationId);
-
-      await setDoc(
-        customerRef,
-        {
-          ...result,
-        },
-        { merge: true }
-      );
-      window.location.href = result.url;
-    }
-    setIsLoading(false);
+  const handlePlansAndPricingClick = () => {
+    // Stay on the current page, or scroll to the pricing section if needed
+    // For now, it just stays on the page.
   };
 
   if (isSuccess) {
@@ -303,7 +292,7 @@ function OnboardingContent() {
             {/* Added buttons container */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-4">
               {/* Button group */}
-              <div className="flex items-center gap-4" style={{  padding: '10px' }}>
+              <div className="flex items-center gap-4" style={{ padding: '10px' }}>
                 <button
                   className="text-sm font-semibold"
                   style={{
@@ -313,6 +302,7 @@ function OnboardingContent() {
                     borderRadius: '10px',
                     border: '1px solid #D1D1D1',
                   }}
+                  onClick={handlePlansAndPricingClick}
                 >
                   Plans & Pricing
                 </button>
@@ -325,10 +315,12 @@ function OnboardingContent() {
                     borderRadius: '10px',
                     border: '1px solid #D1D1D1',
                   }}
+                    onClick={handleCompareFeaturesClick}
                 >
                   Compare Features
                 </button>
               </div>
+        
             </div>
           </div>
 
@@ -476,7 +468,7 @@ function OnboardingContent() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           plan={selectedPlan}
-          onSubmit={handleModalSubmit}
+          onSubmit={handleSelectPlan}
         />
       )}
     </div>
