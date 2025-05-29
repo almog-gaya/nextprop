@@ -9,6 +9,7 @@ import { db } from '@/lib/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { AlignCenter } from 'lucide-react';
 
 export default function CompareFeaturesPage() {
   const router = useRouter();
@@ -40,8 +41,8 @@ export default function CompareFeaturesPage() {
               <button
                 className="text-sm font-semibold"
                 style={{
-                  backgroundColor: '#9C03FF',
-                  color: 'white',
+                 backgroundColor: '#FFFFFF',
+                  color: 'black',
                   padding: '7px 21px',
                   borderRadius: '10px',
                   border: '1px solid #D1D1D1',
@@ -53,8 +54,8 @@ export default function CompareFeaturesPage() {
               <button
                 className="text-sm font-semibold"
                 style={{
-                  backgroundColor: '#FFFFFF',
-                  color: 'black',
+                   backgroundColor: '#9C03FF',
+                  color: 'white',
                   padding: '7px 21px',
                   borderRadius: '10px',
                   border: '1px solid #D1D1D1',
@@ -67,56 +68,89 @@ export default function CompareFeaturesPage() {
 
           </div>
         </div>
-             <div className="w-full flex justify-center lg:justify-end mt-6 px-4 lg:px-0">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold" style={{ color: 'black' }}>Save up to 29%</span>
-              <span style={{ color: '#9C03FF' }}>Yearly</span>
-              {/* Basic switch placeholder */}
-              <div className="w-10 h-6 bg-purple-600 rounded-full flex items-center p-1 cursor-pointer">
-                <div className="w-4 h-4 bg-white rounded-full transform translate-x-0"></div>
-              </div>
-              <span style={{ color: '#59595C' }}>Monthly</span>
+        <div className="w-full flex justify-center lg:justify-end mt-8 mb-4 px-4 lg:px-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold" style={{ color: 'black' }}>Save up to 29%</span>
+            <span style={{ color: '#9C03FF' }}>Yearly</span>
+            {/* Basic switch placeholder */}
+            <div className="w-10 h-6 bg-purple-600 rounded-full flex items-center p-1 cursor-pointer">
+              <div className="w-4 h-4 bg-white rounded-full transform translate-x-0"></div>
             </div>
+            <span style={{ color: '#59595C' }}>Monthly</span>
           </div>
+        </div>
 
 
         {/* Trial and Features and Plans Container */}
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start w-full max-w-6xl mx-auto mt-12">
-          {/* Trial and Features Text */}
-          <div className="text-left text-sm font-semibold text-[#9C03FF] lg:w-1/4 lg:mt-6">
-            <p className="mb-2">30 DAY FREE TRIAL</p>
-            <p className="mb-2">UNLIMITED ONBOARDINGS</p>
+        <div className="pt-8 flex flex-col md:flex-row items-center justify-center ">
+          <div className="text-[16.73px]  text-[#8a2be2]  border-r border-white/30 font-[600px] space-y-2"
+            style={{
+              width: '444px',
+              height: '148px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'start',
+              paddingTop:'22px',
+              paddingBottom:'22px'
+
+            }}>
+            <p>30 DAY FREE TRIAL</p>
+            <p>UNLIMITED ONBOARDINGS</p>
             <p>FREE COURSES</p>
           </div>
 
-          {/* Plans Header */}
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Basic */}
-            <div className="p-6 text-center">
-              <h3 className="text-[#9C03FF] font-bold text-lg">BASIC</h3>
-              <p className="text-4xl font-extrabold text-gray-900">$149</p>
-              <button className="mt-4 w-full px-4 py-2 text-sm font-semibold text-white bg-black rounded-md">Start Your 30 Day Free Trial</button>
-              <p className="text-xs text-gray-500 mt-2">Fast and Free Setup. Cancel Anytime.</p>
-            </div>
-            {/* Pro */}
-            <div className="p-6 text-center relative">
-              <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full bg-blue-500 text-white text-xs font-semibold rounded-full px-2 py-0.5">Recommended</span>
-              <h3 className="text-[#9C03FF] font-bold text-lg mt-4">PRO</h3>
-              <p className="text-4xl font-extrabold text-gray-900">$299</p>
-              <button className="mt-4 w-full px-4 py-2 text-sm font-semibold text-white bg-blue-500 rounded-md">Start Your 30 Day Free Trial</button>
-              <p className="text-xs text-gray-500 mt-2">Fast and Free Setup. Cancel Anytime.</p>
-            </div>
-            {/* Enterprise */}
-            <div className="p-6 text-center relative">
-              <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full bg-purple-500 text-white text-xs font-semibold rounded-full px-2 py-0.5">Most Value</span>
-              <h3 className="text-[#9C03FF] font-bold text-lg mt-4">ENTERPRISE</h3>
-              <p className="text-4xl font-extrabold text-gray-900">$599</p>
-              <button className="mt-4 w-full px-4 py-2 text-sm font-semibold text-white bg-black rounded-md">Start Your 30 Day Free Trial</button>
-              <p className="text-xs text-gray-500 mt-2">Fast and Free Setup. Cancel Anytime.</p>
-            </div>
+          <div className="flex flex-col md:flex-row ">
+            {[
+              {
+                title: "BASIC",
+                price: "$149",
+                btnColor: "bg-black text-white",
+                tag: null,
+              },
+              {
+                title: "PRO",
+                price: "$299",
+                btnColor: "bg-[#4f46e5] text-white",
+                tag: "Recommended",
+              },
+              {
+                title: "ENTERPRISE",
+                price: "$599",
+                btnColor: "bg-black text-white",
+                tag: "Most Value",
+              },
+            ].map((plan, idx) => (
+              <div
+                key={idx}
+                className="relative  border-r border-white/30  text-center text-black"
+                style={{ width: '291px', height: '148px' }}
+              >
+                <div className="text-[#8a2be2] font-semibold text-sm mb-2">{plan.title}</div>
+
+                {plan.tag && (
+                  <div
+                    className={`absolute -top-0 right-3 text-xs px-2 py-1 rounded-full ${plan.tag === "Recommended" ? "bg-[#4f46e5] text-white" : "bg-black text-white"
+                      }`}
+                  >
+                    {plan.tag}
+                  </div>
+                )}
+
+                <div className="text-3xl font-bold mb-4">{plan.price}</div>
+                <Button
+                  className={`w-full rounded-xl py-2 mb-2 ${plan.btnColor}`}
+                  style={{fontSize:'12px',fontWeight:600,width:'231px', height:'39px'}}
+                >
+                  Start Your 30 Day Free Trial
+                </Button>
+                <p className="text-xs text-gray-800" >
+                  Fast and Free Setup. Cancel Anytime.
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
