@@ -49,6 +49,7 @@ import PhoneLookupModal from '@/components/contacts/PhoneLookupModal';
 import BulkMessagingModal from '@/components/contacts/BulkMessagingModal';
 import BulkDeleteModal from '@/components/contacts/BulkDeleteModal';
 import { showInfo } from '@/lib/toast';
+import FilterModal from '@/components/contacts/FilterModal';
 
 interface CustomField {
   id: string;
@@ -1147,244 +1148,7 @@ export default function ContactsPage() {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, []);
-
-  // Add this component before the main ContactsPage component
-  const FilterModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-    if (!isOpen) return null;
-
-    // All filter fields as shown in the image
-    const filterFields = [
-      { key: 'businessName', label: 'Business Name' },
-      { key: 'companyName', label: 'Company Name' },
-      { key: 'email', label: 'Email' },
-      { key: 'firstName', label: 'First Name' },
-      { key: 'fullName', label: 'Full Name' },
-      { key: 'lastName', label: 'Last Name' },
-      { key: 'tag', label: 'Tag' },
-      { key: 'dnd', label: 'DND' },
-      { key: 'created', label: 'Created' },
-    ];
-
-    const [selectedOperator, setSelectedOperator] = useState('is');
-    const [filterValue, setFilterValue] = useState('');
-    const [searchTerm, setSearchTerm] = useState('');
-
-    useEffect(() => {
-      setSelectedOperator('is');
-      setFilterValue('');
-    }, [activeFilter]);
-
-    const renderFilterSummary = () => (
-      <div className="flex flex-col h-full">
-        {/* Clear all filters */}
-        <button onClick={handleClearAll} className="text-blue-500 text-sm px-6 py-2 text-left hover:underline">Clear all filters</button>
-        {/* Filter cards */}
-        <div className="flex-1 px-6 pb-4">
-          {appliedFilters.map((filter, idx) => (
-            <div key={idx} className="bg-white border border-gray-200 rounded-lg p-4 mb-4 flex items-center justify-between">
-              <div>
-                <span className="text-sm text-blue-700 font-medium">{filter.label}:</span>
-                <span className="ml-1 text-sm text-gray-700">{filter.operator === 'is_empty' ? 'Is empty' : filter.operator === 'is_not_empty' ? 'Is not empty' : `${filter.operator.replace('_', ' ')} ${filter.value}`}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleEditFilter(idx)} className="p-1 hover:bg-gray-100 rounded" title="Edit">
-                  <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536M9 11l6 6M3 21h6v-6H3v6z" /></svg>
-                </button>
-                <button onClick={() => handleDeleteFilter(idx)} className="p-1 hover:bg-gray-100 rounded" title="Delete">
-                  <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-            </div>
-          ))}
-          {/* AND/OR buttons */}
-          <button className="flex items-center gap-1 px-3 py-1 border border-gray-200 rounded mb-2 text-sm text-gray-700 hover:bg-gray-50">
-            <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" strokeLinecap="round" /></svg>
-            AND
-          </button>
-          <button className="flex items-center gap-1 px-3 py-1 border border-gray-200 rounded text-sm text-gray-700 hover:bg-gray-50">
-            <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" strokeLinecap="round" /></svg>
-            OR
-          </button>
-        </div>
-        {/* Save as smart list button */}
-        <div className="px-6 pb-6">
-          <button
-            onClick={() => setIsImagePopupOpen(true)}
-            className="w-full py-2 bg-gray-50 border border-gray-200 rounded text-gray-700 font-medium flex items-center justify-center gap-2"
-          >
-            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg>
-            Save as smart list
-          </button>
-        </div>
-      </div>
-    );
-
-    const handleApply = () => {
-      // Add the filter to appliedFilters and show summary UI
-      if (activeFilter) {
-        setAppliedFilters(prev => [
-          ...prev,
-          {
-            key: activeFilter,
-            label: filterFields.find(f => f.key === activeFilter)?.label || activeFilter,
-            operator: selectedOperator,
-            value: filterValue,
-          },
-        ]);
-        setShowFilterSummary(true);
-        setActiveFilter(null);
-      }
-    };
-
-    const handleClearAll = () => {
-      setAppliedFilters([]);
-      setShowFilterSummary(false);
-      setActiveFilter(null);
-    };
-
-    const handleEditFilter = (idx: number) => {
-      const filter = appliedFilters[idx];
-      setActiveFilter(filter.key);
-      setShowFilterSummary(false);
-      // Optionally prefill operator/value
-    };
-
-    const handleDeleteFilter = (idx: number) => {
-      setAppliedFilters(prev => prev.filter((_, i) => i !== idx));
-      if (appliedFilters.length === 1) setShowFilterSummary(false);
-    };
-
-    const renderFilterDetails = (filterKey: string) => (
-      <div className="p-6">
-        <button onClick={() => setActiveFilter(null)} className="mb-4 text-blue-500 flex items-center">
-          <ChevronLeftIcon className="h-5 w-5 mr-1" /> Back
-        </button>
-        <h3 className="text-lg font-semibold mb-2">{filterFields.find(f => f.key === filterKey)?.label}</h3>
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="filterOperator"
-                checked={selectedOperator === 'is'}
-                onChange={() => setSelectedOperator('is')}
-              />
-              <span className='mb-0.5'>Is</span>
-            </div>
-            <div className="relative m-2">
-              <input
-                type="search"
-                className="w-full pl-10 pr-3 py-2  border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm"
-                placeholder="Please Input"
-                value={searchTerm}
-                onChange={e => setFilterValue(e.target.value)}
-                disabled={selectedOperator !== 'is'}
-              />
-              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" strokeLinecap="round" /></svg>
-            </div>
-
-            <p className="text-xs text-gray-500 m-2">
-              Matches entries based on the exact whole word or phrase specified. Example: If you want to search for 'Field Value', you can search by 'Field' or 'Value'
-            </p>
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="filterOperator"
-                checked={selectedOperator === 'is_not'}
-                onChange={() => setSelectedOperator('is_not')}
-              />
-              <span className='mb-0.5'>Is not</span>
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="filterOperator"
-                checked={selectedOperator === 'is_empty'}
-                onChange={() => setSelectedOperator('is_empty')}
-              />
-              <span className='mb-0.5'>Is empty</span>
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="filterOperator"
-                checked={selectedOperator === 'is_not_empty'}
-                onChange={() => setSelectedOperator('is_not_empty')}
-              />
-              <span className='mb-0.5'>Is not empty</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-end mt-6">
-          <button className="px-4 py-2 bg-gray-100 rounded mr-2" onClick={onClose}>Cancel</button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleApply}>Apply</button>
-        </div>
-      </div>
-    );
-
-    // Filter fields by search term
-    const filteredFields = filterFields.filter(field =>
-      field.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    return (
-      <div className="fixed inset-0 z-50">
-        {/* Overlay */}
-        <div className="fixed inset-0 bg-black/30" onClick={onClose}></div>
-        {/* Drawer */}
-        <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-white shadow-2xl flex flex-col transition-transform duration-300" style={{ minWidth: 360 }}>
-          {/* Always show the filter header at the top */}
-          <div className="flex items-center px-6 pt-6 pb-2">
-            <div className="flex items-center justify-center w-10 h-10 bg-blue-50 rounded-full mr-3">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="40" height="40" rx="20" fill="#9806FF" fill-opacity="0.14" />
-                <path d="M18.5012 14.0046H28.2431M18.5012 14.0046C18.5012 14.4021 18.3433 14.7833 18.0622 15.0644C17.7812 15.3455 17.4 15.5034 17.0025 15.5034C16.605 15.5034 16.2238 15.3455 15.9427 15.0644C15.6616 14.7833 15.5037 14.4021 15.5037 14.0046M18.5012 14.0046C18.5012 13.6071 18.3433 13.2259 18.0622 12.9448C17.7812 12.6638 17.4 12.5059 17.0025 12.5059C16.605 12.5059 16.2238 12.6638 15.9427 12.9448C15.6616 13.2259 15.5037 13.6071 15.5037 14.0046M15.5037 14.0046H11.7568M18.5012 25.9946H28.2431M18.5012 25.9946C18.5012 26.3921 18.3433 26.7733 18.0622 27.0544C17.7812 27.3355 17.4 27.4934 17.0025 27.4934C16.605 27.4934 16.2238 27.3355 15.9427 27.0544C15.6616 26.7733 15.5037 26.3921 15.5037 25.9946M18.5012 25.9946C18.5012 25.5971 18.3433 25.2159 18.0622 24.9348C17.7812 24.6538 17.4 24.4959 17.0025 24.4959C16.605 24.4959 16.2238 24.6538 15.9427 24.9348C15.6616 25.2159 15.5037 25.5971 15.5037 25.9946M15.5037 25.9946H11.7568M24.4962 19.9996H28.2431M24.4962 19.9996C24.4962 20.3971 24.3383 20.7783 24.0572 21.0594C23.7762 21.3405 23.395 21.4984 22.9975 21.4984C22.6 21.4984 22.2188 21.3405 21.9377 21.0594C21.6566 20.7783 21.4987 20.3971 21.4987 19.9996M24.4962 19.9996C24.4962 19.6021 24.3383 19.2209 24.0572 18.9398C23.7762 18.6588 23.395 18.5009 22.9975 18.5009C22.6 18.5009 22.2188 18.6588 21.9377 18.9398C21.6566 19.2209 21.4987 19.6021 21.4987 19.9996M21.4987 19.9996H11.7568" stroke="#9C03FF" stroke-width="1.49902" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="text-lg font-semibold text-gray-900 leading-tight">Filters</p>
-              <p className="text-xs text-gray-500">Showing {contacts.length} records</p>
-            </div>
-            <button onClick={onClose} className="ml-2 p-1 rounded hover:bg-gray-100">
-              <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
-          {/* The rest of your conditional rendering */}
-          {showFilterSummary && appliedFilters.length > 0 ? (
-            renderFilterSummary()
-          ) : activeFilter ? (
-            renderFilterDetails(activeFilter)
-          ) : (
-            <div className="px-6 pb-4">
-              <h4 className="text-xs font-semibold text-gray-500 mb-2 mt-2">Most Used</h4>
-              <div className="space-y-2">
-                {filteredFields.map((field) => (
-                  <button
-                    key={field.key}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200 border border-transparent transition"
-                    onClick={() => setActiveFilter(field.key)}
-                  >
-                    <span>{field.label}</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Add the ImagePopup */}
-        <ImagePopup isOpen={isImagePopupOpen} onClose={() => setIsImagePopupOpen(false)} />
-      </div>
-    );
-  };
+  }, []); 
 
   // InfoModal component
   const InfoModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
@@ -1548,6 +1312,27 @@ export default function ContactsPage() {
     setSelectedContacts([]);
   };
 
+  const handleFilterSuccess = async (payload: any) => {
+    try {
+      // Make API call with filters
+      const response = await axios.post('/api/contacts/dynamic-search',  payload);
+
+      // Update contacts with filtered results
+      const processedContacts = response.data.contacts.map((contact: Contact) => ({
+        ...contact,
+        name: contact.name || contact.firstName || (contact.phone ? `Contact ${contact.phone.slice(-4)}` : 'Unknown Contact'),
+      }));
+      
+      setContacts(processedContacts);
+      setTotalContacts(response.data.total);
+      setTotalPages(Math.ceil(response.data.total / contactsPerPage));
+      
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      toast.error('Failed to apply filters');
+    }
+  };
+
   return (
     <>
       <DashboardLayout title="Contacts">
@@ -1705,11 +1490,11 @@ export default function ContactsPage() {
             <FaWhatsapp size={20} color="grey" />
           </button>
         </span> */}
-                  <span data-tooltip="tooltip" data-placement="top" title="Merge up to 10 Contacts">
+                  {/* <span data-tooltip="tooltip" data-placement="top" title="Merge up to 10 Contacts">
                     <button className="w-10 h-10 flex items-center justify-center bg-white rounded-lg hover:bg-[#f3f4f6] border border-[#e3eaf3] transition" disabled>
                       <DocumentDuplicateIcon className="h-5 w-5 text-gray-700" />
                     </button>
-                  </span>
+                  </span> */}
                 </div>
                 {/* Existing search/filter/column row below */}
                 <div className="flex w-full max-w-3xl gap-3 items-center mt-4 mb-2">
@@ -2011,7 +1796,13 @@ export default function ContactsPage() {
                   </p>
                 )}
               </div>
-              {isFilterModalOpen && <FilterModal isOpen={isFilterModalOpen} onClose={() => setIsFilterModalOpen(false)} />}
+              {isFilterModalOpen && (
+                <FilterModal 
+                  isOpen={isFilterModalOpen} 
+                  onClose={() => setIsFilterModalOpen(false)}
+                  onSuccess={handleFilterSuccess}
+                />
+              )}
               {isPipelineChangeModalOpen && (
                 <PipelineChangeModal
                   isOpen={isPipelineChangeModalOpen}
