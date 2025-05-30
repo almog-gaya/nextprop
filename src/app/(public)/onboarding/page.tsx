@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { db } from '@/lib/firebaseConfig';
-import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -355,7 +353,7 @@ function OnboardingContent() {
             </div>
 
             {/* ---------------- Pricing Cards ---------------- */}
-            <div className=" flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className=" flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {/* Basic */}
               <div
                 className="relative rounded-3xl bg-white p-6 shadow-lg flex flex-col hover:shadow-xl transition hover:scale-105 hover:z-10"
