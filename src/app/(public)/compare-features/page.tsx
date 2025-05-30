@@ -152,7 +152,7 @@ export default function CompareFeaturesPage() {
         </div>
 
         {/* Pricing Table */}
-        <div className="w-full mx-auto mt-8 ">
+        <div className="w-full  mt-8 ">
           <table className="  divide-y divide-gray-200">
 
             <tbody className=" divide-y divide-gray-200">
@@ -160,7 +160,7 @@ export default function CompareFeaturesPage() {
               <tr>
                 <td className="text-sm font-medium text-gray-900 border"
                   style={{
-                    width: '444px',
+                    width: '374px',
                     height: '50px',
                     textAlign: 'start',
                   }}>Users</td>
@@ -182,7 +182,7 @@ export default function CompareFeaturesPage() {
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border"
                   style={{
-                    width: '444px',
+                    width: '374px',
                     height: '50px',
                     textAlign: 'start',
                   }}>Phone Numbers</td>
